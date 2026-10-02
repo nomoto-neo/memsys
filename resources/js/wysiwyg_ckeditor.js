@@ -1,0 +1,118 @@
+/*
+ * WYSIWYG欄(textarea.wysiwyg)を、CKEditor5に置き換える。
+ *
+ * エディタの種類ごとに違うのはこのファイルだけ。summernoteなど別の
+ * エディタにするときは、このファイルの代わりにそのエディタ用のファイル
+ * (wysiwyg_summernote.jsなど)を作り、画面から読み込むファイルを
+ * 差し替える。サーバー側(AjaxFileUploadトレイト・HtmlSanitizer)と
+ * Blade(textareaのclass="wysiwyg"・data-upload-url)は、エディタが
+ * 変わっても同じまま使える。
+ *
+ * エディタに挿入した画像は、一覧用画像などと同じAjaxアップロード
+ * (textareaのdata-upload-url)へ送る。fieldにはtextareaのname(例: body)を
+ * 送り、サーバー側はそれをコントローラーのWYSIWYG_FIELDSで引いて横幅を
+ * 決める。サーバーはtmpに保存したURLを返し、エディタはそれを<img src>に
+ * して本文に入れる(正式な保存先へ移すのは、登録/更新の確定時。詳しくは
+ * App\Support\AjaxFileUploadの「WYSIWYG欄の画像」参照)。
+ */
+import ClassicEditor from '@ckeditor/ckeditor5-build-classic';
+import { postUploadFile } from './upload_request.js';
+
+/*
+ * CKEditorの画像のアップロードは「アップロードアダプター」という部品に
+ * 任せる作りになっている。標準で入っているもの(CKFinder用など)は
+ * このサーバーの送受信の形式に合わないので、ここで自前のものを用意し、
+ * FileRepositoryプラグインに登録している。
+ */
+class WysiwygUploadAdapter {
+    constructor(loader, uploadUrl, field) {
+        this.loader = loader;
+        this.uploadUrl = uploadUrl;
+        this.field = field;
+        this.controller = null;
+    }
+
+    // CKEditorが呼ぶ。{ urls: { default: 画像のURL }, ... }で解決する
+    // Promiseを返す。urls以外に入れた値(ここではalt)は、アップロード完了時の
+    // uploadCompleteイベントで受け取れる(下のsetAltOnUpload()参照)。
+    // 失敗時にrejectした文字列は、CKEditorがそのまま利用者に表示する。
+    upload() {
+        return this.loader.file.then((file) => {
+            this.controller = new AbortController();
+
+            return postUploadFile(this.uploadUrl, this.field, file, this.controller.signal)
+                .then(({ ok, data }) => {
+                    if (! ok) {
+                        return Promise.reject(data.message || 'アップロードに失敗しました。');
+                    }
+
+                    return { urls: { default: data.url }, alt: data.origin_name };
+                });
+        });
+    }
+
+    // アップロード中に画像が取り消されたときにCKEditorが呼ぶ。
+    abort() {
+        if (this.controller) {
+            this.controller.abort();
+        }
+    }
+}
+
+/*
+ * アップロードした画像のaltに、元のファイル名を入れる。
+ *
+ * CKEditorは画像をaltの無い<img>として挿入するので、そのまま保存すると
+ * altは空になる(HtmlSanitizerのAttr.DefaultImageAlt参照)。そこで、
+ * アップロードが完了した時点で、アダプターが返したalt(元のファイル名)を
+ * 画像に設定する。
+ * 画像の「代替テキスト」ボタンで、後から書き換えることもできる。
+ */
+function setAltOnUpload(editor) {
+    if (! editor.plugins.has('ImageUploadEditing')) {
+        return;
+    }
+
+    editor.plugins.get('ImageUploadEditing').on('uploadComplete', (evt, { data, imageElement }) => {
+        if (! data.alt) {
+            return;
+        }
+
+        editor.model.change((writer) => {
+            writer.setAttribute('alt', data.alt, imageElement);
+        });
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('textarea.wysiwyg').forEach((textarea) => {
+        const uploadUrl = textarea.dataset.uploadUrl;
+        const field = textarea.name;
+
+        function uploadAdapterPlugin(editor) {
+            editor.plugins.get('FileRepository').createUploadAdapter =
+                (loader) => new WysiwygUploadAdapter(loader, uploadUrl, field);
+        }
+
+        ClassicEditor.create(textarea, {
+            extraPlugins: [uploadAdapterPlugin],
+            // エディタで選べる画像の種類。サーバー側の許可
+            // (AjaxFileUpload::ALLOW_IMAGE_TYPES)に合わせている。
+            // 最終的な判定はサーバー側で行うので、ここは利用者が
+            // 無駄にアップロードしないための案内にすぎない。
+            image: {
+                upload: {
+                    types: ['jpeg', 'png', 'webp'],
+                },
+            },
+        }).then((editor) => {
+            setAltOnUpload(editor);
+
+            // CKEditor5は元の<textarea>の値を自動では更新しないので、
+            // 送信時にeditor.getData()を明示的に書き戻す。
+            textarea.closest('form').addEventListener('submit', () => {
+                textarea.value = editor.getData();
+            });
+        }).catch((error) => console.error(error));
+    });
+});
