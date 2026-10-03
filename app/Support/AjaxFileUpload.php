@@ -140,10 +140,6 @@ trait AjaxFileUpload
     // 一致させないため(HtmlSanitizerはdata-〜属性を残さないが念のため)。
     private const IMG_SRC_PATTERN = '/(<img\b[^>]*?\ssrc=")([^"]*)(")/i';
 
-    // .tmpに置いたままにしてよい最大時間。これを超えたファイルは、
-    // 次に誰かが何かをアップロードしたタイミングでまとめて掃除される。
-    private const TMP_MAX_AGE_HOURS = 36;
-
     // 一時ディレクトリの名前（tmp）と、hiddenで持ち回るファイル名の形式
     // （SAFE_FILENAME）は、App\Support\UploadFilePathが持っている。プレビュー用の
     // URLを組み立てるUploadFilePath::previewUrl()も同じ値を使うので、1か所に
@@ -398,20 +394,14 @@ trait AjaxFileUpload
     }
 
     /**
-     * .tmp配下の古いファイルを削除する。アップロードのたびに毎回チェックする
-     * ことで、専用のバッチ処理を別途組まなくても、放置されたファイルが
-     * 際限なく溜まり続けることを防ぐ。
+     * tmp/の古いファイル（TemporaryDataCleaner::MAX_AGE_HOURSより古いもの）を削除する。
+     * 本来はスケジューラーが1時間ごとに消す（App\Support\TemporaryDataCleaner）。
+     * アップロードのたびにも呼ぶのは、サーバーのcronが動いていなくても、放置された
+     * ファイルが際限なく溜まり続けないようにするための控え。
      */
     private function cleanupTmpDirectory(): void
     {
-        $disk = Storage::disk(UploadFilePath::TMP_DISK);
-        $cutoff = now()->subHours(self::TMP_MAX_AGE_HOURS)->timestamp;
-
-        foreach ($disk->files(UploadFilePath::TMP_DIR) as $path) {
-            if ($disk->lastModified($path) < $cutoff) {
-                $disk->delete($path);
-            }
-        }
+        TemporaryDataCleaner::uploadTmpFiles();
     }
 
     /**

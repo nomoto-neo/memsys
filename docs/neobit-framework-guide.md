@@ -13,6 +13,7 @@
 | 第1.8版 | 2026-10-03 | 非公開のファイルを、ログインしていない人にも記事の状態などで見せられるようにした（Policy の `$user` を null 可に。一般公開のファイルはブラウザに残してよい返し方）。ニュースの全部のファイルを非公開の場所に移し、会員限定の記事を追加（7章） |
 | 第1.9版 | 2026-10-03 | お問い合わせのスパム対策（`SpamGuard`。ハニーポット・送信までの時間・Cloudflare Turnstile）を追加（12章） |
 | 第1.10版 | 2026-10-03 | 実例の表に、ニュースの掲載期間（掲載開始日時・掲載終了日時）を追加 |
+| 第1.11版 | 2026-10-03 | スケジューラーと、一時データの後片付け（`TemporaryDataCleaner`・`app:cleanup-temporary-data`）を追加（19章） |
 
 ## 0. このガイドについて
 
@@ -43,7 +44,7 @@
 
 ### まだ無い機能（今後の予定）
 
-操作ログ、公開日時の予約とスケジューラ、一斉メール配信（キュー）、自動テスト。作ったときに章を足します。
+操作ログ、一斉メール配信（キュー）、自動テスト。作ったときに章を足します。
 
 ## 1. 全体像
 
@@ -84,6 +85,8 @@
 | `_ajax_upload_block`・`_ajax_upload_group` | `resources/views/` | アップロード欄（単数・複数） | 7 |
 | `admin/csv_import/` | `resources/views/` | CSV 取り込みの画面（全コーナー共通） | 10 |
 | `_passkeys` | `resources/views/` | パスキーの一覧・本人確認・登録の画面の中身 | 14 |
+| `TemporaryDataCleaner` | `app/Support/` | 一時データの後片付け（一時ファイル・期限の切れたキャッシュと信頼済み端末） | 19 |
+| `app:cleanup-temporary-data` | `app/Console/Commands/` | 一時データの後片付けのコマンド（スケジューラーから1時間ごと） | 19 |
 | `SpamGuard`・`_spam_guard` | `app/Support/`・`resources/views/` | 訪問者向けフォームのスパム対策（ハニーポット・送信までの時間・Cloudflare Turnstile） | 12 |
 | `app.js` | `resources/js/` | フォームの補助（必須マークから required 属性、エラー表示） | 17 |
 
@@ -496,7 +499,7 @@ public function viewFiles(Member|Staff|null $user, News $news, string $field): b
 
 ### 一時ファイル（tmp）
 
-アップロードした直後のファイルは、公開・非公開に関係なく `"local"` ディスクの `tmp/` に置き、URL は `/uploads/tmp/{ファイル名}`（ルート `uploads.tmp`）です。アップロードしたときにセッションへファイル名を覚えておき、同じセッション（アップロードしたブラウザ）にだけ返します。保存するときに、持ち主のモデルのディスク（公開なら `"public"`）へ移します。
+アップロードした直後のファイルは、公開・非公開に関係なく `"local"` ディスクの `tmp/` に置き、URL は `/uploads/tmp/{ファイル名}`（ルート `uploads.tmp`）です。アップロードしたときにセッションへファイル名を覚えておき、同じセッション（アップロードしたブラウザ）にだけ返します。保存するときに、持ち主のモデルのディスク（公開なら `"public"`）へ移します。保存されずに残った一時ファイルは、24時間を過ぎるとスケジューラーが消します（19章）。
 
 ### 消えるファイル
 
@@ -872,3 +875,59 @@ public function resume(Member $member): Response
 
 - mPDF の作業用のディレクトリは `storage/framework/mpdf`（Git の対象外）です。最初の1回はフォントを解析するので、少し時間がかかります。
 - フォントを足すときは、`resources/fonts/` にファイルとライセンスを置き、`PdfDownload` の `PDF_FONTS` に足します。
+
+## 19. スケジューラー（定期的な処理）
+
+**ファイル**：`routes/console.php`（スケジュールの一覧）・`app/Console/Commands/`（コマンド）　**実例**：一時データの後片付け（`app/Support/TemporaryDataCleaner.php`・`app/Console/Commands/CleanupTemporaryData.php`）
+
+「決まった時刻に何かを実行する」処理は、Artisan のコマンドとして作り、`routes/console.php` でいつ動かすかを決めます。表示するたびに今の時刻と比べれば済むもの（ニュースの掲載期間など）は、スケジューラーを使いません。
+
+### コマンドとスケジュール
+
+```php
+// app/Console/Commands/CleanupTemporaryData.php（php artisan make:command で作る）
+#[Signature('app:cleanup-temporary-data')]
+#[Description('一時ファイル・期限の切れたキャッシュなどの一時データを消す')]
+class CleanupTemporaryData extends Command
+{
+    public function handle(): int
+    {
+        $counts = TemporaryDataCleaner::all();   // 中身は app/Support に置き、コマンドは呼ぶだけ
+        // 画面とログに件数を出す
+        return self::SUCCESS;
+    }
+}
+```
+
+```php
+// routes/console.php
+Schedule::command(CleanupTemporaryData::class)->hourly()->withoutOverlapping();
+```
+
+- 処理の中身はコマンドに書かず、`app/Support/` のクラスに置きます。画面から呼ぶ処理（アップロードのついでの片付けなど）と同じものを使えるようにするためです。
+- `withoutOverlapping()` で、前の回が終わっていなければ重ねて動かしません。
+- 登録した一覧と次に動く時刻は `php artisan schedule:list`、すぐに動かすときは `php artisan app:cleanup-temporary-data` のようにコマンドを直接実行します。
+- 何かを消したときだけログに残し、何もしなかった回は残しません（同じ行が1時間ごとに並ばないように）。
+
+### 一時データの後片付け（TemporaryDataCleaner）
+
+| 一時データ | 置き場所 | 消すもの |
+|---|---|---|
+| アップロード直後の一時ファイル | `storage/app/private/tmp` | 24時間（`MAX_AGE_HOURS`）より古いファイル |
+| CSV 取り込みの作業用ファイル | `storage/app/private/csv_import` | 24時間より古いファイル |
+| 試行制限の回数などのキャッシュ | `cache`・`cache_locks` テーブル | 期限の切れた行（キャッシュを database に置いているときだけ） |
+| 「このデバイスを記憶する」の記録 | `trusted_devices` テーブル | 期限（`expires_at`）の切れた行 |
+
+- 一時ファイルは、アップロードと CSV 取り込みのたびにも同じ処理で消します。サーバーの cron が動いていなくても溜まり続けないようにするための控えです。
+- 新しい一時データ（使い終わっても残るファイルや行）を作ったら、このクラスにメソッドを足し、`all()` に加えます。
+
+### サーバーの設定（cron）
+
+スケジューラーは、サーバーの cron で毎分 `php artisan schedule:run` を動かしたときに働きます。cron が無いと、`routes/console.php` に書いた処理は何も動きません。
+
+```cron
+* * * * * cd /var/www/memsys && php artisan schedule:run >> /dev/null 2>&1
+```
+
+- **PHP-FPM と同じユーザーで動かします**（例：`crontab -u apache -e`）。root で動かすと、ログ（`storage/logs`）などのファイルが root の持ち物になり、画面からの処理が書き込めなくなります。
+- パス（`/var/www/memsys`）と `php` の場所は、サーバーに合わせます。

@@ -101,10 +101,8 @@ trait CsvImport
     // 確認画面の「項目ごとの変更件数」で、項目ごとに開いて見られる変更の例の数。
     private const CSV_IMPORT_CHANGE_EXAMPLES = 5;
 
-    // 一時ファイルの置き場所（localディスク）と、置いたままにしてよい時間。
-    private const CSV_IMPORT_TMP_DIR = 'csv_import';
-
-    private const CSV_IMPORT_TMP_MAX_AGE_HOURS = 24;
+    // 取り込み途中のCSVの置き場所は CsvImportSettings::TMP_DISK・TMP_DIR。置いたままにしてよい
+    // 時間は App\Support\TemporaryDataCleaner::MAX_AGE_HOURS。
 
     // ---- ルートから呼ばれる入口 ----
 
@@ -141,7 +139,7 @@ trait CsvImport
             ['csv_file' => 'CSVファイル'],
         );
 
-        $disk = Storage::disk('local');
+        $disk = Storage::disk(CsvImportSettings::TMP_DISK);
         $this->cleanupCsvImportFiles();
 
         // 前に確認画面を開いたまま、別のファイルを選び直した場合は、前の一時ファイルを消す
@@ -151,7 +149,7 @@ trait CsvImport
         }
 
         $file = $request->file('csv_file');
-        $path = $file->storeAs(self::CSV_IMPORT_TMP_DIR, Str::random(40).'.csv', 'local');
+        $path = $file->storeAs(CsvImportSettings::TMP_DIR, Str::random(40).'.csv', CsvImportSettings::TMP_DISK);
         $filename = $file->getClientOriginalName();
 
         $result = $this->analyzeCsvImport($settings, $disk->path($path), $filename, $settings->encoding);
@@ -205,7 +203,7 @@ trait CsvImport
 
         if (! $state || ! hash_equals($state['token'], (string) $request->input('confirm_token'))) {
             if ($state) {
-                Storage::disk('local')->delete([$state['path'], $state['path'].'.snapshot.json']);
+                Storage::disk(CsvImportSettings::TMP_DISK)->delete([$state['path'], $state['path'].'.snapshot.json']);
             }
 
             // 取り込み済みの確認画面からもう一度押した、別のCSVファイルを確認し直した後に前の確認画面から
@@ -214,7 +212,7 @@ trait CsvImport
                 ->with('error', '確認の有効期限が切れています。もう一度CSVファイルを選んでください。');
         }
 
-        $disk = Storage::disk('local');
+        $disk = Storage::disk(CsvImportSettings::TMP_DISK);
 
         try {
             if (! $disk->exists($state['path']) || ! $disk->exists($state['path'].'.snapshot.json')) {
@@ -909,16 +907,11 @@ trait CsvImport
 
     /**
      * 置いたままになった古い一時ファイルを消す（確認画面を開いたまま実行しなかった場合など）。
+     * 本来はスケジューラーが1時間ごとに消す（App\Support\TemporaryDataCleaner）。ここでも
+     * 呼ぶのは、サーバーのcronが動いていなくても溜まり続けないようにするための控え。
      */
     private function cleanupCsvImportFiles(): void
     {
-        $disk = Storage::disk('local');
-        $cutoff = now()->subHours(self::CSV_IMPORT_TMP_MAX_AGE_HOURS)->timestamp;
-
-        foreach ($disk->files(self::CSV_IMPORT_TMP_DIR) as $path) {
-            if ($disk->lastModified($path) < $cutoff) {
-                $disk->delete($path);
-            }
-        }
+        TemporaryDataCleaner::csvImportFiles();
     }
 }

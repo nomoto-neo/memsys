@@ -28,6 +28,12 @@ use Illuminate\Database\Eloquent\Builder;
  */
 final class CsvImportSettings
 {
+    // 取り込み途中のCSV（確認画面から実行までの間）を置くディスクとディレクトリ。古いものは
+    // App\Support\TemporaryDataCleanerが消す。
+    public const TMP_DISK = 'local';
+
+    public const TMP_DIR = 'csv_import';
+
     public function __construct(
         public readonly Builder $query,
         public readonly string $name,
