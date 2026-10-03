@@ -1,0 +1,15 @@
+{
+    "preset": "laravel",
+    "rules": {
+        "new_with_parentheses": {
+            "named_class": true,
+            "anonymous_class": false
+        },
+        "ordered_traits": false,
+        "ordered_imports": false,
+        "single_line_empty_body": false,
+        "phpdoc_align": false,
+        "phpdoc_separation": false,
+        "single_line_comment_spacing": false
+    }
+}

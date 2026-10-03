@@ -1,6 +1,9 @@
 <?php
 
 use App\Support\CodeTable;
+use App\Support\HtmlSanitizer;
+use App\Support\UploadFilePath;
+use Illuminate\Database\Eloquent\Model;
 
 if (! function_exists('code_table')) {
     /**
@@ -14,7 +17,6 @@ if (! function_exists('code_table')) {
     }
 }
 
-
 if (! function_exists('code_keys')) {
     /**
      * コード表の値だけの配列（検証のRule::in(code_keys('prefectures'))など）。
@@ -24,7 +26,6 @@ if (! function_exists('code_keys')) {
         return array_keys(CodeTable::get($codeName));
     }
 }
-
 
 if (! function_exists('code_label')) {
     /**
@@ -36,7 +37,7 @@ if (! function_exists('code_label')) {
      */
     function code_label(string $codeName, mixed $value, string $default = ''): string
     {
-        if ($value instanceof \BackedEnum) {
+        if ($value instanceof BackedEnum) {
             $value = $value->value;
         }
 
@@ -49,7 +50,6 @@ if (! function_exists('code_label')) {
         return $table[$value];
     }
 }
-
 
 if (! function_exists('safe_html')) {
     /**
@@ -64,10 +64,9 @@ if (! function_exists('safe_html')) {
      */
     function safe_html(?string $html): ?string
     {
-        return \App\Support\HtmlSanitizer::clean($html);
+        return HtmlSanitizer::clean($html);
     }
 }
-
 
 if (! function_exists('upload_input_value')) {
     /**
@@ -104,7 +103,6 @@ if (! function_exists('upload_input_value')) {
     }
 }
 
-
 if (! function_exists('upload_preview_url')) {
     /**
      * アップロード欄に表示するプレビューのURLを、$inputの値から求める。
@@ -129,9 +127,9 @@ if (! function_exists('upload_preview_url')) {
      * ビューからこれを呼ぶ（$inputには送信される項目だけを入れる、という
      * 規約については_confirm_hiddenのコメント参照）。
      */
-    function upload_preview_url(?\Illuminate\Database\Eloquent\Model $model, array $input, string $field, ?int $idx = null): ?string
+    function upload_preview_url(?Model $model, array $input, string $field, ?int $idx = null): ?string
     {
-        return \App\Support\UploadFilePath::previewUrl(
+        return UploadFilePath::previewUrl(
             $model,
             upload_input_value($input, $field, $idx),
             upload_input_value($input, "{$field}_tmp", $idx),
@@ -139,7 +137,6 @@ if (! function_exists('upload_preview_url')) {
         );
     }
 }
-
 
 if (! function_exists('required_mark')) {
     /**
@@ -163,7 +160,6 @@ if (! function_exists('required_mark')) {
         return config("form.required_mark.{$area}", '');
     }
 }
-
 
 if (! function_exists('required_fields')) {
     /**
