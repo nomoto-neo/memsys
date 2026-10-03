@@ -81,9 +81,9 @@ trait CsvDownload
     private function downloadCsv(
         Builder $query,
         string $name,
-        CsvEncoding $encoding = CsvEncoding::Utf8Bom,
-        bool $header = true,
-        bool $escapeFormula = true,
+        CsvEncoding $encoding,
+        bool $header,
+        bool $escapeFormula,
     ): StreamedResponse {
         // 書き出しを始める前に、項目の定義を解釈しておく（書き間違いはここで例外になる）
         $columns = new CsvColumnSet(

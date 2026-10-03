@@ -38,13 +38,13 @@ final class CsvImportSettings
         public readonly Builder $query,
         public readonly string $name,
         public readonly string $route,
-        public readonly string|int|null $labelColumn = null,
-        public readonly CsvImportMode $mode = CsvImportMode::Save,
-        public readonly ?CsvEncoding $encoding = null,
-        public readonly bool $header = true,
-        public readonly bool $escapeFormula = true,
-        public readonly bool $allowInsert = false,
-        public readonly ?int $maxRows = null,
+        public readonly string|int|null $labelColumn,
+        public readonly CsvImportMode $mode,
+        public readonly ?CsvEncoding $encoding,
+        public readonly bool $header,
+        public readonly bool $escapeFormula,
+        public readonly bool $allowInsert,
+        public readonly ?int $maxRows,
     ) {
     }
 }
