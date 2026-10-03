@@ -123,6 +123,8 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
     Route::post('/mypage/ajax-upload', [MypageController::class, 'uploadAjaxFile'])
         ->middleware('throttle:20,1,mypage-upload')
         ->name('mypage.ajaxUpload');
+    // 履歴書のPDF
+    Route::get('/mypage/resume', [MypageController::class, 'resume'])->name('mypage.resume');
     // 退会（会員データを物理削除する）
     Route::get('/mypage/withdraw', [MypageController::class, 'withdraw'])->name('mypage.withdraw');
     Route::delete('/mypage/withdraw', [MypageController::class, 'destroy'])->name('mypage.destroy');
@@ -210,6 +212,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::patch('/members/{member}/confirm', [AdminMemberController::class, 'confirmUpdate'])->name('members.confirm.edit');
         Route::post('/members/{member}/back', [AdminMemberController::class, 'backToEdit'])->name('members.confirm.edit.back');
         Route::patch('/members/{member}/update', [AdminMemberController::class, 'update'])->name('members.update');
+        // 履歴書のPDF
+        Route::get('/members/{member}/resume', [AdminMemberController::class, 'resume'])->name('members.resume');
 
         // スタッフ管理
         Route::middleware('acl.manager')->group(function () {

@@ -11,6 +11,7 @@
                 @if (Route::has('mypage.passkeys'))
                     <a href="{{ route('mypage.passkeys') }}" class="btn btn-sm btn-outline-primary">パスキー</a>
                 @endif
+                <a href="{{ route('mypage.resume') }}" class="btn btn-sm btn-outline-primary" target="_blank">履歴書PDF</a>
                 <a href="{{ route('mypage.edit') }}" class="btn btn-sm btn-outline-primary">編集する</a>
             </div>
             <div class="card-body">

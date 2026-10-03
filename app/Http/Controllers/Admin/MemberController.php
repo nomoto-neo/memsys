@@ -13,10 +13,12 @@ use App\Support\CsvImport;
 use App\Support\CsvImportSettings;
 use App\Support\FormFlow;
 use App\Support\PasswordChange;
+use App\Support\PdfDownload;
 use App\Support\SearchableList;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -47,6 +49,9 @@ class MemberController extends Controller
     // 顔写真のAjaxアップロード（入口のuploadAjaxFile()もトレイト側）。
     // クラス側は UPLOAD_FILES を用意し、rules()に ajaxUploadRules() を足す。
     use AjaxFileUpload;
+
+    // 履歴書のPDF。クラス側は入口でdownloadPdf()を呼ぶだけ。
+    use PdfDownload;
 
     // ---- 一覧・検索（SearchableList）の設定 ----
 
@@ -316,5 +321,21 @@ class MemberController extends Controller
 
         return redirect()->route(self::INDEX_ROUTE, ['back'])
             ->with('status', '会員情報を更新しました。');
+    }
+
+    // ---- 履歴書のPDF ----
+
+    // 履歴書のPDFをブラウザの中で開く（マイページのMypageController::resume()と同じPDF）
+    public function resume(Member $member): Response
+    {
+        return $this->downloadPdf(
+            view: 'pdf.resume',
+            data: ['member' => $member],
+            name: '履歴書_'.$member->name,
+            images: ['photo' => ['path' => $member->photo_path, 'aspect' => Member::PHOTO_ASPECT]],
+            paper: 'A4',
+            orientation: 'P',
+            inline: true,
+        );
     }
 }

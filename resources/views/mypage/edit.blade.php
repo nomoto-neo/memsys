@@ -79,7 +79,7 @@
                     </div>
 
                     {{-- 顔写真。選んだ時点でアップロードされ、「更新する」で保存される。
-                         写真を見られるのは本人とスタッフだけ。 --}}
+                         写真を見られるのは本人とスタッフだけ（履歴書のPDFにも使う）。 --}}
                     <div class="mb-3">
                         <label class="form-label d-block">顔写真</label>
                         @include('_ajax_upload_block', [

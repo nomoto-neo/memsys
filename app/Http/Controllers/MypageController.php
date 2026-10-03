@@ -9,9 +9,11 @@ use App\Support\AjaxFileUpload;
 use App\Support\FormFlow;
 use App\Support\MemberActivityLog;
 use App\Support\PasskeyManagement;
+use App\Support\PdfDownload;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -30,6 +32,9 @@ class MypageController extends Controller
     // 顔写真のAjaxアップロード（入口のuploadAjaxFile()もトレイト側）。
     // クラス側は UPLOAD_FILES を用意し、rules()に ajaxUploadRules() を足す。
     use AjaxFileUpload;
+
+    // 履歴書のPDF。クラス側は入口でdownloadPdf()を呼ぶだけ。
+    use PdfDownload;
 
     // パスキーの一覧・登録・削除（passkeyIndex()など。App\Support\PasskeyManagement参照）。
     // 使わないサイトでは、このuseとroutes/web.phpのmypage.passkeysのルートを消す。
@@ -156,6 +161,25 @@ class MypageController extends Controller
         }
 
         return redirect()->route('mypage')->with('status', 'プロフィールを更新しました。');
+    }
+
+    /**
+     * 履歴書のPDFをブラウザの中で開く（GET /mypage/resume）。
+     * 管理画面のAdmin\MemberController::resume()と同じPDF。
+     */
+    public function resume(): Response
+    {
+        $member = Auth::user();
+
+        return $this->downloadPdf(
+            view: 'pdf.resume',
+            data: ['member' => $member],
+            name: '履歴書_'.$member->name,
+            images: ['photo' => ['path' => $member->photo_path, 'aspect' => Member::PHOTO_ASPECT]],
+            paper: 'A4',
+            orientation: 'P',
+            inline: true,
+        );
     }
 
     // ---- 退会 ----

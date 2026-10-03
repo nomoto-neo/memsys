@@ -8,7 +8,7 @@
 | 第1.3版 | 2026-10-01 | パスキー（PasskeyLogin・PasskeyManagement）と、パスワードを変えたときの後始末（PasswordChange）を追加（14章） |
 | 第1.4版 | 2026-10-01 | 区分表の出どころにDB（t_codes・項目見出し一覧）を追加（8章） |
 | 第1.5版 | 2026-10-01 | 動作条件（PHP・Laravelの最低バージョン）を追加（1-1） |
-| 第1.6版 | 2026-10-03 | ログインした人だけが見られるアップロードファイル（フィールド単位の `PRIVATE_FILE_FIELDS`・`UploadedFileController`）を追加し、お問い合わせの添付ファイルを非公開にした。アップロード直後の一時ファイルをアップロードしたセッションだけが見られる場所に移した（7章） |
+| 第1.6版 | 2026-10-03 | ログインした人だけが見られるアップロードファイル（フィールド単位の `PRIVATE_FILE_FIELDS`・`UploadedFileController`）を追加し、お問い合わせの添付ファイルを非公開にした。アップロード直後の一時ファイルをアップロードしたセッションだけが見られる場所に移した（7章）。PDF 出力（`PdfDownload`）を追加（18章） |
 
 ## 0. このガイドについて
 
@@ -21,8 +21,8 @@
 | 実例 | 使っている機能 |
 |---|---|
 | 管理画面：ニュース（`Admin\NewsController`） | 一覧・検索、登録・編集・確認画面、削除、アップロード（単数・複数）、WYSIWYG、CSVダウンロード・取り込み（追加あり） |
-| 管理画面：会員（`Admin\MemberController`） | 一覧・検索、詳細・編集・確認画面、区分表（都道府県）、CSVダウンロード・取り込み（更新だけ）、`@名前` の列、ログインした人だけが見られるアップロード（顔写真） |
-| マイページ（`MypageController`） | 確認画面なしの編集（FormFlow）、ログインした人だけが見られるアップロード（顔写真）、退会、パスキー |
+| 管理画面：会員（`Admin\MemberController`） | 一覧・検索、詳細・編集・確認画面、区分表（都道府県）、CSVダウンロード・取り込み（更新だけ）、`@名前` の列、ログインした人だけが見られるアップロード（顔写真）、PDF（履歴書） |
+| マイページ（`MypageController`） | 確認画面なしの編集（FormFlow）、ログインした人だけが見られるアップロード（顔写真）、PDF（履歴書）、退会、パスキー |
 | 管理画面：スタッフ（`Admin\StaffController`） | 一覧・検索、登録・編集、論理削除と取り消し、権限（Policy）、列挙型、パスワード |
 | 管理画面：カテゴリー（`Admin\CategoryController`） | 確認画面なしの登録・編集、並び替え、ページ分けしない一覧 |
 | 管理画面：項目見出し一覧（`Admin\CodeController`） | DBで管理する区分表の編集（複数行をまとめて保存、行の追加・削除・並び替え） |
@@ -54,6 +54,7 @@
 | `AjaxFileUpload` | `app/Support/` | 画像・添付ファイルの Ajax アップロード、WYSIWYG の画像 | 7 |
 | `UploadFilePath` | `app/Support/` | アップロードしたファイルの保存先と URL の規則（公開・非公開・一時ファイル） | 7 |
 | `UploadedFileController` | `app/Http/Controllers/` | ログインした人だけが見られるファイルと、一時ファイルを返す | 7 |
+| `PdfDownload` | `app/Support/` | Blade のテンプレートから PDF を作って返す（mPDF、同梱の IPAex フォント） | 18 |
 | `HtmlSanitizer`（`safe_html()`） | `app/Support/` | WYSIWYG の HTML の無害化 | 7 |
 | `CodeTable`（`code_table()` など） | `app/Support/`・`app/helpers.php` | 区分表（列挙型・CSV・DB） | 8 |
 | `CsvDownload`・`CsvColumnSet` | `app/Support/` | CSV ダウンロードと、CSV の項目の定義 | 9 |
@@ -462,7 +463,7 @@ public function viewFiles(Member|Staff $user, Member $member, string $field): bo
 - 非公開のフィールドのファイルは `"public"` ディスクではなく `"local"` ディスク（`storage/app/private`、Web サーバーから直接は見えない）に、公開と同じ規則のディレクトリ（`member/000/000005/` のように id を上位と下位に分けた2階層）で保存されます。
 - URL は `/uploads/{種類}/{id}/{フィールド}/{ファイル名}`（ルート `uploads.show`）になります。`UploadedFileController` は、そのファイルが今そのフィールドに保存されているものかを DB で確かめ、ログイン中のユーザー（会員・スタッフのどのガードでも）の誰かが Policy の `viewFiles()` で許されたときだけ返します。見てはいけない人には 404 を返します。`$field` で、フィールドごとに見てよい人を変えられます。
 - URL の「種類」は `AppServiceProvider` の `Relation::enforceMorphMap()` の名前です。非公開のフィールドを持つモデルは、必ずそこに載せます（載っていなければ URL を作るときに例外）。
-- `UploadFilePath::url(クラス, id, フィールド, ファイル名)`・`upload_preview_url()`・モデルのアクセサは、そのまま非公開の URL を返します。メールに添付するときなど、サーバー上のパスが要るときは `UploadFilePath::path(クラス, id, フィールド, ファイル名)` を使います（例：`ContactController` の通知メール）。
+- `UploadFilePath::url(クラス, id, フィールド, ファイル名)`・`upload_preview_url()`・モデルのアクセサは、そのまま非公開の URL を返します。PDF に埋め込む・メールに添付するときなど、サーバー上のパスが要るときは `UploadFilePath::path(クラス, id, フィールド, ファイル名)` を使います（例：`Member::photo_path`、`ContactController` の通知メール）。
 - 退会などでレコードを消すときは、FormFlow の `deleteData()` か、`deleteAllUploads($record)` をトランザクションの中で呼びます（実例：`MypageController::destroy()`）。公開・非公開の両方のディレクトリが消えます。
 - 運用を始めた後にフィールドを公開から非公開へ（または逆へ）変えるときは、すでにあるファイルをディスクの間で移すマイグレーションを書きます（実例：`move_inquiry_attach_files_to_private_disk`）。
 
@@ -766,7 +767,48 @@ private const PASSKEY_THROTTLE_SCOPE = 'member-passkey-code';  // 本人確認�
 - **戻り先**：一覧へ戻るリンクは `route('admin.xxx.index', ['back'])`。
 - **共通の部分ビュー**（`_confirm_hidden`・`_ajax_upload_block` など）は `resources/views/` 直下に置き、モデル名やコントローラー名を書きません。コーナー専用のテンプレート（`admin/news/_fields` など）は、そのコーナーのモデルの定数を参照してかまいません。
 
-## 18. 改版について
+## 18. PDF 出力（PdfDownload）
+
+**ファイル**：`app/Support/PdfDownload.php`（冒頭のコメント）・`resources/fonts/ipaex/`（IPAex フォントとライセンス）・`resources/views/pdf/`　**実例**：履歴書（`Admin\MemberController::resume()`・`MypageController::resume()`・`resources/views/pdf/resume.blade.php`）
+
+PDF の見た目は、普通の画面と同じく Blade のテンプレート（HTML と CSS）で書き、mPDF（composer の `mpdf/mpdf`）で PDF にします。
+
+### コントローラーに書くもの
+
+```php
+use PdfDownload;
+
+public function resume(Member $member): Response
+{
+    return $this->downloadPdf(
+        view: 'pdf.resume',                       // resources/views/pdf/resume.blade.php
+        data: ['member' => $member],              // テンプレートに渡す変数
+        name: '履歴書_'.$member->name,            // ファイル名「名前_年月日_時分.pdf」
+        images: ['photo' => ['path' => $member->photo_path, 'aspect' => Member::PHOTO_ASPECT]],
+        paper: 'A4',                              // 用紙（mPDF の format）
+        orientation: 'P',                         // P：縦、L：横
+        inline: true,                             // true：ブラウザの中で開く、false：ダウンロード
+    );
+}
+```
+
+- `images` の `aspect`（`[横, 縦]`）を書くと、画像の真ん中をその比で切り抜いてから埋め込みます。mPDF は CSS の `object-fit` に対応していないので、決まった大きさの枠に写真をゆがめずに収めるためです。`path` が null か、ファイルが無いときは埋め込みません。
+- ルート：`Route::get('/members/{member}/resume', ...)->name('members.resume')`。画面のボタンは `target="_blank"` で開きます。
+- 返す PDF には、ブラウザやプロキシに残させないヘッダー（`Cache-Control: private, no-store`）を付けています。
+
+### テンプレート
+
+- 埋め込める画像は `$images`（名前 => `<img>` の src に書く値）に入っています。`@if (isset($images['photo'])) <img src="{{ $images['photo'] }}" style="width: 30mm; height: 40mm;"> @endif` のように書きます。画像はファイルのパスや URL ではなく mPDF の「`var:名前`」で渡すので、非公開のファイルも埋め込めます。
+- フォントは、同梱の IPAex ゴシック（`ipaexg`、既定）と IPAex 明朝（`ipaexm`）を `font-family` で指定します。使った文字だけが PDF に埋め込まれるので、どの環境でも同じ見た目になります。
+- 余白は `@page { margin: ... }`、大きさは mm で書きます。
+- mPDF が解釈できる CSS はブラウザより少なく、flex や grid は使えません。枠や罫線は `<table>` で組みます。
+
+### 決まりごと
+
+- mPDF の作業用のディレクトリは `storage/framework/mpdf`（Git の対象外）です。最初の1回はフォントを解析するので、少し時間がかかります。
+- フォントを足すときは、`resources/fonts/` にファイルとライセンスを置き、`PdfDownload` の `PDF_FONTS` に足します。
+
+## 19. 改版について
 
 - 共通部品を足したり、使い方が変わったりしたら、このガイドの該当する章を直し、冒頭の版の表に1行足します。
 - 新しい機能の章を足すときは、「ファイル・実例 → コントローラーに書くもの → ルート → 画面 → 決まりごと」の順にそろえます。
@@ -774,4 +816,4 @@ private const PASSKEY_THROTTLE_SCOPE = 'member-passkey-code';  // 本人確認�
 
 ### まだ無い機能（今後の予定）
 
-PDF 出力、操作ログ、公開日時の予約とスケジューラ、一斉メール配信（キュー）、会員限定のお知らせ、お問い合わせのスパム対策、自動テスト。作ったときに章を足します。
+操作ログ、公開日時の予約とスケジューラ、一斉メール配信（キュー）、会員限定のお知らせ、お問い合わせのスパム対策、自動テスト。作ったときに章を足します。

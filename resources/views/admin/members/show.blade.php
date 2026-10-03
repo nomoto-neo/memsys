@@ -5,6 +5,7 @@
     <h1 class="h4 mb-0">会員詳細</h1>
     <div class="d-flex gap-2">
         <a href="{{ route('admin.members.index', ['back']) }}" class="btn btn-sm btn-outline-secondary">一覧へ戻る</a>
+        <a href="{{ route('admin.members.resume', $member) }}" class="btn btn-sm btn-outline-primary" target="_blank">履歴書PDF</a>
         <a href="{{ route('admin.members.edit', $member) }}" class="btn btn-sm btn-primary">編集する</a>
     </div>
 </div>

@@ -39,6 +39,12 @@ class Member extends Authenticatable implements PasskeyUser
     public const PHOTO_WIDTH = 600;
 
     /**
+     * 顔写真を履歴書に貼るときの縦横の比（横, 縦）。履歴書の写真の大きさ
+     * （横30mm×縦40mm）に合わせ、PDFにするときに真ん中をこの比で切り抜く。
+     */
+    public const PHOTO_ASPECT = [3, 4];
+
+    /**
      * ログインした人だけが見られる場所に置くアップロードのフィールド。顔写真は、
      * 本人とスタッフだけが見られる（App\Support\UploadFilePathの「非公開」参照。
      * 見てよいかの判断はApp\Policies\MemberPolicy::viewFiles()）。
@@ -119,6 +125,16 @@ class Member extends Authenticatable implements PasskeyUser
     {
         return Attribute::make(
             get: fn () => UploadFilePath::url(self::class, $this->getKey(), 'photo', $this->photo),
+        );
+    }
+
+    /**
+     * 顔写真のサーバー上の絶対パス（未登録ならnull）。履歴書のPDFに埋め込むときに使う。
+     */
+    protected function photoPath(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => UploadFilePath::path(self::class, $this->getKey(), 'photo', $this->photo),
         );
     }
 }
