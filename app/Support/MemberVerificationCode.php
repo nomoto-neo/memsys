@@ -10,28 +10,16 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 /**
- * 会員向けの「メールで送る確認コード」を発行・検証する。
+ * 会員向けの、メールで送る確認コードの発行と照合。
  *
- * 用途が5つある（ログイン・パスワード再設定（未ログイン）・パスワード変更
- * （マイページ、ログイン中）・会員登録（未ログイン、会員はまだ存在しない）・
- * パスキーの登録の前の本人確認（マイページ、ログイン中））。中身の処理（コードを作る・セッションに
- * ハッシュ化して仮置きする・メールを送る・検証する）はどれも同じなので、
- * 1つのクラスに、Staffの管理者2段階認証（TOTP）でいう
- * TwoFactorAuthenticator + BackupCodeGeneratorに相当する役割をまとめている。
- * TOTPと違うのは、秘密鍵を長期間覚えておく必要が無い（毎回その場で
- * 作って、確認できたら即座に捨てる）ため、DBのテーブルを持たず、
- * セッションだけで完結させている点。confirm_token（ContactController）や
- * 管理ログインの2段階目（TwoFactorChallengeController::PENDING_SECRET_SESSION_KEY）
- * と同じ「短命な状態はセッションに置く」という、このプロジェクトの
- * 一貫した考え方に沿っている。
+ * 使い道はログイン・パスワードの再設定・マイページのパスワード変更・会員登録・
+ * パスキーの登録の前の本人確認の5つ。どれもコードを作ってハッシュ値にしてセッションに仮置きし、
+ * メールで送って照合するという同じ処理なので、1つのクラスにまとめている。
+ * コードはその場で作って使ったら捨てるので、DBには持たずセッションだけで済ませる。
  *
- * 用途（$purpose）ごとに別々のセッションキーを使うので、例えば
- * 「ログイン用に発行したコード」を「マイページのパスワード変更」画面で
- * 誤って使い回せてしまう、といった事故は起きない。
- *
- * 会員登録だけは、コードを送る時点で会員がまだ存在しない（idが無い）ので、
- * 会員ではなく宛先のメールアドレスに紐付けて発行・検証する
- * （issueForAddress()・verifyForAddress()）。
+ * 使い道ごとにセッションのキーを分けているので、ある使い道で発行したコードを
+ * 別の画面で使い回すことはできない。
+ * 会員登録だけはまだ会員がいないので、宛先のメールアドレスに結び付けて発行と照合をする。
  */
 class MemberVerificationCode
 {
@@ -45,37 +33,26 @@ class MemberVerificationCode
 
     public const PURPOSE_PASSKEY = 'passkey';
 
-    /** コードの桁数。TOTPの6桁コードと同じ桁数に揃え、利用者の混乱を減らす。 */
+    // コードの桁数。認証アプリのコードと同じ6桁にそろえ、利用者が迷わないようにする
     private const CODE_LENGTH = 6;
 
-    /** コードの有効時間（分）。長すぎると総当たりの猶予を与え、短すぎると
-     *  メールの到着が遅れたときに間に合わない。10分は一般的なOTPメールの
-     *  相場に合わせた値。 */
+    // コードの有効な分数。長すぎると総当たりの時間を与え、短すぎるとメールが遅れたときに
+    // 間に合わない。よくある確認コードのメールに合わせた長さ
     private const VALID_MINUTES = 10;
 
+    // 使い道ごとのセッションのキー
     private function sessionKey(string $purpose): string
     {
         return "member.verification_code.$purpose";
     }
 
     /**
-     * コードを発行し、セッションにハッシュ化して仮置きした上でメール送信する。
+     * コードを発行し、ハッシュ値にしてセッションに仮置きしてからメールで送る。
+     * セッションの中身が漏れてもコードそのものは分からないよう、ハッシュ値にしている。
      *
-     * コードそのものは平文のままセッションに置かない（ハッシュ化して
-     * 保存し、検証時はHash::check()で照合する）。管理ログインの
-     * バックアップコード（BackupCodeGenerator）と同じ考え方——セッションの
-     * 中身が何らかの理由（ログ・デバッグ出力等）で漏れても、コード自体は
-     * 読み取れないようにしている。
-     *
-     * メール送信に失敗した場合はfalseを返す。呼び出し側の扱いは用途に
-     * よって変える必要がある：ログイン・マイページ変更は「本人だと
-     * 確認済み」の状態から呼ぶので、失敗をそのままエラー表示してよい。
-     * 一方パスワード再設定（未ログイン、メールアドレスを入力しただけ）は、
-     * 「そのメールアドレスの会員が存在しない」場合にissue()自体を
-     * 呼ばない設計と合わせて、失敗時も画面には常に同じ案内を出す
-     * （PasswordResetController::sendCode()参照）。ここで送信失敗の
-     * 有無によって案内文を変えてしまうと、存在確認の材料を与えてしまう
-     * ため。
+     * 送れなかったときはfalseを返す。ログインなど本人と分かっている画面では、そのまま
+     * エラーにしてよい。パスワードの再設定では会員かどうかを知られないよう、送れなくても
+     * 同じ案内を出す。PasswordResetController::sendCode()がその例。
      */
     public function issue(Request $request, Member $member, string $purpose): bool
     {
@@ -91,11 +68,10 @@ class MemberVerificationCode
     }
 
     /**
-     * 会員がまだ存在しない用途（会員登録）向けに、宛先のメールアドレスに
-     * 紐付けてコードを発行し、メールを送る。セッションへの置き方・送信失敗時に
-     * falseを返すことはissue()と同じ。
+     * まだ会員がいない会員登録のために、宛先のメールアドレスに結び付けてコードを発行して
+     * メールで送る。それ以外はissue()と同じ。
      *
-     * @param  string  $name  メール本文の宛名（「○○ 様」）に使う
+     * @param  string  $name  メールの宛名に使う
      */
     public function issueForAddress(Request $request, string $email, string $name, string $purpose): bool
     {
@@ -111,11 +87,8 @@ class MemberVerificationCode
     }
 
     /**
-     * 指定した用途・会員について、まだ有効なコードを発行済みか。
-     *
-     * マイページのパスワード変更画面（AuthPasswordController::edit()）で、
-     * 画面を再読み込みするたびに新しいコードを送り直してしまわないよう、
-     * GETのたびにこれを先に確認し、trueならissue()を呼ばない。
+     * その使い道と会員に、まだ有効なコードを発行してあるか。マイページのパスワード変更で
+     * 画面を読み直すたびにコードを送り直さないよう、先にこれで確かめる。
      */
     public function hasPending(Request $request, string $purpose, Member $member): bool
     {
@@ -127,12 +100,8 @@ class MemberVerificationCode
     }
 
     /**
-     * 入力されたコードを検証する。成功したら対象のMemberを返し、
-     * セッションの仮置きは（1回使い切りのため）消す。失敗時はnull。
-     *
-     * 期限切れの場合もここでセッションを消す。「期限切れの古いコードが
-     * セッションに残り続けて、次にissue()するまで何度でも判定対象になる」
-     * という状態を残さないため。
+     * 入力されたコードを照合する。通ったらその会員を返し、通らなければnullを返す。
+     * 通ったら仮置きを消すので、コードは1回だけ使える。
      */
     public function verify(Request $request, string $purpose, string $inputCode): ?Member
     {
@@ -146,10 +115,8 @@ class MemberVerificationCode
     }
 
     /**
-     * issueForAddress()で発行したコードを検証する。成功したら、発行時の
-     * メールアドレスを返す（呼び出し側で、登録しようとしているアドレスと
-     * 一致するかを確かめる）。失敗時はnull。1回使い切り・期限切れの扱いは
-     * verify()と同じ。
+     * issueForAddress()で発行したコードを照合する。通ったら発行したときのメールアドレスを
+     * 返すので、登録しようとしているアドレスと同じかは呼ぶ側で確かめる。通らなければnull。
      */
     public function verifyForAddress(Request $request, string $purpose, string $inputCode): ?string
     {
@@ -158,22 +125,22 @@ class MemberVerificationCode
         return is_string($state['email'] ?? null) ? $state['email'] : null;
     }
 
+    // 前ゼロを含む6桁の数字
     private function generateCode(): string
     {
         return str_pad((string) random_int(0, 999999), self::CODE_LENGTH, '0', STR_PAD_LEFT);
     }
 
     /**
-     * verify()・verifyForAddress()共通の照合。一致したらセッションの仮置きを
-     * 消して、その中身を返す。期限切れの場合もセッションを消す
-     * （期限切れの古いコードが、次にissue()するまで何度でも判定対象に
-     * なる状態を残さないため）。
+     * verify()とverifyForAddress()に共通の照合。一致したら仮置きを消してその中身を返す。
+     * 古いコードが何度でも照合の相手になり続けないよう、期限切れのときも仮置きを消す。
      */
     private function consume(Request $request, string $purpose, string $inputCode): ?array
     {
         $key = $this->sessionKey($purpose);
         $state = $request->session()->get($key);
 
+        // 仮置きが無いか期限切れなら、消して終わる
         if (! is_array($state) || ($state['expires_at'] ?? 0) < now()->timestamp) {
             $request->session()->forget($key);
 
@@ -184,23 +151,18 @@ class MemberVerificationCode
             return null;
         }
 
+        // 一致したので、使い切る
         $request->session()->forget($key);
 
         return $state;
     }
 
     /**
-     * $purposeに応じた案内文でメールを組み立てて送る。
+     * 使い道に合った案内文でメールを送る。送れなかったときはログに残してfalseを返す。
+     * 送れたかどうかで、呼ぶ側がその後の手続きを続けるかを決めるため。
      *
-     * ContactController::sendStaffNotification()と同じ考え方で、送信例外は
-     * ここで捕まえてログに残す（呼び出し側にThrowableを伝播させない）。
-     * ただし問い合わせと違い、こちらは「送れたかどうか」がその後の手続きの
-     * 続行可否に直結する（データは既に保存済み、ではない）ため、
-     * bool を返して呼び出し側に伝える。
-     *
-     * @param  array<string, mixed>  $logContext  送信失敗時のログに添える情報。
-     *         会員がいる用途ではmember_idを入れる。メールアドレスは個人情報なので
-     *         ログには出さない。
+     * @param  array<string, mixed>  $logContext  送れなかったときのログに添える情報。
+     *         メールアドレスは個人情報なので、ログには出さない。
      */
     private function sendMail(string $email, string $name, string $code, string $purpose, array $logContext): bool
     {

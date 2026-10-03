@@ -1,16 +1,18 @@
 <?php
 
+/*
+ * 画面やコントローラーから短く呼ぶためのヘルパー関数。
+ * 中身の多くは、App\Support\の共通部品を呼ぶだけ。
+ */
+
 use App\Support\CodeTable;
 use App\Support\HtmlSanitizer;
 use App\Support\UploadFilePath;
 use Illuminate\Database\Eloquent\Model;
 
 if (! function_exists('code_table')) {
-    /**
-     * コード表を [値 => 名称] の配列で返す（プルダウンの選択肢、CSVの一覧など）。
-     * \App\Support\CodeTable::get()の短縮呼び出し用。一覧の出どころ（列挙型・
-     * code/<コード名>.csv・t_codesテーブル）はCodeTableのコメント参照。
-     */
+    // コード表を、値と名称の配列で返す。プルダウンの選択肢やCSVに使う。
+    // 列挙型・CSV・DBのどこにあるコード表でも、同じように呼べる（App\Support\CodeTable）。
     function code_table(string $codeName): array
     {
         return CodeTable::get($codeName);
@@ -18,9 +20,7 @@ if (! function_exists('code_table')) {
 }
 
 if (! function_exists('code_keys')) {
-    /**
-     * コード表の値だけの配列（検証のRule::in(code_keys('prefectures'))など）。
-     */
+    // コード表の値だけの配列。検証のRule::in(code_keys('prefectures'))などに使う。
     function code_keys(string $codeName): array
     {
         return array_keys(CodeTable::get($codeName));
@@ -29,20 +29,21 @@ if (! function_exists('code_keys')) {
 
 if (! function_exists('code_label')) {
     /**
-     * コード表で、値に対応する名称を返す（一覧・詳細・確認画面の表示など）。
-     * 値が空、またはコード表に無い値なら$defaultを返す。
-     * 列挙型の値（例: $staff->acl）をそのまま渡してもよい。
+     * コード表で、値に対応する名称を返す。画面の表示に使う。
+     * 値が空か、コード表に無い値なら$defaultを返す。列挙型の値をそのまま渡してもよい。
      *
-     * 例: code_label('prefectures', $member->prefecture, '（未設定）')
+     *   code_label('prefectures', $member->prefecture, '（未設定）')
      */
     function code_label(string $codeName, mixed $value, string $default = ''): string
     {
+        // 列挙型なら、その値で探す
         if ($value instanceof BackedEnum) {
             $value = $value->value;
         }
 
         $table = CodeTable::get($codeName);
 
+        // 空の値や、コード表に無い値なら$default
         if ((! is_int($value) && ! is_string($value)) || ! array_key_exists($value, $table)) {
             return $default;
         }
@@ -53,14 +54,11 @@ if (! function_exists('code_label')) {
 
 if (! function_exists('safe_html')) {
     /**
-     * WYSIWYGエディターで入力されたHTMLを、許可したタグ・属性だけに
-     * 絞って返す。\App\Support\HtmlSanitizer::clean()の短縮呼び出し用。
+     * エディターで入力されたHTMLを、許可したタグと属性だけに絞って返す。
+     * エスケープせずに{!! !!}で出すHTMLは、必ずこれを通す。nullならnullを返す。
+     * 許可しているタグは、App\Support\HtmlSanitizerを参照。
      *
-     * エスケープせずに{!! !!}で出力するHTMLは、必ずこれを通すこと
-     * （例: {!! safe_html($news->body) !!}）。理由と許可しているタグの一覧は
-     * HtmlSanitizerのコメント参照。
-     *
-     * nullを渡すとnullをそのまま返す（{!! !!}で出力すると何も表示されない）。
+     *   {!! safe_html($news->body) !!}
      */
     function safe_html(?string $html): ?string
     {
@@ -70,31 +68,18 @@ if (! function_exists('safe_html')) {
 
 if (! function_exists('upload_input_value')) {
     /**
-     * アップロード欄の値（hiddenで持ち回るlist_image・list_image_tmp等）を、
-     * $inputから1つ取り出す。
+     * アップロード欄のhiddenの値を、$inputから1つ取り出す。見つからないか、形が合わなければnull。
+     * $idxがnullなら単数のフィールド、整数なら複数のフィールドの$idx番目の行。
      *
-     * - $idxがnull … 単独のフィールド（例: list_image）。$input[$key]を返す。
-     * - $idxが整数 … 複数展開のフィールド（例: attach）の$idx番目の行。
-     *                 $input[$key][$idx]を返す。
-     *
-     * 見つからない場合や、形が合わない場合はnullを返す。形が合わない場合と
-     * いうのは、単独のはずが配列だった、複数展開のはずが配列ではなかった、
-     * などのこと。
-     *
-     * $idxの判定は必ず`=== null`で行っている。複数展開の1行目の添え字は0で、
-     * `if ($idx)`や`$idx ?? ...`のように書くと0を「添え字なし」と取り違える。
-     *
-     * 配列かどうかを必ずis_array()で確かめているのは、hiddenが書き換えられて
-     * attachが配列ではなく文字列で送られてきた場合に備えるため。PHPでは
-     * 文字列に[0]を付けると1文字目が返ってくるので、確かめずに
-     * $input['attach'][0]とすると、ファイル名の1文字目を取り出してしまう。
-     *
-     * この2つの判断を呼ぶ側に書かせないために、このヘルパーを用意している。
+     * 複数のフィールドの1行目は添え字が0なので、$idxは=== nullで判定する。
+     * また、hiddenが書き換えられて配列のはずの値が文字列で届いても、1文字目を取り出して
+     * しまわないよう、配列かどうかを必ず確かめる。この2つを呼ぶ側に書かせないための関数。
      */
     function upload_input_value(array $input, string $key, ?int $idx = null): ?string
     {
         $value = $input[$key] ?? null;
 
+        // 複数のフィールドなら、その行の値（配列でなければnull）
         if ($idx !== null) {
             $value = is_array($value) ? ($value[$idx] ?? null) : null;
         }
@@ -105,27 +90,15 @@ if (! function_exists('upload_input_value')) {
 
 if (! function_exists('upload_preview_url')) {
     /**
-     * アップロード欄に表示するプレビューのURLを、$inputの値から求める。
-     * $idxの意味はupload_input_value()と同じ（nullなら単独のフィールド、
-     * 整数なら複数展開のフィールドの$idx番目の行）。
+     * アップロード欄に出すプレビューのURLを、$inputの値から求める。$idxの意味は
+     * upload_input_value()と同じ。$modelはファイルを持つレコードで、新規登録ではnull。
+     * 複数のフィールドでも、$modelには親のレコードを渡す。
      *
      *   upload_preview_url($model, $input, 'list_image')
      *   upload_preview_url($model, $input, 'attach', $i)
      *
-     * $modelはファイルを持っているレコード（ニュースなら$news）で、
-     * 新規登録の画面ではnull。複数展開の添付ファイルも保存先は親の
-     * ディレクトリなので、$modelには親のレコードを渡す。
-     *
-     * $inputの中から{field}・{field}_tmp・{field}_delの3つを読み、
-     * \App\Support\UploadFilePath::previewUrl()に渡す。キー名の付け方
-     * （_tmp・_del）は、AjaxFileUploadで決めているこのプロジェクト共通の
-     * 規則なので、呼ぶ側がそれを毎回書かなくて済むように、ここに
-     * まとめている。
-     *
-     * 都道府県の名称をcode_table()で引くのと同じく、入力値から計算で
-     * 求まる表示用の値なので、コントローラーで作って$inputに足すのではなく、
-     * ビューからこれを呼ぶ（$inputには送信される項目だけを入れる、という
-     * 規約については_confirm_hiddenのコメント参照）。
+     * 入力値から求まる表示用の値なので、$inputには入れず、画面からこれを呼ぶ。
+     * $inputには送信する項目だけを入れる決まりのため。
      */
     function upload_preview_url(?Model $model, array $input, string $field, ?int $idx = null): ?string
     {
@@ -141,21 +114,16 @@ if (! function_exists('upload_preview_url')) {
 
 if (! function_exists('required_mark')) {
     /**
-     * 項目名の横に付ける必須マークのHTMLを返す。マークの文字列は
-     * config/form.phpのrequired_markで、管理画面用（admin）と訪問者向けの
-     * 画面用（public）を別々に決めている。
+     * 項目名の横に付ける必須マークのHTML。マークは、管理画面用と訪問者向けの画面用を
+     * config/form.phpで別々に決めている。どちらを使うかは、今の画面のルート名が
+     * admin.で始まるかで決め、違う方を使いたいときだけ$areaで指定する。
      *
-     * どちらを使うかは、今の画面のルート名で決める（routes/web.phpで
-     * 管理画面のルートはすべてadmin.で始まる名前にしているので、admin.で
-     * 始まればadmin、それ以外はpublic）。画面と違う方のマークを使いたい
-     * ときだけ、$areaに'admin'か'public'を渡す。
-     *
-     * 必須マークは、ふつうはrules()からrequired_fields()で組み立てる。
-     * これをビューに直接書く（{!! required_mark() !!}）のは、rules()と
-     * 連動させない画面（比較用の/contact2など）だけにする。
+     * ふつうはrules()からrequired_fields()で組み立てる。画面に直接書くのは、
+     * rules()と連動させない画面（比較用の/contact2など）だけ。
      */
     function required_mark(?string $area = null): string
     {
+        // 指定が無ければ、管理画面か訪問者向けかを、今のルート名で決める
         $area ??= request()->routeIs('admin.*') ? 'admin' : 'public';
 
         return config("form.required_mark.{$area}", '');
@@ -164,30 +132,25 @@ if (! function_exists('required_mark')) {
 
 if (! function_exists('required_fields')) {
     /**
-     * 検証ルールの配列から、ビューに渡す必須マークの配列（項目名 => マーク）を作る。
-     * ルールに'required'がある項目は必須マーク、無い項目は空文字になる。
-     * ビューでは{!! $required['項目名'] ?? '' !!}で出力する。
+     * 検証ルールから、画面に渡す必須マークの配列を作る。ルールに'required'がある項目は
+     * 必須マーク、無い項目は空文字。画面では{!! $required['項目名'] ?? '' !!}で出す。
      *
-     * $alsoRequiredには、ルールに'required'は無いが必須マークを付けたい項目を渡す。
-     * - password_confirmation：confirmedルールでpassword側と照合するので、
-     *   ルールには載せていない（必須にすると、passwordが未入力のときに
-     *   確認用の方のエラーが先に出て紛らわしいため）
-     * - acceptedルールの同意チェック：未チェックも弾くが、'required'という
-     *   文字列を含まない
-     *
-     * ルールは配列で書く前提（'required|string'のような文字列の書き方は判定できない）。
-     * 'required'という文字列だけを見ているので、required_ifなどの条件付きの
-     * 必須や、Ruleオブジェクトでの必須は拾わない（必要なら$alsoRequiredで足す）。
+     * $alsoRequiredには、'required'は無いが必須にしたい項目を渡す。password_confirmationや、
+     * acceptedルールの同意のチェックなど。
+     * ルールは配列で書く前提で、'required'という文字列だけを見る。required_ifのような
+     * 条件付きの必須は拾わないので、必要なら$alsoRequiredで足す。
      */
     function required_fields(array $rules, array $alsoRequired = []): array
     {
         $mark = required_mark();
 
+        // ルールに'required'がある項目に、必須マークを付ける
         $required = [];
         foreach ($rules as $field => $fieldRules) {
             $required[$field] = in_array('required', (array) $fieldRules, true) ? $mark : '';
         }
 
+        // ルールには無いが必須にしたい項目にも付ける
         foreach ($alsoRequired as $field) {
             $required[$field] = $mark;
         }

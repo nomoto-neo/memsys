@@ -9,10 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * ニュース記事に付いた添付ファイル1件分。
- *
- * このモデル自体は薄いラッパーで、実際の保存・削除・並び替えのロジックは
- * すべてApp\Support\AjaxFileUploadトレイト側が持っている。ここでは
- * News::attach()からのhasMany経由でしか基本的に触らない想定。
+ * 保存・削除はApp\Support\AjaxFileUploadが、News::attach()のリレーションを通して行う。
  */
 class NewsAttachment extends Model
 {
@@ -30,13 +27,9 @@ class NewsAttachment extends Model
     }
 
     /**
-     * 添付ファイルの公開URL。ビューからは $attachment->url で読める
-     * （仕組みはNews::listImageUrl()のコメント参照）。
-     *
-     * ファイルは親の記事のディレクトリ（例: news/000/000012/）に置かれて
-     * いるが、ここでは$this->newsで親のモデルを読み込まず、手元にある
-     * news_idだけでURLを組み立てている。記事1件に添付が何件あっても、
-     * URLのために余計なSQLが発行されないようにするため。
+     * 添付ファイルのURL。画面からは$attachment->urlで読める。
+     * 親の記事を読み込まず、news_idだけでURLを作る。添付が何件あっても、
+     * URLのために余計なSQLを出さないようにするため。
      */
     protected function url(): Attribute
     {

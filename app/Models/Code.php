@@ -5,12 +5,10 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * DBで管理するコード表の1行（t_codes）。どのコード表の行かはtype列
- * （App\Enums\CodeTypeの値）で表す。
+ * DBで管理するコード表の1行。どのコード表の行かは、type列にApp\Enums\CodeTypeの値で持つ。
  *
- * 画面や検証でコード表を使うときは、このモデルを直接読まず、code_table()系の
- * ヘルパーを通す（App\Support\CodeTable）。このモデルを直接使うのは、
- * 管理画面の編集（Admin\CodeController）とシーダーだけ。
+ * 画面や検証では、このモデルを直接読まず、code_table()などのヘルパーを使う。
+ * このモデルを直接使うのは、管理画面の項目見出し一覧とシーダーだけ。
  */
 class Code extends Model
 {

@@ -20,10 +20,12 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
-// 「誰が何をしてよいか」のチェックは、コントローラーに入る前にroutes/web.phpで行う。
-// - 詳細・編集・削除・削除の取り消し・2段階認証の代理解除：canミドルウェア（判断はApp\Policies\StaffPolicy）
-// - 一覧・新規登録：acl.manager（管理者だけ）
-// 権限（acl）を変えてよいかも、同じStaffPolicyのupdateAcl()で判断する。
+/**
+ * 管理画面のスタッフ管理と、ログイン中の本人のパスキーの管理。
+ *
+ * 誰が何をしてよいかは、コントローラーに入る前にroutes/web.phpで確かめる。
+ * 一覧と新規登録は管理者だけが使え、詳細・編集・削除などはStaffPolicyで判断する。
+ */
 class StaffController extends Controller
 {
     // ---- 共通処理（トレイト） ----
@@ -92,27 +94,34 @@ class StaffController extends Controller
     // $staffは既存スタッフの編集ならそのインスタンス、新規登録ならnull。
     private function rules(?Staff $staff): array
     {
+        // パスワード：新規登録では必須、編集では空欄なら今のまま変えない
+        if ($staff === null) {
+            $passwordRules = ['required', 'string', 'min:8', 'confirmed'];
+        } else {
+            $passwordRules = ['nullable', 'string', 'min:8', 'confirmed'];
+        }
+
+        // 権限：変えられない人（StaffPolicy::updateAcl()）の画面には権限欄が無いので、
+        // 'exclude'で検証の対象からも入力値からも外す（保存しないのはsaveFieldNames()側）
+        if ($this->canUpdateAcl($staff)) {
+            $aclRules = ['required', 'integer', Rule::in(code_keys('staff_acl'))];
+        } else {
+            $aclRules = ['exclude'];
+        }
+
         return [
             'name' => ['required', 'string', 'max:255'],
-            'login_id' => ['required', 'string', 'max:255',
-                // 自idを除外してユニークであること。
-                // Rule::unique()はEloquentを通さずテーブルを直接検索するので、
-                // SoftDeletesの「削除済みを除く」条件は掛からず、削除済み
-                // スタッフのログインIDとも重複チェックされる（削除済みの
-                // ログインIDは再利用させない。t_staffsのunique制約と同じ考え方）。
-                Rule::unique(Staff::class, 'login_id')
-                    ->ignore($staff?->id)],
-            // emailはログインには使わない連絡先で、重複を許す（役職用の
-            // 共有アドレスを複数人で登録することもできる）。
+            'login_id' => [
+                'required', 'string', 'max:255',
+                // 自idを除外してユニークであること。Rule::unique()はテーブルを直接探すので、
+                // 論理削除したスタッフのログインIDとも重ならないこと（削除済みのログインIDは
+                // 再利用させない。t_staffsの一意制約と同じ考え方）
+                Rule::unique(Staff::class, 'login_id')->ignore($staff?->id),
+            ],
+            // emailはログインには使わない連絡先なので、重複を許す（役職用の共有アドレスなど）
             'email' => ['nullable', 'string', 'email', 'max:255'],
-            'password' => ($staff === null)
-                ? ['required', 'string', 'min:8', 'confirmed']
-                : ['nullable', 'string', 'min:8', 'confirmed'],
-            // 権限を変えられない人（StaffPolicy::updateAcl()）の画面には権限欄が無いので、
-            // 'exclude'で検証の対象からも入力値からも外す（保存しないのはsaveFieldNames()側）。
-            'acl' => $this->canUpdateAcl($staff)
-                ? ['required', 'integer', Rule::in(code_keys('staff_acl'))]
-                : ['exclude'],
+            'password' => $passwordRules,
+            'acl' => $aclRules,
         ];
     }
 
@@ -135,6 +144,7 @@ class StaffController extends Controller
     // saveFieldNames()に加えて保存する項目（項目名 => 値）。入力値をそのまま使わないものをここに書く。
     private function additionalFields(array $validated, Staff $staff): array
     {
+        // パスワードが空欄なら、今のまま変えない
         if (empty($validated['password'])) {
             return [];
         }
@@ -202,6 +212,7 @@ class StaffController extends Controller
     // 検索条件の復元、絞り込み、並び替え、ページネーションは SearchableList::buildListData が行う
     public function index(Request $request): View|RedirectResponse
     {
+        // 一覧データの読み込みとページング
         $result = $this->buildListData($request, Staff::query());
 
         if ($result instanceof RedirectResponse) {
@@ -347,21 +358,20 @@ class StaffController extends Controller
         $this->saveData($staff, $request);
 
         if (Auth::guard('admin')->user()->isManager()) {
-            // 管理者が編集したときは元の一覧 ?back へ戻る
+            // 管理者が編集したときは、元の一覧（?back）へ戻る
             return redirect()->route(self::INDEX_ROUTE, ['back'])
                 ->with('status', 'スタッフ情報を更新しました。');
         }
 
-        // スタッフが自分自身を編集したときは、自分の編集フォームへ戻す。
+        // 管理者でないスタッフ（自分自身を編集した）は、一覧を見られないので自分の編集フォームへ戻す
         return redirect()->route('admin.staff.edit', $staff)
             ->with('status', 'スタッフ情報を更新しました。');
     }
 
     // ---- 削除・削除の取り消し・2段階認証の登録解除（管理者のみ・自分自身は対象外。routes/web.phpのcanの内側） ----
 
-    // 削除の実行
-    // StaffはSoftDeletesを使っているので、delete()は行を消さずに
-    // deleted_atへ削除日時を入れる論理削除になる（詳しくはStaffモデル参照）。
+    // 削除の実行。StaffはSoftDeletesを使っているので、行は消さずにdeleted_atへ削除日時を
+    // 入れる論理削除になる（詳しくはStaffモデル参照）。
     public function destroy(Staff $staff): RedirectResponse
     {
         $this->deleteData($staff);
@@ -389,10 +399,12 @@ class StaffController extends Controller
     public function resetTwoFactor(Staff $staff): RedirectResponse
     {
         DB::transaction(function () use ($staff) {
+            // TOTPの登録を消す
             $staff->totp_secret = null;
             $staff->totp_confirmed_at = null;
             $staff->save();
 
+            // バックアップコード・信頼済み端末・パスキーも失効させる
             $staff->backupCodes()->delete();
             TrustedDeviceManager::forStaff()->forgetAll($staff);
             $staff->passkeys()->delete();

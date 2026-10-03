@@ -9,51 +9,35 @@ use BaconQrCode\Writer;
 use PragmaRX\Google2FA\Google2FA;
 
 /**
- * TOTP（Google Authenticator等のアプリで30秒ごとに変わる6桁のコードを
- * 出す方式）の、秘密鍵の発行・QRコード用SVGの生成・コードの検証をまとめた
- * ラッパー。
+ * 2段階認証のTOTPの、秘密鍵の発行・QRコードの画像の生成・コードの照合。
+ * TOTPは、認証アプリが30秒ごとに変わる6桁のコードを出す方式。
  *
- * 実体はpragmarx/google2fa（秘密鍵の生成・コード検証・otpauth://URLの
- * 組み立て）とbacon/bacon-qr-code（そのURLをQRコードの画像として描く）の
- * 2つのパッケージ。この2つを直接コントローラーから呼ぶと、パッケージ
- * 固有の詳細（otpauth://のURI形式、SVG描画に必要な3クラスの組み合わせ）が
- * あちこちに散らばってしまうので、このクラスに閉じ込めている。
- *
- * ■ 必要なパッケージ
- * 次の2つをcomposerで入れておくこと。
- *   composer require pragmarx/google2fa bacon/bacon-qr-code
- *
- * ■ QRコードの描画方式について
- * 画像処理系のPHP拡張（GD・Imagick）が入っていなくても動くよう、
- * ラスター画像（PNG等）ではなくSVG（ベクター画像）で描画している。
- * <img src="data:image/svg+xml;base64,...">の形でそのままビューに渡せる。
+ * 中身はpragmarx/google2faとbacon/bacon-qr-codeの2つのパッケージで、パッケージの
+ * 細かい使い方がコントローラーに散らばらないようこのクラスにまとめている。
+ * QRコードは画像処理のPHP拡張が無くても作れるよう、SVGで描く。
  */
 class TwoFactorAuthenticator
 {
-    /**
-     * 認証アプリ側で「どのサービスの鍵か」を見分けるために表示される発行者名。
-     */
+    // 認証アプリ側で「どのサービスの鍵か」を見分けるために表示される発行者名。
     private const ISSUER = 'memsys管理画面';
 
     /**
-     * verifyCode()で許容する前後のステップ数（1ステップ=30秒）。
-     * 端末とサーバーの時計に多少のズレがあっても弾かれないよう、
-     * 前後1ステップ（実質90秒分）まで許容している。
+     * 照合で前後に許すずれ。1が30秒分。端末とサーバーの時計が少しずれていても
+     * 弾かれないよう、前後30秒ずつで合わせて90秒分まで許す。
      */
     private const VERIFY_WINDOW = 1;
 
     private Google2FA $engine;
 
+    // パッケージのTOTPの処理を用意する
     public function __construct()
     {
         $this->engine = new Google2FA();
     }
 
     /**
-     * 新しい秘密鍵（Base32文字列）を生成する。呼ぶたびに毎回違う値になるので、
-     * QRコードを表示する前に必ずセッション等へ保存し、同じ画面を再読み込み
-     * しても同じ鍵を使い続けるようにすること（呼ぶたびに変えてしまうと、
-     * 認証アプリ側の登録と食い違って永久に検証が通らなくなる）。
+     * 新しい秘密鍵を作る。呼ぶたびに違う値になるので、セッションなどに控えて画面を
+     * 読み直しても同じ鍵を使い続けること。変わると認証アプリの登録と食い違って通らなくなる。
      */
     public function generateSecret(): string
     {
@@ -61,9 +45,8 @@ class TwoFactorAuthenticator
     }
 
     /**
-     * $secret（このスタッフ用に発行済みの秘密鍵）と$holder（メールアドレス
-     * など、認証アプリ上でどのアカウントか分かる表示名）から、QRコードの
-     * SVG画像をdata URI（<img>のsrcにそのまま渡せる文字列）として作る。
+     * 秘密鍵と認証アプリに出すアカウント名から、QRコードの画像を作る。
+     * <img>のsrcにそのまま書けるdata URIの形で返す。
      */
     public function qrCodeSvgDataUri(string $secret, string $holder): string
     {
@@ -82,9 +65,8 @@ class TwoFactorAuthenticator
     }
 
     /**
-     * 認証アプリに表示されている6桁のコードが、$secretから見て正しいかを
-     * 検証する。verifyKey()の第1引数が秘密鍵、第2引数が入力されたコード
-     * （逆にすると常に不一致になるので注意。GitHub本体のソースで確認済み）。
+     * 入力された6桁のコードが、その秘密鍵から見て正しいかを確かめる。
+     * verifyKey()は1つ目が秘密鍵、2つ目が入力されたコード。逆にすると必ず不一致になる。
      */
     public function verifyCode(string $secret, string $code): bool
     {

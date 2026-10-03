@@ -8,167 +8,101 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 /**
- * アップロードしたファイルの保存先の規則と、その公開URLの組み立て。
+ * アップロードしたファイルの保存先の規則と、そのURLの組み立て。保存する場所と表示するURLが
+ * 食い違わないよう、規則はこのクラスだけが持つ。使うのは保存と削除をするAjaxFileUpload、
+ * モデルのURLのアクセサ、画面のupload_preview_url()。
  *
- * 規則は「モデルのクラス名（小文字のスネークケース）/ idの上位の桁 /
- * 前ゼロ付き6桁のid / ファイル名」（"public"ディスク上のパス）。
+ * ■ 保存先の規則
+ * 「モデルのクラス名 / idの下3桁を除いた部分 / 前ゼロ付き6桁のid / ファイル名」。
  *
  *   ニュース id=12       → news/000/000012/xxxx.jpg
- *   ニュース id=123456   → news/123/123456/xxxx.jpg
  *   ニュース id=1234567  → news/1234/1234567/xxxx.jpg
  *
- * - idを前ゼロ付き6桁にするのは、ディレクトリ名の桁が揃って、ファイル
- *   マネージャー等で一覧したときに数字の順に並ぶようにするため。
- * - その上に「下3桁を除いた部分」のディレクトリを挟むのは、1つの
- *   ディレクトリの中に何万ものサブディレクトリが並ぶのを避けるため。
- *   1つのグループディレクトリに入るのは、多くてもid 1000件分になる。
- *   idが6桁（999999）以下なら、このグループ名はちょうど「上位3桁」に
- *   なる。idが7桁以上に増えた場合は、グループ名の方が4桁・5桁と伸びて
- *   いくだけで、1グループ1000件という性質はそのまま保たれる（先頭3文字を
- *   機械的に切り出す方式にすると、id 1234567と123456が同じ"123"に入って
- *   しまい、グループの大きさが崩れる）。
- * - フィールド名（list_image・attach等）のディレクトリは作らず、1件の
- *   レコードに属するファイルは、フィールドに関係なく1つのディレクトリに
- *   並べる。ファイル名はアップロード時にLaravelが生成するランダムな名前
- *   （hashName()）なので、フィールドが違っても名前が衝突することは無い。
- *   1件分のファイルが必ず1つのディレクトリにまとまるので、レコードを
- *   削除するときはこのディレクトリごと消せばよい
- *   （AjaxFileUpload::deleteAllUploads()参照）。
+ * - idを6桁にそろえるのは、ディレクトリを並べたときに番号の順になるようにするため
+ * - 下3桁を除いたディレクトリを挟むのは、1つのディレクトリに入るのを1000件までにするため。
+ *   idが7桁を超えてもこの部分が伸びるだけで、1000件ずつにまとまる
+ * - フィールドごとのディレクトリは作らず、1件分のファイルは1つのディレクトリに置く。
+ *   ファイル名はランダムなので重ならず、レコードを消すときはディレクトリごと消せる
+ * - クラス名を含めるので、会員とニュースで同じidがあっても保存先は分かれる
+ * - idは整数が前提。文字列のidには対応しない
  *
- * モデルのクラス名の部分は、class_basename()で名前空間を除いたクラス名
- * （App\Models\News → News）を取り出し、Str::snake()で小文字の
- * スネークケース（news）にしたもの。別のモデル（例: 会員）で同じidの
- * レコードがあっても、ここで保存先が分かれる。
- *
- * idは整数であることを前提にしている（UUIDのような文字列のidには
- * 対応していない）。
- *
- * この規則を使うのは、ファイルを保存・削除するAjaxFileUploadトレイト
- * （WYSIWYG欄の本文に埋め込んだ画像のURLの書き換え・見分けを含む）、
- * 訪問者側で保存済みファイルのURLを出すモデルのアクセサ、管理画面の
- * アップロード欄でプレビューのURLを出すupload_preview_url()の3か所。
- * 規則をここ1か所に置いているので、保存する場所と表示するURLが食い違う
- * ことが無い。
- *
- * 確認画面を経て保存されるまでの間、アップロードしたファイルを置いておく
- * 一時ディレクトリ（tmp/）の場所と、そこに置いたファイルのURLも、同じ理由で
- * このクラスが持っている。「ファイルがどこに置かれ、どのURLで見えるか」は、
- * 正式な保存先・一時ディレクトリのどちらも、このクラスだけが知っている。
- *
- * ■ ニュース専用ではない
- *
- * この規則で置いたファイルなら、どのモデルのものでも、クラス名・id・
- * フィールド名・ファイル名を渡すだけでURLを組み立てられる。
- *
- *   UploadFilePath::url(News::class, 12, 'list_image', 'abc.jpg')
- *     → /storage/news/000/000012/abc.jpg
- *   UploadFilePath::url(Member::class, 5, 'photo', 'xyz.jpg')
- *     → /uploads/member/5/photo/xyz.jpg（会員の顔写真は非公開。下の「非公開」参照）
- *
- * 別のコーナーでAjaxFileUploadを使えば、保存の時点で自動的にこの規則に
- * 従うので、表示もそのままurl()で出せる。
- *
- * ■ ログインした人だけが見られるファイル（非公開）
- *
- * 会員の顔写真のように、URLを知っているだけで誰でも見られては困るファイルは、
- * 持ち主のモデルに、そのフィールド名を並べた定数を書く。
+ * ■ ログインした人だけが見られる非公開のファイル
+ * URLを知っているだけで見られては困るファイルは、持ち主のモデルにそのフィールドを並べる。
  *
  *   public const PRIVATE_FILE_FIELDS = ['photo'];
  *
- * ここに書いたフィールドのファイルは"public"ディスクではなく"local"ディスク
- * （storage/app/private。Webサーバーから直接は見えない）に、同じ規則の
- * ディレクトリで保存される。1件のレコードに公開と非公開のフィールドがあれば、
- * 同じ名前のディレクトリが2つのディスクにできる。公開か非公開かはデータ項目の
- * 性質なので、画面（コントローラー）ではなくモデルが決める。複数のフィールド
- * （attach.*）は末尾の".*"を除いた名前、WYSIWYG欄は欄の名前を書く。
+ * 公開か非公開かはデータの性質なので、モデルが決める。複数のフィールドは「.*」を除いた名前、
+ * エディタの欄は欄の名前を書く。非公開のファイルは、Webサーバーから直接は見えない
+ * storage/app/privateに同じ規則のディレクトリで置く。
+ * URLはファイルの場所ではなく、UploadedFileControllerのuploads.showのルートになる。
+ * URLに入れる持ち主の種類はenforceMorphMap()の名前なので、そのモデルは必ずそこに載せる。
+ * 見てよいかは、そのモデルのPolicyのviewFiles($user, $record, $field)が決める。
+ * 運用を始めた後に公開と非公開を入れ替えるときは、すでにあるファイルを移すマイグレーションが要る。
  *
- * 非公開のファイルのURLは、ファイルの置き場所ではなくルート
- * （uploads.show。App\Http\Controllers\UploadedFileController）を指す。
- * ルートのURLに入れる持ち主の種類は、AppServiceProviderの
- * Relation::enforceMorphMap()に載せた名前（'member'など）なので、
- * 非公開のフィールドを持つモデルは必ずそこに載せる。見てよいかどうかは、
- * そのモデルのPolicyの viewFiles($user, $record, $field) が決める
- * （例: App\Policies\MemberPolicy）。
+ *   公開のフィールド
+ *   UploadFilePath::url(News::class, 12, 'list_image', 'abc.jpg')
+ *     → /storage/news/000/000012/abc.jpg
+ *   非公開のフィールド
+ *   UploadFilePath::url(Member::class, 5, 'photo', 'xyz.jpg')
+ *     → /uploads/member/5/photo/xyz.jpg
  *
- * 運用を始めた後にフィールドを公開から非公開へ（または逆へ）変えるときは、
- * すでにあるファイルをディスクの間で移す必要がある（例: お問い合わせの
- * 添付ファイルを移したマイグレーション）。
- *
- * ■ 一時ディレクトリ（tmp/）
- *
- * アップロードした直後のファイルは、公開・非公開に関係なく、すべて"local"
- * ディスクのtmp/に置く。確認画面を経て保存するまでのファイルを見られるのは、
- * アップロードしたブラウザ（同じセッション）だけにするため。セッションに
- * 覚えておくファイル名のキーがTMP_SESSION_KEYで、書き込むのはAjaxFileUpload、
+ * ■ 一時ディレクトリ
+ * アップロードした直後のファイルは、公開か非公開かに関係なくstorage/app/private/tmpに置く。
+ * 保存するまでのファイルは、アップロードしたブラウザだけが見られるようにするため。
+ * そのファイル名を覚えておくセッションのキーがTMP_SESSION_KEYで、書くのはAjaxFileUpload、
  * 読むのはUploadedFileController。
  *
- * 次のものは、このクラスの範囲外。
- * - この規則以外の場所に置いたファイル（例: 手作業で置いた
- *   banner/top.jpg）。Storage::disk('public')->url('banner/top.jpg')で
- *   直接出す。
- * - idが整数でないモデル。
- *
- * また、ファイルが実際に存在するかどうかは確かめない。「規則どおりなら
- * ここにあるはず」というパス・URLを計算して返すだけ。
- *
- * 状態を持たない計算だけなので、staticメソッドだけのクラスにしている。
+ * 手で置いたファイルなど、この規則の外にあるものは扱わない。ファイルが本当にあるかも
+ * 確かめず、規則どおりのパスとURLを計算するだけ。
  */
 final class UploadFilePath
 {
-    // アップロード直後のファイルを置く一時ディレクトリ（TMP_DISK上）。
-    // 確認画面を経て登録/更新が確定した時点で、正式な保存先へ移される
-    // （AjaxFileUpload::commitUploads()参照）。
+    // アップロード直後のファイルを置く、TMP_DISKの中の一時ディレクトリ。
+    // 確認画面を経て登録か更新が確定したときに、AjaxFileUpload::commitUploads()が正式な保存先へ移す
     public const TMP_DIR = 'tmp';
 
     // 一時ディレクトリを置くディスク。Webサーバーから直接は見えない"local"に置き、
-    // 表示はuploads.tmpのルートから行う（このクラスの冒頭のコメント参照）。
+    // 表示はuploads.tmpのルートから行う
     public const TMP_DISK = 'local';
 
-    // アップロードしたtmpのファイル名を覚えておくセッションのキー。
-    // uploads.tmpのルートは、ここに名前があるファイルだけを返す。
+    // アップロードした一時ファイルの名前を覚えておくセッションのキー。
+    // uploads.tmpのルートはここに名前があるファイルだけを返す
     public const TMP_SESSION_KEY = 'ajax_upload_tmp_files';
 
-    // セッションに覚えておくtmpのファイル名の数の上限（古いものから忘れる）。
+    // セッションに覚えておく一時ファイルの名前の数の上限。超えたら古いものから忘れる
     public const TMP_SESSION_MAX = 50;
 
-    // 公開のファイルと、非公開のファイル（モデルのPRIVATE_FILE_FIELDSのフィールド）を置くディスク。
+    // 公開のファイルと、モデルのPRIVATE_FILE_FIELDSにある非公開のファイルを置くディスク
     public const PUBLIC_DISK = 'public';
 
     public const PRIVATE_DISK = 'local';
 
-    // 安全とみなすファイル名の形式。
-    // 文字数を固定していないのは、Laravel内部の生成文字数が将来変わっても
-    // 壊れないようにするため。スラッシュを一切許可しないことで、
-    // ディレクトリトラバーサルの類を形式チェックの時点で防いでいる。
-    // hiddenで持ち回るファイル名のバリデーション（AjaxFileUpload::
-    // ajaxUploadRules()）と、previewUrl()の両方で使う。
+    // 安全とみなすファイル名の形。hiddenで持ち回るファイル名を確かめる
+    // AjaxFileUpload::ajaxUploadRules()と、previewUrl()の両方で使う。
+    // 文字数を決めていないのは、Laravelが作る名前の長さが将来変わっても壊れないようにするため。
+    // 「/」を許さないので、ほかのディレクトリを指す名前は形を確かめた時点で弾ける
     public const SAFE_FILENAME = '/^\w+\.\w+$/';
 
     /**
-     * 保存先ディレクトリパスを組み立てる。$ownerClassはファイルを持っているモデルのクラス名
-     * （例: News::class）、$ownerKeyはそのid。例: news/000/000012
+     * 保存先のディレクトリを組み立てる。例：news/000/000012
+     * $ownerClassはファイルを持っているモデルのクラス名で、$ownerKeyはそのid。
      *
-     * モデルのインスタンスではなくクラス名とidを受け取るのは、添付ファイル
-     * （NewsAttachment）のように「親のid（news_id）は手元にあるが、親の
-     * モデル自体は読み込んでいない」場面でも、余計なSQLを発行せずに
-     * 使えるようにするため。
+     * モデルではなくクラス名とidを受け取るのは、NewsAttachmentのように親のidは手元にあるが
+     * 親のモデルは読み込んでいない場面でも、余計なSQLを出さずに使えるようにするため。
      */
     public static function directory(string $ownerClass, int|string $ownerKey): string
     {
-        // 前ゼロ付き6桁。6桁を超えるidはそのままの桁数になる（sprintfの
-        // %06dは「最低6桁」という意味で、切り詰めはしない）。
+        // 前ゼロ付き6桁。sprintfの%06dは最低6桁という意味で、6桁を超えるidは切り詰めずにそのままの桁数になる
         $padded = sprintf('%06d', (int) $ownerKey);
 
-        // 下3桁を除いた部分（6桁なら上位3桁）。
+        // 下3桁を除いた部分。6桁なら上の3桁
         $group = substr($padded, 0, -3);
 
         return Str::snake(class_basename($ownerClass)).'/'.$group.'/'.$padded;
     }
 
-    /**
-     * そのフィールドのファイルを非公開にするか（モデルのPRIVATE_FILE_FIELDSにあるか）。
-     * $fieldは素のフィールド名（複数のフィールドなら".*"を除いた名前）。
-     */
+    // そのフィールドのファイルを非公開にするか。モデルのPRIVATE_FILE_FIELDSにあれば非公開。
+    // $fieldは素のフィールド名で、複数のフィールドなら".*"を除いた名前
     public static function isPrivate(string $ownerClass, string $field): bool
     {
         $privateFields = defined($ownerClass.'::PRIVATE_FILE_FIELDS') ? constant($ownerClass.'::PRIVATE_FILE_FIELDS') : [];
@@ -176,17 +110,15 @@ final class UploadFilePath
         return in_array($field, $privateFields, true);
     }
 
-    /**
-     * そのフィールドのファイルを置くディスクの名前。
-     */
+    // そのフィールドのファイルを置くディスクの名前。
     public static function disk(string $ownerClass, string $field): string
     {
         return self::isPrivate($ownerClass, $field) ? self::PRIVATE_DISK : self::PUBLIC_DISK;
     }
 
     /**
-     * 保存済みファイルのURLを組み立てる。ファイル名が無い（未登録）場合や、持ち主の
-     * idがまだ無い（保存前）場合はnullを返す。
+     * 保存したファイルのURLを組み立てる。ファイルが無いときや、保存する前で持ち主の
+     * idがまだ無いときはnullを返す。
      *
      * 非公開のフィールドのファイルは、uploads.showのルートのURLになる。どちらも
      * 「/」で始まるパスで、ホスト名は含めない。
@@ -209,10 +141,8 @@ final class UploadFilePath
         return Storage::disk(self::PUBLIC_DISK)->url(self::directory($ownerClass, $ownerKey).'/'.$filename);
     }
 
-    /**
-     * 保存済みファイルの、サーバー上の絶対パス（PDFに画像を埋め込む、メールに添付する
-     * ときなど）。ファイル名が無い場合や、持ち主のidがまだ無い場合はnullを返す。
-     */
+    // 保存したファイルのサーバー上の絶対パス。PDFに画像を埋め込むときやメールに添付するときに使う。
+    // ファイル名が無いときや持ち主のidがまだ無いときはnullを返す。
     public static function path(string $ownerClass, int|string|null $ownerKey, string $field, ?string $filename): ?string
     {
         if (! $filename || $ownerKey === null) {
@@ -223,20 +153,17 @@ final class UploadFilePath
     }
 
     /**
-     * 一時ディレクトリ（tmp/）に置いたファイルのURL（uploads.tmpのルート）。
-     * アップロード直後に画面へ返すURLと、WYSIWYG欄の本文の中からtmpの画像を
-     * 見分けるときに比べるURLは、どちらもここで組み立てる（食い違うと、本文の
-     * 画像が正式な保存先へ移されなくなる）。
+     * 一時ディレクトリに置いたファイルの、uploads.tmpのルートのURL。
+     * アップロード直後に画面へ返すURLと、エディタの本文から一時ファイルの画像を見分けるときに
+     * 比べるURLは、どちらもここで組み立てる。食い違うと本文の画像が正式な保存先へ移されなくなるため。
      */
     public static function tmpUrl(string $filename): string
     {
         return route('uploads.tmp', ['filename' => $filename], false);
     }
 
-    /**
-     * 非公開のファイルのURLに入れる、持ち主の種類の名前（enforceMorphMap()の名前）。
-     * 載っていなければ、URLからモデルを探せないので例外にする。
-     */
+    // 非公開のファイルのURLに入れる持ち主の種類の名前で、enforceMorphMap()に載せた名前。
+    // 載っていなければURLからモデルを探せないので、例外にする。
     private static function morphAlias(string $ownerClass): string
     {
         $alias = Relation::getMorphAlias($ownerClass);
@@ -249,30 +176,26 @@ final class UploadFilePath
     }
 
     /**
-     * 入力フォーム・確認画面・詳細画面で、アップロード欄に表示するURLを組み立てる。
-     * 「この編集を確定したら、どのファイルが表示されるか」を表す。
+     * 入力フォーム・確認画面・詳細画面で、アップロードの欄に表示するURLを組み立てる。
+     * この編集を確定したらどのファイルが表示されるかを表す。
      *
      * 次の順に判断する。
-     * - $tmpあり … 今回アップロードした一時ファイルのURL
+     * - $tmpがある … 今回アップロードした一時ファイルのURL
      * - $delがtrue … 「ファイルを削除する」が押された状態なので、null
-     * - $ownerと$filenameがそろっている … 保存済みファイルのURL
+     * - $ownerと$filenameがそろっている … 保存したファイルのURL
      * - それ以外 … null
      *
-     * $tmpを$delより先に見ているのは、ファイルを差し替えたとき、画面の
-     * JavaScript（resources/js/ajax_upload.js）が、新しいファイルの_tmpと
-     * 同時に「古いファイルを消す」印の_del=1も立てるため。_delを先に見ると、
+     * $tmpを$delより先に見ているのは、ファイルを差し替えたときに、resources/js/ajax_upload.jsが
+     * 新しいファイルの_tmpと一緒に、古いファイルを消す印の_del=1も立てるため。_delを先に見ると
      * 差し替えた直後のプレビューが表示されなくなる。
      *
-     * $filename・$tmpはhiddenで持ち回る値で、画面の外から書き換えられる。
-     * バリデーションを通る前の値（old()）で呼ばれることもあるので、ここでも
-     * SAFE_FILENAMEの形式に合わないものはURLを作らずnullにしている。
+     * $filenameと$tmpはhiddenで持ち回る値で、画面の外から書き換えられる。検証を通る前の
+     * old()の値で呼ばれることもあるので、ここでもSAFE_FILENAMEの形に合わないものはURLを作らずnullにする。
      *
-     * ビューからは、$inputから値を取り出す手間を省いた
-     * upload_preview_url()（app/helpers.php）経由で呼ぶ。
+     * ビューからは、$inputから値を取り出す手間を省いたapp/helpers.phpのupload_preview_url()で呼ぶ。
      *
-     * 訪問者側の画面で使うモデルのアクセサ（News::listImageUrl()など）とは
-     * 役割が違う。あちらは「今DBに保存されているファイル」のURLで、
-     * こちらは「入力中の値から見た」URL。
+     * 訪問者の画面で使うNews::listImageUrl()のようなモデルのアクセサとは役割が違う。
+     * あちらは今DBに保存されているファイルのURLで、こちらは入力中の値から見たURL。
      */
     public static function previewUrl(?Model $owner, string $field, ?string $filename, ?string $tmp, bool $del): ?string
     {

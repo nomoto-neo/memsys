@@ -20,41 +20,32 @@ use Throwable;
 use Webauthn\PublicKeyCredentialCreationOptions;
 
 /**
- * ログイン中の本人による、パスキーの一覧・登録・削除。コントローラーに use して使う
- * （会員：MypageController、管理：Admin\StaffController）。
+ * ログイン中の本人による、パスキーの一覧・登録・削除。コントローラーにuseして使う。
  *
  * ■ 登録の前の本人確認
- * パスキーを登録すると、以後はそのパスキーだけでログインできるようになる。
- * ログイン中の画面を他人に使われた場合に、その人のパスキーを足されないよう、
- * 登録の前に本人確認をする。確かめ方は、その人のログインの2段階目と同じにする。
- * - 会員：メールで送る確認コード（App\Support\MemberVerificationCode）
- * - スタッフ：認証アプリのTOTPコード（App\Support\TwoFactorAuthenticator）
- * 本人確認が済んでから PASSKEY_CONFIRM_MINUTES 分の間だけ登録でき、1件登録したら
- * 本人確認は使い切りになる（もう1件登録するときは、もう一度確かめる）。
- * 削除は本人確認なしでできる（ログインの手段が減るだけで、他人が入れるように
- * なるわけではないため）。
+ * パスキーを登録すると、それだけでログインできるようになる。ログイン中の画面を他人に
+ * 使われたときにパスキーを足されないよう、登録の前に本人確認をする。確かめ方はその人の
+ * ログインの2段階目と同じで、会員はメールの確認コード、スタッフは認証アプリのコード。
+ * 本人確認から決まった時間の間だけ登録でき、1件登録したら次の登録ではもう一度確かめる。
+ * 削除はログインの手段が減るだけなので、本人確認なしでできる。
  *
  * ■ 使い方
- * 1. コントローラーに use PasskeyManagement; を書き、次の定数を用意する
+ * 1. コントローラーにuse PasskeyManagement;を書き、次の定数を用意する
  *      private const PASSKEY_GUARD = 'web';                 // ログイン中の本人を取るガード
  *      private const PASSKEY_ROUTE = 'mypage.passkeys';     // 一覧画面のルート名
  *      private const PASSKEY_VIEW = 'mypage.passkeys';      // 一覧画面のビュー
  *      private const PASSKEY_THROTTLE_SCOPE = '...';        // 本人確認のコードの試行制限
- * 2. routes/web.phpに、PASSKEY_ROUTE と、その後ろに .code（会員だけ）・.confirm・
- *    .options・.store・.destroy を付けた名前でルートを書く
+ * 2. routes/web.phpに、PASSKEY_ROUTEと、その後ろに.code・.confirm・.options・.store・.destroyを
+ *    付けた名前でルートを書く。.codeは会員だけ
  * 3. 一覧画面のビューは、resources/views/_passkeys.blade.phpを@includeする
- *
- * 一覧画面への入口（マイページ・スタッフ詳細のリンク）は、ルートがあるときだけ
- * 出している（Route::has()）。ルートを消せば、入口も消える。
+ * 一覧画面への入口はルートがあるときだけ出すので、ルートを消せば入口も消える。
  */
 trait PasskeyManagement
 {
-    /** 本人確認が済んでから、パスキーを登録できる時間（分）。 */
+    // 本人確認が済んでからパスキーを登録できる分数。
     private const PASSKEY_CONFIRM_MINUTES = 10;
 
-    /**
-     * パスキーの一覧画面（GET）。
-     */
+    // パスキーの一覧画面。
     public function passkeyIndex(Request $request): View
     {
         $owner = $this->passkeyOwner();
@@ -62,21 +53,18 @@ trait PasskeyManagement
         return view(self::PASSKEY_VIEW, [
             'passkeys' => $owner->passkeys()->orderByDesc('id')->get(),
             'passkeyRoute' => self::PASSKEY_ROUTE,
-            // 本人確認の方法。_passkeys.blade.phpが、入力欄の出し分けに使う
+            // 本人確認の方法。_passkeys.blade.phpが入力欄の出し分けに使う
             'confirmBy' => $owner instanceof Staff ? 'totp' : 'email',
             'identityConfirmed' => $this->passkeyIdentityConfirmed($request),
-            // 会員：確認コードを送った後（入力待ち）かどうか
+            // 会員：確認コードを送って入力を待っているか
             'codeSent' => $owner instanceof Member
                 && (new MemberVerificationCode())->hasPending($request, MemberVerificationCode::PURPOSE_PASSKEY, $owner),
-            // スタッフ：2段階認証（TOTP）が未登録だと、本人確認ができない
+            // スタッフ：2段階認証の認証アプリが未登録だと、本人確認ができない
             'twoFactorMissing' => $owner instanceof Staff && ! $owner->hasTwoFactorConfirmed(),
         ]);
     }
 
-    /**
-     * 本人確認のための確認コードをメールで送る（POST、会員だけ）。
-     * スタッフはTOTPで確かめるので、このルートは作らない。
-     */
+    // 本人確認のための確認コードをメールで送る。会員だけで、スタッフは認証アプリで確かめる
     public function passkeySendCode(Request $request): RedirectResponse
     {
         $owner = $this->passkeyOwner();
@@ -92,10 +80,7 @@ trait PasskeyManagement
             ->with('status', '確認コードをメールで送信しました。');
     }
 
-    /**
-     * 本人確認のコードを照合する（POST）。通ったら、一覧画面にパスキーを
-     * 作るボタンが出る。
-     */
+    // 本人確認のコードを照合する。通ったら一覧画面にパスキーを作るボタンが出る
     public function passkeyConfirm(Request $request): RedirectResponse
     {
         $owner = $this->passkeyOwner();
@@ -104,7 +89,7 @@ trait PasskeyManagement
             'code' => ['required', 'string'],
         ]);
 
-        // 失敗回数による試行制限（IP単位・アカウント単位。詳しくはApp\Support\LoginThrottle参照）
+        // 失敗回数による、IPごととアカウントごとの試行制限
         $throttle = new LoginThrottle(self::PASSKEY_THROTTLE_SCOPE, $request->ip(), $owner->id);
 
         if ($throttle->isBlocked()) {
@@ -115,16 +100,21 @@ trait PasskeyManagement
         if (! $this->passkeyVerifyIdentity($request, $owner, $validated['code'])) {
             $throttle->hit();
 
+            // 会員の確認コードには期限があるので、文言を分ける
+            if ($owner instanceof Staff) {
+                $message = '確認コードが正しくありません。';
+            } else {
+                $message = '確認コードが正しくないか、有効期限が切れています。';
+            }
+
             return redirect()->route(self::PASSKEY_ROUTE)
-                ->withErrors(['code' => $owner instanceof Staff
-                    ? '確認コードが正しくありません。'
-                    : '確認コードが正しくないか、有効期限が切れています。']);
+                ->withErrors(['code' => $message]);
         }
 
         $throttle->clear();
 
-        // 誰の本人確認かも一緒に控える（同じブラウザで別の人がログインし直した場合に、
-        // 前の人の本人確認で登録できてしまわないように）。
+        // 本人確認が済んだことを誰のものかと一緒に控える。同じブラウザで別の人が
+        // ログインし直したときに、前の人の本人確認で登録できないように
         $request->session()->put($this->passkeyConfirmedSessionKey(), [
             'owner' => $owner->getMorphClass().':'.$owner->getKey(),
             'until' => now()->addMinutes(self::PASSKEY_CONFIRM_MINUTES)->timestamp,
@@ -134,11 +124,9 @@ trait PasskeyManagement
     }
 
     /**
-     * 登録用のオプション（GET、JSON）。「この端末でパスキーを作成する」の
-     * ボタンを押したときに、resources/js/passkeys.jsが呼ぶ。
-     *
-     * 既に登録済みのパスキーは除外するよう、端末に伝える（同じ端末の
-     * パスキーを2つ作ろうとすると、端末側で止まる）。
+     * 登録用のオプションをJSONで返す。GETで受ける。「この端末でパスキーを作成する」のボタンで
+     * resources/js/passkeys.jsが呼ぶ。登録済みのパスキーを端末に伝えるので、同じ端末に
+     * 2つ作ろうとすると端末の側で止まる。
      */
     public function passkeyRegistrationOptions(Request $request): JsonResponse
     {
@@ -154,11 +142,9 @@ trait PasskeyManagement
     }
 
     /**
-     * パスキーの登録（POST、JSON）。成功したら一覧画面のメッセージを
-     * セッションに入れておき、画面の再読み込みはresources/js/passkeys.jsが行う。
-     *
-     * 名前は利用者に入力させず、認証器の名前（AAGUIDから引ける場合）と、
-     * 登録した端末のOS・ブラウザ名から作る。
+     * パスキーを登録する。POSTで受けてJSONで返す。通ったら一覧画面のメッセージをセッションに入れ、
+     * 画面の読み直しはresources/js/passkeys.jsが行う。
+     * 名前は入力させず、認証器の名前と端末のOS・ブラウザから作る。
      * 例：「Google Password Manager（Windows・Chrome）」「iPhone・Safari」
      */
     public function passkeyStore(Request $request): JsonResponse
@@ -167,6 +153,7 @@ trait PasskeyManagement
 
         $this->ensurePasskeyIdentityConfirmed($request);
 
+        // 署名の結果と、控えておいたオプション
         $credential = PasskeyCeremony::credential($request);
 
         $options = PasskeyCeremony::pullOptions(
@@ -198,13 +185,13 @@ trait PasskeyManagement
             ]);
         }
 
-        // AAGUID（認証器の種類）は登録の結果を確かめた後でないと分からないので、
-        // 保存した後で名前に足す。
+        // 認証器の名前は、登録の結果を確かめた後でないと分からないので、保存した後で名前に足す
         if ($passkey->authenticator !== null) {
             $passkey->name = $passkey->authenticator.'（'.$passkey->name.'）';
             $passkey->save();
         }
 
+        // 本人確認は使い切り
         $request->session()->forget($this->passkeyConfirmedSessionKey());
         $request->session()->flash('status', 'パスキーを登録しました。次回から「パスキーでログイン」でログインできます。');
 
@@ -212,13 +199,9 @@ trait PasskeyManagement
     }
 
     /**
-     * パスキーの削除（DELETE）。ルートの{passkey}は、laravel/passkeysが
-     * App\Models\Passkeyとして読み込んでくる（Passkeys::usePasskeyModel()）。
-     * 本人のものでなければ、存在しないものとして扱う。
-     *
-     * 利用者の端末に残っているパスキー自体は、サイトからは消せない。
-     * 消したパスキーではログインできなくなる（端末側は、利用者が端末の
-     * 設定から消す）。
+     * パスキーを削除する。本人のものでなければ無いものとして扱う。
+     * 端末に残っているパスキーはサイトからは消せないが、消した後はログインに使えなくなる。
+     * 端末の分は利用者に端末の設定から消してもらう。
      */
     public function passkeyDestroy(Passkey $passkey): RedirectResponse
     {
@@ -232,6 +215,7 @@ trait PasskeyManagement
             ->with('status', 'パスキーを削除しました。端末に残っているパスキーは、端末の設定から削除してください。');
     }
 
+    // ログイン中の本人
     private function passkeyOwner(): Member|Staff
     {
         $owner = Auth::guard(self::PASSKEY_GUARD)->user();
@@ -241,10 +225,7 @@ trait PasskeyManagement
         return $owner;
     }
 
-    /**
-     * 本人確認のコードを照合する。確かめ方は持ち主の種類で決まる
-     * （そのアカウントのログインの2段階目と同じ）。
-     */
+    // 本人確認のコードを照合する。確かめ方は、その人のログインの2段階目と同じ
     private function passkeyVerifyIdentity(Request $request, Member|Staff $owner, string $code): bool
     {
         if ($owner instanceof Staff) {
@@ -259,18 +240,16 @@ trait PasskeyManagement
     }
 
     /**
-     * 本人確認が済んでいて、今パスキーを登録できるか。
-     *
-     * スタッフは、本人確認の後に2段階認証の登録を解除した（本人・管理者のどちらでも）
-     * 場合も登録できないようにする。解除でパスキーを消した直後に、残っている
-     * 本人確認でパスキーを足せてしまうと、「スタッフのパスキーはTOTPを登録済みの
-     * 間だけ存在する」という形が崩れるため。
+     * 本人確認が済んでいて今パスキーを登録できるか。スタッフは本人確認の後に
+     * 2段階認証の登録を解除したときも登録できない。スタッフのパスキーは
+     * 認証アプリを登録してある間だけ持てる形にそろえているため。
      */
     private function passkeyIdentityConfirmed(Request $request): bool
     {
         $owner = $this->passkeyOwner();
         $confirmed = $request->session()->get($this->passkeyConfirmedSessionKey());
 
+        // 2段階認証を解除したスタッフは登録できない
         if ($owner instanceof Staff && ! $owner->hasTwoFactorConfirmed()) {
             return false;
         }
@@ -280,6 +259,7 @@ trait PasskeyManagement
             && ($confirmed['until'] ?? 0) > now()->timestamp;
     }
 
+    // 本人確認が済んでいなければエラーにする
     private function ensurePasskeyIdentityConfirmed(Request $request): void
     {
         if (! $this->passkeyIdentityConfirmed($request)) {
@@ -289,13 +269,13 @@ trait PasskeyManagement
         }
     }
 
-    /** 本人確認をした人と、登録できる期限（UNIX時刻）を持つセッションキー。 */
+    // 本人確認をした人と、登録できる期限のUNIX時刻を持つセッションキー。
     private function passkeyConfirmedSessionKey(): string
     {
         return 'passkey.confirmed_until.'.self::PASSKEY_GUARD;
     }
 
-    /** 登録用のオプションを、署名の結果が届くまで控えておくセッションキー。 */
+    // 登録用のオプションを署名の結果が届くまで控えておくセッションキー。
     private function passkeyRegistrationSessionKey(): string
     {
         return 'passkey.registration_options.'.self::PASSKEY_GUARD;

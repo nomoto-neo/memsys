@@ -100,14 +100,18 @@ class MemberController extends Controller
         return [
             'name' => ['required', 'string', 'max:255'],
             'kana' => ['nullable', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255',
+            'email' => [
+                'required', 'string', 'email', 'max:255',
                 // 自idを除外してユニークであること
-                Rule::unique(Member::class, 'email')->ignore($member?->id)],
+                Rule::unique(Member::class, 'email')->ignore($member?->id),
+            ],
             'phone' => ['nullable', 'string', new PhoneNumberRule()],
             'birthdate' => ['nullable', 'date'],
-            'prefecture' => ['nullable', 'integer',
+            'prefecture' => [
+                'nullable', 'integer',
                 // コードテーブルとの一致を確認
-                Rule::in(code_keys('prefectures'))],
+                Rule::in(code_keys('prefectures')),
+            ],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
         ] + $this->ajaxUploadRules();
     }
@@ -190,9 +194,11 @@ class MemberController extends Controller
             'email' => ['nullable', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:255'],
             'prefecture' => ['nullable', 'array'],
-            'prefecture.*' => ['integer',
+            'prefecture.*' => [
+                'integer',
                 // コードテーブルとの一致を確認
-                Rule::in(code_keys('prefectures'))],
+                Rule::in(code_keys('prefectures')),
+            ],
         ];
     }
 
@@ -332,7 +338,13 @@ class MemberController extends Controller
             view: 'pdf.resume',
             data: ['member' => $member],
             name: '履歴書_'.$member->name,
-            images: ['photo' => ['path' => $member->photo_path, 'aspect' => Member::PHOTO_ASPECT]],
+            images: [
+                // 顔写真は、履歴書の写真の大きさ（横3:縦4）に切り抜いて貼る
+                'photo' => [
+                    'path' => $member->photo_path,
+                    'aspect' => Member::PHOTO_ASPECT,
+                ],
+            ],
             paper: 'A4',
             orientation: 'P',
             inline: true,

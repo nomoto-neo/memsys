@@ -10,56 +10,44 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 /**
- * ログインの2段階目を省略できる「信頼済み端末」の判定・登録・取り消し。
+ * ログインの2段階目を省ける、信頼済みの端末の判定・登録・取り消し。会員の「このデバイスを
+ * 記憶する」と、スタッフの「この端末を信頼する」の両方で使う。
  *
- * 会員ログインの「このデバイスを記憶する」（2段階目はメールの確認コード）と、
- * 管理ログインの「この端末を信頼する」（2段階目はTOTP）の両方で使う。
- * 記録するテーブルは会員・スタッフ共通の trusted_devices（誰の端末かは
- * authenticatable_type・authenticatable_id の2列で区別する。TrustedDeviceモデル参照）。
- * Cookieの名前だけは会員用・スタッフ用で分けている。同じブラウザで会員と
- * 管理画面の両方にログインすることがあり、1つのCookieを共有すると、片方で
- * 信頼したときにもう片方のCookieを上書きしてしまうため。会員用・スタッフ用は
- * forMember()・forStaff() で作り分ける。
+ * ブラウザを閉じても何日も覚えておくものなので、セッションではなくCookieとDBで持つ。
+ * DBのテーブルは会員とスタッフで共通にし、Cookieの名前だけを分けている。同じブラウザで
+ * 両方にログインしたときに、片方で信頼するともう片方のCookieを上書きしてしまうため。
  *
- * MemberVerificationCodeのような短命な状態はセッションで扱うが、こちらは
- * 「ブラウザを閉じても、何日も経っても覚えていてほしい」長命な状態なので、
- * Cookie＋DBテーブルで持つ。
+ * 判定はパスワードの確認が済んで誰かが分かってから行う。Cookieの値をその人の期限内の
+ * 記録と照合し、1件でも一致すれば2段階目を省いてよい。ハッシュ値から検索することは
+ * できないので、1件ずつ照合する。
  *
- * 判定の流れ：
- *   1. ID・パスワードの認証は既に済んでいる（＝誰なのかは確定済み）状態から、
- *      isTrusted($owner, $request)を呼ぶ
- *   2. Cookieの値（ランダムな平文トークン）を、その人が持つ有効期限内の
- *      trustedDevices全件と、1件ずつHash::check()で照合する
- *      （bcryptはソルト付きなので、ハッシュ値だけを見て一致するCookieを
- *      検索する、ということはできない。バックアップコードの
- *      BackupCodeGenerator::verifyAndConsume()と同じ理由・同じやり方）
- *   3. 1件でも一致すればtrue＝2段階目を省略してよい
- *
- * パスワードの変更（App\Support\PasswordChange）・2段階認証の登録解除・
- * スタッフの削除のときは、forgetAll()でその人の信頼済み端末をすべて無効にする。アカウントが
- * 乗っ取られたかもしれないときに行う操作なので、それまでに信頼した端末からも
- * 2段階目なしでは入れないようにするため。
+ * パスワードの変更・2段階認証の登録解除・スタッフの削除のときは、forgetAll()ですべて無効にする。
+ * 乗っ取りを疑うときの操作なので、それまでに信頼した端末からも入れないようにするため。
  */
 class TrustedDeviceManager
 {
-    /** 信頼の有効期間（日数）。長すぎると、端末を紛失したときに
-     *  第三者がいつまでも2段階目なしでログインできてしまう。 */
+    // 信頼の有効な日数。長すぎると、端末を無くしたときに第三者がいつまでも
+    // 2段階目なしでログインできてしまう
     public const VALID_DAYS = 30;
 
+    // 会員とスタッフで、記録の値を入れるCookieの名前だけを変える
     private function __construct(private readonly string $cookieName)
     {
     }
 
+    // 会員の「このデバイスを記憶する」
     public static function forMember(): self
     {
         return new self('member_trusted_device');
     }
 
+    // スタッフの「この端末を信頼する」
     public static function forStaff(): self
     {
         return new self('staff_trusted_device');
     }
 
+    // この端末が、その人に信頼されているか
     public function isTrusted(Member|Staff $owner, Request $request): bool
     {
         $token = $request->cookie($this->cookieName);
@@ -68,6 +56,7 @@ class TrustedDeviceManager
             return false;
         }
 
+        // 期限内の記録と1件ずつ照合する
         $devices = $owner->trustedDevices()
             ->where('expires_at', '>', now())
             ->get();
@@ -82,15 +71,13 @@ class TrustedDeviceManager
     }
 
     /**
-     * この端末を信頼済みにする。新しいランダムトークンを発行し、ハッシュ化
-     * してDBへ、平文をCookieへ、それぞれ保存する。
-     *
-     * 呼ぶたびに新しい行が増える（有効な既存の行は消さない）。複数の端末
-     * （自宅PC・スマホ等）をそれぞれ別々に信頼することを想定しているため。
-     * 期限切れの行は照合に使われないだけで残り続けるので、ここで消しておく。
+     * この端末を信頼済みにする。ランダムな値を作り、ハッシュ値をDBへ、元の値をCookieへ保存する。
+     * 自宅のパソコンとスマートフォンのように端末ごとに信頼できるよう、今ある記録は残して
+     * 1件増やす。
      */
     public function remember(Member|Staff $owner): void
     {
+        // 期限の切れた記録は使われずに残るので、ここで消しておく
         $owner->trustedDevices()->where('expires_at', '<=', now())->delete();
 
         $token = Str::random(64);
@@ -109,9 +96,8 @@ class TrustedDeviceManager
     }
 
     /**
-     * その人の信頼済み端末をすべて無効にする（DBの行を消す）。
-     * 各端末に残っているCookieは、照合相手の行が無くなるので効かなくなる。
-     * 戻り値は消した件数。
+     * その人の信頼済みの端末をすべて無効にし、消した件数を返す。
+     * 端末に残ったCookieは照合の相手が無くなるので効かなくなる。
      */
     public function forgetAll(Member|Staff $owner): int
     {

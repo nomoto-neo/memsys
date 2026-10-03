@@ -11,47 +11,43 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 /**
- * 訪問者向けフォームのスパム対策。人に手間をかけさせない、次の3つを組み合わせる。
+ * 訪問者向けのフォームのスパム対策。人に手間をかけさせない、次の3つを組み合わせる。
  *
- * 1. ハニーポット：人には見えない入力欄（HONEYPOT_FIELD）を置く。人は何も書かないが、
- *    スパムを送るプログラムは見つけた欄を埋めがちなので、入力があれば機械とみなす。
- * 2. 送信までの時間：入力画面を表示した時刻を暗号化してhidden（STARTED_FIELD）に持たせ、
- *    表示から送信までが短すぎれば機械とみなす。暗号化しているので、書き換えられない。
- * 3. Cloudflare Turnstile：画像を選ばせない、人か機械かの判定。入力画面に置いた枠が
- *    ブラウザの裏側で判定し、結果のトークン（TURNSTILE_FIELD）を送ってくるので、
- *    サーバーからCloudflareに本物かを問い合わせる（siteverify）。
+ * 1. ハニーポット：人には見えない入力欄を置く。人は何も書かないがスパムを送るプログラムは
+ *    見つけた欄を埋めがちなので、入力があれば機械とみなす
+ * 2. 送信までの時間：入力画面を表示した時刻を暗号化してhiddenに持たせる。表示から送信までが
+ *    短すぎれば機械とみなす。暗号化しているので書き換えられない
+ * 3. Cloudflare Turnstile：画像を選ばせずに人か機械かを判定する。入力画面の枠がブラウザの
+ *    裏で判定して結果を送ってくるので、それが本物かをサーバーからCloudflareに問い合わせる
  *
  * ■ 使い方
- * - 入力画面の<form>の中に @include('_spam_guard') を置く（3つの欄と、Turnstileの枠・スクリプト）
- * - 入力画面から送信を受け取るところ（確認画面を表示する処理など）で check() を呼び、
- *   結果（App\Enums\SpamCheckResult）で分ける。確認画面から先は、確認画面を通った人にしか
- *   進めない仕組み（お問い合わせのconfirm_tokenなど）で守り、ここでは呼ばない
- *   （Turnstileのトークンは1回しか使えないため）。
+ * - 入力画面の<form>の中に@include('_spam_guard')を置く
+ * - 入力画面から送信を受け取るところで、check()を呼んで結果で分ける。Turnstileの結果は
+ *   1回しか使えないので確認画面から先では呼ばず、確認画面を通った人にだけ進ませる仕組みで守る
  *
  *     $spam = SpamGuard::check($request, minSeconds: self::SPAM_GUARD_MIN_SECONDS);
  *
  * ■ 判定の結果
- * - Bot     ハニーポットに入力がある、または速すぎる。送れたように見せて、何も保存しない
- * - Failed  Turnstileに通らなかった、期限切れ（5分）・使用済み、またはhiddenの値が無い・
- *           壊れている（古い画面のまま送ったなど）。入力画面に戻してもう一度試してもらう
- * - Passed  それ以外。Cloudflareに問い合わせできなかった（障害・時間切れ）ときと、
- *           鍵が設定されていない・間違っているときも、送信を止めないためにPassedにして
- *           ログに残す
+ * - Bot     ハニーポットに入力があるか速すぎるときは、送れたように見せて何も保存しない
+ * - Failed  Turnstileに通らなかったか、hiddenの値が無いか壊れているときは、入力画面に戻して
+ *           もう一度試してもらう。Turnstileの結果が期限切れか使用済みのときもここになる
+ * - Passed  それ以外。Cloudflareに問い合わせできなかったときと、鍵の設定が無いか間違っている
+ *           ときも、送信を止めないためにPassedにしてログに残す
  *
- * ■ 鍵（config/services.phpのturnstile。.envのTURNSTILE_SITE_KEY・TURNSTILE_SECRET_KEY）
- * Cloudflareのダッシュボードで、サイトのドメインごとに発行する。手元の開発では、Cloudflareが
- * 公開しているテスト用の鍵（必ず通る：サイトキー 1x00000000000000000000AA、
- * シークレットキー 1x0000000000000000000000000000000AA）を使う。
+ * ■ 鍵
+ * .envのTURNSTILE_SITE_KEYとTURNSTILE_SECRET_KEY。Cloudflareのダッシュボードでドメインごとに
+ * 発行する。手元の開発ではCloudflareのテスト用の鍵を使う。必ず通る鍵は、サイトキーが
+ * 1x00000000000000000000AA、シークレットキーが1x0000000000000000000000000000000AA。
  */
 final class SpamGuard
 {
     // ハニーポットの欄の名前。機械が埋めたくなるよう、ありそうな名前にしている。
     public const HONEYPOT_FIELD = 'homepage_url';
 
-    // 入力画面を表示した時刻（暗号化したもの）を持たせるhiddenの名前。
+    // 入力画面を表示した時刻を、暗号化して持たせるhiddenの名前。
     public const STARTED_FIELD = 'form_started_token';
 
-    // Turnstileの枠が送ってくるトークンの名前（Cloudflareが決めているもの）。
+    // Turnstileの枠が送ってくるトークンの名前。Cloudflareが決めているもの。
     public const TURNSTILE_FIELD = 'cf-turnstile-response';
 
     // Turnstileの判定を問い合わせる先。
@@ -60,24 +56,20 @@ final class SpamGuard
     // Cloudflareへの問い合わせを待つ秒数。これを超えたら障害とみなして通す。
     private const TURNSTILE_TIMEOUT_SECONDS = 5;
 
-    // Cloudflareの側の問題を表すエラーコード。これが返ってきたときも、障害とみなして通す。
+    // Cloudflareの側の問題を表すエラーコード。これが返ってきたときも障害とみなして通す。
     private const TURNSTILE_UNAVAILABLE_ERRORS = ['internal-error'];
 
     // こちらの鍵の設定の問題を表すエラーコード。送信は止めず、設定を直すようログに残す。
     private const TURNSTILE_CONFIG_ERRORS = ['missing-input-secret', 'invalid-input-secret'];
 
-    /**
-     * 入力画面を表示した時刻を暗号化した値（_spam_guardがhiddenに入れる）。
-     */
+    // 入力画面を表示した時刻を暗号化した値。_spam_guardがhiddenに入れる。
     public static function startedToken(): string
     {
         return Crypt::encryptString((string) time());
     }
 
-    /**
-     * 送信がスパムかどうかを判定する。$minSecondsは、表示から送信までにかかるはずの
-     * いちばん短い秒数（これより速ければ機械とみなす）。
-     */
+    // 送信がスパムかどうかを判定する。$minSecondsは表示から送信までにかかるはずの
+    // いちばん短い秒数で、これより速ければ機械とみなす。
     public static function check(Request $request, int $minSeconds): SpamCheckResult
     {
         // ハニーポットに入力がある
@@ -87,7 +79,7 @@ final class SpamGuard
             return SpamCheckResult::Bot;
         }
 
-        // 表示した時刻が無い・壊れている（古い画面のまま送った、書き換えられたなど）
+        // 表示した時刻が無いか壊れている。古い画面のまま送ったときや、書き換えられたときなど
         try {
             $startedAt = (int) Crypt::decryptString((string) $request->input(self::STARTED_FIELD));
         } catch (DecryptException) {
@@ -107,9 +99,7 @@ final class SpamGuard
         return self::verifyTurnstile($request);
     }
 
-    /**
-     * Turnstileのトークンが本物かを、Cloudflareに問い合わせる（siteverify）。
-     */
+    // Turnstileのトークンが本物かを、Cloudflareのsiteverifyに問い合わせる。
     private static function verifyTurnstile(Request $request): SpamCheckResult
     {
         $secret = config('services.turnstile.secret_key');

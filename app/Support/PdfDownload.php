@@ -12,11 +12,11 @@ use Mpdf\Output\Destination;
 use Symfony\Component\HttpFoundation\HeaderUtils;
 
 /**
- * BladeのテンプレートからPDFを作って返す共通処理（PDFにするのはmPDF）。
+ * BladeのテンプレートからPDFを作って返す共通処理。PDFにするのはmPDF。
  *
- * PDFの見た目は、普通の画面と同じくBladeのテンプレート（HTMLとCSS）で書く。
- * コントローラーは、ルートから呼ばれる入口のメソッドでdownloadPdf()を呼ぶだけでよい。
- * どんなPDFができるかが呼び出しの1か所で分かるよう、省略できる引数も含めて全部書く。
+ * PDFの見た目は普通の画面と同じくBladeのテンプレートで書く。コントローラーは入口の
+ * メソッドでdownloadPdf()を呼ぶだけでよい。どんなPDFになるかが呼び出しの1か所で分かるよう、
+ * 引数に既定の値は持たせず、名前付き引数で全部書く。
  *
  *     public function resume(Member $member): Response
  *     {
@@ -32,31 +32,31 @@ use Symfony\Component\HttpFoundation\HeaderUtils;
  *     }
  *
  * ■ downloadPdf()の引数
- * - view:         テンプレートの名前（resources/views/pdf/ に置く）。
- * - data:         テンプレートに渡す変数。
- * - name:         PDFの名前。ファイル名は「名前_年月日_時分.pdf」（CSVダウンロードと同じ形）。
- * - images:       PDFに埋め込む画像。名前 => ['path' => 絶対パス, 'aspect' => [横, 縦] か null]。
- *                 aspectを書くと、画像の真ん中をその縦横の比で切り抜いてから埋め込む
- *                 （mPDFはCSSのobject-fitに対応していないので、決まった大きさの枠に
- *                 写真をゆがめずに収めるため）。pathがnullやファイルが無いときは埋め込まない。
- * - paper:        用紙の大きさ（'A4'・'A3'・'B5'など、mPDFのformat）。
- * - orientation:  'P'（縦）か'L'（横）。
- * - inline:       trueならブラウザの中で開く、falseならダウンロードさせる。
+ * - view         テンプレートの名前。resources/views/pdf/に置く
+ * - data         テンプレートに渡す変数
+ * - name         PDFの名前。ファイル名は「名前_年月日_時分.pdf」
+ * - images       埋め込む画像。名前 => ['path' => サーバー上の場所, 'aspect' => [横, 縦]かnull]。
+ *                aspectを書くと真ん中をその比で切り抜いてから埋め込む。mPDFはobject-fitを
+ *                使えないので、決まった大きさの枠に写真をゆがめずに収めるため。
+ *                pathがnullかファイルが無ければ埋め込まない
+ * - paper        用紙の大きさ。'A4'・'A3'・'B5'など
+ * - orientation  'P'が縦、'L'が横
+ * - inline       trueならブラウザの中で開き、falseならダウンロードさせる
  *
  * ■ テンプレートの書き方
- * - 埋め込める画像は、テンプレートの$images（名前 => imgのsrcに書く値）に入っている。
+ * - 埋め込める画像は$imagesに入っている。ファイルが無かった画像は入らない
  *
- *   @if (isset($images['photo'])) <img src="{{ $images['photo'] }}"> @endif のように使う
- *   （ファイルが無かった画像は$imagesに入らない）。画像はファイルのパスやURLではなく、
- *   mPDFの「var:名前」で渡すので、非公開の場所に置いたファイルも埋め込める。
- * - 余白は@page { margin: ... } で書く。
- * - フォントは、同梱のIPAexゴシック（ipaexg、既定）とIPAex明朝（ipaexm）を
- *   font-familyで指定する。使った文字だけがPDFに埋め込まれるので、どの環境でも同じ見た目になる。
- * - mPDFが解釈できるCSSは、ブラウザより少ない（flexやgridは使えない）。枠や罫線は<table>で組む。
+ *   @if (isset($images['photo'])) <img src="{{ $images['photo'] }}"> @endif
+ *
+ *   画像はファイルの場所やURLではなくmPDFの「var:名前」で渡すので、非公開のファイルも使える
+ * - 余白は@page { margin: ... }で書く
+ * - フォントは同梱のIPAexゴシックのipaexgとIPAex明朝のipaexmを、font-familyで指定する。
+ *   指定しなければipaexgになる。使った文字だけをPDFに埋め込むので、どの環境でも同じ見た目になる
+ * - mPDFが解釈できるCSSはブラウザより少なく、flexやgridは使えない。枠や罫線は<table>で組む
  */
 trait PdfDownload
 {
-    // 同梱の日本語フォント（resources/fonts/ipaex。IPAフォントライセンス）。
+    // 同梱の日本語フォントの場所。IPAフォントライセンスで配られているもの。
     // サイト全体で共通にするものなので、コントローラーからは変えない。
     private const PDF_FONT_DIR = 'fonts/ipaex';
 
@@ -68,13 +68,14 @@ trait PdfDownload
 
     private const PDF_DEFAULT_FONT = 'ipaexg';
 
-    // mPDFがフォントの解析結果などを置く作業用のディレクトリ（storage/の下）。
-    // 既定のvendor/の下は、サーバーでは書き込めないことがあるため。
+    // mPDFがフォントの解析結果などを置く、storage/の下の作業用のディレクトリ。
+    // 既定のvendor/の下はサーバーでは書き込めないことがあるため。
     private const PDF_TEMP_DIR = 'framework/mpdf';
 
     // 切り抜いた画像をJPEGにするときの画質。
     private const PDF_IMAGE_QUALITY = 90;
 
+    // テンプレートからPDFを作って返す。引数の意味はこのファイルの冒頭にある
     private function downloadPdf(
         string $view,
         array $data,
@@ -135,10 +136,8 @@ trait PdfDownload
         ]);
     }
 
-    /**
-     * PDFに埋め込む画像のデータ。$aspect（[横, 縦]）があれば、真ん中をその比で
-     * 切り抜いたJPEGにする。ファイルが無い・読めないときはnull（その画像は埋め込まない）。
-     */
+    // PDFに埋め込む画像のデータ。[横, 縦]の$aspectがあれば、真ん中をその比で切り抜いたJPEGにする。
+    // ファイルが無いか読めないときはnullを返し、その画像は埋め込まない。
     private function pdfImageData(?string $path, ?array $aspect): ?string
     {
         if ($path === null || ! is_file($path)) {
@@ -159,7 +158,7 @@ trait PdfDownload
             return null;
         }
 
-        // 縦横の比を合わせるために、はみ出す方（横長なら左右、縦長なら上下）を切り落とす
+        // 縦横の比を合わせるため、はみ出す方を切り落とす。横長なら左右、縦長なら上下
         [$aspectWidth, $aspectHeight] = $aspect;
         $width = imagesx($image);
         $height = imagesy($image);
@@ -167,7 +166,7 @@ trait PdfDownload
         $cropHeight = min($height, (int) round($width * $aspectHeight / $aspectWidth));
 
         $cropped = imagecreatetruecolor($cropWidth, $cropHeight);
-        // 透過のあるPNGは、透明な部分を白にする
+        // 透過のあるPNGは透明な部分を白にする
         imagefill($cropped, 0, 0, imagecolorallocate($cropped, 255, 255, 255));
         imagecopy($cropped, $image, 0, 0, intdiv($width - $cropWidth, 2), intdiv($height - $cropHeight, 2), $cropWidth, $cropHeight);
 

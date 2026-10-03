@@ -19,12 +19,10 @@ use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 /**
- * お問い合わせフォーム（/contact）。入力 → 確認 → 送信。
+ * お問い合わせフォーム。入力、確認、送信の順に進む。
  *
- * 管理画面の登録と同じくFormFlowで作っている。違うのは、保存した後にスタッフへ
- * 通知メールを送ることと、確認画面を経由した1回だけの送信を保証する
- * confirm_tokenがあることと、入力画面から確認画面へ進むときのスパム対策
- * （App\Support\SpamGuard）があること。
+ * 管理画面の登録と同じくFormFlowで作り、送信の後にスタッフへ通知メールを送る。
+ * 確認画面を通った1回だけの送信を合言葉で保証し、確認画面へ進むときにスパム対策を行う。
  */
 class ContactController extends Controller
 {
@@ -60,14 +58,8 @@ class ContactController extends Controller
 
     // ---- このコーナーの項目の定義 ----
 
-    /**
-     * 入力バリデーションルール。
-     *
-     * AjaxFileUpload::ajaxUploadRules()が、attach_file・attach_file_tmp・
-     * attach_file_origin・attach_file_delのルールをUPLOAD_FILESの定義から
-     * 自動生成して返すので、それをそのまま+で足す（Admin\NewsController
-     * と同じ考え方）。
-     */
+    // 入力バリデーションルール。添付ファイルのhiddenのルールは、ajaxUploadRules()が
+    // UPLOAD_FILESから作るので、それを足す。
     private function rules(): array
     {
         return [
@@ -75,19 +67,15 @@ class ContactController extends Controller
             'kana' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255'],
             'phone' => ['nullable', 'string', new PhoneNumberRule()],
-            // ハイフンの有無どちらでも受け付ける。フォーム側のJavaScript
-            // （resources/js/contact_form.js）が7桁になった時点で
-            // "123-4567"の形に自動整形するが、JavaScriptが動かない
-            // 環境からの送信（ハイフン無しの7桁）も弾かない。
+            // ハイフンの有無どちらでも受け付ける（画面のJavaScriptが"123-4567"の形に整えるが、
+            // JavaScriptが動かない環境からのハイフン無しの7桁も弾かない。prepareInput()で整える）
             'zip' => ['nullable', 'regex:/^\d{3}-?\d{4}$/'],
             'prefecture' => ['nullable', 'integer', Rule::in(code_keys('prefectures'))],
             'city' => ['nullable', 'string', 'max:255'],
             'address_other' => ['nullable', 'string', 'max:255'],
             'body' => ['required', 'string'],
-            // acceptedは「値が'1'などの"真"を表す文字列であること」に加えて
-            // 「未入力（チェックを外したまま送信）」も弾く、必須のチェック
-            // ボックス向けのルール。'required'という文字列を含まないので、
-            // create()で必須マークを組み立てるときに別途足している。
+            // 同意のチェック。acceptedは、チェックが無い（未送信）ときも弾く。'required'を
+            // 含まないので、必須マークはcreate()で別に足している
             'agree' => ['accepted'],
         ] + $this->ajaxUploadRules();
     }
@@ -118,28 +106,13 @@ class ContactController extends Controller
     // ---- 確認画面から送信までの順番の保証（confirm_token） ----
 
     /**
-     * 確認画面を表示するたびに1個発行する使い捨てトークン。セッションに
-     * 保存すると同時に、確認画面のhiddenフィールドにも同じ値を埋める
-     * （resources/views/contact/confirm.blade.php）。store()側で両者が
-     * 一致するかだけを見る、CSRFトークンとは別枠の仕組み。
+     * 確認画面を表示するたびに、使い捨ての合言葉を発行する。セッションと確認画面のhiddenに
+     * 同じ値を置き、store()で一致するかを確かめる。
      *
-     * ■ これはCSRFトークン（@csrf）と何が違うのか
-     *
-     * CSRFトークンは「別サイトからの偽装リクエストを防ぐ」ためのもので、
-     * セッションにひもづいた1個の値を、ページを開いている間ずっと使い回す
-     * （確認画面を何回表示しても同じ@csrfトークンのまま）。そのため、
-     * 正規のCSRFトークンさえ持っていれば、/contact/confirmを経由せずに
-     * 直接/contact/storeへPOSTすることを妨げない。
-     *
-     * このconfirm_tokenは逆に「confirm→storeの順番で1回だけPOSTされた
-     * こと」を保証するためのもの。確認画面を表示するたびに新しい値を
-     * 発行してセッションを上書きし、store()で保存できた時点でセッションから
-     * 消す（store()内のsession()->forget()呼び出し参照）。これにより、
-     *   - confirm画面を経由せずに直接storeへPOSTする（トークンをセッションに
-     *     持っていないので必ず不一致になる）
-     *   - 同じ確認画面の内容を2回submitする（1回目の成功でセッションから
-     *     消えるので、2回目は不一致になる）
-     * のどちらも弾けるようになる。
+     * CSRFトークンは、別のサイトからの偽の送信を防ぐもので、ページを開いている間ずっと同じ値を
+     * 使う。そのため、確認画面を通らずに送信の処理へ直接送ることは防げない。
+     * この合言葉は、確認画面を表示するたびに新しい値にし、保存できたら消す。確認画面を通らない
+     * 送信と、同じ確認画面からの2回目の送信を、どちらも弾ける。
      */
     private function issueConfirmToken(): string
     {
@@ -151,16 +124,11 @@ class ContactController extends Controller
     }
 
     /**
-     * $requestのconfirm_tokenが、セッションに保存されている値と一致するか。
-     * 単純な===比較は、一致しない文字が現れた時点で比較を打ち切るため、
-     * 「正解の値と何文字目まで一致していたか」がごくわずかな処理時間の
-     * 差として外部から観測できる余地が（理論上は）生まれる。hash_equals()
-     * は常に全体を比較してから結果を返すため、この時間差が生まれない
-     * （CSRFトークンなど、秘密の値をユーザー入力と比較する場面での定石）。
-     * 両方とも文字列であることをis_string()で先に確認しているのは、
-     * hash_equals()に文字列以外を渡すとTypeErrorになるため（sessionに
-     * 何も入っていない＝nullのときに、比較そのもので例外が起きないように
-     * する）。
+     * 送られてきた合言葉が、セッションに置いた値と一致するか。
+     *
+     * ===ではなくhash_equals()で比べる。===は食い違った所で比べるのをやめるので、何文字目まで
+     * 合っていたかが、処理時間の差から理論上は分かってしまう。hash_equals()は文字列しか
+     * 受け付けないので、先に両方が文字列かを確かめる。
      */
     private function hasValidConfirmToken(Request $request): bool
     {
@@ -186,8 +154,8 @@ class ContactController extends Controller
     // 入力内容のバリデーションと、確認画面の表示
     public function confirmStore(Request $request): View|RedirectResponse
     {
-        // スパム対策。確認画面から先は、ここを通った人にだけ発行するconfirm_tokenで
-        // 守るので、送信（store()）では確かめない。
+        // スパム対策（App\Support\SpamGuard）。確認画面から先は、ここを通った人にだけ発行する
+        // confirm_tokenで守るので、送信（store()）では確かめない
         $spam = SpamGuard::check($request, minSeconds: self::SPAM_GUARD_MIN_SECONDS);
 
         if ($spam === SpamCheckResult::Bot) {
@@ -198,15 +166,21 @@ class ContactController extends Controller
         if ($spam === SpamCheckResult::Failed) {
             // 人がたまたま失敗することもあるので、入力を残したまま入力画面に戻す
             return redirect()->route('contact.create')
-                ->withInput($request->except(['_token', SpamGuard::HONEYPOT_FIELD, SpamGuard::STARTED_FIELD, SpamGuard::TURNSTILE_FIELD]))
+                ->withInput($request->except([
+                    '_token',
+                    // スパム対策の値は持ち越さない（入力画面を出し直すと新しい値になる）
+                    SpamGuard::HONEYPOT_FIELD,
+                    SpamGuard::STARTED_FIELD,
+                    SpamGuard::TURNSTILE_FIELD,
+                ]))
                 ->with('error', 'ロボットによる送信ではないことを確認できませんでした。お手数ですが、もう一度「確認画面へ進む」を押してください。');
         }
 
+        // 入力を検証して、確認画面を表示する
         return view('contact.confirm', [
             'input' => $this->confirmInput($request),
-            // $inputには混ぜない（$inputは「送信される業務項目だけ」という
-            // resources/views/_confirm_hiddenの前提を保つため）。確認画面の
-            // 「送信する」フォームにだけ、この専用のhiddenとして直接埋める。
+            // 確認画面の「送信する」フォームにだけ埋める合言葉。$inputには混ぜない
+            // （$inputは送信される業務の項目だけ、という_confirm_hiddenの前提を保つため）
             'confirmToken' => $this->issueConfirmToken(),
         ]);
     }
@@ -222,11 +196,8 @@ class ContactController extends Controller
     // 送信の実行：t_inquiriesへの保存と、スタッフへの通知メール送信
     public function store(Request $request): RedirectResponse
     {
-        // confirm画面を経由せずに直接ここへPOSTされた場合と、確認済みの
-        // 内容が2回submitされた場合（詳しくはissueConfirmToken()の
-        // コメント参照）は、ここで弾いて入力画面へ差し戻す。バリデーション
-        // より前に見ているのは、順序を無視したリクエストに対しては
-        // 業務データの中身を見るまでもなく門前払いにしたいため。
+        // 確認画面を通っていない送信と、同じ内容の2回目の送信は、中身を検証する前に
+        // 入力画面へ戻す（issueConfirmToken()のコメント参照）
         if (! $this->hasValidConfirmToken($request)) {
             return redirect()->route('contact.create')
                 ->with('error', '確認画面を経由せずに送信されたか、確認画面の有効期限が切れています。お手数ですが、入力からやり直してください。');
@@ -236,12 +207,12 @@ class ContactController extends Controller
         $inquiry = new Inquiry();
         $this->saveData($inquiry, $request);
 
-        // 保存できたら、トークンを使い切る（＝セッションから消す）。同じ確認画面の内容を
-        // もう一度送信されても、上のチェックで弾かれる。検証に落ちたときは、saveData()の
-        // 中で入力画面へ戻るので、ここまでは来ない。
+        // 保存できたら合言葉を使い切る（同じ内容をもう一度送られても、上で弾かれる）。
+        // 検証に落ちたときは、saveData()の中で入力画面へ戻るので、ここまでは来ない
         session()->forget(self::CONFIRM_TOKEN_SESSION_KEY);
 
-        // メールは保存のトランザクションが確定した後に送る（送信に失敗しても、保存した問い合わせは取り消さない）
+        // スタッフへの通知メール。保存のトランザクションが確定した後に送る
+        // （送信に失敗しても、保存した問い合わせは取り消さない）
         $this->sendStaffNotification($inquiry);
 
         return redirect()->route('contact.thanks');
@@ -256,16 +227,14 @@ class ContactController extends Controller
     // ---- 通知メール ----
 
     /**
-     * スタッフへの通知メール送信。
+     * スタッフへの通知メールの送信。
      *
-     * メール送信に失敗しても、問い合わせ自体はすでにt_inquiriesへ
-     * 保存済みなので、ここで例外を投げて訪問者にエラー画面を見せる
-     * ことはしない（せっかく入力してもらった内容がsubmitのやり直しで
-     * 失われるのを避ける）。失敗はログに残し、担当者が後で気づける
-     * ようにするだけに留める。
+     * 送れなくても、問い合わせはもう保存してあるので、訪問者にエラー画面は見せない。
+     * 失敗はログに残し、担当者が後で気付けるようにする。
      */
     private function sendStaffNotification(Inquiry $inquiry): void
     {
+        // 添付ファイルがあれば、メールに付ける（非公開の場所に置いたファイル）
         $attachments = [];
 
         if ($inquiry->attach_file) {
@@ -298,7 +267,6 @@ class ContactController extends Controller
         }
     }
 
-    // Ajaxアップロード処理（実体はApp\Support\AjaxFileUpload::uploadAjaxFile()）。
-    // ルーティングからこのメソッド名を直接指定できるよう、あえてここに
-    // 明示のuploadAjaxFile()は書かず、トレイト側の実装をそのまま使う。
+    // 添付ファイルのAjaxアップロード（contact.ajaxUploadのルート）は、トレイトの
+    // App\Support\AjaxFileUpload::uploadAjaxFile()をそのまま使う。
 }

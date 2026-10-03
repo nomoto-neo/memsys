@@ -15,6 +15,8 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
  * Webサーバーから直接は見えない場所（"local"ディスク）に置いたアップロード
  * ファイルを、見てよい人にだけ返す。保存先とURLの規則は
  * App\Support\UploadFilePathの「非公開」「一時ディレクトリ」を参照。
+ * （そもそも非公開制御をしなくて良いファイルは"public"ディスクに置かれて
+ * このコントローラーを経由しない）。
  *
  * - show()  非公開のフィールド（モデルのPRIVATE_FILE_FIELDS）の保存済みファイル。
  *           そのファイルが本当にそのフィールドのものかをDBで確かめ、持ち主のモデルの
@@ -29,56 +31,69 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
  * 見てはいけない人には、ファイルがあるかどうかも分からないよう、403ではなく
  * 404を返す。ルートにauthのミドルウェアを付けないのは、会員・スタッフの
  * どちらのガードでログインしていても使えるようにするため（管理画面からも
- * マイページからも同じURLで見る）と、tmp()はログインしていない訪問者
- * （お問い合わせの添付ファイル）も使うため。
+ * マイページからも同じURLで見る）と、アップロードの一時保存ファイルtmp()
+ * はログインしていない訪問者（お問い合わせの添付ファイルなど）でも使うため。
  */
 class UploadedFileController extends Controller
 {
-    // 非公開のフィールドの保存済みファイル（GET /uploads/{type}/{id}/{field}/{filename}）
+    // 非公開のフィールドの保存済みファイルの処理（GET /uploads/{type}/{id}/{field}/{filename}）
     public function show(Request $request, string $type, int $id, string $field, string $filename): BinaryFileResponse
     {
         // URLの種類の名前（enforceMorphMap()の名前）から、持ち主のモデルを探す
         $ownerClass = Relation::getMorphedModel($type);
 
-        // 非公開のフィールドでなければ、モデルのプロパティを読む前に断る
+        // 不正なURLを指定されていないかのチェック
+        // （モデル名が間違っていないか、非公開フィールドに設定されているフィールド名と合っているか、
+        // ファイル名が命名規則に反していないかをチェック）
         abort_unless($ownerClass !== null && UploadFilePath::isPrivate($ownerClass, $field), 404);
         abort_unless(preg_match(UploadFilePath::SAFE_FILENAME, $filename) === 1, 404);
 
         $owner = $ownerClass::find($id);
 
+        // 指定されたフィールドに指定されたファイル名が保存されているかDBをチェック
         abort_unless($owner !== null && $this->fileBelongsToField($owner, $field, $filename), 404);
 
+        // 実ファイルのパスを組み立て
         $path = UploadFilePath::directory($ownerClass, $id).'/'.$filename;
         $disk = Storage::disk(UploadFilePath::PRIVATE_DISK);
 
+        // 実ファイルの存在チェック
         abort_unless($disk->exists($path), 404);
 
-        // ログインしていない人にも見せてよいファイル（Policyの$userがnullでも許される）
+        // Classに対応するApp\Policies\のviewFilesに問い合わせて、
+        // ログインしていない人にも見せてよいフィールドか判断
+        // （Policyの$userにnullをセットして非ログイン者にも許可されているか調べる。
+        // そもそもPolicyの引数がnullを許可していない場合は呼び出す以前にfalseになる）
         if (Gate::forUser(null)->allows('viewFiles', [$owner, $field])) {
+            // キャッシュ許可でファイルを返す
             return $this->publicFileResponse($request, $disk->path($path));
         }
 
+        // ログイン中の誰かがファイルを見る権利を持っているかをチェック
         abort_unless($this->canViewFiles($owner, $field), 404);
 
+        // キャッシュ不許可でファイルを返す
         return $this->privateFileResponse($disk->path($path));
     }
 
-    // 一時ファイル（GET /uploads/tmp/{filename}）
+    // 一時ファイルの処理（GET /uploads/tmp/{filename}）
     public function tmp(Request $request, string $filename): BinaryFileResponse
     {
+        // ファイル名の命名規則と、一時保存セッションに記録されているかチェック
         abort_unless(preg_match(UploadFilePath::SAFE_FILENAME, $filename) === 1, 404);
         abort_unless(in_array($filename, $request->session()->get(UploadFilePath::TMP_SESSION_KEY, []), true), 404);
 
         $path = UploadFilePath::TMP_DIR.'/'.$filename;
         $disk = Storage::disk(UploadFilePath::TMP_DISK);
 
+        // 実ファイルが存在しているかチェック
         abort_unless($disk->exists($path), 404);
 
         return $this->privateFileResponse($disk->path($path));
     }
 
     /**
-     * ファイルを返すレスポンス。ブラウザやプロキシに残させない（ログアウトした後に、
+     * 限定公開のファイルや一時ファイルを返すレスポンス。ブラウザやプロキシに残させない（ログアウトした後に、
      * 同じ端末の別の人が履歴やキャッシュから見られないようにする）。
      * BinaryFileResponseは既定でCache-Controlをpublicにするので、privateに直す。
      */
@@ -110,22 +125,20 @@ class UploadedFileController extends Controller
         return $response;
     }
 
-    /**
-     * そのファイルが、今DBでそのフィールドに保存されているものか。Policyをフィールドごとに
-     * 分けたとき、見てよいフィールドのURLに、別のフィールドのファイル名を入れて見られないようにする。
-     * - 複数のフィールド（attach.*）: 同じ名前のHasManyリレーションの行にあるか
-     * - 単数のフィールド: カラムの値と同じか
-     * - WYSIWYG欄: 本文の中に、このファイルのURLがあるか
-     */
+    // そのファイルが、今DBでそのフィールドに保存されているものか。Policyをフィールドごとに
+    // 分けたとき、見てよいフィールドのURLに、別のフィールドのファイル名を入れて見られないようにする。
     private function fileBelongsToField(Model $owner, string $field, string $filename): bool
     {
         if ($owner->isRelation($field)) {
+            // 複数のフィールド（attach.*）: 同じ名前のHasManyリレーションの行にあるか
             return $owner->{$field}()->where('filename', $filename)->exists();
         }
 
         $value = (string) $owner->{$field};
         $url = UploadFilePath::url($owner::class, $owner->getKey(), $field, $filename);
 
+        // 単数のフィールド: カラムの値と同じか
+        // WYSIWYG欄: 本文の中に、このファイルのURLがあるか
         return $value === $filename || str_contains($value, '"'.$url.'"');
     }
 

@@ -12,49 +12,33 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Passkeys\Contracts\PasskeyUser;
 
-// 通常のModelではなく、Authenticatable(認証機能つきの基底クラス)を継承する。
-// これにより Auth::attempt() / Auth::login() / Auth::user() などが
-// このモデルを対象に動くようになる。デフォルトで用意されている
-// App\Models\User はもう使わないので、後で削除してよい。
+/**
+ * 会員。ログインできるモデルなので、Authenticatableを継承している（webガード）。
+ */
 class Member extends Authenticatable implements PasskeyUser
 {
     use Notifiable;
 
-    // パスキー（passkeysテーブル、authenticatable_type='member'）を持てるようにする。
-    // パスキーでログインさせるかどうかは、ルートとコントローラー側で決める
-    // （App\Support\PasskeyLogin・PasskeyManagement参照）。
+    // パスキーを持てるようにする。パスキーでログインさせるかどうかは、ルートと
+    // コントローラーで決める（App\Support\PasskeyLogin・PasskeyManagement参照）
     use HasPasskeys;
 
-    // MemberFactory（database/factories/MemberFactory.php）を
-    // Member::factory()から呼べるようにするトレイト。これが無いと
-    // Member::factory()の呼び出しでBadMethodCallExceptionになる。
+    // Member::factory()を使えるようにする（database/factories/MemberFactory.php）
     use HasFactory;
 
-    /**
-     * 顔写真(photo)の横幅(px)。登録される画像は、この横幅を超えないように
-     * リサイズして保存される。管理画面・マイページのどちらから登録しても
-     * 変わらない、このデータ項目の仕様なのでモデルに持たせている
-     * （Admin\MemberController・MypageControllerのUPLOAD_FILESが参照する）。
-     */
+    // 顔写真の横幅(px)。これより大きい画像は、この横幅に縮めて保存する。
+    // どの画面から登録しても同じ、このデータ項目の仕様なので、モデルに持たせている。
     public const PHOTO_WIDTH = 600;
 
-    /**
-     * 顔写真を履歴書に貼るときの縦横の比（横, 縦）。履歴書の写真の大きさ
-     * （横30mm×縦40mm）に合わせ、PDFにするときに真ん中をこの比で切り抜く。
-     */
+    // 顔写真を履歴書に貼るときの、横と縦の比。履歴書の写真の大きさ（横30mm・縦40mm）に
+    // 合わせ、PDFにするときに真ん中をこの比で切り抜く。
     public const PHOTO_ASPECT = [3, 4];
 
-    /**
-     * ログインした人だけが見られる場所に置くアップロードのフィールド。顔写真は、
-     * 本人とスタッフだけが見られる（App\Support\UploadFilePathの「非公開」参照。
-     * 見てよいかの判断はApp\Policies\MemberPolicy::viewFiles()）。
-     */
+    // ログインした人だけが見られる場所に置くアップロードのフィールド。顔写真は、
+    // 本人とスタッフだけが見られる。見てよいかはApp\Policies\MemberPolicyで判断する。
     public const PRIVATE_FILE_FIELDS = ['photo'];
 
-    // モデル名(Member)から自動推測されるテーブル名は本来 "members" だが、
-    // 業務テーブルであることが分かるよう t_ 接頭辞を付けた "t_members" を
-    // 使っているため、ここで明示的に上書きしている。
-    // クラス名(Member)自体は業務上の呼び名として分かりやすいのでそのまま。
+    // 業務のテーブルなので、t_を付けた名前にしている
     protected $table = 't_members';
 
     protected $fillable = [
@@ -67,13 +51,11 @@ class Member extends Authenticatable implements PasskeyUser
         'prefecture',
         'photo',
         'photo_origin',
-        // /adminから最後に更新した操作者（スタッフ）のid。
+        // 管理画面から最後に更新したスタッフのid
         'staff_id',
     ];
 
-    // ここに列挙した項目は、配列やJSONに変換されるとき(例: デバッグ出力やAPIレスポンス)
-    // に自動的に除外される。パスワードのハッシュ値やremember_tokenを
-    // うっかり画面に出してしまう事故を防ぐための仕組み。
+    // 配列やJSONにしたときに出さない項目。パスワードのハッシュ値などを、うっかり出さないように
     protected $hidden = [
         'password',
         'remember_token',
@@ -81,46 +63,27 @@ class Member extends Authenticatable implements PasskeyUser
 
     protected $casts = [
         'birthdate' => 'date',
-        // DBはunsignedTinyIntegerだが、素のPDOなら文字列で返ってくるところを
-        // Eloquentのキャストで明示的にintへ変換させている。これにより
-        // $member->prefectureは常にint(またはnull)であることが保証され、
-        // Blade側で厳密比較(===)や配列添字に使うときに型のズレを気にしなくて済む。
+        // 都道府県はコード表の値と===で比べるので、intにそろえる
         'prefecture' => 'integer',
         'staff_id' => 'integer',
     ];
 
-    /**
-     * /adminから最後にこの会員情報を更新した操作者（スタッフ）。
-     *
-     * Staffモデルは論理削除（SoftDeletes）を使っていて、通常のクエリでは
-     * 削除済みスタッフが自動的に除外されるが、ここではwithTrashed()で
-     * 削除済みも含めている。このリレーションの目的が「削除後も最終更新者の
-     * 氏名を参照できるようにする」ことそのものだから。付けないと、
-     * 最後に更新したスタッフが削除された時点で$member->editorStaffが
-     * nullになり、履歴として氏名を追えなくなる。
-     */
+    // 管理画面から最後にこの会員を更新したスタッフ。
+    // そのスタッフを削除した後も名前を出せるよう、削除済みのスタッフも含めて探す。
     public function editorStaff(): BelongsTo
     {
         return $this->belongsTo(Staff::class, 'staff_id')
             ->withTrashed();
     }
 
-    /**
-     * ログインの「このデバイスを記憶する」で登録した端末一覧。汎用の
-     * trusted_devicesテーブルに、authenticatable_type='member'として記録される。
-     * 判定そのものはApp\Support\TrustedDeviceManagerが行う
-     * （詳しくはそちらのコメント参照）。
-     */
+    // 「このデバイスを記憶する」で記憶した端末。判定はApp\Support\TrustedDeviceManagerが行う。
     public function trustedDevices(): MorphMany
     {
         return $this->morphMany(TrustedDevice::class, 'authenticatable');
     }
 
-    /**
-     * 顔写真のURL（未登録ならnull）。非公開のファイルなので、ファイルの置き場所
-     * ではなくuploads.showのルートのURLになる（見られるのは本人とスタッフだけ）。
-     * マイページのように、フォームの無い「モデルをそのまま見せる」画面で使う。
-     */
+    // 顔写真のURL。未登録ならnull。非公開のファイルなので、本人とスタッフだけが開けるURLになる。
+    // マイページのように、フォームの無い画面で使う。
     protected function photoUrl(): Attribute
     {
         return Attribute::make(
@@ -128,9 +91,7 @@ class Member extends Authenticatable implements PasskeyUser
         );
     }
 
-    /**
-     * 顔写真のサーバー上の絶対パス（未登録ならnull）。履歴書のPDFに埋め込むときに使う。
-     */
+    // 顔写真のサーバー上の場所。未登録ならnull。履歴書のPDFに埋め込むときに使う。
     protected function photoPath(): Attribute
     {
         return Attribute::make(

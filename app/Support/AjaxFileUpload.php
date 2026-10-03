@@ -12,108 +12,71 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
 /**
- * 画像・添付ファイルの「確認画面をはさむAjaxアップロード」の仕組みをまとめたトレイト。
+ * 画像と添付ファイルを、確認画面をはさんで保存するAjaxアップロードのトレイト。
  *
- * 流れの全体像:
- * 1. 画面上でファイルが選択(またはドロップ)されると、その場でajaxUploadRoute()
- *    (このトレイトのuploadAjaxFile()につながるルート)へ1ファイルだけPOSTする。
- * 2. サーバー側はファイル種別を検証し、画像なら必要に応じてリサイズしてから
- *    "local"ディスクのtmp/へランダムなファイル名で保存し、そのファイル名と
- *    元のファイル名をJSONで返す。この時点ではまだDBには何も書き込まない
- *    (対象のレコードがまだ無い=新規登録時にはidが決まっていないため)。
- *    tmpのファイルは、アップロードしたセッションからだけ見られる
- *    (App\Support\UploadFilePathの「一時ディレクトリ」参照)。
- * 3. 画面はhiddenの各フィールド(name_tmp・name_origin・name_del)にその情報を
- *    詰めて、確認画面を経て実際の登録/更新が行われる。
- * 4. store()/update()側で対象レコードの保存が終わり、idが確定した後に
- *    commitUploads()を呼ぶ。ここで初めて、tmp/から正式なディレクトリへ
- *    ファイルを移動し、DBのカラム(または子テーブル)へ書き込む。
- *    正式な保存先のディスクはフィールドで決まる。普通は"public"、
- *    持ち主のモデルのPRIVATE_FILE_FIELDSにあるフィールドは"local"
- *    (ログインした人だけが見られる。UploadFilePathの「非公開」参照)。
+ * ■ 流れ
+ * 1. 画面でファイルを選ぶと、その場でuploadAjaxFile()へ1ファイルずつ送る
+ * 2. 種類を確かめて画像なら縮小し、一時ディレクトリにランダムな名前で置いて、
+ *    その名前と元の名前を返す。新規登録ではidがまだ無いので、DBには書かない。
+ *    一時ファイルはアップロードしたブラウザだけが見られる
+ * 3. 画面はその名前を{field}_tmp・{field}_origin・{field}_delのhiddenに入れ、
+ *    確認画面を通って登録か更新へ進む
+ * 4. レコードを保存してidが決まった後に、commitUploads()でファイルを正式な保存先へ移し、
+ *    DBのカラムか子テーブルに書く。保存先は普通は公開のディスクで、持ち主のモデルの
+ *    PRIVATE_FILE_FIELDSにあるフィールドは非公開のディスク。保存先の規則はUploadFilePathにある
  *
- * 使う側のコントローラーが用意するもの:
- * - private const UPLOAD_FILES  ['フィールド名' => 横幅(px), ...]。
- *   キーの末尾が".*"なら複数展開されるフィールド(例: 'attach.*')。
- *   横幅が0なら添付ファイル(リサイズしない・ALLOW_ATTACH_TYPESで検証)、
- *   0以外なら画像(その横幅を超えていたら縮小・ALLOW_IMAGE_TYPESで検証)。
- *   横幅はデータ項目の仕様なので、モデルの定数を参照させるとよい
- *   (例: 'list_image' => News::LIST_IMAGE_WIDTH)。
- * - 複数展開フィールドを使う場合、対象のEloquentモデルに、末尾の".*"を
- *   除いた名前と同じ名前のHasManyリレーション(例: News::attach())を
- *   用意しておくこと。トレイト側はテーブル名や外部キーの詳細を一切知らず、
- *   このリレーション経由でのみ複数展開フィールドを操作する。
- * - ルーティングで、このトレイトのuploadAjaxFile()を指すPOSTルートを
- *   1本用意すること(例: admin.news.ajaxUpload)。
- * - (省略可) private const WYSIWYG_FIELDS  ['フィールド名' => 横幅(px), ...]。
- *   画像を埋め込めるWYSIWYGエディタの欄。下の「WYSIWYG欄の画像」参照。
+ * ■ コントローラーが用意するもの
+ * - UPLOAD_FILES：['フィールド名' => 横幅(px)]。横幅が0なら添付ファイルで縮小しない。
+ *   0より大きければ画像で、その横幅を超えたら縮小する。横幅はモデルの定数を参照する。
+ *   例：'list_image' => News::LIST_IMAGE_WIDTH
+ * - 名前の末尾が「.*」のフィールドは、いくつでも足せる欄になる。例：'attach.*'。
+ *   モデルには「.*」を除いた名前のHasManyのリレーションを用意する。例：News::attach()。
+ *   このトレイトは子テーブルの名前や外部キーを知らず、そのリレーションだけを使う
+ * - uploadAjaxFile()を指すPOSTのルート。例：admin.news.ajaxUpload
+ * - WYSIWYG_FIELDS：['フィールド名' => 横幅(px)]。画像を入れられるエディタの欄。省略できる
  *
- * ■ WYSIWYG欄の画像
+ * 使える拡張子のALLOW_IMAGE_TYPESとALLOW_ATTACH_TYPESはサイト全体のセキュリティの方針なので、
+ * このトレイトが持ってコーナーごとには変えさせない。
  *
- * WYSIWYG_FIELDSに書いた欄(例: body)では、エディタに挿入した画像も、
- * 一覧用画像などと同じ流れで扱う。
+ * ■ エディタの欄の画像
+ * エディタに入れた画像も、ほかの画像と同じ流れで扱う。
+ * 1. 画像を入れるとuploadAjaxFile()へ送られて一時ディレクトリに置かれ、
+ *    そのURLが<img src>として本文に入る
+ * 2. 確認画面の間は、一時ファイルのURLが入った本文のまま持ち回る。画像のためのhiddenは無い
+ * 3. commitUploads()で、一時ファイルを指す<img>の画像を正式な保存先へ移してsrcを書き換える
  *
- * 1. エディタで画像を挿入すると、uploadAjaxFile()へfield=フィールド名で
- *    POSTされ、tmp/に保存(リサイズ)される。エディタは返ってきたtmpの
- *    URLを<img src>にして本文に入れる。
- * 2. 確認画面・「戻る」の間は、本文のHTMLの中にtmpのURLが入ったまま
- *    hiddenで持ち回られる(画像のための専用のhiddenは無い)。
- * 3. commitUploads()で、本文の<img>のうちtmpを指しているものを正式な
- *    保存先へ移し、srcを正式なURLに書き換えて保存し直す。
+ * 本文には画像のURLをそのまま保存する。例：/storage/news/000/000012/xxxx.jpg
+ * 扱うのは、srcが一時ファイルのURLか、このレコードの保存先のURLに完全に一致する画像だけ。
+ * ほかの記事の画像、サーバーに置いた画像、外のサイトの画像は移しも消しもしない。
  *
- * 本文に保存するのは画像のURLそのもの(例: /storage/news/000/000012/xxxx.jpg)。
- * このトレイトが扱うのは、srcが「tmpのURL」か「このレコードの保存先の
- * URL」に完全に一致する画像だけで、他の記事の画像・サーバーに置いた
- * 静的な画像・外部サイトの画像などは、移動も削除もせずそのままにする。
+ * <img>は正規表現のIMG_SRC_PATTERNで探す。HtmlSanitizerを通した後のHTMLは属性の値が
+ * 必ず"で囲まれ、値の中の"は&quot;になっているので、この形に絞ったパターンで取りこぼさない。
+ * 書き換えるのは一致したsrcの値だけで、本文のほかの部分は1文字も変えない。
  *
- * 本文の中の<img>は正規表現(IMG_SRC_PATTERN)で探す。対象は必ず
- * HtmlSanitizer(HTML Purifier)を通した後のHTMLで、属性の値は常に"で
- * 囲まれ、値の中の"は&quot;に置き換えられているので、<img>の中の
- * どの位置にsrcがあっても、この形に限定したパターンで取りこぼしなく
- * 拾える。書き換えるのは一致したsrcの値だけで、本文のそれ以外の部分は
- * 1文字も変えない。
+ * エディタの欄だけ書き方を変えずに済むよう、本文はコントローラーがほかの項目と一緒に保存する。
+ * そのためcommitUploads()のときには本文はもう新しくなっていて、更新前の本文は
+ * Eloquentのモデルが覚えている直前の値をgetPrevious()で取る。これが取れるよう、
+ * コントローラーでは次の順に書く。
  *
- * 本文そのものは、コントローラーが他の項目と一緒にcreate()/update()で
- * 保存する(WYSIWYG欄だけ書き方を変えなくてよいように)。そのため
- * commitUploads()の時点では本文はすでに新しい内容になっていて、
- * 更新前の本文はEloquentのgetPrevious()(直前の保存で変わった項目の、
- * 変更前の値)から取り出す。これが正しく取れるように、コントローラーでは
- * 次の順序を守ること。
+ *   $news->update([...]);                 // 1. 本体を保存する
+ *   $this->commitUploads($news, ...);     // 2. すぐにファイルを確定する
+ *   // 関連テーブルの更新はここから        // 3. カテゴリーなどはその後
  *
- *   $news->update([...]);                 // 1. 本体の保存
- *   $this->commitUploads($news, ...);     // 2. すぐにファイルの確定
- *   // 関連テーブルの更新はここから        // 3. カテゴリー等はその後
+ * 1と2の間で同じモデルを保存し直すと、更新前の本文が分からなくなる。そのときも
+ * 本文から外した画像が消えずに残るだけで、使っている画像が消えることは無い。
  *
- * 1と2の間で同じモデルを保存し直す(update()・save()・touch()など)と、
- * 更新前の本文が分からなくなる。その場合も、本文から外された画像が
- * 削除されずに残るだけで、使っている画像が消えることは無い。
- *
- * 許可する拡張子(ALLOW_IMAGE_TYPES・ALLOW_ATTACH_TYPES)は、コーナーごとに
- * 変えるべきものではなく、サイト全体で共通のセキュリティ方針なので、
- * このトレイト自身が持つ固定値としている(使う側のコントローラーからは
- * 上書きできない)。
- *
- * 画面へ渡す$inputと、プレビューURLについて:
- * このプロジェクト全体の規約として、コントローラーが画面へ渡す$inputには、
- * 実際にフォームから送信される（＝次の画面へhiddenで持ち越す）項目だけを
- * 入れ、表示専用の値は1つも混ぜない。確認画面のhidden展開
- * (_confirm_hidden)のように「$inputを丸ごと機械的に展開する」汎用処理を、
- * 安全に書けるようにするため。
- *
- * このトレイトのajaxUploadInput()は、それに合わせて{field}・{field}_origin・
- * {field}_tmp・{field}_del（複数展開フィールドは同名の並行配列）だけを返す。
- * 呼び出し側は次の形になる（createの例）。
+ * ■ 画面へ渡す$input
+ * コントローラーが画面へ渡す$inputにはフォームから送る項目だけを入れ、表示のためだけの値は
+ * 入れない。確認画面の_confirm_hiddenが$inputをそのままhiddenに並べられるようにするため。
+ * ajaxUploadInput()もそれに合わせて{field}・{field}_origin・{field}_tmp・{field}_delだけを
+ * 返す。複数の欄ではどれも同じ要素数の配列になる。
  *
  *   $input = old() + [...] + $this->ajaxUploadInput(null, old());
  *
- * アップロード欄に表示するプレビューのURLは、コントローラーでは作らない。
- * ビュー（_ajax_upload_block）の中でupload_preview_url()を呼び、$inputの
- * 値からその場で求める。都道府県の名称をcode_table()で引くのと同じ考え方。
- *
- * _fields.blade.php側は$readonlyの値に応じて
- * _ajax_upload_block/_ajax_upload_groupへ$readonlyを渡すだけで、
- * 入力用UIと表示専用プレビューが自動的に切り替わる（詳しくは
- * resources/views/admin/_ajax_upload_block.blade.phpのコメント参照）。
+ * プレビューのURLはコントローラーでは作らず、_ajax_upload_blockの中でupload_preview_url()が
+ * $inputの値から求める。都道府県の名前をcode_table()で引くのと同じ考え方。
+ * _fields.blade.phpは_ajax_upload_blockと_ajax_upload_groupに$readonlyを渡すだけで、
+ * 入力の欄と表示だけのプレビューが切り替わる。
  */
 trait AjaxFileUpload
 {
@@ -121,44 +84,32 @@ trait AjaxFileUpload
 
     private const ALLOW_ATTACH_TYPES = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'csv', 'zip'];
 
-    // アップロードファイル1件あたりの上限(KB)。必要に応じて見直すこと。
+    // 1ファイルの大きさの上限(KB)
     private const MAX_UPLOAD_KB = 10240;
 
-    // 画像1枚あたりの画素数（横×縦）の上限。4000万画素は、たとえば
-    // 8000×5000程度。スマートフォンの通常の写真（1200万画素前後）は十分
-    // 収まる。サーバーのメモリに余裕があっても、これを超える画像は受け付けない
-    // （checkImagePixels()参照）。
+    // 画像1枚の画素数の上限。4000万画素は8000×5000くらいで、スマートフォンの写真は十分に収まる。
+    // サーバーのメモリに余裕があってもこれを超える画像は受け付けない
     private const MAX_IMAGE_PIXELS = 40_000_000;
 
-    // GDが画像を展開したときに使う、1画素あたりのおおよそのメモリ量（バイト）。
-    // GDのフルカラー画像は1画素を4バイトの整数で持つ。
+    // GDが画像を展開したときに1画素あたりに使うバイト数。フルカラーは1画素を4バイトで持つ
     private const GD_BYTES_PER_PIXEL = 4;
 
-    // WYSIWYG欄の本文(HtmlSanitizerを通した後)から<img>のsrcを探すパターン。
-    // 1: srcの値の直前まで 2: srcの値 3: 閉じの"
-    // "\ssrc"と直前に空白を求めているのは、data-srcのような別の属性に
-    // 一致させないため(HtmlSanitizerはdata-〜属性を残さないが念のため)。
+    // HtmlSanitizerを通した本文から、<img>のsrcを探すパターン。1はsrcの値の前まで、2はsrcの値、3は閉じの"。
+    // srcの前に空白を求めるのは、data-srcのような別の属性に一致させないため
     private const IMG_SRC_PATTERN = '/(<img\b[^>]*?\ssrc=")([^"]*)(")/i';
 
-    // 一時ディレクトリの名前（tmp）と、hiddenで持ち回るファイル名の形式
-    // （SAFE_FILENAME）は、App\Support\UploadFilePathが持っている。プレビュー用の
-    // URLを組み立てるUploadFilePath::previewUrl()も同じ値を使うので、1か所に
-    // まとめている。
+    // 一時ディレクトリの名前とhiddenで持ち回るファイル名の形は、プレビューのURLを作るときにも
+    // 使うのでUploadFilePathが持っている。
 
-    /**
-     * Ajaxアップロード処理本体。
-     *
-     * 1回のPOSTにつき1ファイル。どのUPLOAD_FILESフィールド宛かは、
-     * リクエストの'field'パラメータ(末尾の".*"や"[]"を含まない、
-     * 素のフィールド名)で判定する。
-     */
+    // Ajaxでアップロードを受け取る。1回に1ファイルで、どのフィールドの分かはfieldで受け取る。
+    // fieldは末尾の「.*」や「[]」を付けない名前。
     public function uploadAjaxFile(Request $request): JsonResponse
     {
         $field = (string) $request->input('field');
         $config = $this->resolveUploadFieldConfig($field);
 
         if ($config === null) {
-            // UPLOAD_FILESに定義の無いfield名が来た場合(実装ミス・改ざん)。
+            // 定義に無いフィールドは、作りの誤りか書き換えられた送信
             Log::warning('AjaxFileUpload: 未定義のfieldが指定されました。', ['field' => $field]);
 
             return response()->json(['message' => 'アップロードに失敗しました。'], 422);
@@ -173,8 +124,7 @@ trait AjaxFileUpload
         $file = $request->file('file');
 
         if (! $file->isValid()) {
-            // isValid()がfalseになるのは、PHP自身がupload_max_filesizeなどの
-            // 制限で弾いたケース。Laravelのバリデーションより手前の話。
+            // PHPがupload_max_filesizeなどの上限で受け取らなかった
             Log::warning('AjaxFileUpload: アップロードが無効です。', [
                 'field' => $field,
                 'error' => $file->getErrorMessage(),
@@ -183,9 +133,7 @@ trait AjaxFileUpload
             return response()->json(['message' => 'アップロードに失敗しました。'.$file->getErrorMessage()], 422);
         }
 
-        // ファイル種別の検証は、Laravelの標準的なmimesルールをそのまま
-        // 使う(拡張子だけでなく、実際のファイル内容から判定したMIMEタイプが
-        // 一致するかまで検証してくれる)。
+        // 種類はLaravelのmimesで確かめる。拡張子だけでなくファイルの中身から見た種類も確かめる
         $validator = Validator::make(
             ['file' => $file],
             ['file' => ['required', 'file', 'mimes:'.implode(',', $allowTypes), 'max:'.self::MAX_UPLOAD_KB]]
@@ -202,8 +150,7 @@ trait AjaxFileUpload
             return response()->json(['message' => '許可されたファイルタイプではありません。'], 422);
         }
 
-        // 画像は、保存・リサイズする前に画素数を確認する（理由は
-        // checkImagePixels()のコメント参照）。
+        // 画像は展開する前に画素数を確かめる
         if ($width > 0) {
             $pixelError = $this->checkImagePixels($file->getRealPath(), $field);
 
@@ -217,6 +164,7 @@ trait AjaxFileUpload
         try {
             $this->cleanupTmpDirectory();
 
+            // 一時ディレクトリにランダムな名前で置き、画像なら縮小する
             $tmpName = $file->hashName();
             $storedPath = $file->storeAs(UploadFilePath::TMP_DIR, $tmpName, UploadFilePath::TMP_DISK);
 
@@ -228,8 +176,7 @@ trait AjaxFileUpload
                 $this->resizeIfNeeded(Storage::disk(UploadFilePath::TMP_DISK)->path($storedPath), $width);
             }
 
-            // tmpのファイルを見られるのは、アップロードしたセッションだけにする
-            // （UploadedFileController::tmp()がこの一覧で確かめる）。
+            // 一時ファイルを見られるのは、アップロードしたセッションだけ。UploadedFileControllerがこの一覧で確かめる
             $request->session()->put(UploadFilePath::TMP_SESSION_KEY, array_slice(
                 [...$request->session()->get(UploadFilePath::TMP_SESSION_KEY, []), $tmpName],
                 -UploadFilePath::TMP_SESSION_MAX
@@ -251,29 +198,20 @@ trait AjaxFileUpload
     }
 
     /**
-     * 画像の画素数を、GDで展開する前に確認する。問題があれば利用者向けの
-     * エラーメッセージを、無ければnullを返す。
+     * 画像の画素数をGDで展開する前に確かめる。問題があれば利用者へのメッセージを返し、無ければnullを返す。
      *
-     * ファイルサイズが小さくても、縦横の画素数が極端に大きい画像（いわゆる
-     * 解凍爆弾）を送られると、resizeIfNeeded()でGDが画像を展開した時点で
-     * 「画素数×4バイト」のメモリを確保しようとして、PHPのメモリの上限
-     * （memory_limit）を超え、処理が異常終了する。getimagesize()は
-     * ファイルの先頭にある寸法の情報を読むだけで画像を展開しないので、
-     * 展開の前にここで弾ける。
-     *
-     * 判定は2段階。
+     * ファイルが小さくても縦横の画素数が極端に大きい画像は、GDが展開するときに「画素数×4バイト」の
+     * メモリを取ろうとしてmemory_limitを超え、処理が止まる。getimagesize()はファイルの先頭の寸法を
+     * 読むだけで展開しないので、その前に断れる。
      *
      * 1. MAX_IMAGE_PIXELSを超えていたら、メモリに関係なく断る
-     * 2. 展開に必要なメモリの見込みが、残りのメモリに収まらなければ断る。
-     *    スマートフォンで縦向きに撮った写真は、EXIFの回転補正で同じ大きさの
-     *    画像をもう1枚作るので、見込みは「画素数×4バイト×2枚分」にしている。
-     *    memory_limitが無制限（-1）の環境では、この判定は行わない
+     * 2. 展開に要るメモリの見込みが残りのメモリに収まらなければ断る。縦向きに撮った写真は
+     *    回転を直すときに同じ大きさの画像をもう1枚作るので、見込みは2枚分にする。
+     *    memory_limitが無制限なら確かめない
      *
-     * 2段目があるので、同じ画像でもmemory_limitの設定が違う環境（開発機と
-     * 本番機など）では結果が変わりうる。PHPの既定のmemory_limitは128Mで、
-     * このときは縦向きの1200万画素の写真でぎりぎりになるので、本番では
-     * 256M以上にしておくことをおすすめする。どちらの理由で断ったかは
-     * ログに残す。
+     * 2があるので、memory_limitの違う開発機と本番機では同じ画像でも結果が変わりうる。
+     * PHPの既定の128Mでは縦向きの1200万画素の写真がぎりぎりなので、本番は256M以上をすすめる。
+     * どちらで断ったかはログに残す。
      */
     private function checkImagePixels(string $path, string $field): ?string
     {
@@ -294,6 +232,7 @@ trait AjaxFileUpload
             $imageHeight
         );
 
+        // 1. 画素数の上限
         if ($pixels > self::MAX_IMAGE_PIXELS) {
             Log::warning('AjaxFileUpload: 画像の画素数が上限を超えています。', [
                 'field' => $field,
@@ -304,8 +243,7 @@ trait AjaxFileUpload
             return $message;
         }
 
-        // ini_parse_quantity()は"128M"のような書き方をバイト数に直す
-        // PHP 8.2以降の標準関数。無制限（-1）なら-1が返る。
+        // 2. 残りのメモリ。ini_parse_quantity()は"128M"のような書き方をバイト数に直し、無制限なら-1を返す
         $memoryLimit = ini_parse_quantity((string) ini_get('memory_limit'));
 
         if ($memoryLimit > 0) {
@@ -326,10 +264,7 @@ trait AjaxFileUpload
         return null;
     }
 
-    /**
-     * 指定フィールドの設定(横幅・許可タイプ)を引く。$fieldは素の
-     * フィールド名(例: 'list_image'・'attach'・'body')。定義に無ければnull。
-     */
+    // フィールドの横幅と使える拡張子。$fieldは「.*」を付けない名前で、定義に無ければnull。
     private function resolveUploadFieldConfig(string $field): ?array
     {
         foreach ($this->uploadFieldDefinitions() as $def) {
@@ -347,24 +282,14 @@ trait AjaxFileUpload
     }
 
     /**
-     * UPLOAD_FILESとWYSIWYG_FIELDSを解析して、["field" => 素のフィールド名,
-     * "kind" => 種類, "width" => 横幅(px)]の配列にして返す。種類は次の3つ。
+     * UPLOAD_FILESとWYSIWYG_FIELDSを、['field' => 名前, 'kind' => 種類, 'width' => 横幅]の並びにする。
      *
-     * - 'single'      UPLOAD_FILESの単数フィールド(例: list_image)
-     * - 'repeatable'  UPLOAD_FILESの".*"付きのフィールド(例: attach)
-     * - 'wysiwyg'     WYSIWYG_FIELDSのフィールド(例: body)
+     * - single      UPLOAD_FILESの1つだけのフィールド。例：list_image
+     * - repeatable  UPLOAD_FILESの「.*」付きのフィールド。例：attach
+     * - wysiwyg     WYSIWYG_FIELDSのフィールド。例：body
      *
-     * このトレイトの他のメソッド(ajaxUploadRules・ajaxUploadInput・
-     * commitUploads・deleteAllUploads等)は、2つの定数を自分で解析せず、
-     * 必ずこのメソッドの結果を使う。解析の方法をここ1か所に置いておけば、
-     * 定数の書式を変えたときも、ここを直すだけで済む。
-     *
-     * WYSIWYG_FIELDSは省略できる(WYSIWYG欄の無いコントローラーは定義
-     * しなくてよい)ので、defined()で有無を確かめてから読む。
-     *
-     * このトレイト内の他のメソッドだけが使う内部ヘルパー（確認画面の
-     * hidden展開は_confirm_hiddenが$inputから直接組み立てるので、こちらを
-     * 経由しない。詳しくはこのファイル冒頭のコメント参照）。
+     * このトレイトのほかのメソッドは2つの定数を自分で読まず、必ずこの結果を使う。
+     * 定数の書き方を変えてもここを直すだけで済む。
      */
     private function uploadFieldDefinitions(): array
     {
@@ -380,6 +305,7 @@ trait AjaxFileUpload
             ];
         }
 
+        // WYSIWYG_FIELDSは省略できるので、あるときだけ読む
         $wysiwygFields = defined('self::WYSIWYG_FIELDS') ? self::WYSIWYG_FIELDS : [];
 
         foreach ($wysiwygFields as $field => $width) {
@@ -393,26 +319,15 @@ trait AjaxFileUpload
         return $fields;
     }
 
-    /**
-     * tmp/の古いファイル（TemporaryDataCleaner::MAX_AGE_HOURSより古いもの）を削除する。
-     * 本来はスケジューラーが1時間ごとに消す（App\Support\TemporaryDataCleaner）。
-     * アップロードのたびにも呼ぶのは、サーバーのcronが動いていなくても、放置された
-     * ファイルが際限なく溜まり続けないようにするための控え。
-     */
+    // 一時ディレクトリの古いファイルを消す。本来はスケジューラーが1時間ごとに消すが、
+    // cronが動いていなくても溜まり続けないようアップロードのたびにも消す。
     private function cleanupTmpDirectory(): void
     {
         TemporaryDataCleaner::uploadTmpFiles();
     }
 
-    /**
-     * 指定した横幅を超えている画像だけ縮小する。指定サイズ以下の画像は
-     * そのまま(拡大はしない)。
-     *
-     * PHP標準のGD拡張だけで実装しているが、1点だけ通常のGDの単純な
-     * リサイズでは抜け落ちる「スマートフォン写真のEXIF回転情報」を
-     * 明示的に読んで補正している。これをやらないと、縦向きに撮った
-     * 写真がリサイズ後に横倒しで表示される、という定番の不具合が起きる。
-     */
+    // 指定の横幅を超える画像だけを縮小する。拡大はしない。
+    // 縦向きに撮った写真が横に倒れないよう、EXIFの向きを読んで回転も直す。
     private function resizeIfNeeded(string $absolutePath, int $maxWidth): void
     {
         $imageInfo = @getimagesize($absolutePath);
@@ -423,6 +338,7 @@ trait AjaxFileUpload
 
         [$width, $height, $type] = $imageInfo;
 
+        // JPEGならEXIFの向きを読む
         $orientation = null;
 
         if ($type === IMAGETYPE_JPEG && function_exists('exif_read_data')) {
@@ -441,6 +357,7 @@ trait AjaxFileUpload
             return;
         }
 
+        // 向きを直す
         if ($orientation && $orientation !== 1) {
             $image = $this->applyExifOrientation($image, (int) $orientation);
             $width = imagesx($image);
@@ -448,7 +365,7 @@ trait AjaxFileUpload
         }
 
         if ($width <= $maxWidth) {
-            // 縮小は不要でも、回転補正だけは反映させて保存し直す。
+            // 縮小は要らなくても向きを直したなら保存し直す
             if ($orientation && $orientation !== 1) {
                 $this->saveImage($image, $absolutePath, $type);
             }
@@ -457,10 +374,11 @@ trait AjaxFileUpload
             return;
         }
 
+        // 縦横の比を保って縮小する
         $newHeight = (int) round($height * ($maxWidth / $width));
         $resized = imagecreatetruecolor($maxWidth, $newHeight);
 
-        // PNG・WebPの透過を保持する。
+        // PNGとWebPの透過を保つ
         imagealphablending($resized, false);
         imagesavealpha($resized, true);
 
@@ -472,6 +390,7 @@ trait AjaxFileUpload
         imagedestroy($resized);
     }
 
+    // EXIFの向きに合わせて画像を回す。3は180度、6は右へ90度、8は左へ90度回す。
     private function applyExifOrientation($image, int $orientation)
     {
         return match ($orientation) {
@@ -482,6 +401,7 @@ trait AjaxFileUpload
         };
     }
 
+    // 画像を元と同じ種類で保存し直す。JPEGとWebPの画質は85。
     private function saveImage($image, string $path, int $type): void
     {
         match ($type) {
@@ -492,18 +412,13 @@ trait AjaxFileUpload
         };
     }
 
-    /**
-     * UPLOAD_FILESを元に、確認画面用のバリデーションルールを組み立てる。
-     * (WYSIWYG_FIELDSの欄には、追加するルールは無い。)
-     * 呼び出し側のrules()から、戻り値をそのまま+演算子でマージして使う。
-     */
+    // アップロードの欄のhiddenを確かめるルール。コントローラーのrules()に+で足して使う。
     public function ajaxUploadRules(): array
     {
         $rules = [];
 
         foreach ($this->uploadFieldDefinitions() as $def) {
-            // WYSIWYG欄の本文そのもののルールは、呼び出し側のrules()に書く
-            // (hiddenの類は無いので、ここで足すものは無い)。
+            // エディタの欄にはhiddenが無い。本文のルールはコントローラーのrules()に書く
             if ($def['kind'] === 'wysiwyg') {
                 continue;
             }
@@ -518,15 +433,9 @@ trait AjaxFileUpload
             $rules["{$base}_del{$suffix}"] = ['nullable', 'in:0,1'];
 
             if ($isRepeatable) {
-                // 配列本体としての形も検証しておく(文字列などを直接
-                // 送りつけられても、ここで弾ける)。
-                //
-                // 4本の配列は.ajax_upload_blockという単位でまとめて増減させて
-                // いるので、画面から普通に操作していれば要素数は必ずそろう。
-                // そろっていなければ、hiddenが書き換えられるなどした想定外の
-                // リクエストなので、SameCountAsRuleで弾く。4本それぞれに
-                // 「他の3本と同じ要素数か」を付けているのは、どれか1本だけが
-                // 送られてこなかった場合（要素数0扱い）も見逃さないため。
+                // 複数の欄は、4本とも配列で要素数がそろっていることを確かめる。
+                // 画面は4本を1組で増減させるので、そろっていなければhiddenが書き換えられている。
+                // 1本だけ送られてこなかったときも見逃さないよう4本それぞれに付ける
                 $keys = [$base, "{$base}_tmp", "{$base}_origin", "{$base}_del"];
 
                 foreach ($keys as $key) {
@@ -540,73 +449,45 @@ trait AjaxFileUpload
     }
 
     /**
-     * 対象レコードの保存(create/update)が終わり、idが確定した後に呼ぶ。
+     * レコードを保存してidが決まった後に、アップロードしたファイルを確定する。
+     * $inputは送信された値で、形はrules()で確かめてある前提。
      *
-     * $inputは$request->all()相当(バリデーション済みかどうかは問わない。
-     * 各フィールドの値の形式自体はrules()側で既に検証済みの前提)。
+     * ■ ファイルを消すかはDBの更新前と更新後の違いで決める
+     * hiddenで届くファイル名や_delは書き換えられる。1件分のファイルは同じディレクトリにあるので、
+     * それを信じて消すと、書き換えで同じ記事の別の欄のファイルを消せてしまう。そこで次のようにする。
+     * 1. 更新前に、このレコードが参照しているファイル名を全フィールド分まとめて取る
+     * 2. フィールドごとにDBの値だけを更新する。hiddenで届いた今のファイル名はDBの値と
+     *    一致するときだけ使い、一致しなければ今のファイルは無いとみなす
+     * 3. 更新後にもう一度取り、更新前にあって更新後に無いファイルだけを消す
+     * 消すかを決めるのは書き換えられないDBの値だけなので、このレコードが使わなくなった
+     * ファイルのほかは消えない。
      *
-     * ■ 物理ファイルの削除は「DBの更新前後の差分」で決める
+     * ■ ファイルはトランザクションが確定した後に消す
+     * 呼び元はトランザクションの中でこのメソッドを呼ぶ。その場で消すと、後で例外が起きて
+     * DBが元に戻ったときに、DBが参照しているファイルが無くなってしまう。そこで3はDB::afterCommit()で
+     * 確定の後に消す。トランザクションの外で呼ばれたらその場で消える。
+     * 一時ファイルを保存先へ移すのは、DBに書くファイル名を決めるためにその場で行う。
+     * 取り消されたときはどこからも使われないファイルが残るだけで、表示は壊れない。
      *
-     * hiddenで届く値（既存のファイル名・_delフラグ）は、画面の側で
-     * 書き換えられる可能性がある。それをそのまま信用して「このファイルを
-     * 消す」と判断すると、1件分のファイルは同じディレクトリに並んでいる
-     * ので、書き換えによって同じ記事の別のフィールドのファイル（例: 一覧用
-     * 画像の欄から添付ファイル）を消せてしまう。
+     * エディタの欄は本文をコントローラーが保存済みなので、更新前の本文はgetPrevious()から取る。
      *
-     * そこで、次の3段階にしている。
+     * ■ 入力にキーが無いフィールドは触らない
+     * 1つだけの欄は4つのキーのどれも無いとき、複数の欄は{field}が無いとき、ファイルは今のまま。
+     * 画面のフォームは4つのhiddenを必ず送るので、画面からの登録には関係しない。
+     * CSVにアップロードの列が無いときに今のファイルを消さないため。
      *
-     * 1. 更新前に、このレコードがDB上で参照しているファイル名の一覧を取る
-     *    （storedFilenames()。フィールドをまたいだレコード全体の一覧）
-     * 2. 各フィールドの確定処理で、DBの値だけを更新する（ここでは物理
-     *    ファイルは消さない）。hiddenで届いた既存のファイル名は、その
-     *    フィールドのDBの現在の値と一致する場合だけ採用し、一致しなければ
-     *    「既存のファイルは無い」として扱う
-     * 3. 更新後にもう一度一覧を取り、更新前にはあって更新後に無くなった
-     *    ファイル名だけを物理削除する
-     *
-     * 削除の判断材料が、書き換えられないDBの値だけになるので、hiddenを
-     * どう書き換えても「このレコードがもう参照しなくなったファイル」以外は
-     * 消えない。
-     *
-     * ■ 物理ファイルの削除は、トランザクションが確定した後に行う
-     *
-     * 呼び出し側（FormFlow::saveData()など）はトランザクションの中でこのメソッドを
-     * 呼ぶ。3の物理削除をその場で行うと、後の処理で例外が起きてDBの更新が
-     * 取り消されたときに、元に戻ったDBが参照しているファイルだけが消えてしまう。
-     * そこで3はDB::afterCommit()に渡し、トランザクションが確定してから消す
-     * （トランザクションの外で呼ばれた場合は、その場で消える）。
-     * tmpから正式な保存先への移動（moveTmpToFinal()）は、DBに書き込むファイル名を
-     * 決めるためにその場で行う。取り消されたときは、どこからも参照されない
-     * ファイルが保存先に残るだけで、表示が壊れることは無い。
-     *
-     * WYSIWYG欄は、本文をコントローラーがすでに保存しているので、
-     * 1の「更新前」の本文はgetPrevious()から取り出す（このファイル冒頭の
-     * 「WYSIWYG欄の画像」参照。呼び出し側は、本体のcreate()/update()の
-     * 直後にこのメソッドを呼ぶこと）。
-     *
-     * ■ 入力にキーが無い項目は何もしない
-     *
-     * 単数の項目は{field}・{field}_tmp・{field}_origin・{field}_delの4つ、
-     * 複数の項目は{field}のキーが$inputに1つも無ければ、その項目のファイルは
-     * 今のまま触らない。画面のフォームは4つのhiddenを必ず送るので、画面からの
-     * 登録・更新の動きは変わらない。CSV取り込み（App\Support\CsvImport）で、
-     * CSVにアップロードの列が無いときに、既存のファイルを消さないため。
-     *
-     * ■ CSV取り込みから呼ぶとき（$fromImport = true）
-     *
-     * 画面からの登録では、hiddenで届いたファイル名はDBの今の値と一致するときだけ
-     * 採用する（hiddenは書き換えられるため）。CSV取り込みでは、バッチ処理などで
-     * 実ファイルの名前を変えた後に、新しい名前をCSVで反映できるようにするため、
-     * DBの値と違うファイル名も採用する。そのファイル名が安全な形式で、この
-     * レコードの保存先に実在し、項目の種類に合った拡張子であることは、
-     * 取り込みの検証（checkImportedUploadFilename()）で確かめ済みの前提。
-     * 表示名（{field}_origin）も、DBの値ではなく入力の値をそのまま使う。
-     * 古いファイルの削除は、画面からの登録と同じく更新前後の差分で決まる。
+     * ■ CSV取り込みから呼ぶとき
+     * $fromImportがtrueなら、DBの値と違うファイル名も使う。バッチなどでファイルの名前を変えた後に、
+     * 新しい名前をCSVで反映できるようにするため。名前の形と保存先にあることと拡張子は、取り込みの
+     * 検証のcheckImportedUploadFilename()で確かめ済みの前提。表示名もDBの値ではなく入力の値を使う。
+     * 古いファイルを消すのは、画面からの登録と同じく更新前と更新後の違いで決まる。
      */
     public function commitUploads(Model $model, array $input, bool $fromImport = false): void
     {
+        // 1. 更新前のファイル名
         $before = $this->storedFilenames($model, true);
 
+        // 2. フィールドごとにDBを更新する
         foreach ($this->uploadFieldDefinitions() as $def) {
             match ($def['kind']) {
                 'single' => $this->commitSingularUploadField($model, $def['field'], $input, $fromImport),
@@ -615,6 +496,7 @@ trait AjaxFileUpload
             };
         }
 
+        // 3. 使わなくなったファイルを確定の後に消す
         $after = $this->storedFilenames($model);
         $removed = array_diff_key($before, $after);
 
@@ -626,18 +508,13 @@ trait AjaxFileUpload
     }
 
     /**
-     * このレコードがDB上で参照しているファイル名の一覧（全フィールド分を
-     * まとめたもの。ファイル名 => フィールド名）。フィールド名は、ファイルを
-     * 消すときに置き場所のディスク（公開・非公開）を決めるのに使う。
-     * 単数フィールドはモデルのカラムの値、複数展開フィールドは子テーブルの行、
-     * WYSIWYG欄は本文の<img>から取る。子テーブルは、読み込み済みのリレーション
-     * （古いかもしれない）ではなく、毎回DBに問い合わせる。
+     * このレコードが参照しているファイル名の一覧。ファイル名 => フィールド名で、フィールド名は
+     * 消すときにディスクを決めるのに使う。1つだけの欄はカラムから、複数の欄は子テーブルから、
+     * エディタの欄は本文の<img>から取る。読み込み済みのリレーションは古いかもしれないので、
+     * 子テーブルは毎回DBに問い合わせる。
      *
-     * $beforeCommitがtrueなら、commitUploads()の「更新前」の一覧。
-     * WYSIWYG欄の本文だけは、コントローラーが直前に保存した新しい内容に
-     * なっているので、getPrevious()にある変更前の値を使う（直前の保存で
-     * 本文が変わっていなければ、getPrevious()に本文は含まれないので、
-     * 今の値を使う）。
+     * $beforeCommitがtrueなら更新前の一覧。エディタの本文はもう新しくなっているので
+     * getPrevious()の値を使う。直前の保存で本文が変わっていなければ今の値を使う。
      */
     private function storedFilenames(Model $model, bool $beforeCommit = false): array
     {
@@ -647,12 +524,14 @@ trait AjaxFileUpload
         foreach ($this->uploadFieldDefinitions() as $def) {
             $field = $def['field'];
 
+            // 複数の欄は子テーブルの行から
             if ($def['kind'] === 'repeatable') {
                 $filenames += array_fill_keys($model->{$field}()->pluck('filename')->all(), $field);
 
                 continue;
             }
 
+            // エディタの欄は本文の<img>から
             if ($def['kind'] === 'wysiwyg') {
                 $html = array_key_exists($field, $previous) ? $previous[$field] : $model->{$field};
                 $filenames += array_fill_keys($this->wysiwygImageFilenames($model, $field, $html), $field);
@@ -660,6 +539,7 @@ trait AjaxFileUpload
                 continue;
             }
 
+            // 1つだけの欄はカラムから
             if ($model->{$field}) {
                 $filenames[$model->{$field}] = $field;
             }
@@ -669,20 +549,16 @@ trait AjaxFileUpload
     }
 
     /**
-     * 単数フィールド(t_newsのlist_imageのような、1レコードにつき1カラム)
-     * の確定処理。DBの値だけを決め、物理ファイルは消さない（削除は
-     * commitUploads()が更新前後の差分で行う）。
+     * 1レコードに1カラムの欄を確定する。例：t_newsのlist_image。DBの値だけを決めて
+     * ファイルは消さない。消すのはcommitUploads()。
      *
-     * _tmpあり（移動に成功） → 新しいファイルをセット（差し替え・新規）
-     * _del=1                 → 空にする
-     * どちらも無し           → 既存のファイルのまま
+     * _tmpがあり、移せた   → 新しいファイルにする
+     * _delが1              → 空にする
+     * どちらでもない       → 今のファイルのまま
      *
-     * 「既存のファイル」は、hiddenで届いたファイル名がこのフィールドの
-     * DBの現在の値と一致する場合だけ採用する。一致しない（書き換えられた、
-     * または画面を開いた後に別の人が更新した）場合は、既存のファイルは
-     * 無いものとして扱う。元のファイル名(_origin)も、既存のファイルの分は
-     * hiddenではなくDBの値を使う（新しくアップロードしたファイルの元の
-     * 名前だけは、hiddenで届いたものしか手がかりが無いのでそれを使う）。
+     * 今のファイルは、hiddenで届いた名前がDBの値と一致するときだけ残す。書き換えられたときや
+     * 画面を開いた後にほかの人が更新したときは、今のファイルは無いとみなす。今のファイルの
+     * 表示名もDBの値を使う。新しいファイルの表示名だけは、hiddenで届いた値しか無いのでそれを使う。
      */
     private function commitSingularUploadField(Model $model, string $field, array $input, bool $fromImport): void
     {
@@ -690,17 +566,25 @@ trait AjaxFileUpload
         $current = $model->{$field};
         $currentOrigin = $model->{$originColumn};
 
+        // 入力にこの欄のキーが無ければ触らない
         if (! array_intersect_key($input, array_flip([$field, "{$field}_tmp", $originColumn, "{$field}_del"]))) {
             return;
         }
 
         if ($fromImport) {
-            // CSVにファイル名の列があれば、その値にする（空欄ならファイルを外す）。
-            // 表示名は、CSVに列があればその値、無ければ同じファイルのままのときだけ今の値。
+            // CSVにファイル名の列があれば、その値にする。空欄ならファイルを外す
             $filename = array_key_exists($field, $input) ? ($input[$field] ?: null) : $current;
-            $origin = array_key_exists($originColumn, $input)
-                ? ($input[$originColumn] ?: null)
-                : ($filename !== null && $filename === $current ? $currentOrigin : null);
+
+            if (array_key_exists($originColumn, $input)) {
+                // CSVに表示名の列があれば、その値
+                $origin = $input[$originColumn] ?: null;
+            } elseif ($filename !== null && $filename === $current) {
+                // 列が無くファイルが変わらなければ、今の表示名
+                $origin = $currentOrigin;
+            } else {
+                // 列が無くファイルが変わったなら、表示名は無し
+                $origin = null;
+            }
 
             $model->update([$field => $filename, $originColumn => $filename !== null ? $origin : null]);
 
@@ -711,6 +595,7 @@ trait AjaxFileUpload
         $tmp = $input["{$field}_tmp"] ?? null;
         $kept = ($current !== null && ($input[$field] ?? null) === $current) ? $current : null;
 
+        // 新しいファイル
         if ($tmp) {
             $filename = $this->moveTmpToFinal($model, $field, $tmp);
 
@@ -720,49 +605,42 @@ trait AjaxFileUpload
                 return;
             }
 
-            // tmpの実ファイルが見つからなかった場合(moveTmpToFinal()内で
-            // ログ済み)は、_tmpが最初から無かったときと同じ扱いにして
-            // 下のdel/既存分岐へ合流させる。
+            // 一時ファイルが無ければ、_tmpが無かったときと同じく下へ進む
         }
 
+        // 削除
         if ($del) {
             $model->update([$field => null, $originColumn => null]);
 
             return;
         }
 
-        // _delも_tmpも無ければ、既存の値を書き戻す(通常は実質何も変わらない)。
-        // 「何もしない」にせず必ずUPDATEするのは、複数展開のフィールド
-        // (commitRepeatableUploadField())と同じく「送られてきた内容でDBの値を
-        // 決め直す」形にそろえるため。
+        // どちらでもなければ今の値を書き戻す。ふつうは何も変わらないが、
+        // 複数の欄と同じく送られた内容でDBの値を決め直す形にそろえる
         $model->update([$field => $kept, $originColumn => $kept !== null ? $currentOrigin : null]);
     }
 
     /**
-     * 複数展開フィールド(t_news_attachmentsのような子テーブル)の確定処理。
-     * 単数フィールドと同じく、DBの行だけを決め、物理ファイルは消さない。
+     * 子テーブルに行を持つ複数の欄を確定する。例：t_news_attachments。DBの行だけを決めて
+     * ファイルは消さない。行を1つずつ直すのではなく、今の行を全部消して残す分を作り直す。
      *
-     * 個々の行を差分更新するのではなく、「このモデルに属する既存行を
-     * 全削除してから、生き残った枠だけ作り直す」方式にしている。
-     *
-     * hiddenで届いた既存のファイル名は、このフィールドの現在の行の中に
-     * あるものだけを採用する（無いものは、空の予備枠と同じく読み飛ばす）。
-     * 同じファイル名が2回送られてきても、行は1つしか作らない。既存の
-     * ファイルの元のファイル名は、hiddenではなくDBの行の値を使う。新しくアップロードした
-     * ファイルの元のファイル名が届かなければ、空（NULL）のままにする（保存ファイル名は
-     * ランダムな文字列なので、代わりに入れても意味が無いため）。
+     * hiddenで届いた今のファイル名は子テーブルにあるものだけを使い、無いものは空の枠と同じく
+     * 飛ばす。同じ名前が2回届いても行は1つだけ作る。今のファイルの表示名はDBの値を使う。
+     * 新しいファイルの表示名が届かなければ空のままにする。保存したファイル名はランダムなので、
+     * 代わりに入れても意味が無いため。
      */
     private function commitRepeatableUploadField(Model $model, string $field, array $input, bool $fromImport): void
     {
+        // 入力にこの欄のキーが無ければ触らない
         if (! array_key_exists($field, $input)) {
             return;
         }
 
-        // DBの現在の行: ファイル名 => 元のファイル名
+        // 今の行。ファイル名 => 表示名
         $current = $model->{$field}()->pluck('original_name', 'filename')->all();
 
         if ($fromImport) {
-            // CSVの並び順のまま、ファイル名と表示名で行を作り直す（CSVに無いファイルは外れる）
+            // CSVの並び順のまま、ファイル名と表示名で行を作り直す。CSVに無いファイルは外れる
             $rows = [];
             foreach ((array) $input[$field] as $index => $filename) {
                 if ($filename && ! in_array($filename, array_column($rows, 'filename'), true)) {
@@ -792,11 +670,11 @@ trait AjaxFileUpload
             $kept = ($existing !== null && $existing !== '' && array_key_exists($existing, $current)) ? $existing : null;
 
             if (! $kept && ! $tmp) {
-                // 一度も使われなかった予備枠、または既存のファイル名が
-                // DBの行に無かった（書き換えられた等）枠。何もしない。
+                // 使われなかった空の枠か、今のファイル名が子テーブルに無い枠
                 continue;
             }
 
+            // 新しいファイル
             if ($tmp) {
                 $filename = $this->moveTmpToFinal($model, $field, $tmp);
 
@@ -809,13 +687,11 @@ trait AjaxFileUpload
                     continue;
                 }
 
-                // tmpの実ファイルが見つからなかった場合は、_tmpが
-                // 最初から無かったときと同じ扱いにして下へ合流させる。
+                // 一時ファイルが無ければ、_tmpが無かったときと同じく下へ進む
             }
 
+            // 消さない今のファイルは、DBの表示名で行を作り直す
             if (! $del && $kept && ! isset($used[$kept])) {
-                // 触られなかった既存分。ファイルはそのままなので、
-                // 同じファイル名・DBにあった元のファイル名で行だけ作り直す。
                 $rows[] = [
                     'filename' => $kept,
                     'original_name' => $current[$kept],
@@ -823,9 +699,7 @@ trait AjaxFileUpload
                 $used[$kept] = true;
             }
 
-            // ここに来て$rowsに追加されないのは、削除確定の枠
-            // ($del=1かつ有効な$tmp無し)、tmpが無効で既存のファイルも
-            // 無かった枠、または同じ既存ファイルの2回目以降のどれか。
+            // 行を作らないのは、消す枠、一時ファイルも今のファイルも無い枠、同じファイルの2回目
         }
 
         $model->{$field}()->delete();
@@ -836,19 +710,12 @@ trait AjaxFileUpload
     }
 
     /**
-     * WYSIWYG欄の確定処理。本文の<img>のうち、srcがtmpのURLのものを
-     * 正式な保存先へ移し、srcを正式なURLに書き換えて保存し直す。
-     * 本文から外された画像の物理削除は、他のフィールドと同じく
-     * commitUploads()が更新前後の差分で行う。
+     * エディタの欄を確定する。本文の<img>のうちsrcが一時ファイルのURLの画像を保存先へ移し、
+     * srcを書き換えて保存し直す。本文から外した画像を消すのは、ほかの欄と同じくcommitUploads()。
      *
-     * 本文はコントローラーがHtmlSanitizerを通してから保存したものなので、
-     * IMG_SRC_PATTERNでそのまま探せる。
-     *
-     * 同じ画像を本文の中で2回以上使っている（エディタ上でコピーした）
-     * 場合、2回目以降はtmpにもうファイルが無いので、1回目に移した結果を
-     * $movedから使う。tmpにファイルが無かった画像（確認画面に長く置いた
-     * ままにして、tmpの掃除で消えた等）は、srcを書き換えずにそのまま残す
-     * （画像は表示されなくなる）。
+     * 同じ画像を本文で2回以上使っているときは、2回目には一時ファイルがもう無いので
+     * 1回目に移した結果を$movedから使う。確認画面に長く置いて一時ファイルが消えた画像は
+     * srcをそのままにする。その画像は表示されなくなる。
      */
     private function commitWysiwygField(Model $model, string $field): void
     {
@@ -863,12 +730,14 @@ trait AjaxFileUpload
         $newHtml = preg_replace_callback(self::IMG_SRC_PATTERN, function (array $m) use ($model, $field, &$moved) {
             $tmp = $this->tmpImageFilenameFromUrl($m[2]);
 
+            // 一時ファイルの画像でなければそのまま
             if ($tmp === null) {
                 return $m[0];
             }
 
             $moved[$tmp] ??= $this->moveTmpToFinal($model, $field, $tmp);
 
+            // 移せなければそのまま
             if ($moved[$tmp] === null) {
                 return $m[0];
             }
@@ -882,14 +751,11 @@ trait AjaxFileUpload
     }
 
     /**
-     * WYSIWYG欄の本文から、このレコードの保存先にある画像のファイル名を
-     * 集める。srcが「このレコードの保存先のURL」に完全に一致するものだけが
-     * 対象で、tmpの画像・他の記事の画像・静的な画像・外部の画像は含めない。
+     * エディタの本文から、このレコードの保存先にある画像のファイル名を集める。対象はsrcがこのレコードの
+     * 保存先のURLに完全に一致するものだけで、一時ファイルやほかの記事、外の画像は含めない。
      *
-     * 呼ばれる本文には、DBを直接書き換えた（一括パッチなど）ものも
-     * ありうるので、IMG_SRC_PATTERNにかける前に必ずHtmlSanitizerを通して
-     * 形をそろえる。ここで画像を取りこぼすと、使っている画像が「更新後に
-     * 無くなった」とみなされて削除されてしまうため。
+     * DBを直接書き換えた本文もありうるので、先にHtmlSanitizerを通して形をそろえる。
+     * ここで取りこぼすと、使っている画像が更新後に無くなったとみなされて消されてしまうため。
      */
     private function wysiwygImageFilenames(Model $model, string $field, ?string $html): array
     {
@@ -916,11 +782,9 @@ trait AjaxFileUpload
     }
 
     /**
-     * srcがtmpに置いた画像のURLならそのファイル名を、そうでなければnullを
-     * 返す。URLがUploadFilePath::tmpUrl()で組み立てたものと完全に一致し、
-     * ファイル名がSAFE_FILENAMEの形式で、拡張子が画像のもの
-     * （ALLOW_IMAGE_TYPES）だけを認める（添付ファイル欄にアップロードした
-     * PDFなどのtmpのURLを本文に書かれても、画像として取り込まない）。
+     * srcが一時ファイルの画像のURLならそのファイル名を返し、そうでなければnullを返す。
+     * URLがUploadFilePath::tmpUrl()と完全に一致し、名前が安全な形で拡張子が画像のものだけを認める。
+     * 添付ファイルの欄に上げたPDFのURLを本文に書かれても、画像として取り込まないため。
      */
     private function tmpImageFilenameFromUrl(string $src): ?string
     {
@@ -940,14 +804,13 @@ trait AjaxFileUpload
     }
 
     /**
-     * CSV取り込みで指定されたファイル名を確かめる（App\Support\CsvImportから呼ぶ）。
-     * 問題があれば利用者向けのメッセージを、無ければnullを返す。
+     * CSV取り込みで指定されたファイル名を確かめる。CsvImportから呼ぶ。
+     * 問題があれば利用者へのメッセージを、無ければnullを返す。
      *
-     * - 今のアップロードと同じ安全な形式（SAFE_FILENAME。「/」や「..」を含まない）であること
-     * - 項目の種類に合った拡張子であること（画像の項目なら画像の拡張子だけ。同じ保存先に
-     *   ある別の項目のファイル、たとえば添付ファイルのPDFを画像の項目に指定させないため）
-     * - このレコードの保存先に実在すること（ファイル名だけを受け取り、必ずこのレコードの
-     *   保存先の中で探す）
+     * - アップロードと同じ安全な形であること。「/」や「..」を含まない
+     * - 欄の種類に合った拡張子であること。同じ保存先にある添付ファイルのPDFを画像の欄に
+     *   指定させないため
+     * - このレコードの保存先にあること。受け取るのはファイル名だけで、必ずこのレコードの保存先で探す
      */
     public function checkImportedUploadFilename(Model $model, string $field, string $filename): ?string
     {
@@ -974,38 +837,25 @@ trait AjaxFileUpload
         return null;
     }
 
-    /**
-     * 保存先ディレクトリ。規則そのもの（モデルのクラス名とidから組み立てる。
-     * 例: news/000/000012）はApp\Support\UploadFilePathが持っていて、ここは
-     * それを呼ぶだけ。訪問者側の表示（モデルのアクセサ）も同じUploadFilePathを
-     * 使うので、保存する場所と表示するURLが食い違うことが無い。
-     *
-     * 1件のレコードのファイルは、フィールド（list_image・attach等）に
-     * 関係なく同じディレクトリに置く（理由はUploadFilePathのコメント参照）。
-     * 非公開のフィールドがあれば、同じ名前のディレクトリが非公開のディスクにもできる。
-     */
+    // レコードの保存先のディレクトリ。例：news/000/000012。規則はUploadFilePathが持つ。
+    // 1件分のファイルはフィールドに関係なく同じディレクトリに置く。
     private function uploadDirectory(Model $model): string
     {
         return UploadFilePath::directory($model::class, $model->getKey());
     }
 
-    // 置き場所のディスク（公開・非公開）は、フィールドで決まる。
+    // ファイルを消す。ディスクが公開か非公開かはフィールドで決まる。
     private function deleteUploadedFile(Model $model, string $field, string $filename): void
     {
         Storage::disk(UploadFilePath::disk($model::class, $field))->delete($this->uploadDirectory($model).'/'.$filename);
     }
 
     /**
-     * tmp/のファイルを、idが確定した正式なディレクトリへ移動する。
-     * DBに保存するのはファイル名だけなので、戻り値もファイル名のみ。
+     * 一時ファイルを、idが決まったレコードの保存先へ移し、ファイル名を返す。
      *
-     * 呼び出し前にrules()のregexで名前の「形式」は検証済みだが、
-     * それとは別に「実ファイルが本当にtmp/に存在するか」もここで
-     * 確認する。hiddenの値は最後まで改ざん可能な入力なので、確認画面を
-     * 経由する間にcleanupTmpDirectory()で削除された場合や、そもそも
-     * 存在しないファイル名が送られてきた場合にStorage::move()が
-     * 例外を投げて処理全体が失敗するのを防ぐため。存在しなければnullを
-     * 返し、呼び出し側で「_tmpが最初から無かった」場合と同じ扱いにする。
+     * 名前の形はrules()で確かめてあるが、ファイルがあるかもここで確かめる。確認画面の間に
+     * 片付けで消えたときや無い名前を送られたときに、移すところで例外になって処理全体が
+     * 止まらないようにするため。無ければnullを返し、呼び元は_tmpが無かったときと同じに扱う。
      */
     private function moveTmpToFinal(Model $model, string $field, string $tmpName): ?string
     {
@@ -1025,10 +875,10 @@ trait AjaxFileUpload
         $finalDiskName = UploadFilePath::disk($model::class, $field);
 
         if ($finalDiskName === UploadFilePath::TMP_DISK) {
+            // 同じディスクならそのまま移す
             $tmpDisk->move($tmpPath, $finalPath);
         } else {
-            // tmp（"local"）と保存先（公開のフィールドなら"public"）のディスクが違うときは、
-            // ディスクをまたいだmoveができないので、書き写してからtmpを消す。
+            // ディスクが違えば移せないので、書き写してから一時ファイルを消す
             $stream = $tmpDisk->readStream($tmpPath);
             Storage::disk($finalDiskName)->writeStream($finalPath, $stream);
             if (is_resource($stream)) {
@@ -1041,29 +891,29 @@ trait AjaxFileUpload
     }
 
     /**
-     * 対象レコードを削除する前に呼ぶ。全フィールドについて物理ファイルを
-     * 削除する(複数展開フィールドはDBの行ごと削除する。WYSIWYG欄は本文が
-     * 参照している、このレコードの保存先の画像を削除する)。
-     * モデル自体の削除はこのメソッドの責務外(呼び出し側で別途delete()する)。
+     * レコードを消す前に呼び、全フィールドのファイルを消す。複数の欄は子テーブルの行も消し、
+     * エディタの欄は本文が使っているこのレコードの保存先の画像を消す。
+     * レコードそのものは呼び元がdelete()する。
      *
-     * 子テーブルの行はその場で消し、物理ファイルはcommitUploads()と同じく
-     * トランザクションが確定した後に消す（削除が取り消されたときに、
-     * 残ったレコードのファイルだけが消えてしまわないように）。
+     * 子テーブルの行はその場で消し、ファイルはcommitUploads()と同じくトランザクションが
+     * 確定した後に消す。削除が取り消されたときに、残ったレコードのファイルが無くならないようにするため。
      */
     public function deleteAllUploads(Model $model): void
     {
-        // ファイル名 => フィールド名（置き場所のディスクを決めるのに使う）
+        // ファイル名 => フィールド名。フィールド名はディスクを決めるのに使う
         $filenames = [];
 
         foreach ($this->uploadFieldDefinitions() as $def) {
             $base = $def['field'];
 
+            // エディタの欄は本文の<img>から
             if ($def['kind'] === 'wysiwyg') {
                 $filenames += array_fill_keys($this->wysiwygImageFilenames($model, $base, $model->{$base}), $base);
 
                 continue;
             }
 
+            // 複数の欄は子テーブルの行から集め、行を消す
             if ($def['kind'] === 'repeatable') {
                 $filenames += array_fill_keys($model->{$base}()->pluck('filename')->all(), $base);
                 $model->{$base}()->delete();
@@ -1071,6 +921,7 @@ trait AjaxFileUpload
                 continue;
             }
 
+            // 1つだけの欄はカラムから
             if ($model->{$base}) {
                 $filenames[$model->{$base}] = $base;
             }
@@ -1081,39 +932,25 @@ trait AjaxFileUpload
                 $this->deleteUploadedFile($model, $field, $filename);
             }
 
-            // 1件のレコードのファイルは必ず1つのディレクトリ（例:
-            // news/000/000012）にまとまっているので、最後にそのディレクトリ
-            // ごと消しておく。上でファイルを1つずつ消しているのは、DBに記録が
-            // あるものを確実に消すため。ここでディレクトリを消すのは、空の
-            // ディレクトリが残り続けないようにするため（DBに記録の無い
-            // 迷子のファイルがあれば、それもここで一緒に消える）。
-            // 上位のグループディレクトリ（news/000）は他のレコードと共有して
-            // いるので消さない。公開・非公開の両方のディスクにありうるので、両方で消す。
+            // 最後にレコードのディレクトリごと消す。空のディレクトリを残さず、DBに記録の無い
+            // ファイルも一緒に消える。上のnews/000はほかのレコードと共有なので消さない。
+            // 公開と非公開の両方のディスクにありうるので両方で消す
             Storage::disk(UploadFilePath::PUBLIC_DISK)->deleteDirectory($this->uploadDirectory($model));
             Storage::disk(UploadFilePath::PRIVATE_DISK)->deleteDirectory($this->uploadDirectory($model));
         });
     }
 
     /**
-     * $input側（＝実際にフォームから送信される項目だけ）を組み立てる。
+     * 画面へ渡す$inputのうち、アップロードの欄の分。エディタの欄は含めない。
+     * {field}・{field}_origin・{field}_tmp・{field}_delの4つを返し、複数の欄では
+     * どれも同じ要素数の配列になる。フォームのname="attach[]"などの送られ方と同じ形。
+     * プレビューのURLのような表示のためだけの値は含めない。
      *
-     * UPLOAD_FILESの各フィールド（WYSIWYG_FIELDSの欄は対象外）について、"{field}"・"{field}_origin"・
-     * "{field}_tmp"・"{field}_del"の4つを返す。複数展開フィールドの場合は
-     * 同じ4つのキーが、それぞれ同じ要素数の並行配列になる（HTML側の
-     * name="attach[]"・name="attach_tmp[]"…という送信のされ方と同じ形）。
-     *
-     * 表示専用の値（プレビューURL等）はここには一切含めない。プレビューURLは
-     * ビューの中でupload_preview_url()を呼んで、この戻り値から求める
-     * （詳しくはこのファイル冒頭のコメント参照）。
-     *
-     * $sourceは「もし入力し直そうとしていた値があればそれ」を保持する
-     * 配列で、キーに無いフィールドは$model(渡っていれば)の現在値から
-     * 補う。
-     * - create: old()（何も無ければ空配列）、$modelはnull
-     * - edit  : old()、$modelは対象レコード
-     * - confirm: バリデーション済み配列($validated)、$modelは
-     *            新規登録ならnull、更新なら対象レコード
-     * - show  : 空配列（＝常に$modelの現在値を使う）、$modelは対象レコード
+     * $sourceは入力し直していた値で、そこに無いフィールドは$modelの今の値で補う。
+     * - create   old()、$modelはnull
+     * - edit     old()、$modelは対象のレコード
+     * - confirm  検証済みの値、$modelは新規ならnull、更新なら対象のレコード
+     * - show     空の配列、$modelは対象のレコード。いつも今の値になる
      */
     public function ajaxUploadInput(?Model $model, array $source = []): array
     {
@@ -1122,8 +959,7 @@ trait AjaxFileUpload
         foreach ($this->uploadFieldDefinitions() as $def) {
             $field = $def['field'];
 
-            // WYSIWYG欄の本文は、呼び出し側が他の項目と同じように$inputへ
-            // 入れる(画像は本文のHTMLの中に入っているので、足すものは無い)。
+            // エディタの欄は画像が本文に入っているので、呼び元がほかの項目と同じく入れる
             if ($def['kind'] === 'wysiwyg') {
                 continue;
             }
@@ -1136,12 +972,19 @@ trait AjaxFileUpload
 
             $originKey = "{$field}_origin";
 
-            $result[$field] = array_key_exists($field, $source)
-                ? $source[$field]
-                : ($model->{$field} ?? null);
-            $result[$originKey] = array_key_exists($originKey, $source)
-                ? $source[$originKey]
-                : ($model->{$originKey} ?? null);
+            // ファイル名と表示名は、入力し直していた値があればそれを、無ければレコードの今の値を使う
+            if (array_key_exists($field, $source)) {
+                $result[$field] = $source[$field];
+            } else {
+                $result[$field] = $model->{$field} ?? null;
+            }
+
+            if (array_key_exists($originKey, $source)) {
+                $result[$originKey] = $source[$originKey];
+            } else {
+                $result[$originKey] = $model->{$originKey} ?? null;
+            }
+
             $result["{$field}_tmp"] = $source["{$field}_tmp"] ?? null;
             $result["{$field}_del"] = ($source["{$field}_del"] ?? null) == '1' ? '1' : '';
         }
@@ -1149,14 +992,8 @@ trait AjaxFileUpload
         return $result;
     }
 
-    /**
-     * ajaxUploadInput()の複数展開フィールド1つ分。4本の並行配列を、
-     * 必ず同じ要素数に揃えて返す。
-     *
-     * $sourceにそのフィールドのキーが無ければ（old()に無い、またはshowの
-     * ように$sourceが空）、$modelのHasManyリレーションの現在値が入力値に
-     * なる。
-     */
+    // ajaxUploadInput()の複数の欄1つ分。4本の配列を必ず同じ要素数にそろえて返す。
+    // $sourceにこの欄のキーが無ければ、$modelのリレーションの今の行を使う。
     private function repeatableUploadInput(?Model $model, string $field, array $source): array
     {
         if (! array_key_exists($field, $source)) {
@@ -1183,10 +1020,8 @@ trait AjaxFileUpload
             "{$field}_del" => [],
         ];
 
-        // 4本の配列は.ajax_upload_blockという単位で同時に増減させている
-        // ので通常はズレないが、old()経由の値は、要素数のチェック
-        // （SameCountAsRule）で弾かれて戻ってきた入力そのものの場合もある
-        // ため、ここでも??で欠けを埋めておく。
+        // ふつうは4本の要素数はそろっているが、old()の値は要素数のずれで差し戻された入力の
+        // こともあるので、欠けを埋めておく
         foreach ($names as $index => $name) {
             $result["{$field}_origin"][] = $origins[$index] ?? null;
             $result["{$field}_tmp"][] = $tmps[$index] ?? null;

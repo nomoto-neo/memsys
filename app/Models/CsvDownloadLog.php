@@ -5,11 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * CSVダウンロードの記録（App\Support\CsvDownloadが1回のダウンロードごとに1行作る）。
+ * CSVダウンロードの記録。App\Support\CsvDownloadが、1回のダウンロードごとに1行作る。
  * 誰が・いつ・何のCSVを・どの検索条件で・何件出したかを残す。
- * operator_idは、ダウンロードしたときにログインしていた人のid。
- *
- * 行は追記するだけで更新しないので、updated_atは持たない。
+ * 行は足すだけで更新しないので、updated_atは持たない。
  */
 class CsvDownloadLog extends Model
 {

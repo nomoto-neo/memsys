@@ -30,6 +30,7 @@ use Illuminate\View\View;
  * 1行ずつの登録・編集画面は無く、確認画面も挟まない（カテゴリーと同じく、
  * 項目が少なく、間違えてもすぐ直せるため）。複数の行をまとめて保存するので、
  * FormFlowは使わない。
+ * 一覧画面がそのまま更新フォームとなっているサンプル。
  */
 class CodeController extends Controller
 {
@@ -54,31 +55,36 @@ class CodeController extends Controller
 
     // ---- 一覧・更新 ----
 
-    // 項目見出し一覧。コード表の指定が無い・不正なときは、プルダウンの1番目を表示する。
+    // 項目見出し一覧。
     public function index(Request $request): View
     {
+        // コード表の指定が無い・不正なときは、プルダウンの1番目を表示する。
         $type = CodeType::tryFrom((string) $request->query('type')) ?? CodeType::cases()[0];
 
         // 検証エラーで戻ってきたときは、送信した内容（行の並び順も）をそのまま出す。
-        // 表示しているのは保存していない内容なので、最初から「変更あり」として扱う。
         $oldRows = old('type') === $type->value ? old('codes') : null;
 
-        $rows = is_array($oldRows)
-            ? array_values(array_map(fn ($row) => [
+        if (is_array($oldRows)) {
+            // 再表示のとき
+            $rows = array_values(array_map(fn ($row) => [
                 'code' => (string) ($row['code'] ?? ''),
                 'name' => (string) ($row['name'] ?? ''),
-            ], $oldRows))
-            : Code::where('type', $type->value)
+            ], $oldRows));
+        } else {
+            // 初期表示のとき
+            $rows = Code::where('type', $type->value)
                 ->orderBy('sort_order')
                 ->orderBy('id')
                 ->get(['code', 'name'])
                 ->map(fn (Code $code) => ['code' => $code->code, 'name' => $code->name])
                 ->all();
+        }
 
         return view('admin.codes.index', [
             'types' => code_table('code_type'),
             'type' => $type,
             'rows' => $rows,
+            // 送信された内容を再表示する時は、最初から「変更あり」として扱う。
             'unsaved' => is_array($oldRows),
         ]);
     }
@@ -87,18 +93,18 @@ class CodeController extends Controller
      * 更新の実行（PATCH /admin/codes）。
      *
      * コード値が空欄の行は保存しない（削除される）。残った行を画面の並び順で
-     * sort_orderにし、そのコード表の行をすべて入れ替える。
+     * sort_orderにし、そのコード表の行を一旦全削除してから再登録する。
      *
      * コード値の重複はエラーにして、何も保存しない。数字だけの値は前ゼロを
-     * 除いて比べる（'01'と'1'は重複）。code_table()が数字だけの値をint型にして
-     * 返すので、前ゼロ違いの2行を保存すると、片方が読めなくなるため。
+     * 除いて比べる（'01'と'1'は重複）。code_table()が数字だけの値を
+     * int型にして返すので、前ゼロ違いの2行を保存すると片方が読めなくなるため。
      */
     public function update(Request $request): RedirectResponse
     {
         $validated = $request->validate($this->rules());
         $type = CodeType::from($validated['type']);
 
-        // コード値が空欄の行を除き、元の行番号（エラーの表示先）を保ったまま揃える
+        // コード値が空欄の行を除去して、元の行番号（エラーの表示先）を保ったまま揃える
         $rows = [];
         foreach ($validated['codes'] ?? [] as $index => $row) {
             $code = (string) ($row['code'] ?? '');
@@ -107,6 +113,7 @@ class CodeController extends Controller
             }
         }
 
+        // コード値の重複をチェック
         $errors = [];
         $seen = [];
         foreach ($rows as $index => $row) {
@@ -118,7 +125,7 @@ class CodeController extends Controller
         }
 
         if ($type->isFixed()) {
-            // コード値を固定するコード表は、保存済みのコード値と1対1で同じでなければならない
+            // 追加・削除が不可に設定されているコード表は、保存済みのコード値と変わっていないかをチェックする
             $saved = Code::where('type', $type->value)->pluck('code')->sort()->values()->all();
             $sent = collect($rows)->pluck('code')->sort()->values()->all();
 

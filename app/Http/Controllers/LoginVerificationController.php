@@ -13,34 +13,28 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
 /**
- * 会員ログインの2段階目（メールで送る確認コード）。
+ * 会員ログインの2段階目。メールで送った確認コードを照合し、通ったら本ログインにする。
  *
- * AuthSessionController::store()でID・パスワードの確認まで済んだ
- * （が、信頼済み端末でなければまだAuth::login()はしていない）状態を
- * 受けて、メールで送った確認コードの入力を求め、通過して初めて
- * 実際にログインさせる。管理ログインの2段階目
- * （Admin\TwoFactorChallengeController）と全く同じ構造で、
- * 「パスワード確認済み・2段階目が未完了」という中間状態はAuth::check()
- * では判定できないため、routes/web.php上でguestにもauthにも属させず、
- * このコントローラー自身がセッションのPENDING_SESSION_KEYの有無で
- * 保護している。
+ * 2段階目の途中は、まだログインしていないのでAuth::check()では見分けられない。
+ * そのため、ルートはguestにもauthにも入れず、このコントローラーがセッションの値で守る。
  */
 class LoginVerificationController extends Controller
 {
-    /** パスワード確認済みの会員IDを一時的に持たせるセッションキー。 */
+    // パスワード確認済みの会員IDを一時的に持たせるセッションキー。
     public const PENDING_SESSION_KEY = 'member.login.pending_member_id';
 
-    /** 「ログイン状態を保持する」チェックボックスの値を、2段階目が
-     *  終わるまで一時的に持ち越すためのセッションキー。 */
+    // 「ログイン状態を保持する」の値を、2段階目が終わるまで持ち越すセッションキー
     public const REMEMBER_SESSION_KEY = 'member.login.remember';
 
-    /** 確認コードの試行制限（LoginThrottle）のカウンターの名前。アカウントは会員idで区別する。 */
+    // 確認コードの試行制限（LoginThrottle）のカウンターの名前。アカウントは会員idで区別する。
     private const THROTTLE_SCOPE = 'member-verify-code';
 
+    // 確認コードの入力画面
     public function show(Request $request): View|RedirectResponse
     {
         $member = $this->pendingMember($request);
 
+        // パスワードの確認を済ませていなければ、ログイン画面へ戻す
         if ($member === null) {
             return redirect()->route('login');
         }
@@ -48,10 +42,12 @@ class LoginVerificationController extends Controller
         return view('auth.login-verify');
     }
 
+    // 確認コードの照合と、本ログイン
     public function verify(Request $request): RedirectResponse
     {
         $member = $this->pendingMember($request);
 
+        // パスワードの確認を済ませていなければ、ログイン画面へ戻す
         if ($member === null) {
             return redirect()->route('login');
         }
@@ -60,7 +56,7 @@ class LoginVerificationController extends Controller
             'code' => ['required', 'string'],
         ]);
 
-        // 失敗回数による試行制限（IP単位・会員id単位。詳しくはApp\Support\LoginThrottle参照）
+        // 失敗回数による試行制限（IP単位・会員id単位。App\Support\LoginThrottle）
         $throttle = new LoginThrottle(self::THROTTLE_SCOPE, $request->ip(), $member->id);
 
         if ($throttle->isBlocked()) {
@@ -68,12 +64,11 @@ class LoginVerificationController extends Controller
                 ->withErrors(['code' => $throttle->blockedMessage('確認コード')]);
         }
 
+        // 確認コードの照合。コードを発行した会員と、パスワードを確認した会員が同じかも
+        // 念のため確かめる（通常は必ず同じ）
         $verifiedMember = (new MemberVerificationCode())
             ->verify($request, MemberVerificationCode::PURPOSE_LOGIN, $validated['code']);
 
-        // $verifiedMember->id !== $member->idは通常起こり得ない
-        // （セッションのpending_member_idと、コード発行時のmember_idは
-        // 常に同じ値のはず）が、念のため二重に確認している。
         if ($verifiedMember === null || $verifiedMember->id !== $member->id) {
             $throttle->hit();
 
@@ -83,6 +78,7 @@ class LoginVerificationController extends Controller
 
         $throttle->clear();
 
+        // 「このデバイスを記憶する」にチェックがあれば、次回から確認コードを省く
         if ($request->boolean('remember_device')) {
             TrustedDeviceManager::forMember()->remember($member);
         }
@@ -94,14 +90,13 @@ class LoginVerificationController extends Controller
         return redirect(LoginRedirect::forMember());
     }
 
-    /**
-     * 確認コードの再送信。メールが届かない・見失った場合の救済。
-     * routes/web.php側でthrottleを付け、連続送信を防いでいる。
-     */
+    // 確認コードの再送信。メールが届かない・見失った場合の救済。
+    // 連続送信は、routes/web.phpのthrottleで防いでいる。
     public function resend(Request $request): RedirectResponse
     {
         $member = $this->pendingMember($request);
 
+        // パスワードの確認を済ませていなければ、ログイン画面へ戻す
         if ($member === null) {
             return redirect()->route('login');
         }
@@ -114,14 +109,11 @@ class LoginVerificationController extends Controller
         return redirect()->route('login.verify')->with('status', '確認コードを再送しました。');
     }
 
-    /**
-     * 2段階目まで通過した時点で、初めて実際にログイン状態にする。
-     * Admin\TwoFactorChallengeController::completeLogin()と同じ考え方
-     * （セッション固定攻撃対策のregenerate()も、本ログインのこの
-     * タイミングで行う）。
-     */
+    // 2段階目まで通った時点で、初めて本ログインにする。セッション固定攻撃への対策の
+    // regenerate()も、このときに行う（Admin\TwoFactorChallengeController::completeLogin()と同じ）。
     private function completeLogin(Request $request, Member $member): void
     {
+        // 1段階目で控えた「ログイン状態を保持する」を取り出して使う
         $remember = (bool) $request->session()->pull(self::REMEMBER_SESSION_KEY, false);
 
         Auth::login($member, $remember);
@@ -130,6 +122,7 @@ class LoginVerificationController extends Controller
         $request->session()->regenerate();
     }
 
+    // パスワード確認済みで、2段階目を待っている会員（いなければnull）
     private function pendingMember(Request $request): ?Member
     {
         $id = $request->session()->get(self::PENDING_SESSION_KEY);

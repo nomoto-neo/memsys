@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use App\Models\Member;
 use App\Rules\PhoneNumberRule;
 use App\Support\LoginThrottle;
@@ -20,71 +19,60 @@ use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 /**
- * 会員登録。
+ * 会員登録。入力、確認、確認コードの入力、登録完了の順に進む。
  *
- * 入力 → 確認 → 確認コードの入力 → 登録完了、の流れ。確認画面の
- * 「確認コードを送信する」で、入力されたメールアドレスに確認コードを送り、
- * そのコードが入力できた（＝本当にそのアドレスを受け取れる本人だと
- * 確かめられた）時点で、初めて会員を作る。
- *
- * コードの入力を待つ間、入力内容はセッション（PENDING_SESSION_KEY）に
- * 仮置きする。パスワードはこの時点でハッシュ化し、平文では持たない。
- * コードの発行・照合は、ログインやパスワード再設定と同じ
- * App\Support\MemberVerificationCodeを使うが、会員がまだ存在しないので、
- * 会員ではなくメールアドレスに紐付けて発行する（issueForAddress()）。
+ * 確認画面で確認コードを送り、そのコードが入力できた時点で、初めて会員を作る。
+ * そのメールアドレスを本当に受け取れる本人だと確かめるため。
+ * コードの入力を待つ間、入力内容はセッションに仮置きし、パスワードはハッシュ値で持つ。
  */
 class AuthRegisteredMemberController extends Controller
 {
-    /** コード入力待ちの入力内容（パスワードはハッシュ化済み）を仮置きするセッションキー。 */
+    // コード入力待ちの入力内容（パスワードはハッシュ化済み）を仮置きするセッションキー。
     private const PENDING_SESSION_KEY = 'member.regist.pending';
 
     private const PURPOSE = MemberVerificationCode::PURPOSE_REGISTER;
 
     /**
-     * 1つのメールアドレスへ確認コードを送れる回数の上限と、その回数を数える期間。
-     * 登録フォームは誰でも使えるので、他人のメールアドレスを入力して
-     * 確認コードのメールを大量に送りつける、という使われ方を防ぐ。
-     * IPアドレス単位の制限はroutes/web.phpのthrottleで掛けているが、
-     * IPを変えながら同じアドレスを狙われる場合に備えて、アドレス単位でも数える。
+     * 1つのメールアドレスへ確認コードを送れる回数の上限と、数える期間。登録フォームは
+     * 誰でも使えるので、他人のアドレスに確認コードを大量に送りつけられるのを防ぐ。
+     * IPアドレスごとの制限はルートのthrottleで掛けているが、IPを変えて同じアドレスを
+     * 狙われるのに備えて、アドレスごとにも数える。
      */
     private const MAIL_LIMIT_PER_ADDRESS = 5;
 
     private const MAIL_LIMIT_DECAY_SECONDS = 3600;
 
-    /**
-     * 確認コードの試行制限（LoginThrottle）のカウンターの名前。会員がまだ存在しない
-     * （idが無い）ので、アカウントは登録しようとしているメールアドレスで区別する。
-     */
+    // 確認コードの試行制限（LoginThrottle）のカウンターの名前。会員がまだ存在しない
+    // （idが無い）ので、アカウントは登録しようとしているメールアドレスで区別する。
     private const THROTTLE_SCOPE = 'member-register-code';
 
-    /**
-     * 会員登録フォームで使うバリデーションルール一式。
-     *
-     * password_confirmationはここには載せない。confirmedルールは
-     * password_confirmationがrules()にあるかどうかに関係なく動くので、
-     * バリデーション目的では不要。確認画面のhidden展開もrules()のキー一覧
-     * には依存していない（confirm()参照）。
-     */
+    // 会員登録フォームの検証ルール。password_confirmationは、confirmedルールでpasswordと
+    // 照合するので、ここには書かない。
     private function rules(): array
     {
         return [
             'name' => ['required', 'string', 'max:255'],
             'kana' => ['nullable', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', Rule::unique(Member::class, 'email')],
+            'email' => [
+                'required', 'string', 'email', 'max:255',
+                // まだ誰も使っていないメールアドレスであること
+                Rule::unique(Member::class, 'email'),
+            ],
             'phone' => ['nullable', 'string', new PhoneNumberRule()],
             'birthdate' => ['nullable', 'date'],
-            'prefecture' => ['nullable', 'integer', Rule::in(code_keys('prefectures'))],
+            'prefecture' => [
+                'nullable', 'integer',
+                // コードテーブルとの一致を確認
+                Rule::in(code_keys('prefectures')),
+            ],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ];
     }
 
+    // 入力フォームの表示
     public function create(): View
     {
-        // フォームに表示する値は$input（送信される項目だけの配列）。
-        // 表示専用の値を混ぜないのがこのプロジェクト全体の規約（詳しくは
-        // resources/views/_confirm_hiddenのコメント参照）。ビュー側でold()を
-        // 直接呼ばず、値の組み立てを必ずコントローラー側に集める、という
-        // 意味でもadmin側と形を揃えている。
+        // 入力欄の値。画面でold()を直接呼ばず、管理画面と同じくコントローラーで組み立てる
         $input = old();
 
         return view('auth.regist', [
@@ -94,16 +82,13 @@ class AuthRegisteredMemberController extends Controller
         ]);
     }
 
+    // 確認画面の表示（保存はしない）
     public function confirm(Request $request): View
     {
         $request->validate($this->rules());
 
-        // hidden展開の対象は「rules()に載っている項目」ではなく、POSTされた
-        // 全項目からLaravel自身が使う制御用フィールド（CSRFトークン、
-        // メソッド偽装用フィールド）を除いたもの。rules()に追加しなくても、
-        // フォームに足した新しい項目は自動的にここに含まれるようになる。
-        //
-        // 表示にも、_confirm_hiddenによるhidden展開にも、この$inputを使う。
+        // 確認画面の表示とhiddenに使う値。送られてきた全項目から、Laravelが使う制御用の値
+        // （CSRFトークン・メソッドの指定）を除いたもの（password_confirmationも持ち回る）
         $input = $request->except(['_token', '_method']);
 
         return view('auth.regist-confirm', [
@@ -111,6 +96,7 @@ class AuthRegisteredMemberController extends Controller
         ]);
     }
 
+    // 確認画面の「戻る」。パスワードは入力し直してもらう
     public function back(Request $request): RedirectResponse
     {
         return redirect()->route('regist.create')
@@ -120,13 +106,13 @@ class AuthRegisteredMemberController extends Controller
     /**
      * 確認画面の「確認コードを送信する」（POST /regist/send）。
      *
-     * 確認画面のhiddenから送られてきた内容を、もう一度すべて検証してから
-     * セッションに仮置きし、確認コードを送る。会員はまだ作らない。
-     * 送信に失敗した場合（送信回数の上限を含む）も、仮置きした内容は残して
-     * コード入力画面へ進め、そこからの「確認コードを再送する」でやり直せるようにする。
+     * 届いた内容をもう一度検証してから、セッションに仮置きして確認コードを送る。会員はまだ作らない。
+     * 送れなかったときも、コードの入力画面へ進め、そこの「再送する」でやり直せるようにする。
      */
     public function send(Request $request): RedirectResponse
     {
+        // 確認画面のhiddenから届いた内容を、もう一度すべて検証する。失敗したら、
+        // 入力欄のある入力画面へ戻す
         $validator = Validator::make($request->all(), $this->rules());
 
         if ($validator->fails()) {
@@ -137,11 +123,13 @@ class AuthRegisteredMemberController extends Controller
 
         $validated = $validator->validated();
 
+        // 入力内容をセッションに仮置きする（パスワードは平文で持たず、ハッシュ値にする）
         $pending = Arr::except($validated, ['password']);
         $pending['password_hash'] = Hash::make($validated['password']);
 
         $request->session()->put(self::PENDING_SESSION_KEY, $pending);
 
+        // 確認コードを送り、コード入力画面へ（送れなかったときも、画面の「再送する」でやり直せる）
         $error = $this->sendCode($request, $pending);
 
         if ($error !== null) {
@@ -151,13 +139,12 @@ class AuthRegisteredMemberController extends Controller
         return redirect()->route('regist.verify');
     }
 
-    /**
-     * 確認コードの入力画面（GET /regist/verify）。
-     */
+    // 確認コードの入力画面（GET /regist/verify）。
     public function verifyForm(Request $request): View|RedirectResponse
     {
         $pending = $this->pending($request);
 
+        // 仮置きが無ければ（確認画面を通っていない・期限切れ）、入力画面へ
         if ($pending === null) {
             return redirect()->route('regist.create');
         }
@@ -167,13 +154,12 @@ class AuthRegisteredMemberController extends Controller
         ]);
     }
 
-    /**
-     * 確認コードの照合と、会員の登録（POST /regist/verify）。
-     */
+    // 確認コードの照合と、会員の登録（POST /regist/verify）。
     public function verify(Request $request): RedirectResponse
     {
         $pending = $this->pending($request);
 
+        // 仮置きが無ければ（確認画面を通っていない・期限切れ）、入力画面へ
         if ($pending === null) {
             return redirect()->route('regist.create');
         }
@@ -182,7 +168,7 @@ class AuthRegisteredMemberController extends Controller
             'code' => ['required', 'string'],
         ]);
 
-        // 失敗回数による試行制限（IP単位・メールアドレス単位。詳しくはApp\Support\LoginThrottle参照）
+        // 失敗回数による試行制限（IP単位・メールアドレス単位。App\Support\LoginThrottle）
         $throttle = new LoginThrottle(self::THROTTLE_SCOPE, $request->ip(), $pending['email']);
 
         if ($throttle->isBlocked()) {
@@ -190,12 +176,10 @@ class AuthRegisteredMemberController extends Controller
                 ->withErrors(['code' => $throttle->blockedMessage('確認コード')]);
         }
 
+        // 確認コードの照合。コードの宛先と、仮置きした入力のメールアドレスが同じかも確かめる
+        // （別のアドレスで送り直すと、仮置きもコードも置き換わるので、通常は同じ）
         $email = (new MemberVerificationCode())->verifyForAddress($request, self::PURPOSE, $validated['code']);
 
-        // コードの発行先と、今仮置きしている入力内容のメールアドレスが
-        // 一致することまで確かめる（コードを送った後に確認画面からやり直して
-        // 別のアドレスで送り直した場合は、仮置きもコードも新しいものに
-        // 置き換わるので、通常は一致する）。
         if ($email === null || $email !== $pending['email']) {
             $throttle->hit();
 
@@ -205,13 +189,13 @@ class AuthRegisteredMemberController extends Controller
 
         $throttle->clear();
 
-        // 確認画面の表示からコードの入力までの間に、同じメールアドレスで別の
-        // 登録が済んでいた場合。事前に確かめた上で、INSERT時のunique制約違反も
-        // 最後の砦として受け止める。
+        // 確認画面からコードの入力までの間に、同じメールアドレスで別の登録が済んでいたら、
+        // 入力画面へ戻す（保存のときの一意制約の違反も、最後の砦として同じ扱いにする）
         if (Member::where('email', $pending['email'])->exists()) {
             return $this->emailTaken($request, $pending);
         }
 
+        // 会員を作る
         try {
             $member = Member::create([
                 'name' => $pending['name'],
@@ -228,21 +212,22 @@ class AuthRegisteredMemberController extends Controller
 
         $request->session()->forget(self::PENDING_SESSION_KEY);
 
+        // 登録の記録をログに残す（個人情報は含めない）
         MemberActivityLog::registered($member, $request);
 
+        // そのままログインさせる（登録の直後に、もう一度ログインし直させない）
         Auth::login($member);
         $request->session()->regenerate();
 
         return redirect()->route('mypage')->with('status', '会員登録が完了しました。');
     }
 
-    /**
-     * 確認コードの再送信（POST /regist/verify/resend）。
-     */
+    // 確認コードの再送信（POST /regist/verify/resend）。
     public function resend(Request $request): RedirectResponse
     {
         $pending = $this->pending($request);
 
+        // 仮置きが無ければ（確認画面を通っていない・期限切れ）、入力画面へ
         if ($pending === null) {
             return redirect()->route('regist.create');
         }
@@ -271,11 +256,10 @@ class AuthRegisteredMemberController extends Controller
             ->withInput(Arr::except($pending, ['password_hash']));
     }
 
-    /**
-     * 確認コードを送る。送れなかった場合は画面に出すメッセージを、送れた場合はnullを返す。
-     */
+    // 確認コードを送る。送れなかった場合は画面に出すメッセージを、送れた場合はnullを返す。
     private function sendCode(Request $request, array $pending): ?string
     {
+        // 1つのメールアドレスへ送った回数を数える（大文字・小文字は同じアドレスとして数える）
         $key = 'member-register-mail:'.mb_strtolower($pending['email']);
 
         if (RateLimiter::tooManyAttempts($key, self::MAIL_LIMIT_PER_ADDRESS)) {
@@ -291,10 +275,8 @@ class AuthRegisteredMemberController extends Controller
         return null;
     }
 
-    /**
-     * 登録しようとしたメールアドレスが、既に別の会員に使われていた場合。
-     * 仮置きを消して、入力内容（パスワード以外）を持って入力画面へ戻す。
-     */
+    // 登録しようとしたメールアドレスが、既に別の会員に使われていた場合。
+    // 仮置きを消して、入力内容（パスワード以外）を持って入力画面へ戻す。
     private function emailTaken(Request $request, array $pending): RedirectResponse
     {
         $request->session()->forget(self::PENDING_SESSION_KEY);
@@ -304,6 +286,7 @@ class AuthRegisteredMemberController extends Controller
             ->with('error', '入力いただいたメールアドレスは、確認コードの送信後に別の方に登録されたようです。お手数ですが、もう一度お試しください。');
     }
 
+    // セッションに仮置きした入力内容（無ければnull）
     private function pending(Request $request): ?array
     {
         $pending = $request->session()->get(self::PENDING_SESSION_KEY);

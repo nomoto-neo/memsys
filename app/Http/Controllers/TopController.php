@@ -17,11 +17,11 @@ class TopController extends Controller
     // TOPページに出すお知らせの件数。
     private const NEWS_COUNT = 5;
 
+    // TOPページ
     public function index(): View
     {
-        // その人に見せてよい記事（会員限定の記事はログイン中の会員にだけ）を、お知らせの
-        // コーナーと同じ並び順（記事日付の新しい順。NewsController::ORDER_OPTIONS）で、
-        // 先頭から決まった件数だけ取る。
+        // その人に見せてよい記事（会員限定の記事はログイン中の会員にだけ）を、
+        // お知らせのコーナーと同じ並び順（記事日付の新しい順）で決まった件数だけ取る
         $newsList = News::visibleTo(Auth::guard('web')->user())
             ->orderByDesc('article_date')
             ->orderByDesc('id')

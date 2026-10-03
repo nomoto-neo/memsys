@@ -7,44 +7,38 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Config;
 
 /**
- * パスキーを持てるモデル（Member・Staff）に付けるトレイト。
- * laravel/passkeysのPasskeyUserインターフェースの実装をまとめている
- * （モデル側は implements PasskeyUser と use HasPasskeys の2つを書く）。
+ * パスキーを持てるモデルに付けるトレイト。会員とスタッフに付けている。
+ * モデルには、implements PasskeyUserとuse HasPasskeysの2つを書く。
  *
- * パッケージにも同じ役割のPasskeyAuthenticatableトレイトがあるが、
- * そちらはpasskeysテーブルのuser_id列を前提にしているため使わない。
+ * パッケージにも同じ役割のトレイトがあるが、passkeysテーブルのuser_id列を前提に
+ * しているので使わない。
  *
- * ■ passkeys()の戻り値がMorphManyではなくHasManyである理由
- * PasskeyUserインターフェースが、戻り値の型をHasManyと決めている
- * （MorphManyはHasManyの子クラスではないので、この型に合わない）。
- * そこでHasManyで authenticatable_id を結び付け、withAttributes()で
- * authenticatable_type（'member'・'staff'）を足している。withAttributes()は
- * 検索の条件（where）になるのと同時に、このリレーションからcreate()したときに
- * その値を列に入れる。結果として、morphMany()と同じ行を読み書きする。
+ * passkeys()はパッケージの決まりでHasManyを返す必要があるので、morphMany()は使えない。
+ * そこでHasManyでidを結び付け、withAttributes()で持ち主の種類を足している。検索の条件にも
+ * 作るときの値にもなるので、morphMany()と同じ行を読み書きできる。
  *
- * 画面やメールに出す名前（getPasskeyDisplayName()・getPasskeyUsername()）は、
- * モデルごとに変えたい場合、モデル側で同じ名前のメソッドを書けば上書きできる
- * （Staffでは「管理画面：」を付けている）。
+ * 端末に出す名前は、モデルに同じ名前のメソッドを書けば変えられる。スタッフでは
+ * 「管理画面：」を付けている。
  */
 trait HasPasskeys
 {
+    // このアカウントのパスキー。持ち主の種類とidで結び付ける
     public function passkeys(): HasMany
     {
         return $this->hasMany(Passkey::class, 'authenticatable_id')
             ->withAttributes(['authenticatable_type' => $this->getMorphClass()]);
     }
 
+    // パスキーを1つでも登録しているか
     public function hasPasskeysEnabled(): bool
     {
         return $this->passkeys()->exists();
     }
 
     /**
-     * WebAuthnの「ユーザーハンドル」。端末の中で、どのアカウントのパスキーかを
-     * 区別する値。個人情報を含まず、変わらない値である必要があるので、
-     * テーブル名とidから作ったハッシュ値にしている（会員3番とスタッフ3番が
-     * 同じ値にならないよう、テーブル名を含める）。パッケージの
-     * PasskeyAuthenticatableと同じ作り方。
+     * 端末の中でどのアカウントのパスキーかを見分ける、ユーザーハンドルという値。
+     * 個人情報を含まず変わらない値にするため、テーブル名とidから作ったハッシュ値にする。
+     * テーブル名を含めるのは、会員3番とスタッフ3番を同じ値にしないため。
      */
     public function getPasskeyUserHandle(): string
     {
@@ -56,13 +50,13 @@ trait HasPasskeys
         );
     }
 
-    /** 端末のパスキー選択画面などに出る表示名。 */
+    // 端末のパスキー選択画面などに出る表示名。
     public function getPasskeyDisplayName(): string
     {
         return (string) $this->getAttribute('name');
     }
 
-    /** 端末のパスキー選択画面などに出るアカウント名。 */
+    // 端末のパスキー選択画面などに出るアカウント名。
     public function getPasskeyUsername(): string
     {
         return (string) ($this->getAttribute('email') ?? $this->getAuthIdentifier());

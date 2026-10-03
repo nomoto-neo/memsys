@@ -9,20 +9,19 @@ use Throwable;
 use Webauthn\PublicKeyCredential;
 
 /**
- * パスキーの登録・ログインに共通する、リクエストとセッションの受け渡し。
- * App\Support\PasskeyLogin・PasskeyManagementの両方から使う。
+ * パスキーの登録とログインに共通する、ブラウザとセッションとの受け渡し。
+ * PasskeyLoginとPasskeyManagementの両方から使う。
  *
- * パスキーの処理は、どちらも次の2往復で進む（「セレモニー」と呼ばれる）。
- *   1. サーバーが、毎回違うランダムな値（チャレンジ）を含んだ「オプション」を
- *      作ってブラウザへ返し、同じものをセッションに控える（putOptions()）
- *   2. ブラウザが端末（指紋・顔・PINなど）で署名した結果を送ってくるので、
- *      セッションに控えたオプションと突き合わせて確かめる（pullOptions()）
- * 控えたオプションは1回使ったら消す（pull）。同じ署名を2回送られても、
- * 2回目は照合の相手が無いので通らない。
+ * パスキーの処理はどちらも2往復で進む。
+ *   1. サーバーが毎回違うランダムな値を含んだオプションをブラウザへ返し、同じものを
+ *      セッションに控える。putOptions()
+ *   2. ブラウザが指紋や顔などで署名した結果を送ってくるので、控えたオプションと
+ *      突き合わせて確かめる。pullOptions()
+ * 控えたオプションは1回使ったら消すので、同じ署名を2回送られても2回目は通らない。
  */
 class PasskeyCeremony
 {
-    /** ブラウザへ返す形（JSON）のオプションを作り、セッションに控える。 */
+    // ブラウザへ返すJSONの形のオプションを作り、セッションに控える。
     public static function putOptions(Request $request, string $sessionKey, object $options): array
     {
         $request->session()->put($sessionKey, WebAuthn::toJson($options));
@@ -31,8 +30,8 @@ class PasskeyCeremony
     }
 
     /**
-     * セッションに控えたオプションを取り出す（取り出すと同時に消す）。
-     * 無ければ（有効期限切れ・別のタブで先に使った）エラーにする。
+     * セッションに控えたオプションを取り出し、同時に消す。期限切れや別のタブで先に
+     * 使ったなどで無ければエラーにする。
      *
      * @template T of object
      * @param  class-string<T>  $class
@@ -51,10 +50,8 @@ class PasskeyCeremony
         return WebAuthn::fromJson($serialized, $class);
     }
 
-    /**
-     * ブラウザから送られてきた署名の結果（credential）を検証用のオブジェクトにする。
-     * 形が壊れていればエラーにする。
-     */
+    // ブラウザから送られてきた署名の結果のcredentialを、検証用のオブジェクトにする。
+    // 形が壊れていればエラーにする。
     public static function credential(Request $request): PublicKeyCredential
     {
         $request->validate([

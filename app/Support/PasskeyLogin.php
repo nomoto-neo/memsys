@@ -14,45 +14,38 @@ use Throwable;
 use Webauthn\PublicKeyCredentialRequestOptions;
 
 /**
- * パスキーでのログイン。ログインのコントローラーに use して使う
- * （会員：AuthSessionController、管理：Admin\AuthSessionController）。
+ * パスキーでのログイン。ログインのコントローラーにuseして使う。
  *
- * パスキーは、端末を持っていること（所持）と、指紋・顔・PINで端末のロックを
- * 解いたこと（生体・知識）の2つを1回で確かめるので、パスキーで通ったときは
- * ログインID・パスワードも2段階目（確認コード・TOTP）も求めずにログインさせる。
- * ログインID・パスワードでのログインは、今までどおり残る（パスキーを
- * 登録していない人・パスキーの端末を失くした人のため）。
+ * パスキーは、端末を持っていることと指紋や顔などで端末のロックを解いたことの2つを
+ * 1回で確かめる。そのため、パスキーで通ったときはパスワードも2段階目も求めずにログイン
+ * させる。パスワードでのログインも、パスキーを持っていない人のために残しておく。
  *
  * ■ 使い方
- * 1. コントローラーに use PasskeyLogin; を書き、次の定数とメソッドを用意する
+ * 1. コントローラーにuse PasskeyLogin;を書き、次の定数とメソッドを用意する
  *      private const PASSKEY_GUARD = 'web';        // ログインさせるガード
  *      private function passkeyRedirectUrl(): string // ログイン後に移動するURL
- * 2. routes/web.phpに、passkeyLoginOptions()・passkeyLogin()へのルートを書く
- *    （名前は login.passkey.options・login.passkey。管理画面は admin. を付ける）
- * 3. ログイン画面は、ルートがあるときだけ「パスキーでログイン」のボタンを出す
- *    （Route::has()で判定しているので、ルートを消せばボタンも消える）
+ * 2. routes/web.phpに、passkeyLoginOptions()とpasskeyLogin()へのルートを書く。
+ *    名前はlogin.passkey.optionsとlogin.passkeyで、管理画面はadmin.を付ける
+ * 3. ログイン画面はルートがあるときだけ「パスキーでログイン」のボタンを出す。
+ *    ルートを消せばボタンも消える
  *
  * ■ 会員とスタッフのパスキーの区別
- * 会員・スタッフのパスキーは同じサイト（同じドメイン）のものなので、ブラウザの
- * パスキー選択画面には両方が並ぶ。管理画面のログインで会員のパスキーを選ぶ
- * （またはその逆の）ことができてしまうため、照合の前に、パスキーの持ち主が
- * このガードのモデル（config/auth.phpのprovider）かどうかを確かめている。
+ * 会員とスタッフのパスキーは同じサイトのものなので、ブラウザの選択画面に両方が並び、
+ * 管理画面のログインで会員のパスキーを選ぶこともできてしまう。そこで照合の前に、
+ * パスキーの持ち主がこのガードのモデルかを確かめる。
  */
 trait PasskeyLogin
 {
-    /** ブラウザへ渡したオプションを、署名の結果が届くまで控えておくセッションキー。 */
+    // ブラウザへ渡したオプションを署名の結果が届くまで控えておくセッションキー。
     private function passkeyLoginSessionKey(): string
     {
         return 'passkey.login_options.'.self::PASSKEY_GUARD;
     }
 
     /**
-     * ログイン用のオプション（GET、JSON）。「パスキーでログイン」のボタンを
-     * 押したときに、resources/js/passkeys.jsが呼ぶ。
-     *
-     * 誰がログインしようとしているかはまだ分からないので、特定のパスキーに
-     * 絞らないオプションを返す（端末の中にあるこのサイトのパスキーから、
-     * 利用者が選ぶ）。
+     * ログイン用のオプションをJSONで返す。GETで受ける。「パスキーでログイン」のボタンで
+     * resources/js/passkeys.jsが呼ぶ。まだ誰か分からないので特定のパスキーに絞らず、
+     * 端末の中にあるこのサイトのパスキーから利用者に選んでもらう。
      */
     public function passkeyLoginOptions(Request $request): JsonResponse
     {
@@ -64,12 +57,12 @@ trait PasskeyLogin
     }
 
     /**
-     * ログインの実行（POST、JSON）。成功したら、移動先のURLを返す
-     * （画面の移動はresources/js/passkeys.jsが行う）。
-     * 失敗したときは422と、画面に出す文言を返す。
+     * ログインを実行する。POSTで受けてJSONで返す。通ったら移動先のURLを返し、画面の移動は
+     * resources/js/passkeys.jsが行う。通らなければ422と画面に出す文言を返す。
      */
     public function passkeyLogin(Request $request): JsonResponse
     {
+        // 署名の結果と、控えておいたオプション
         $credential = PasskeyCeremony::credential($request);
         $request->validate(['remember' => ['boolean']]);
 
@@ -81,7 +74,7 @@ trait PasskeyLogin
 
         $verify = app(VerifyPasskey::class);
 
-        // 照合（署名カウンターと最終利用日時の更新を含む）の前に、持ち主を確かめる。
+        // 照合すると使った記録が更新されるので、照合の前に持ち主がこのガードのモデルかを確かめる
         try {
             $owner = $verify->getPasskey($credential)->user;
         } catch (InvalidPasskeyException) {
@@ -103,8 +96,7 @@ trait PasskeyLogin
                 'credential' => 'このパスキーではログインできません。削除したパスキーを選んでいないかご確認ください。',
             ]);
         } catch (Throwable $e) {
-            // 署名が合わない・オプションと食い違う、など。原因は利用者には
-            // 伝えず、ログにだけ残す。
+            // 署名が合わないなど。原因は利用者には伝えずログにだけ残す
             Log::warning('PasskeyLogin: パスキーの照合に失敗しました。', [
                 'guard' => self::PASSKEY_GUARD,
                 'exception' => $e::class,
@@ -116,16 +108,16 @@ trait PasskeyLogin
             ]);
         }
 
+        // 最後に使った端末を記録する
         $passkey->forceFill(['last_used_device' => UserAgentLabel::of($request->userAgent())])->save();
 
-        // 「ログイン状態を保持する」は、ログインID・パスワードでのログインと同じ
-        // チェックボックスの値を、resources/js/passkeys.jsが一緒に送ってくる。
+        // ログインする。「ログイン状態を保持する」の値は、画面のJavaScriptが一緒に送ってくる
         Auth::guard(self::PASSKEY_GUARD)->login($owner, $request->boolean('remember'));
         $request->session()->regenerate();
 
         return response()->json(['redirect' => $this->passkeyRedirectUrl()]);
     }
 
-    /** ログインした後に移動するURL。コントローラー側で用意する。 */
+    // ログインした後に移動するURL。コントローラー側で用意する。
     abstract private function passkeyRedirectUrl(): string;
 }

@@ -10,36 +10,16 @@ use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
 /**
- * /contact2（比較用）の通知メール。App\Mail\TemplatedMailとは違い、
- * テンプレートファイルは無く、宛先・件名・本文の組み立てをすべて
- * このクラス自身（PHP）が担う、Laravelでいちばん素直な書き方のMailable。
+ * 比較用の問い合わせフォーム（/contact2）の通知メール。テンプレートファイルを使わず、
+ * 宛先・件名・本文をこのクラスで組み立てる、Laravelでいちばん素直な書き方の例。
  *
- * ■ fromを指定していない理由
+ * 送信元はenvelope()に書かず、config/mail.phpの値に任せる。宛先ごとに送信元を
+ * 変えないなら、これがLaravelの普通の書き方。
  *
- * envelope()に`from`を書かなければ、config/mail.phpのMAIL_FROM_ADDRESS・
- * MAIL_FROM_NAMEがそのまま使われる。宛先ごとに送信元を変える必要が
- * 無ければ、これで十分（App\Mail\TemplatedMailがFROM_MAILをテンプレート
- * 側で持っているのは「以前の仕組みの再現」のためであって、Laravelの
- * 標準的なMailableでは、こちらの「envelope()には何も書かず、
- * config任せにする」方が普通の書き方）。
- *
- * ■ 添付ファイルをアップロード直後の一時パスからそのまま使っている理由
- *
- * /contact2はconfirm画面を挟まない一段階の送信フォームなので、
- * アップロードされたファイルを画面をまたいで持ち越す必要が無い。
- * そのため、PHPが受け取った時点の一時ファイル（$_FILES的な、
- * リクエストが終わると自動で消える場所）のパスを、そのままこの
- * Mailableへ渡して添付している。
- *
- * ★ここが/contactのAjaxFileUpload方式と根本的に違う点：この作りは
- * 「メール送信が今のリクエストの中で同期的に(Mail::send())完了する」
- * ことが前提。もしこのMailableをキュー送信（ShouldQueueを実装する、
- * またはMail::to(...)->queue(...)を使う）に変えると、キューワーカーが
- * 実際に処理する時点ではリクエストがとっくに終わっていて一時ファイルは
- * 消えており、添付に失敗する。confirm画面をはさむ・キュー送信にする、
- * のどちらかをやる場合は、/contactのように「アップロード直後に確定の
- * 保存先へ移す」設計が必要になる（App\Support\AjaxFileUploadの
- * コメント参照）。
+ * 添付ファイルは、PHPが受け取った一時ファイルのパスをそのまま使う。一時ファイルは
+ * リクエストが終わると消えるので、この作りはメールを同じリクエストの中で送り終える
+ * ことが前提になる。キューで後から送るように変えるなら、/contactのように、
+ * アップロードしたファイルを先に保存しておく作りにする必要がある。
  */
 class Contact2Notification extends Mailable
 {
@@ -58,9 +38,9 @@ class Contact2Notification extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            // 実際に使う場合は、担当者の受信アドレスに書き換えること。
+            // 実際に使うときは、担当者の受信アドレスに書き換える
             to: ['nomoto@neobit.jp'],
-            // 「返信」すれば申込者に届くように。
+            // 返信すれば、問い合わせた人に届くように
             replyTo: [$this->data['email']],
             subject: "【お問い合わせ（比較用）】{$this->data['name']} 様より",
         );

@@ -14,15 +14,8 @@ use Illuminate\View\View;
 /**
  * ニュースカテゴリーの管理。
  *
- * スタッフ・会員のような「編集→確認画面→更新」の3段階は、あえて
- * このコントローラーでは採用していない。項目が名前1つだけで、
- * 確認画面を挟む複雑さに見合わないと判断したため。管理画面の全部を
- * 同じパターンに揃える必要は無く、「入力項目が少なく、間違えても
- * すぐ直せるものは確認画面無しで直接保存する」という、もう1つの
- * 型の実例として位置づけている。
- *
- * 確認画面が無いだけで、検証・保存・削除の手順はほかのコーナーと同じく
- * FormFlowを使う（store()・update()からそのままsaveData()を呼ぶ）。
+ * 項目が名前だけで、間違えてもすぐ直せるので、確認画面を挟まずに保存する。
+ * 確認画面のある型とは別の、もう1つの型の実例。検証・保存・削除はFormFlowを使う。
  */
 class CategoryController extends Controller
 {
@@ -76,14 +69,12 @@ class CategoryController extends Controller
 
     // ---- 一覧・並び替え ----
 
-    // カテゴリー一覧
-    // 並び替え（ドラッグ操作）は「今存在する全件」が画面上に無いと
-    // 成立しないので、ここだけは他の一覧と違ってページングをしない。
+    // カテゴリー一覧。並び替え（ドラッグ操作）には全件が画面に無いといけないので、
+    // ほかの一覧と違ってページ分けしない。
     public function index(): View
     {
-        // withCount('news')で、カテゴリーごとに紐づく記事数を1回の
-        // クエリでまとめて取得する。1件ずつnews()->count()を呼ぶと
-        // カテゴリー件数分のクエリが飛ぶN+1になってしまうため。
+        // カテゴリーごとの記事数も一緒に取る（withCount()で1回のクエリにまとめ、
+        // 1件ずつ数えるN+1を避ける。使用中の件数の表示と、削除ボタンの無効化に使う）
         $categories = Category::withCount('news')
             ->orderBy('display_order')
             ->get();
@@ -96,12 +87,9 @@ class CategoryController extends Controller
     /**
      * 並び替えの保存（PATCH /admin/categories/reorder）。
      *
-     * 一覧画面でドラッグして並べ替えた後の順番どおりに、カテゴリーidが
-     * 並んだ配列（order）がPOSTされてくる。その配列のインデックス
-     * （0, 1, 2, ...）をそのまま新しいdisplay_orderとして書き込む。
-     *
-     * 入力フォーム（必須マークを出す画面）の送信ではないので、検証ルールは
-     * rules()に入れず、ここに直接書いている。
+     * 一覧でドラッグした後の順番に、カテゴリーのidが並んだ配列が送られてくるので、
+     * その順番をそのまま表示順にする。入力フォームの送信ではないので、検証のルールは
+     * rules()ではなく、ここに直接書いている。
      */
     public function reorder(Request $request): RedirectResponse
     {
@@ -110,9 +98,8 @@ class CategoryController extends Controller
             'order.*' => ['integer', Rule::exists('t_categories', 'id')],
         ]);
 
-        // 1件ずつUPDATEを発行するが、途中で失敗したときに一部だけ
-        // 順番が書き換わった中途半端な状態にしないよう、トランザクションで
-        // まとめて実行する。
+        // 送られてきた順番（配列の添え字）を、そのまま表示順にする。1件ずつ更新するので、
+        // 途中で失敗して一部だけ書き換わらないよう、トランザクションでまとめる
         DB::transaction(function () use ($validated) {
             foreach ($validated['order'] as $index => $categoryId) {
                 Category::whereKey($categoryId)->update(['display_order' => $index]);
@@ -166,16 +153,11 @@ class CategoryController extends Controller
             ->with('status', 'カテゴリーを更新しました。');
     }
 
-    /**
-     * 削除の実行。
-     *
-     * 使用中（t_news_categoryに紐づく記事が1件でもある）カテゴリーは、
-     * 一覧画面側で削除ボタン自体をdisabledにしているが、URLを直接
-     * 叩かれた場合に備えてサーバー側でも同じ条件を再チェックする
-     * （画面上のガードとサーバー側のガードは必ず両方持つ）。
-     */
+    // 削除の実行。記事で使われているカテゴリーは消さない。
+    // 一覧でも削除ボタンを押せなくしているが、URLを直接送られたときのために、ここでも確かめる。
     public function destroy(Category $category): RedirectResponse
     {
+        // 記事で使われているカテゴリーは消さない
         if ($category->news()->exists()) {
             return redirect()->route(self::INDEX_ROUTE)
                 ->with('error', 'このカテゴリーは記事で使われているため削除できません。');

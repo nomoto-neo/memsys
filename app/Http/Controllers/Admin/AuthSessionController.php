@@ -12,6 +12,14 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
+/**
+ * 管理画面のログイン・ログアウト。
+ *
+ * ログインは2段階で、ログインIDとパスワードが合っても、すぐにはログインさせない。
+ * 認証アプリのコードを入力してもらい、TwoFactorChallengeControllerで本ログインにする。
+ * そのため、ここでは確認だけを行うAuth::validate()を使い、Auth::attempt()は使わない。
+ * 「この端末を信頼する」を選んだ端末では、認証アプリのコードを省く。
+ */
 class AuthSessionController extends Controller
 {
     // パスキーでのログイン（passkeyLoginOptions()・passkeyLogin()）。パスキーで
@@ -26,11 +34,13 @@ class AuthSessionController extends Controller
     // アカウントはログインIDで区別する。
     private const THROTTLE_SCOPE = 'admin-login';
 
+    // ログインフォームの表示
     public function create(): View
     {
         return view('admin.auth.login');
     }
 
+    // ログイン（1段階目：ログインID・パスワード）
     public function store(Request $request): RedirectResponse
     {
         $credentials = $request->validate([
@@ -38,7 +48,7 @@ class AuthSessionController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        // 失敗回数による試行制限（IP単位・ログインID単位。詳しくはApp\Support\LoginThrottle参照）
+        // 失敗回数による試行制限（IP単位・ログインID単位。App\Support\LoginThrottle）
         $throttle = new LoginThrottle(self::THROTTLE_SCOPE, $request->ip(), $credentials['login_id']);
 
         if ($throttle->isBlocked()) {
@@ -47,20 +57,10 @@ class AuthSessionController extends Controller
                 ->withInput($request->except('password'));
         }
 
-        // 会員側（AuthSessionController）と同じ「ログイン状態を保持する」
-        // チェックボックス。$request->boolean('remember')は、チェックボックスが
-        // 送られてこなかった（未チェック）ときはfalseになる（$request->input()と
-        // 違い、キー自体が無くてもエラーにならず安全にfalse扱いにしてくれる）。
+        // 「ログイン状態を保持する」のチェック（チェックが無ければfalse）
         $remember = $request->boolean('remember');
 
-        // ★attempt()ではなくvalidate()を使っている★
-        // attempt()は「credentialsが正しければその場でログイン状態にする
-        // （セッション再生成まで含めて）」というメソッド。ここでは
-        // パスワードの正誤だけを確認し、2段階目（TOTP）まで通過して
-        // 初めて本ログインとしたいので、あえて「正誤の判定だけ行い、
-        // ログインはしない」validate()を使っている
-        // （Illuminate\Auth\SessionGuard::validate()のソースで、
-        // login()もsetUser()もupdateSession()も呼ばないことを確認済み）。
+        // ログインID・パスワードの確認だけ行う（まだログインはしない）
         if (! Auth::guard('admin')->validate($credentials)) {
             $throttle->hit();
 
@@ -71,16 +71,10 @@ class AuthSessionController extends Controller
 
         $throttle->clear();
 
-        // validate()が成功すると、内部でlastAttemptedに解決済みのユーザーを
-        // 保持しているので、getLastAttempted()で取り出せる
-        // （SessionGuard::validate()のソースで確認済み）。
+        // validate()で確かめたスタッフ（validate()が内部に持っている）
         $staff = Auth::guard('admin')->getLastAttempted();
 
-        // 2段階認証を登録済みで、この端末を「信頼する」済みなら、TOTPの入力を
-        // 省略してそのままログインを完了させる。省略できるのはTOTPだけで、
-        // ログインID・パスワードの確認は上で毎回行っている。
-        // 未登録（QRコードの登録がまだ）の場合は、信頼済みかどうかに関係なく
-        // QRコード登録画面へ進ませる。
+        // 2段階認証を登録済みで、信頼済みの端末なら、TOTPを省いてログインを完了する
         if ($staff->hasTwoFactorConfirmed() && TrustedDeviceManager::forStaff()->isTrusted($staff, $request)) {
             Auth::guard('admin')->login($staff, $remember);
             $request->session()->regenerate();
@@ -89,10 +83,8 @@ class AuthSessionController extends Controller
             return redirect(LoginRedirect::forStaff());
         }
 
-        // 「パスワードは合っているが2段階目（TOTP）が未完了」という
-        // 中間状態をセッションに記録する。実際のAuth::login()は
-        // TwoFactorChallengeController::completeLogin()側で、2段階目が
-        // 通過してから行う。
+        // それ以外は、「パスワード確認済み・2段階目が未完了」をセッションに置き、2段階目の画面へ
+        // （本ログインはTwoFactorChallengeController::completeLogin()）
         $request->session()->put(TwoFactorChallengeController::PENDING_SESSION_KEY, $staff->id);
         $request->session()->put(TwoFactorChallengeController::REMEMBER_SESSION_KEY, $remember);
 
@@ -106,10 +98,12 @@ class AuthSessionController extends Controller
         return LoginRedirect::forStaff();
     }
 
+    // ログアウト
     public function destroy(Request $request): RedirectResponse
     {
         Auth::guard('admin')->logout();
 
+        // セッションを破棄し、CSRFトークンも作り直す
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 

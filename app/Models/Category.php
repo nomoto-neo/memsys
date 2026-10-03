@@ -21,15 +21,8 @@ class Category extends Model
         'display_order' => 'integer',
     ];
 
-    /**
-     * このカテゴリーが付いているニュース記事。
-     *
-     * belongsToMany()の第3・第4引数は、中間テーブル側の列名
-     * （こちら側のキー・相手側のキー）。デフォルトの推測（category_id・
-     * news_id）と実際の列名が一致しているので、本来省略してもよいが、
-     * 「どのテーブルのどの列を見ているか」をコードだけで分かるように
-     * 明示している。
-     */
+    // このカテゴリーが付いているニュース記事。中間テーブルの列名は、省略しても
+    // 同じになるが、どの列を見ているかがコードだけで分かるように書いている。
     public function news(): BelongsToMany
     {
         return $this->belongsToMany(News::class, 't_news_category', 'category_id', 'news_id');

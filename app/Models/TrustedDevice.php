@@ -6,16 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 /**
- * ログインの2段階目を省略できる「信頼済み端末」1台分の記録
- * （会員の「このデバイスを記憶する」・管理ログインの「この端末を信頼する」）。
+ * ログインの2段階目を省ける、信頼済みの端末1台分の記録。会員の「このデバイスを記憶する」と、
+ * スタッフの「この端末を信頼する」の両方に使う。
  *
- * 業務のデータではなく認証の仕組みを支えるデータなので、会員用・スタッフ用で
- * テーブルを分けず、1つのtrusted_devicesテーブルで扱う。誰の端末かは
- * authenticatable_type（'member'・'staff'）とauthenticatable_id の2列で表す
- * （Eloquentのポリモーフィックリレーション。'member'・'staff'という短い名前は
- * AppServiceProviderのRelation::enforceMorphMap()で決めている）。
- *
- * 判定・発行・取り消しはApp\Support\TrustedDeviceManagerが行う。
+ * 認証の仕組みのためのデータなので、会員とスタッフで1つのテーブルを共通に使い、
+ * 誰の端末かは2つの列で表す。判定・発行・取り消しは、App\Support\TrustedDeviceManagerが行う。
  */
 class TrustedDevice extends Model
 {
@@ -26,8 +21,7 @@ class TrustedDevice extends Model
         'expires_at',
     ];
 
-    // token_hashは検証にしか使わない内部値なので、誤って画面や配列出力に
-    // 出てしまわないよう隠す。
+    // token_hashは照合にしか使わないので、配列やJSONにしたときに出ないよう隠す
     protected $hidden = [
         'token_hash',
     ];
@@ -36,7 +30,7 @@ class TrustedDevice extends Model
         'expires_at' => 'datetime',
     ];
 
-    /** この端末を信頼したアカウント（MemberまたはStaff）。 */
+    // この端末を信頼したアカウント（MemberまたはStaff）。
     public function authenticatable(): MorphTo
     {
         return $this->morphTo();

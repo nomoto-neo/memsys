@@ -13,7 +13,14 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
-// ログイン・ログアウトという「セッションの作成・破棄」を担当するコントローラー。
+/**
+ * 会員のログイン・ログアウト。
+ *
+ * ログインは2段階で、メールアドレスとパスワードが合っても、すぐにはログインさせない。
+ * メールで送る確認コードを入力してもらい、LoginVerificationControllerで本ログインにする。
+ * そのため、ここでは確認だけを行うAuth::validate()を使い、Auth::attempt()は使わない。
+ * 「このデバイスを記憶する」を選んだ端末では、確認コードを省く。
+ */
 class AuthSessionController extends Controller
 {
     // パスキーでのログイン（passkeyLoginOptions()・passkeyLogin()）。
@@ -33,16 +40,15 @@ class AuthSessionController extends Controller
         return view('auth.login');
     }
 
-    // ログイン処理
+    // ログイン（1段階目：メールアドレス・パスワード）
     public function store(Request $request): RedirectResponse
     {
-        // バリデーションチェック
         $credentials = $request->validate([
             'email' => ['required', 'string', 'email'],
             'password' => ['required', 'string'],
         ]);
 
-        // 失敗回数による試行制限（IP単位・メールアドレス単位。詳しくはApp\Support\LoginThrottle参照）
+        // 失敗回数による試行制限（IP単位・メールアドレス単位。App\Support\LoginThrottle）
         $throttle = new LoginThrottle(self::THROTTLE_SCOPE, $request->ip(), $credentials['email']);
 
         if ($throttle->isBlocked()) {
@@ -51,21 +57,10 @@ class AuthSessionController extends Controller
             ]);
         }
 
-        // ログイン保持チェック
+        // 「ログイン状態を保持する」のチェック（チェックが無ければfalse）
         $remember = $request->boolean('remember');
 
-        // ★attempt()ではなくvalidate()を使っている★
-        //
-        // Auth::attempt()は「ID・パスワードの確認」と「実際にログイン状態に
-        // する」を1回で行ってしまうが、ここではその間に「メールで送る
-        // 確認コードの入力」を挟みたい。そこで、確認だけ行いログインは
-        // しないvalidate()を使う（管理ログインのTOTPと全く同じ考え方。
-        // Admin\AuthSessionController::store()参照）。
-        //
-        // validate()は内部でretrieveByCredentials()・hasValidCredentials()
-        // を呼ぶだけで、login()・setUser()・updateSession()は呼ばない
-        // （Illuminate\Auth\SessionGuardのソースで確認済み）。そのため
-        // このメソッドの中では、まだAuth::check()はfalseのまま。
+        // メールアドレス・パスワードの確認だけ行う（まだログインはしない）
         if (! Auth::guard('web')->validate($credentials)) {
             $throttle->hit();
 
@@ -78,11 +73,7 @@ class AuthSessionController extends Controller
 
         $member = Auth::guard('web')->getLastAttempted();
 
-        // この端末が「記憶する」済みなら、確認コードの入力を省略して
-        // そのままログインを完了させる。省略できるのは飽くまで
-        // 「同じ端末からの、ID・パスワードが合っているログイン」の場合のみ
-        // ——ID・パスワードの確認自体は毎回必ず行っている点に注意
-        // （信頼済み端末だからといってパスワード確認ごと省略するわけではない）。
+        // 記憶済みの端末なら、確認コードを省いてログインを完了する
         if (TrustedDeviceManager::forMember()->isTrusted($member, $request)) {
             Auth::login($member, $remember);
             $request->session()->regenerate();
@@ -91,9 +82,8 @@ class AuthSessionController extends Controller
             return redirect(LoginRedirect::forMember());
         }
 
-        // パスワード確認済み・2段階目未完了、という状態をセッションに
-        // 一時保存し、確認コード入力画面へ。実際のAuth::login()は
-        // LoginVerificationController::verify()まで持ち越す。
+        // それ以外は、「パスワード確認済み・2段階目が未完了」をセッションに置き、
+        // 確認コードを送って入力画面へ（本ログインはLoginVerificationController::verify()）
         $request->session()->put(LoginVerificationController::PENDING_SESSION_KEY, $member->id);
         $request->session()->put(LoginVerificationController::REMEMBER_SESSION_KEY, $remember);
 
@@ -105,20 +95,19 @@ class AuthSessionController extends Controller
         return redirect()->route('login.verify');
     }
 
-    // パスキーでログインした後の移動先。ログインID・パスワードでのログインと同じく、
+    // パスキーでログインした後の移動先。メールアドレス・パスワードでのログインと同じく、
     // ログインが必要な画面から来た場合はその画面へ戻す（App\Support\LoginRedirect）。
     private function passkeyRedirectUrl(): string
     {
         return LoginRedirect::forMember();
     }
 
-    // ログアウト処理
+    // ログアウト
     public function destroy(Request $request): RedirectResponse
     {
-        // ログアウト
         Auth::logout();
 
-        // セッションを破棄してセッションIDを再作成
+        // セッションを破棄し、CSRFトークンも作り直す
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 

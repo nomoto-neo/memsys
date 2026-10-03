@@ -5,11 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * CSV取り込みの記録（App\Support\CsvImportが、取り込みが確定するたびに1行作る）。
+ * CSV取り込みの記録。App\Support\CsvImportが、取り込みが確定するたびに1行作る。
  * 誰が・いつ・何のCSVを・どのファイルから・何件取り込んだかを残す。
- * operator_idは、取り込んだときにログインしていた人のid。
- *
- * 行は追記するだけで更新しないので、updated_atは持たない。
+ * 行は足すだけで更新しないので、updated_atは持たない。
  */
 class CsvImportLog extends Model
 {

@@ -12,17 +12,8 @@ use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
 /**
- * resources/mail-templates/配下のテンプレートファイル1つから、送信元・
- * 宛先・件名・本文をすべて決めて送るMailable。
- *
- * 以前のフレームワークでは「テンプレートファイルの中身（FROM_MAIL:・
- * TO_MAIL:等の見出し＋本文）がメールの中身のすべてを決めていて、
- * 呼び出し側は変数と添付ファイルを渡すだけ」という作りだった。このクラスは
- * それをそのまま踏襲していて、他の多くのLaravelのMailable解説にあるような
- * 「envelope()の中でto()・subject()を固定で書く」形にはなっていない
- * （そこはテンプレートファイル任せ）。
- *
- * 呼び出し側は次のように使う（App\Http\Controllers\ContactController::store()参照）。
+ * テンプレートファイル1つで、送信元・宛先・件名・本文のすべてを決めて送るメール。
+ * テンプレートはresources/mail-templates/に置き、呼び出し側は変数と添付ファイルを渡すだけ。
  *
  *   Mail::send(new TemplatedMail('contact_staff', [
  *       'name' => $inquiry->name,
@@ -31,10 +22,8 @@ use Illuminate\Queue\SerializesModels;
  *       ['path' => $absolutePath, 'name' => $originalFileName],
  *   ]));
  *
- * Mail::to(...)->send(...)ではなくMail::send(...)を直接使うのは、
- * 宛先をMailable自身（テンプレートファイル）が知っているため。
- * Mail::to()->send()を使うと、Mail::to()で指定した宛先と、envelope()が
- * 返す宛先の両方が足し合わされてしまい紛らわしい。
+ * 宛先はテンプレートが持っているので、Mail::to()は使わずにMail::send()で送る。
+ * Mail::to()を使うと、そこで指定した宛先とテンプレートの宛先が足し合わされてしまうため。
  */
 class TemplatedMail extends Mailable
 {
@@ -44,25 +33,12 @@ class TemplatedMail extends Mailable
     private array $parsed;
 
     /**
-     * @param  string  $templateName  resources/mail-templates/{$templateName}.blade.phpを使う
-     *         （HTML版は{$templateName}_html.blade.php。App\Support\MailTemplate参照）。
+     * @param  string  $templateName  使うテンプレート。resources/mail-templates/{$templateName}.blade.php。
+     *         HTML版は{$templateName}_html.blade.phpに置く（App\Support\MailTemplate参照）。
      * @param  array<string, scalar>  $vars  テンプレートの中で$変数名として使える値。
      * @param  array<int, array{path: string, name: string}>  $attachmentFiles  添付ファイル。
-     *         path=サーバー上の実ファイルパス、name=メールに乗せる元のファイル名
-     *         （以前のフレームワークの「添付ファイルの名前と実ファイルパスを渡す」
-     *         にそのまま対応する）。
-     *
-     *         引数名を単純に$attachmentsにしなかったのは、親クラス
-     *         Illuminate\Mail\Mailableが、旧来のbuild()スタイルの
-     *         attach()が使うpublic array $attachments = [];という
-     *         プロパティをすでに持っているため。コンストラクタ
-     *         プロパティ昇格でここに同名のプロパティを宣言すると、
-     *         「継承済みの（readonlyでない）プロパティを、readonlyとして
-     *         再宣言している」とPHPに拒否される
-     *         （Cannot redeclare non-readonly property ... as readonly ...）。
-     *         Mailableを継承するクラスでプロパティ昇格を使うときは、
-     *         このように親クラスの既存プロパティ名（$attachments・$from・
-     *         $to・$subject等）と衝突しないか、あらかじめ確認すること。
+     *         pathはサーバー上のファイルの場所、nameはメールに付けるときのファイル名。
+     *         $attachmentsという名前は、親クラスのMailableがすでに持っているので使えない。
      */
     public function __construct(
         string $templateName,
@@ -72,6 +48,7 @@ class TemplatedMail extends Mailable
         $this->parsed = MailTemplate::render($templateName, $vars);
     }
 
+    // 送信元・宛先・件名。テンプレートに送信元が無ければ、config/mail.phpの値を使う
     public function envelope(): Envelope
     {
         return new Envelope(
@@ -87,20 +64,11 @@ class TemplatedMail extends Mailable
         );
     }
 
+    // 本文。テンプレートで組み立て済みの本文を、そのまま出すだけの最小限のビューに通す
+    // （エスケープを重ねないため。理由はApp\Support\MailTemplate参照）
     public function content(): Content
     {
-        // 本文はプレーンテキストなので、Bladeの{{ }}によるHTMLエスケープを
-        // 経由させないよう、{!! !!}だけの最小限のビュー（mail._raw_text）を
-        // 通す（理由はApp\Support\MailTemplateのコメント参照）。
-        //
-        // {テンプレート名}_html.blade.phpが用意されていれば（App\Support\MailTemplate::
-        // render()の'html'キーがnullでなければ）、view（HTML版）とtext
-        // （プレーンテキスト版）の両方を同時に指定する。Laravelはこの
-        // 組み合わせを「両対応のマルチパートメール」として送る
-        // （Content::view()とContent::text()の両方を指定した場合の標準の
-        // 動き。片方だけの指定なら、そのままシングルパートで送られる）。
-        // HTML側もmail._raw_htmlという最小限のビューを経由させる理由・
-        // エスケープ済みである理由はApp\Support\MailTemplateのコメント参照。
+        // HTML版のテンプレートがあれば、HTMLとテキストの両方を付けたマルチパートにする
         if ($this->parsed['html'] !== null) {
             return new Content(
                 view: 'mail._raw_html',
@@ -112,6 +80,7 @@ class TemplatedMail extends Mailable
             );
         }
 
+        // それ以外は、テキストだけのメール
         return new Content(
             text: 'mail._raw_text',
             with: ['body' => $this->parsed['body']],

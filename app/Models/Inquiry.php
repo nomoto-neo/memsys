@@ -5,14 +5,14 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * 問い合わせフォーム（/contact）からの送信内容。
+ * お問い合わせフォームから送られてきた内容。
  */
 class Inquiry extends Model
 {
     /**
      * ログインした人だけが見られる場所に置くアップロードのフィールド。添付ファイルは
-     * 個人情報を含みうるので、スタッフだけが見られる（App\Support\UploadFilePathの
-     * 「非公開」参照。見てよいかの判断はApp\Policies\InquiryPolicy::viewFiles()）。
+     * 個人情報を含むことがあるので、スタッフだけが見られるようにする。
+     * 見てよいかはApp\Policies\InquiryPolicyで判断する。
      */
     public const PRIVATE_FILE_FIELDS = ['attach_file'];
 
@@ -33,7 +33,7 @@ class Inquiry extends Model
     ];
 
     protected $casts = [
-        // t_members.prefectureと同じ理由（App\Models\Memberのコメント参照）。
+        // 都道府県はコード表の値と===で比べるので、intにそろえる
         'prefecture' => 'integer',
     ];
 }

@@ -3,42 +3,32 @@
 namespace App\Support;
 
 /**
- * 変数展開が終わったあとのメール本文テキストを、以前のフレームワークと同じ
- * 規約で「宛先などの制御情報」と「本文」に分解するクラス。
- *
- * 以前のフレームワーク（Smarty）でのメールテンプレートは、次の形の
- * プレーンテキストファイルだった。
+ * 展開が終わったメールのテンプレートを、宛先などの見出しと本文に分ける。
+ * 変数の展開はMailTemplateが行い、ここは分けるだけ。
  *
  *   FROM_MAIL: info@example.com
  *   FROM_NAME: 株式会社サンプル
  *   TO_MAIL: staff1@example.com, staff2@example.com
  *   SUBJECT: お問い合わせを受け付けました
  *
- *   {$name} 様
+ *   山田 様
  *
  *   お問い合わせありがとうございます。
  *
- * このクラスは「Smartyの変数展開」の部分は担当しない（それは
- * App\Support\MailTemplateが行う）。展開が終わったプレーンテキストを
- * 受け取り、次の規約で分解するだけの、状態を持たない純粋な処理。
- *
- * - ファイルの先頭から、空行が現れるまでの各行を「見出し行」として読む。
- *   見出し行は "KEY: 値" の形（大文字小文字は区別する）。
- * - 認識する見出しは FROM_MAIL・FROM_NAME・TO_MAIL・CC_MAIL・BCC_MAIL・
- *   SUBJECT・REPLY_TO の7つ。TO_MAIL・CC_MAIL・BCC_MAIL・REPLY_TOは
- *   カンマ区切りで複数書ける（前後の空白は無視する）。
- * - 見出しとして認識できない行（"KEY: 値"の形になっていない行）が
- *   空行より前に現れた場合は、その時点で見出し行の読み取りをやめ、
- *   その行以降を本文として扱う（見出しの書き忘れで本文の1行目を
- *   誤って読み捨てないようにするための安全策）。
- * - 最初の空行の次の行から末尾までが本文。空行自体は本文に含まない。
- * - 空行が1つも無いファイルは、全体を見出しとして読もうとした結果、
- *   本文が空になる（テンプレートの書き方の誤りとして気づきやすいよう、
- *   あえて「本文が全部見出しに化ける」動きのままにしている）。
+ * - 先頭から空行までの各行を「KEY: 値」の見出しとして読む。KEYは大文字と小文字を区別する
+ * - 見出しはFROM_MAIL・FROM_NAME・TO_MAIL・CC_MAIL・BCC_MAIL・SUBJECT・REPLY_TOの7つ。
+ *   宛先の4つはカンマで区切って複数書ける
+ * - 空行より前に「KEY: 値」の形でない行があれば、そこからを本文にする。見出しを書き忘れたときに
+ *   本文の1行目を読み捨てないため
+ * - 最初の空行の次から最後までが本文
+ * - 空行が無ければ全部を見出しとして読むので、本文が空になる。書き方の誤りに気付きやすいよう
+ *   そのままにしている
  */
 final class MailTemplateParser
 {
     /**
+     * 見出しと本文に分けた結果を返す。
+     *
      * @return array{
      *     from_mail: ?string,
      *     from_name: ?string,
@@ -52,8 +42,7 @@ final class MailTemplateParser
      */
     public static function parse(string $renderedText): array
     {
-        // "\r\n"・"\r"のどちらで改行されていても同じ結果になるよう、
-        // 最初に"\n"だけに統一する。
+        // どの改行でも同じ結果になるよう、"\n"にそろえる
         $normalized = str_replace(["\r\n", "\r"], "\n", $renderedText);
         $lines = explode("\n", $normalized);
 
@@ -61,15 +50,14 @@ final class MailTemplateParser
         $bodyStartLine = count($lines);
 
         foreach ($lines as $index => $line) {
+            // 最初の空行が見出しと本文の境目
             if (trim($line) === '') {
-                // 最初の空行が見出しと本文の境目。
                 $bodyStartLine = $index + 1;
                 break;
             }
 
+            // 「KEY: 値」の形でない行からは、本文として扱う
             if (! preg_match('/^([A-Z_]+):\s?(.*)$/', $line, $matches)) {
-                // "KEY: 値"の形になっていない行に行き当たったら、
-                // そこから先はもう見出しではなく本文として扱う。
                 $bodyStartLine = $index;
                 break;
             }
@@ -92,11 +80,7 @@ final class MailTemplateParser
         ];
     }
 
-    /**
-     * "a@example.com, b@example.com" のようなカンマ区切りの文字列を、
-     * 前後の空白を落とした上で配列にする。空文字列は空配列になる
-     * （array_filterで、カンマの連続や末尾のカンマによる空要素も落とす）。
-     */
+    // カンマで区切ったアドレスを前後の空白を除いて配列にする。空の要素は除く
     private static function splitAddresses(string $value): array
     {
         if (trim($value) === '') {

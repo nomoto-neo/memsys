@@ -5,10 +5,8 @@ namespace App\Support;
 use RuntimeException;
 
 /**
- * メールテンプレート（resources/mail-templates/配下）の読み込みに失敗した
- * ときの例外。App\Support\CodeTableExceptionと同じ考え方
- * （コード表の読み込み失敗用の専用例外）で、原因をひと目で切り分けられる
- * ようにするための専用クラス。
+ * メールのテンプレートの読み込みに失敗したときの例外。
+ * 原因がテンプレートだとひと目で分かるよう、専用の例外にしている。
  */
 class MailTemplateException extends RuntimeException
 {

@@ -17,13 +17,11 @@ use Illuminate\Support\Facades\DB;
  *
  * 会員限定の記事（members_only）は、ログイン中の会員にだけ見せる。ログインして
  * いない人には、一覧にも詳細にも出さない（記事があること自体を見せない）。
- * 見せてよいかの条件はNews::visibleTo()・isVisibleTo()にまとめてある。
+ * ログイン状態や掲載日時の制御も含めて、見せてよいかの判断は
+ * News::visibleTo()・isVisibleTo()にまとめてある。
  *
  * Admin\NewsControllerとは違い、認証を必要としない（routes/web.phpで
- * どのmiddleware()にも入れていない）公開ページ。ただしSearchableList
- * トレイト自体はadmin専用の作りにはなっていない（要求しているのは
- * INDEX_ROUTEなどの定数とapplyCustomSearch()の実装だけ）ので、
- * 認証の有無に関わらずそのまま使い回せる。
+ * どのmiddleware()にも入れていない）公開ページ。
  */
 class NewsController extends Controller
 {
@@ -44,17 +42,22 @@ class NewsController extends Controller
     private const ORDER_OPTIONS = [
         'article_date_desc' => [
             'label' => '記事日付が新しい順',
-            'orderBy' => [['article_date', 'desc'], ['id', 'desc']],
+            'orderBy' => [
+                ['article_date', 'desc'],
+                ['id', 'desc'],
+            ],
         ],
     ];
 
     // 一覧・検索
     public function index(Request $request): View|RedirectResponse
     {
+        // 一覧データの読み込みとページング
         // ログイン中の会員（ログインしていなければnull）に見せてよい記事だけ
         $result = $this->buildListData($request, News::visibleTo(Auth::guard('web')->user()));
 
         if ($result instanceof RedirectResponse) {
+            // リダイレクトが要求された場合
             return $result;
         }
 
@@ -87,7 +90,7 @@ class NewsController extends Controller
 
     // イレギュラーな検索条件の追加処理
     // category_id（多対多の絞り込み）・year（記事日付の年の一致）を、
-    // この中で個別に処理してtrueを返す。
+    // この中で個別に処理して、処理済み(true)を返す。
     private function applyCustomSearch(Builder $query, string $key, mixed $value): bool
     {
         if ($key === 'category_id') {
@@ -99,11 +102,8 @@ class NewsController extends Controller
         }
 
         if ($key === 'year') {
-            // article_dateはdate型だが、EloquentのCarbon経由で保存される
-            // 限りDB上は常に"YYYY-MM-DD"形式の文字列なので、先頭4文字を
-            // 取り出すだけで年が取れる（SUBSTRはSQLite固有の関数ではない
-            // ので、MySQL・PostgreSQLへの移行時もそのまま動く）。
-            $query->whereRaw('SUBSTR(article_date, 1, 4) = ?', [$value]);
+            // 記事日付の年の一致。
+            $query->whereRaw('YEAR(article_date) = ?', [$value]);
 
             return true;
         }
@@ -111,14 +111,12 @@ class NewsController extends Controller
         return false;
     }
 
-    /**
-     * 年度プルダウンの選択肢。その人に見せてよい記事に実際に
-     * 存在する年だけを、新しい順で返す。
-     */
+    // 年度プルダウンの選択肢。その人に見せてよい記事に実際に
+    // 存在する年だけを、新しい順で返す。
     private function availableYears(): array
     {
         return News::visibleTo(Auth::guard('web')->user())
-            ->select(DB::raw('DISTINCT SUBSTR(article_date, 1, 4) as year'))
+            ->select(DB::raw('DISTINCT YEAR(article_date) as year'))
             ->orderByDesc('year')
             ->pluck('year')
             ->all();

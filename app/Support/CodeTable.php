@@ -9,63 +9,51 @@ use BackedEnum;
 use Illuminate\Support\Str;
 
 /**
- * コード表（値・名称の組の一覧）の共通読み込みクラス。
- * 以前のフレームワークのGetCodeArray(コード名)に相当する。
- * 画面・検証・CSVなど、どこから使うときもcode_table()・code_keys()・code_label()
- * （app/helpers.php）を通す。使う側はコード名だけを知っていればよく、一覧の出どころ
- * （下記の3つ）を知らなくてよい。
+ * 値と名称の組の一覧であるコード表を読み込む。画面・検証・CSVのどこからでも、
+ * code_table()・code_keys()・code_label()のヘルパーを通して使う。使う側はコード名だけを
+ * 知っていればよく、どこにあるコード表かを知らなくてよい。
  *
  * ■ 出どころ
- * コード名（例: 'staff_acl'）から、次の3つを探す。
- * 1. 列挙型：App\Enums\<コード名をクラス名の形にしたもの>（例: App\Enums\StaffAcl）が、
- *    値を持つ列挙型（BackedEnum）で、App\Enums\CodeTableEnumを実装していれば、
- *    その全部の値（cases()）から [値 => label()] を作る。プログラムが値によって動きを
- *    変えるもの（スタッフの権限など）はこちら。
- * 2. CSV：code/<コード名>.csv。選択肢として並べるだけのもの（都道府県など）はこちら。
- *    プログラマー以外でも、ファイルを直すだけで項目を増やせる。
- * 3. DB：App\Enums\CodeTypeにコード名があれば、t_codesテーブルのその種類の行を
- *    表示順に読む。CSVと同じく選択肢として並べるだけのもので、管理画面
- *    （項目見出し一覧、Admin\CodeController）から書き換えられる。値・名称の
- *    扱い（数字だけの値はint型、名称の「\n」は改行）もCSVと同じ。
- * 2つ以上にあるとCodeTableExceptionを投げる（出どころを1つに保つため）。
+ * コード名から次の3つを探す。2つ以上にあれば、1つにするよう例外を投げる。
+ * 1. 列挙型：コード名をクラス名の形にしたApp\Enums\の列挙型。CodeTableEnumを実装していれば
+ *    全部の値と名前の一覧にする。スタッフの権限のように、プログラムが値で動きを変えるもの
+ * 2. CSV：code/<コード名>.csv。都道府県のように選択肢として並べるだけのもの。
+ *    ファイルを直すだけで項目を増やせる
+ * 3. DB：App\Enums\CodeTypeにあるコード名なら、t_codesテーブルを表示順に読む。CSVと同じく
+ *    並べるだけのもので、管理画面の項目見出し一覧から書き換えられる。値と名称の扱いはCSVと同じ
  *
  * ■ CSVの形式
- * "値,名称" を1行1件。
- * - 名称にカンマが含まれてもよいよう、最初のカンマだけで区切る
- *   （fgetcsv()のような引用符エスケープを編集者に要求しない）。
- * - 先頭が#の行はコメントとして無視する。
- * - 空行は読み飛ばす。
- * - 値が数字だけで構成されていればint型に変換する（前ゼロを除去し、
- *   DBの数値型カラムとの比較にそのまま使えるようにするため）。
- *   数字以外の文字を含む値は文字列のまま扱う（コード表によっては
- *   キーが文字列の場合もあるため、行ごとに自動判定する）。
- * - 名称中に "\n"（バックスラッシュ＋n の2文字）があれば、実際の
- *   改行コードに変換する。標準的なCSVのダブルクォートによる複数行
- *   エスケープは、ファイルを見たときに「1行＝1レコード」という
- *   前提が崩れてメンテナンス時に読みにくくなるため、あえて採用していない。
- * - ファイルが無い・開けない・行の形式が不正な場合はCodeTableExceptionを
- *   投げる。コード表を書き換えた人が、それを使っている画面を開いた
- *   瞬間にエラーとして気づけるようにするため
+ * 「値,名称」を1行1件。
+ * - 名称にカンマがあってもよいよう、最初のカンマだけで区切る。引用符で囲む書き方は求めない
+ * - #で始まる行はコメント、空行は読み飛ばす
+ * - 数字だけの値はintにする。前ゼロが除かれ、DBの数値の列とそのまま比べられる
+ * - 名称の中の「\n」の2文字は改行にする。引用符で囲んで複数行にする書き方は、
+ *   1行が1件という見やすさが崩れるので使わない
+ * - ファイルが無いか開けないか、形が正しくないときは例外を投げる。コード表を直した人が
+ *   それを使う画面を開いたときに、すぐ気付けるようにするため
  */
 class CodeTable
 {
     private const DIRECTORY = 'code';
 
-    /** @var array<string, array<int|string, string>> コード名ごとの読み込み済みキャッシュ */
+    // コード名ごとの読み込み済みのコード表
+    /** @var array<string, array<int|string, string>> */
     private static array $cache = [];
 
     /**
-     * 指定したコード名の一覧を [値 => 名称] の配列で返す。
+     * そのコード名の値と名称の一覧を返す。
      *
-     * @param  string  $codeName  例: 'prefectures'（code/prefectures.csvを読む）、'staff_acl'（App\Enums\StaffAclから作る）
+     * @param  string  $codeName  例：'prefectures'はcode/prefectures.csv、'staff_acl'はApp\Enums\StaffAcl
      * @return array<int|string, string>
      */
     public static function get(string $codeName): array
     {
+        // 1回読んだら同じリクエストの中では使い回す
         if (array_key_exists($codeName, self::$cache)) {
             return self::$cache[$codeName];
         }
 
+        // 3つの出どころのどこにあるかを調べ、2つ以上にあればエラー
         $enumClass = 'App\\Enums\\'.Str::studly($codeName);
         $isEnum = enum_exists($enumClass)
             && is_subclass_of($enumClass, BackedEnum::class)
@@ -83,6 +71,7 @@ class CodeTable
             throw new CodeTableException("コード表（{$codeName}）が、".implode('と', $sources).'にあります。どれか1つにしてください。');
         }
 
+        // DBのコード表：t_codesを表示順に読む
         if ($isDb) {
             $options = [];
             $rows = Code::where('type', $codeName)->orderBy('sort_order')->orderBy('id')->get(['code', 'name']);
@@ -93,8 +82,8 @@ class CodeTable
             return self::$cache[$codeName] = $options;
         }
 
+        // 列挙型：全部の値から、値と名前の一覧を作る
         if ($isEnum) {
-            // 列挙型の全部の値から [値 => 名前] を作る
             $options = [];
             foreach ($enumClass::cases() as $case) {
                 $options[$case->value] = $case->label();
@@ -103,6 +92,7 @@ class CodeTable
             return self::$cache[$codeName] = $options;
         }
 
+        // CSV：1行ずつ読む
         if (! is_readable($path)) {
             $message = "コード表が読み込めません（{$codeName}）: {$path}";
             throw new CodeTableException($message);
@@ -122,16 +112,18 @@ class CodeTable
             $lineNumber++;
 
             if ($lineNumber === 1) {
-                // Excelなどで保存したCSVの先頭に付くBOM（見えない印）を除去する
+                // Excelなどで保存したCSVの先頭に付く、見えない印のBOMを除く
                 $line = preg_replace('/^\xEF\xBB\xBF/', '', $line);
             }
 
             $line = trim($line, "\r\n ");
 
+            // 空行とコメントの行は読み飛ばす
             if ($line === '' || str_starts_with($line, '#')) {
                 continue;
             }
 
+            // 最初のカンマで値と名称に分ける
             $parts = explode(',', $line, 2);
 
             if (count($parts) < 2) {
@@ -151,10 +143,8 @@ class CodeTable
         return self::$cache[$codeName] = $options;
     }
 
-    /**
-     * 値の形を揃える（CSV・DB共通）。前後の空白を除き、数字だけならint型にする
-     * （前ゼロは除かれる。'01'と'1'は同じ値1になる）。
-     */
+    // CSVとDBで共通に、値の形をそろえる。前後の空白を除き、数字だけならintにする。
+    // 前ゼロは除かれるので、'01'と'1'は同じ値1になる
     public static function normalizeKey(string $rawKey): int|string
     {
         $rawKey = trim($rawKey);
@@ -162,7 +152,7 @@ class CodeTable
         return ctype_digit($rawKey) ? (int) $rawKey : $rawKey;
     }
 
-    /** 名称の形を揃える（CSV・DB共通）。前後の空白を除き、「\n」の2文字を改行にする。 */
+    // CSVとDBで共通に、名称の形をそろえる。前後の空白を除き、「\n」の2文字を改行にする。
     private static function normalizeLabel(string $label): string
     {
         return str_replace('\\n', "\n", trim($label));

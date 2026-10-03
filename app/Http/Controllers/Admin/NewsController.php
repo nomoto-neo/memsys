@@ -111,7 +111,15 @@ class NewsController extends Controller
     // ここから外した項目は、更新ではDBの今の値がそのまま残る（NULLにするのとは違う）。
     private function saveFieldNames(array $validated, News $news): array
     {
-        return ['title', 'body', 'article_date', 'disp_flg', 'members_only', 'publish_start_at', 'publish_end_at'];
+        return [
+            'title',
+            'body',
+            'article_date',
+            'disp_flg',
+            'members_only',
+            'publish_start_at',
+            'publish_end_at',
+        ];
     }
 
     // モデルの今の値から、_fields.blade.phpに渡す$inputを組み立てる（詳細・編集で使う）。
@@ -153,6 +161,7 @@ class NewsController extends Controller
     // 保存の直後に行う、関連テーブルの更新。
     private function afterSave(News $news, array $validated): void
     {
+        // 掲載カテゴリーを、選ばれたものだけにそろえる
         $news->categories()->sync($validated['category_ids']);
     }
 
