@@ -1,6 +1,6 @@
 {{--
     ニュース記事情報（タイトル・記事日付・表示／非表示・公開範囲・
-    掲載カテゴリー・本文）の入力欄一式。
+    掲載期間・掲載カテゴリー・本文）の入力欄一式。
 
     admin/staff・admin/membersの_fields.blade.phpと同じ考え方で、
     create（新規登録）・edit（編集）・confirm（登録/更新の確認画面）・
@@ -8,7 +8,8 @@
 
     呼び出し側が用意する変数：
     - $input     画面に表示する値の配列。送信される項目（title/
-                 article_date/disp_flg/members_only/category_ids/body、および
+                 article_date/disp_flg/members_only/publish_start_at/
+                 publish_end_at/category_ids/body、および
                  list_image・attach系のhidden値）だけが入っている。
                  create/editではold()を優先したデフォルト値、confirmでは
                  直前に検証した確認前データ、showでは対象記事の現在値を、
@@ -98,6 +99,25 @@
         <label for="members_only_1" class="form-check-label">会員限定</label>
     </div>
     <div class="invalid-feedback" data-item="members_only">{{ $errors->first('members_only') }}</div>
+</div>
+
+{{-- 掲載期間。どちらも任意で、空ならその側の制限は無い。表示にしてあっても、
+     期間の外の記事は訪問者側に出ない（App\Models\News::visibleTo()）。 --}}
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label for="publish_start_at" class="form-label">掲載開始日時 {!! $required['publish_start_at'] ?? '' !!}</label>
+        <input id="publish_start_at" type="datetime-local" name="publish_start_at"
+               class="form-control"
+               value="{{ $input['publish_start_at'] ?? '' }}"{{ $readonly }}>
+        <div class="invalid-feedback" data-item="publish_start_at">{{ $errors->first('publish_start_at') }}</div>
+    </div>
+    <div class="col-md-6 mb-3">
+        <label for="publish_end_at" class="form-label">掲載終了日時 {!! $required['publish_end_at'] ?? '' !!}</label>
+        <input id="publish_end_at" type="datetime-local" name="publish_end_at"
+               class="form-control"
+               value="{{ $input['publish_end_at'] ?? '' }}"{{ $readonly }}>
+        <div class="invalid-feedback" data-item="publish_end_at">{{ $errors->first('publish_end_at') }}</div>
+    </div>
 </div>
 
 <div class="mb-3">

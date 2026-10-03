@@ -84,6 +84,12 @@
                     @else
                         <span class="badge text-bg-secondary">非表示</span>
                     @endif
+                    {{-- 掲載期間の外なら、表示にしてあっても訪問者側には出ていない --}}
+                    @if ($news->isBeforePublishStart())
+                        <span class="badge text-bg-info" title="{{ $news->publish_start_at->format('Y-m-d H:i') }} から掲載">掲載前</span>
+                    @elseif ($news->isAfterPublishEnd())
+                        <span class="badge text-bg-dark" title="{{ $news->publish_end_at->format('Y-m-d H:i') }} で掲載終了">掲載終了</span>
+                    @endif
                 </td>
                 <td>{{ $news->created_at->format('Y-m-d') }}</td>
                 <td class="text-end">

@@ -48,6 +48,8 @@ class News extends Model
         'article_date',
         'disp_flg',
         'members_only',
+        'publish_start_at',
+        'publish_end_at',
         'list_image',
         'list_image_origin',
     ];
@@ -63,21 +65,33 @@ class News extends Model
         'disp_flg' => 'boolean',
         // falseなら一般公開、trueなら会員限定。
         'members_only' => 'boolean',
+        // 掲載期間。どちらも空なら、その側の制限は無い（isWithinPublishPeriod()）。
+        'publish_start_at' => 'datetime',
+        'publish_end_at' => 'datetime',
     ];
 
     /**
      * 訪問者側で、その人に見せてよい記事だけに絞る。$memberはログイン中の会員
-     * （ログインしていなければnull）。表示にしてある記事のうち、会員なら全部、
-     * ログインしていなければ一般公開の記事だけ。
+     * （ログインしていなければnull）。表示にしてあり、掲載期間の中にある記事のうち、
+     * 会員なら全部、ログインしていなければ一般公開の記事だけ。
      * News::visibleTo($member)->...のように使う（#[Scope]を付けたメソッドは、
      * クエリの条件としてメソッド名で呼べる）。訪問者側の一覧（NewsController）と
      * TOPページ（TopController）が同じ条件を使うので、ここにまとめている。
      * 1件ずつの判断（詳細画面・画像）はisVisibleTo()で、条件は同じ。
+     *
+     * 掲載期間は、表示するたびに今の時刻と比べる。日時は分までの指定なので、開始も
+     * 終了もその分を含む。19:30開始なら19:30:00から見え、19:30終了なら19:30:59まで
+     * 見えて19:31:00に見えなくなる（終了は、今の時刻を分に切り捨てて比べる）。
      */
     #[Scope]
     protected function visibleTo(Builder $query, ?Member $member): void
     {
-        $query->where('disp_flg', true);
+        $now = now();
+        $thisMinute = now()->startOfMinute();
+
+        $query->where('disp_flg', true)
+            ->where(fn (Builder $q) => $q->whereNull('publish_start_at')->orWhere('publish_start_at', '<=', $now))
+            ->where(fn (Builder $q) => $q->whereNull('publish_end_at')->orWhere('publish_end_at', '>=', $thisMinute));
 
         if ($member === null) {
             $query->where('members_only', false);
@@ -89,7 +103,34 @@ class News extends Model
      */
     public function isVisibleTo(?Member $member): bool
     {
-        return $this->disp_flg && (! $this->members_only || $member !== null);
+        return $this->disp_flg
+            && $this->isWithinPublishPeriod()
+            && (! $this->members_only || $member !== null);
+    }
+
+    /**
+     * 今が掲載期間の中か。掲載開始日時・掲載終了日時の空の側は、制限しない。
+     */
+    public function isWithinPublishPeriod(): bool
+    {
+        return ! $this->isBeforePublishStart() && ! $this->isAfterPublishEnd();
+    }
+
+    /**
+     * 掲載開始日時が来ていないか（管理画面の一覧の「掲載前」の表示にも使う）。
+     */
+    public function isBeforePublishStart(): bool
+    {
+        return $this->publish_start_at !== null && $this->publish_start_at->isFuture();
+    }
+
+    /**
+     * 掲載終了日時の分を過ぎたか（管理画面の一覧の「掲載終了」の表示にも使う）。
+     * 19:30終了なら、19:31:00からtrue（visibleTo()と同じく、今の時刻を分に切り捨てて比べる）。
+     */
+    public function isAfterPublishEnd(): bool
+    {
+        return $this->publish_end_at !== null && $this->publish_end_at->lt(now()->startOfMinute());
     }
 
     /**

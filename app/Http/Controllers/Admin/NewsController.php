@@ -93,6 +93,10 @@ class NewsController extends Controller
             'disp_flg' => ['required', 'boolean'],
             // 公開範囲。0なら一般公開、1なら会員限定。
             'members_only' => ['required', 'boolean'],
+            // 掲載期間。どちらも任意。両方あるときは、終了が開始と同じかそれより後であること
+            // （終了もその分を含むので、同じ日時なら1分間だけ掲載。開始が空のときは比べずに通る）。
+            'publish_start_at' => ['nullable', 'date'],
+            'publish_end_at' => ['nullable', 'date', 'after_or_equal:publish_start_at'],
             'body' => ['nullable', 'string'],
             // 掲載カテゴリーは複数選択なので配列で届く。1つ以上必須。
             'category_ids' => ['required', 'array', 'min:1'],
@@ -107,7 +111,7 @@ class NewsController extends Controller
     // ここから外した項目は、更新ではDBの今の値がそのまま残る（NULLにするのとは違う）。
     private function saveFieldNames(array $validated, News $news): array
     {
-        return ['title', 'body', 'article_date', 'disp_flg', 'members_only'];
+        return ['title', 'body', 'article_date', 'disp_flg', 'members_only', 'publish_start_at', 'publish_end_at'];
     }
 
     // モデルの今の値から、_fields.blade.phpに渡す$inputを組み立てる（詳細・編集で使う）。
@@ -120,6 +124,9 @@ class NewsController extends Controller
             'article_date' => optional($news->article_date)->format('Y-m-d'),
             'disp_flg' => $news->disp_flg ? '1' : '0',
             'members_only' => $news->members_only ? '1' : '0',
+            // 日時の入力欄（type="datetime-local"）の値の形
+            'publish_start_at' => optional($news->publish_start_at)->format('Y-m-d\TH:i'),
+            'publish_end_at' => optional($news->publish_end_at)->format('Y-m-d\TH:i'),
             'category_ids' => $news->categories()->pluck('t_categories.id')->all(),
         ];
     }
@@ -236,6 +243,8 @@ class NewsController extends Controller
             '記事日付' => 'article_date|date:Y/m/d',
             '状態' => ['disp_flg', [1 => '表示', 0 => '非表示']],
             '公開範囲' => ['members_only', [0 => '一般公開', 1 => '会員限定']],
+            '掲載開始日時' => 'publish_start_at|date:Y/m/d H:i',
+            '掲載終了日時' => 'publish_end_at|date:Y/m/d H:i',
             // 掲載カテゴリーはcategoriesをたどって出すので、取り込み先の項目名（category_ids）を書く
             'カテゴリー' => ['categories.*.id', $categories, 'import' => 'category_ids'],
             '一覧用画像' => 'list_image',

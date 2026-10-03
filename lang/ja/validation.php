@@ -181,6 +181,8 @@ return [
         'password' => 'パスワード',
         'password_confirmation' => 'パスワード（確認）',
         'body' => 'お問い合わせ内容',
+        'publish_start_at' => '掲載開始日時',
+        'publish_end_at' => '掲載終了日時',
     ],
 
 ];
