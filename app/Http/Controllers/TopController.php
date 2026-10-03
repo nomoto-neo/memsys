@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\News;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\Auth;
 
 /**
  * 訪問者向けのTOPページ。
@@ -18,9 +19,10 @@ class TopController extends Controller
 
     public function index(): View
     {
-        // 表示にしてある記事を、お知らせのコーナーと同じ並び順（記事日付の新しい順。
-        // NewsController::ORDER_OPTIONS）で、先頭から決まった件数だけ取る。
-        $newsList = News::visible()
+        // その人に見せてよい記事（会員限定の記事はログイン中の会員にだけ）を、お知らせの
+        // コーナーと同じ並び順（記事日付の新しい順。NewsController::ORDER_OPTIONS）で、
+        // 先頭から決まった件数だけ取る。
+        $newsList = News::visibleTo(Auth::guard('web')->user())
             ->orderByDesc('article_date')
             ->orderByDesc('id')
             ->limit(self::NEWS_COUNT)

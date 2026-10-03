@@ -1,6 +1,6 @@
 {{--
-    ニュース記事情報（タイトル・記事日付・表示／非表示・掲載カテゴリー・
-    本文）の入力欄一式。
+    ニュース記事情報（タイトル・記事日付・表示／非表示・公開範囲・
+    掲載カテゴリー・本文）の入力欄一式。
 
     admin/staff・admin/membersの_fields.blade.phpと同じ考え方で、
     create（新規登録）・edit（編集）・confirm（登録/更新の確認画面）・
@@ -8,7 +8,7 @@
 
     呼び出し側が用意する変数：
     - $input     画面に表示する値の配列。送信される項目（title/
-                 article_date/disp_flg/category_ids/body、および
+                 article_date/disp_flg/members_only/category_ids/body、および
                  list_image・attach系のhidden値）だけが入っている。
                  create/editではold()を優先したデフォルト値、confirmでは
                  直前に検証した確認前データ、showでは対象記事の現在値を、
@@ -79,6 +79,25 @@
         <label for="disp_flg_0" class="form-check-label">非表示</label>
     </div>
     <div class="invalid-feedback" data-item="disp_flg">{{ $errors->first('disp_flg') }}</div>
+</div>
+
+<div class="mb-3">
+    <div class="form-label d-block">公開範囲 {!! $required['members_only'] ?? '' !!}</div>
+    {{-- 会員限定の記事は、ログインしていない人には一覧にも詳細にも出ない。
+         画像・添付ファイルも同じ（App\Policies\NewsPolicy）。 --}}
+    <div class="form-check form-check-inline">
+        <input id="members_only_0" type="radio" name="members_only" value="0"
+               class="form-check-input"
+               @checked(($input['members_only'] ?? '0') == '0'){{ $disabled }}>
+        <label for="members_only_0" class="form-check-label">一般公開</label>
+    </div>
+    <div class="form-check form-check-inline">
+        <input id="members_only_1" type="radio" name="members_only" value="1"
+               class="form-check-input"
+               @checked(($input['members_only'] ?? '0') == '1'){{ $disabled }}>
+        <label for="members_only_1" class="form-check-label">会員限定</label>
+    </div>
+    <div class="invalid-feedback" data-item="members_only">{{ $errors->first('members_only') }}</div>
 </div>
 
 <div class="mb-3">

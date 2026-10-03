@@ -91,6 +91,8 @@ class NewsController extends Controller
             'title' => ['required', 'string', 'max:255'],
             'article_date' => ['required', 'date'],
             'disp_flg' => ['required', 'boolean'],
+            // 公開範囲。0なら一般公開、1なら会員限定。
+            'members_only' => ['required', 'boolean'],
             'body' => ['nullable', 'string'],
             // 掲載カテゴリーは複数選択なので配列で届く。1つ以上必須。
             'category_ids' => ['required', 'array', 'min:1'],
@@ -105,7 +107,7 @@ class NewsController extends Controller
     // ここから外した項目は、更新ではDBの今の値がそのまま残る（NULLにするのとは違う）。
     private function saveFieldNames(array $validated, News $news): array
     {
-        return ['title', 'body', 'article_date', 'disp_flg'];
+        return ['title', 'body', 'article_date', 'disp_flg', 'members_only'];
     }
 
     // モデルの今の値から、_fields.blade.phpに渡す$inputを組み立てる（詳細・編集で使う）。
@@ -117,6 +119,7 @@ class NewsController extends Controller
             'body' => $news->body,
             'article_date' => optional($news->article_date)->format('Y-m-d'),
             'disp_flg' => $news->disp_flg ? '1' : '0',
+            'members_only' => $news->members_only ? '1' : '0',
             'category_ids' => $news->categories()->pluck('t_categories.id')->all(),
         ];
     }
@@ -126,6 +129,7 @@ class NewsController extends Controller
     {
         return [
             'disp_flg' => '0',
+            'members_only' => '0',
             'category_ids' => [],
         ];
     }
@@ -231,6 +235,7 @@ class NewsController extends Controller
             'タイトル' => 'title',
             '記事日付' => 'article_date|date:Y/m/d',
             '状態' => ['disp_flg', [1 => '表示', 0 => '非表示']],
+            '公開範囲' => ['members_only', [0 => '一般公開', 1 => '会員限定']],
             // 掲載カテゴリーはcategoriesをたどって出すので、取り込み先の項目名（category_ids）を書く
             'カテゴリー' => ['categories.*.id', $categories, 'import' => 'category_ids'],
             '一覧用画像' => 'list_image',

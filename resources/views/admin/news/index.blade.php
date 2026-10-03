@@ -71,7 +71,12 @@
     <tbody>
         @forelse ($newsList as $news)
             <tr>
-                <td>{{ $news->title }}</td>
+                <td>
+                    {{ $news->title }}
+                    @if ($news->members_only)
+                        <span class="badge text-bg-warning">会員限定</span>
+                    @endif
+                </td>
                 <td>{{ $news->article_date->format('Y-m-d') }}</td>
                 <td>
                     @if ($news->disp_flg)

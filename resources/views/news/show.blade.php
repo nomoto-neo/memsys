@@ -18,7 +18,12 @@
     <div class="card-body">
         <div class="text-muted small mb-2">{{ $news->article_date->format('Y年n月j日') }}</div>
 
-        <h2 class="h5 mb-2">{{ $news->title }}</h2>
+        <h2 class="h5 mb-2">
+            {{ $news->title }}
+            @if ($news->members_only)
+                <span class="badge text-bg-warning align-middle">会員限定</span>
+            @endif
+        </h2>
 
         <div class="mb-3">
             @foreach ($news->categories as $category)

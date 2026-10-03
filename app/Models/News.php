@@ -32,6 +32,14 @@ class News extends Model
      */
     public const BODY_IMAGE_WIDTH = 1000;
 
+    /**
+     * ログインした人だけが見られる場所に置くアップロードのフィールド。記事は
+     * 一般公開と会員限定を切り替えられるので、切り替えのたびにファイルを
+     * 移さなくて済むよう、すべてのフィールドを非公開の場所に置き、見せるか
+     * どうかは記事の今の状態で決める（App\Policies\NewsPolicy::viewFiles()）。
+     */
+    public const PRIVATE_FILE_FIELDS = ['list_image', 'attach', 'body'];
+
     protected $table = 't_news';
 
     protected $fillable = [
@@ -39,6 +47,7 @@ class News extends Model
         'body',
         'article_date',
         'disp_flg',
+        'members_only',
         'list_image',
         'list_image_origin',
     ];
@@ -52,18 +61,35 @@ class News extends Model
         // 明示的にbool型へ変換する。$news->disp_flgが常にtrue/falseで
         // あることを保証し、===での厳密比較に安心して使える。
         'disp_flg' => 'boolean',
+        // falseなら一般公開、trueなら会員限定。
+        'members_only' => 'boolean',
     ];
 
     /**
-     * 訪問者に見せてよい（表示にしてある）記事だけに絞る。
-     * News::visible()->...のように使う（#[Scope]を付けたメソッドは、
+     * 訪問者側で、その人に見せてよい記事だけに絞る。$memberはログイン中の会員
+     * （ログインしていなければnull）。表示にしてある記事のうち、会員なら全部、
+     * ログインしていなければ一般公開の記事だけ。
+     * News::visibleTo($member)->...のように使う（#[Scope]を付けたメソッドは、
      * クエリの条件としてメソッド名で呼べる）。訪問者側の一覧（NewsController）と
      * TOPページ（TopController）が同じ条件を使うので、ここにまとめている。
+     * 1件ずつの判断（詳細画面・画像）はisVisibleTo()で、条件は同じ。
      */
     #[Scope]
-    protected function visible(Builder $query): void
+    protected function visibleTo(Builder $query, ?Member $member): void
     {
         $query->where('disp_flg', true);
+
+        if ($member === null) {
+            $query->where('members_only', false);
+        }
+    }
+
+    /**
+     * この記事を、訪問者側でその人に見せてよいか（条件はvisibleTo()と同じ）。
+     */
+    public function isVisibleTo(?Member $member): bool
+    {
+        return $this->disp_flg && (! $this->members_only || $member !== null);
     }
 
     /**
@@ -101,6 +127,8 @@ class News extends Model
      * 表示する」画面では$inputを作らないので、こうした表示用の値は
      * モデル自身に持たせている。保存先の規則はApp\Support\UploadFilePathに
      * あり、管理画面側のアップロード処理（AjaxFileUpload）と共通。
+     * 一覧用画像は非公開のフィールドなので、URLはuploads.showのルートになり、
+     * 記事を見てよい人にだけ画像が返る（App\Policies\NewsPolicy）。
      *
      * 管理画面の入力フォーム・確認画面・詳細画面のアップロード欄では、
      * これではなくupload_preview_url()を使う。こちらは「今DBに保存されて

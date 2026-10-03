@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Models\Inquiry;
 use App\Models\Member;
+use App\Models\News;
 use App\Models\Passkey;
 use App\Models\Staff;
 use Illuminate\Database\Eloquent\Relations\Relation;
@@ -52,6 +53,7 @@ class AppServiceProvider extends ServiceProvider
             'member' => Member::class,
             'staff' => Staff::class,
             'inquiry' => Inquiry::class,
+            'news' => News::class,
         ]);
     }
 }

@@ -17,9 +17,12 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
  * App\Support\UploadFilePathの「非公開」「一時ディレクトリ」を参照。
  *
  * - show()  非公開のフィールド（モデルのPRIVATE_FILE_FIELDS）の保存済みファイル。
- *           そのファイルが本当にそのフィールドのものかをDBで確かめ、ログイン中の
- *           ユーザー（会員・スタッフのどのガードでも）の誰かが、持ち主のモデルの
+ *           そのファイルが本当にそのフィールドのものかをDBで確かめ、持ち主のモデルの
  *           PolicyのviewFiles($user, $record, $field)で許されたときだけ返す。
+ *           Policyには、まずログインしていない人（$userがnull）として聞き、許されれば
+ *           誰にでも見せてよいファイルとして返す（一般公開の記事の画像など）。
+ *           許されなければ、ログイン中のユーザー（会員・スタッフのどのガードでも）の
+ *           誰かが許されたときだけ、ブラウザに残させない形で返す。
  * - tmp()   確認画面を経て保存するまでの一時ファイル。アップロードした
  *           セッション（AjaxFileUploadがセッションに覚えた名前）にだけ返す。
  *
@@ -32,7 +35,7 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 class UploadedFileController extends Controller
 {
     // 非公開のフィールドの保存済みファイル（GET /uploads/{type}/{id}/{field}/{filename}）
-    public function show(string $type, int $id, string $field, string $filename): BinaryFileResponse
+    public function show(Request $request, string $type, int $id, string $field, string $filename): BinaryFileResponse
     {
         // URLの種類の名前（enforceMorphMap()の名前）から、持ち主のモデルを探す
         $ownerClass = Relation::getMorphedModel($type);
@@ -44,12 +47,18 @@ class UploadedFileController extends Controller
         $owner = $ownerClass::find($id);
 
         abort_unless($owner !== null && $this->fileBelongsToField($owner, $field, $filename), 404);
-        abort_unless($this->canViewFiles($owner, $field), 404);
 
         $path = UploadFilePath::directory($ownerClass, $id).'/'.$filename;
         $disk = Storage::disk(UploadFilePath::PRIVATE_DISK);
 
         abort_unless($disk->exists($path), 404);
+
+        // ログインしていない人にも見せてよいファイル（Policyの$userがnullでも許される）
+        if (Gate::forUser(null)->allows('viewFiles', [$owner, $field])) {
+            return $this->publicFileResponse($request, $disk->path($path));
+        }
+
+        abort_unless($this->canViewFiles($owner, $field), 404);
 
         return $this->privateFileResponse($disk->path($path));
     }
@@ -78,6 +87,25 @@ class UploadedFileController extends Controller
         $response = response()->file($absolutePath, ['X-Content-Type-Options' => 'nosniff']);
         $response->setPrivate();
         $response->headers->addCacheControlDirective('no-store');
+
+        return $response;
+    }
+
+    /**
+     * 誰にでも見せてよいファイルを返すレスポンス。ブラウザやプロキシに残してよいが、
+     * 使う前に毎回「変わっていないか」をサーバーに問い合わせさせる（no-cache）。
+     * 変わっていなければ中身を送らずに304を返すので、2回目からは軽い。
+     * 毎回問い合わせさせるのは、記事を会員限定や非表示に変えたとき、その時点から
+     * 見られなくする（問い合わせに404を返す）ため。
+     */
+    private function publicFileResponse(Request $request, string $absolutePath): BinaryFileResponse
+    {
+        $response = response()->file($absolutePath, ['X-Content-Type-Options' => 'nosniff']);
+        $response->setPublic();
+        $response->headers->addCacheControlDirective('no-cache');
+        $response->setAutoEtag();
+        $response->setAutoLastModified();
+        $response->isNotModified($request);
 
         return $response;
     }

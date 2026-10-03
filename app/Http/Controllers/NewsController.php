@@ -9,10 +9,15 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 /**
  * 訪問者向けのニュース一覧・詳細。
+ *
+ * 会員限定の記事（members_only）は、ログイン中の会員にだけ見せる。ログインして
+ * いない人には、一覧にも詳細にも出さない（記事があること自体を見せない）。
+ * 見せてよいかの条件はNews::visibleTo()・isVisibleTo()にまとめてある。
  *
  * Admin\NewsControllerとは違い、認証を必要としない（routes/web.phpで
  * どのmiddleware()にも入れていない）公開ページ。ただしSearchableList
@@ -46,7 +51,8 @@ class NewsController extends Controller
     // 一覧・検索
     public function index(Request $request): View|RedirectResponse
     {
-        $result = $this->buildListData($request, News::visible());
+        // ログイン中の会員（ログインしていなければnull）に見せてよい記事だけ
+        $result = $this->buildListData($request, News::visibleTo(Auth::guard('web')->user()));
 
         if ($result instanceof RedirectResponse) {
             return $result;
@@ -106,12 +112,12 @@ class NewsController extends Controller
     }
 
     /**
-     * 年度プルダウンの選択肢。表示中(disp_flg=true)の記事に実際に
+     * 年度プルダウンの選択肢。その人に見せてよい記事に実際に
      * 存在する年だけを、新しい順で返す。
      */
     private function availableYears(): array
     {
-        return News::visible()
+        return News::visibleTo(Auth::guard('web')->user())
             ->select(DB::raw('DISTINCT SUBSTR(article_date, 1, 4) as year'))
             ->orderByDesc('year')
             ->pluck('year')
@@ -121,11 +127,11 @@ class NewsController extends Controller
     // 詳細画面の表示
     public function show(News $news): View
     {
-        // 非表示(disp_flg=false)の記事は、URLを直接指定されても
-        // 見えないようにする。403（権限が無い）ではなく404にしているのは、
-        // 「そもそも存在しない」という扱いにして、非表示記事の存在自体を
-        // 訪問者に気付かせないため。
-        abort_unless($news->disp_flg, 404);
+        // 非表示(disp_flg=false)の記事と、ログインしていない人が開いた会員限定の
+        // 記事は、URLを直接指定されても見えないようにする。403（権限が無い）では
+        // なく404にしているのは、「そもそも存在しない」という扱いにして、記事の
+        // 存在自体を訪問者に気付かせないため。
+        abort_unless($news->isVisibleTo(Auth::guard('web')->user()), 404);
 
         // 添付ファイルは登録した順（idの昇順）に並べる。並び順を
         // News::attach()リレーション自体に書かないのは、管理画面側の

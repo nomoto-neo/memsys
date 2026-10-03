@@ -21,7 +21,13 @@
                             <img src="{{ $news->list_image_url }}" alt="" style="width: 70px; height: auto;" class="rounded d-block">
                         @endif
                     </span>
-                    <span>{{ $news->title }}</span>
+                    <span>
+                        {{ $news->title }}
+                        {{-- 会員限定の記事は、ログイン中の会員にしか一覧に出ない --}}
+                        @if ($news->members_only)
+                            <span class="badge text-bg-warning">会員限定</span>
+                        @endif
+                    </span>
                 </span>
                 <span class="text-muted small text-nowrap ms-2">{{ $news->article_date->format('Y-m-d') }}</span>
             </div>
