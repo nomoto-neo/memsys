@@ -11,6 +11,7 @@
 | 第1.6版 | 2026-10-03 | ログインした人だけが見られるアップロードファイル（フィールド単位の `PRIVATE_FILE_FIELDS`・`UploadedFileController`）を追加し、お問い合わせの添付ファイルを非公開にした。アップロード直後の一時ファイルをアップロードしたセッションだけが見られる場所に移した（7章）。PDF 出力（`PdfDownload`）を追加（18章） |
 | 第1.7版 | 2026-10-03 | 「改版について」と「まだ無い機能」を、最後の章から0章に移した |
 | 第1.8版 | 2026-10-03 | 非公開のファイルを、ログインしていない人にも記事の状態などで見せられるようにした（Policy の `$user` を null 可に。一般公開のファイルはブラウザに残してよい返し方）。ニュースの全部のファイルを非公開の場所に移し、会員限定の記事を追加（7章） |
+| 第1.9版 | 2026-10-03 | お問い合わせのスパム対策（`SpamGuard`。ハニーポット・送信までの時間・Cloudflare Turnstile）を追加（12章） |
 
 ## 0. このガイドについて
 
@@ -28,7 +29,7 @@
 | 管理画面：スタッフ（`Admin\StaffController`） | 一覧・検索、登録・編集、論理削除と取り消し、権限（Policy）、列挙型、パスワード |
 | 管理画面：カテゴリー（`Admin\CategoryController`） | 確認画面なしの登録・編集、並び替え、ページ分けしない一覧 |
 | 管理画面：項目見出し一覧（`Admin\CodeController`） | DBで管理する区分表の編集（複数行をまとめて保存、行の追加・削除・並び替え） |
-| お問い合わせ（`ContactController`） | 訪問者向けの入力・確認・送信、添付ファイル、メール送信、二重送信防止 |
+| お問い合わせ（`ContactController`） | 訪問者向けの入力・確認・送信、添付ファイル、メール送信、二重送信防止、スパム対策 |
 | 訪問者向けニュース（`NewsController`） | ログイン不要の一覧・検索・詳細、会員限定の記事（ログイン中の会員にだけ見せる。`News::visibleTo()`） |
 | 会員の認証まわり（`AuthSessionController` ほか） | ログイン、確認コード、パスワード再設定・変更、会員登録、退会、パスキー |
 | 管理画面のログイン（`Admin\AuthSessionController` ほか） | TOTP・バックアップコード、信頼済み端末、パスキー |
@@ -41,7 +42,7 @@
 
 ### まだ無い機能（今後の予定）
 
-操作ログ、公開日時の予約とスケジューラ、一斉メール配信（キュー）、お問い合わせのスパム対策、自動テスト。作ったときに章を足します。
+操作ログ、公開日時の予約とスケジューラ、一斉メール配信（キュー）、自動テスト。作ったときに章を足します。
 
 ## 1. 全体像
 
@@ -82,6 +83,7 @@
 | `_ajax_upload_block`・`_ajax_upload_group` | `resources/views/` | アップロード欄（単数・複数） | 7 |
 | `admin/csv_import/` | `resources/views/` | CSV 取り込みの画面（全コーナー共通） | 10 |
 | `_passkeys` | `resources/views/` | パスキーの一覧・本人確認・登録の画面の中身 | 14 |
+| `SpamGuard`・`_spam_guard` | `app/Support/`・`resources/views/` | 訪問者向けフォームのスパム対策（ハニーポット・送信までの時間・Cloudflare Turnstile） | 12 |
 | `app.js` | `resources/js/` | フォームの補助（必須マークから required 属性、エラー表示） | 17 |
 
 トレイトは、コントローラーが `use` するだけで働きます。コントローラーに書くのは「このコーナーの項目の定義」と「ルートから呼ばれる入口」だけ、というのが全体の考え方です。
@@ -658,11 +660,49 @@ Mail::send(new TemplatedMail('contact_staff', [
 
 **実例**：`ContactController`・`resources/views/contact/`
 
-管理画面の登録と同じく FormFlow で作ります。違いは次の3つです。
+管理画面の登録と同じく FormFlow で作ります。違いは次の4つです。
 
 - **確認画面を経由した1回だけの送信**：確認画面を出すたびに使い捨ての合言葉（`confirm_token`）を発行してセッションと hidden に持たせ、送信のときに一致を確かめ、保存できたら消します。合言葉は `$input` に混ぜず、送信フォームにだけ埋めます。
 - **連続送信の制限**：送信とアップロードのルートに `throttle:回数,分,識別名` を付けます。識別名はルートごとに重ならない名前にします（省略すると別のルートとカウンターを共有してしまいます）。
 - **保存の後の処理**：保存（`saveData()`）の後に通知メールを送り、完了画面へリダイレクトします。
+- **スパム対策**：下の「スパム対策（SpamGuard）」。
+
+### スパム対策（SpamGuard）
+
+**ファイル**：`app/Support/SpamGuard.php`（冒頭のコメント）・`resources/views/_spam_guard.blade.php`・`app/Enums/SpamCheckResult.php`　**実例**：`ContactController::confirmStore()`
+
+人に手間をかけさせない3つの仕組みを組み合わせます。画像を選ばせる問題は出しません。
+
+| 仕組み | 中身 | 引っかかったとき |
+|---|---|---|
+| ハニーポット | 人には見えない入力欄。入力があれば機械とみなす | `Bot` |
+| 送信までの時間 | 入力画面を表示した時刻を暗号化して hidden に持たせ、送信までが短すぎれば機械とみなす | `Bot` |
+| Cloudflare Turnstile | 入力画面の枠がブラウザの裏側で判定し、送られてきたトークンをサーバーから Cloudflare に問い合わせる | `Failed` |
+
+```blade
+{{-- 入力画面の <form> の中 --}}
+@include('_spam_guard')
+```
+
+```php
+// コントローラー。入力画面から送信を受け取るところ（確認画面を表示する処理）で呼ぶ
+private const SPAM_GUARD_MIN_SECONDS = 3;   // 表示から送信までの、いちばん短い秒数
+
+$spam = SpamGuard::check($request, minSeconds: self::SPAM_GUARD_MIN_SECONDS);
+if ($spam === SpamCheckResult::Bot) {
+    return redirect()->route('contact.thanks');   // 送れたように見せて、何も保存しない
+}
+if ($spam === SpamCheckResult::Failed) {
+    return redirect()->route('contact.create')->withInput(...)->with('error', '...');   // 入力を残して戻す
+}
+```
+
+- **確かめるのは入力画面から進むときの1回だけ**：Turnstile のトークンは1回しか使えず、発行から5分で切れます。確認画面から先は、確認画面を通った人にだけ発行する `confirm_token` で守ります。トークンは、期限が近づくと枠が裏で自動的に取り直す（`data-refresh-expired="auto"`）ので、入力に時間がかかっても切れません。
+- **Cloudflare に障害があるときは通す**：問い合わせできない・時間切れ（5秒）・Cloudflare の側のエラーのときは `Passed` にしてログに残します。鍵が設定されていない・間違っているときも、送信は止めずにログに残します。
+- **戻すときは、スパム対策の値を `withInput()` から外す**：古いトークンや時刻を持ち越さないためです（入力画面を表示し直すと、新しい値になります）。
+- **鍵**：`.env` の `TURNSTILE_SITE_KEY`・`TURNSTILE_SECRET_KEY`（`config/services.php`）。本番は Cloudflare のダッシュボードで、サイトのドメインごとに発行します。手元の開発では、Cloudflare が公開しているテスト用の鍵（必ず通る）を使います（`.env.example` に書いてあります）。サイト自体を Cloudflare に載せる必要はありません。
+- **回数の制限**：確認画面へ進むたびに Cloudflare に問い合わせるので、そのルートにも `throttle` を付けます（`throttle:20,1,contact-confirm`）。
+- **プライバシーポリシー**：Turnstile は、利用者のブラウザの情報を Cloudflare に送ります。外部送信規律（電気通信事業法）に合わせて、外部のサービスに情報を送っていることを、プライバシーポリシーなどで示しておきます。
 
 レイアウトは訪問者向けの `layouts/app.blade.php` を使います。必須マークは `config/form.php` の `public` が使われます。
 

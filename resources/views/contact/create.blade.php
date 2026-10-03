@@ -134,6 +134,9 @@
                 <div class="invalid-feedback" data-item="agree">{{ $errors->first('agree') }}</div>
             </div>
 
+            {{-- スパム対策（ハニーポット・Cloudflare Turnstile。App\Support\SpamGuard） --}}
+            @include('_spam_guard')
+
             <button type="submit" id="contact_submit" class="btn btn-primary"
                     @disabled(($input['agree'] ?? null) != '1')>確認画面へ進む</button>
         </form>

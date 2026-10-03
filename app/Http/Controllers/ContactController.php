@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\SpamCheckResult;
 use App\Mail\TemplatedMail;
 use App\Models\Inquiry;
 use App\Rules\PhoneNumberRule;
 use App\Support\AjaxFileUpload;
 use App\Support\FormFlow;
+use App\Support\SpamGuard;
 use App\Support\UploadFilePath;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -21,7 +23,8 @@ use Illuminate\View\View;
  *
  * 管理画面の登録と同じくFormFlowで作っている。違うのは、保存した後にスタッフへ
  * 通知メールを送ることと、確認画面を経由した1回だけの送信を保証する
- * confirm_tokenがあることだけ。
+ * confirm_tokenがあることと、入力画面から確認画面へ進むときのスパム対策
+ * （App\Support\SpamGuard）があること。
  */
 class ContactController extends Controller
 {
@@ -48,6 +51,12 @@ class ContactController extends Controller
     // confirm→storeの順番を保証するためのトークンを、セッションのどのキーに入れるか。
     // 値そのものはissueConfirmToken()・hasValidConfirmToken()参照。
     private const CONFIRM_TOKEN_SESSION_KEY = 'contact.confirm_token';
+
+    // ---- スパム対策（SpamGuard）の設定 ----
+
+    // 入力画面を表示してから「確認画面へ進む」までの、いちばん短い秒数。これより速い送信は
+    // 機械からとみなす（名前・メール・本文の入力と同意のチェックに、人ならこれ以上かかる）。
+    private const SPAM_GUARD_MIN_SECONDS = 3;
 
     // ---- このコーナーの項目の定義 ----
 
@@ -175,8 +184,24 @@ class ContactController extends Controller
     }
 
     // 入力内容のバリデーションと、確認画面の表示
-    public function confirmStore(Request $request): View
+    public function confirmStore(Request $request): View|RedirectResponse
     {
+        // スパム対策。確認画面から先は、ここを通った人にだけ発行するconfirm_tokenで
+        // 守るので、送信（store()）では確かめない。
+        $spam = SpamGuard::check($request, minSeconds: self::SPAM_GUARD_MIN_SECONDS);
+
+        if ($spam === SpamCheckResult::Bot) {
+            // 機械からの送信。送れたように見せて、何も保存しない（気付かれて対策されないように）
+            return redirect()->route('contact.thanks');
+        }
+
+        if ($spam === SpamCheckResult::Failed) {
+            // 人がたまたま失敗することもあるので、入力を残したまま入力画面に戻す
+            return redirect()->route('contact.create')
+                ->withInput($request->except(['_token', SpamGuard::HONEYPOT_FIELD, SpamGuard::STARTED_FIELD, SpamGuard::TURNSTILE_FIELD]))
+                ->with('error', 'ロボットによる送信ではないことを確認できませんでした。お手数ですが、もう一度「確認画面へ進む」を押してください。');
+        }
+
         return view('contact.confirm', [
             'input' => $this->confirmInput($request),
             // $inputには混ぜない（$inputは「送信される業務項目だけ」という

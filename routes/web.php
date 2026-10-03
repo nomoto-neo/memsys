@@ -36,7 +36,10 @@ Route::post('/contact/ajax-upload', [ContactController::class, 'uploadAjaxFile']
     ->middleware('throttle:20,1,contact-upload')
     ->name('contact.ajaxUpload');
 Route::get('/contact', [ContactController::class, 'create'])->name('contact.create');
-Route::post('/contact/confirm', [ContactController::class, 'confirmStore'])->name('contact.confirm');
+// 確認画面へ進むたびにCloudflare Turnstileへ問い合わせる（App\Support\SpamGuard）ので、回数を制限する
+Route::post('/contact/confirm', [ContactController::class, 'confirmStore'])
+    ->middleware('throttle:20,1,contact-confirm')
+    ->name('contact.confirm');
 Route::post('/contact/back', [ContactController::class, 'back'])->name('contact.back');
 Route::post('/contact/store', [ContactController::class, 'store'])
     ->middleware('throttle:5,1,contact-store')
