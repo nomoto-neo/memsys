@@ -14,6 +14,7 @@
 | 第1.9版 | 2026-10-03 | お問い合わせのスパム対策（`SpamGuard`。ハニーポット・送信までの時間・Cloudflare Turnstile）を追加（12章） |
 | 第1.10版 | 2026-10-03 | 実例の表に、ニュースの掲載期間（掲載開始日時・掲載終了日時）を追加 |
 | 第1.11版 | 2026-10-03 | スケジューラーと、一時データの後片付け（`TemporaryDataCleaner`・`app:cleanup-temporary-data`）を追加（19章） |
+| 第1.12版 | 2026-10-04 | ログインの後、開こうとしていた画面へ戻す（`LoginRedirect`）。管理画面も戻すようにし、会員と管理画面で戻り先が入れ違わないようにした（14章） |
 
 ## 0. このガイドについて
 
@@ -76,6 +77,7 @@
 | `CsvImport` ほか | `app/Support/` | CSV 取り込み | 10 |
 | `MailTemplate`・`TemplatedMail` | `app/Support/`・`app/Mail/` | テンプレートファイルによるメール送信 | 11 |
 | `LoginThrottle` | `app/Support/` | 認証の失敗回数による試行制限 | 14 |
+| `LoginRedirect` | `app/Support/` | ログインの後の移動先（開こうとしていた画面へ戻す。会員と管理画面で入れ違わない） | 14 |
 | `MemberVerificationCode` | `app/Support/` | メールで送る確認コード | 14 |
 | `TrustedDeviceManager` | `app/Support/` | 2段階目を省略できる信頼済み端末 | 14 |
 | `TwoFactorAuthenticator`・`BackupCodeGenerator` | `app/Support/` | 管理ログインの TOTP とバックアップコード | 14 |
@@ -746,6 +748,9 @@ if ($spam === SpamCheckResult::Failed) {
 2. 信頼済み端末なら、そのまま `Auth::login()`。
 3. そうでなければ「パスワード確認済み・2段階目が未完了」をセッションに置き、2段階目の画面へ。2段階目の画面は `guest` にも `auth` にも入れず、コントローラー自身がセッションで守る。
 4. 2段階目が通ったら `Auth::login()` と `session()->regenerate()`。
+5. ログインが必要な画面から来た場合はその画面へ、そうでなければ既定の画面（マイページ・管理画面TOP）へ移す。移動先は `LoginRedirect::forMember()`・`forStaff()` で決める（2・4とパスキーで通ったとき）。
+
+開こうとしていた画面の記録（セッションの `url.intended`）は、会員と管理画面で1つしか無いので、`redirect()->intended()` を直接使わず `LoginRedirect` を通します。記録された URL がログインした側の画面（管理画面なら `admin.*` のルート）のときだけ戻り先にし、そうでなければ既定の画面へ移して、記録はもう一方の側のために残します。
 
 ### 試行制限（LoginThrottle）
 

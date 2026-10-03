@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Member;
+use App\Support\LoginRedirect;
 use App\Support\LoginThrottle;
 use App\Support\MemberVerificationCode;
 use App\Support\TrustedDeviceManager;
@@ -88,7 +89,9 @@ class LoginVerificationController extends Controller
 
         $this->completeLogin($request, $member);
 
-        return redirect()->intended(route('mypage'));
+        // ログインが必要な画面から来た場合はその画面へ、そうでなければマイページへ
+        // （App\Support\LoginRedirect）
+        return redirect(LoginRedirect::forMember());
     }
 
     /**

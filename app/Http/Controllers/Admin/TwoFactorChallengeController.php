@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Staff;
 use App\Support\BackupCodeGenerator;
+use App\Support\LoginRedirect;
 use App\Support\LoginThrottle;
 use App\Support\TrustedDeviceManager;
 use App\Support\TwoFactorAuthenticator;
@@ -15,7 +16,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 /**
- * 管理ログインの2段階目（TOTP）。AuthSessionController::store()でパスワードの
+ * 管理ログインの2段階目（TOTP）。スマホアプリまたはバックアップコードでの認証を行う。
+ * AuthSessionController::store()でパスワードの
  * 確認まで済んだ（が、まだAuth::login()はしていない）状態を受けて、
  * ここで「QRコードを読み取ってもらう（未登録の場合）」または「6桁の
  * コードを入力してもらう（登録済みの場合）」を行い、成功して初めて
@@ -222,7 +224,9 @@ class TwoFactorChallengeController extends Controller
 
         $this->completeLogin($request, $staff);
 
-        return redirect()->route('admin.dashboard');
+        // ログインが必要な画面から来た場合はその画面へ、そうでなければ管理画面TOPへ
+        // （App\Support\LoginRedirect）
+        return redirect(LoginRedirect::forStaff());
     }
 
     /**
@@ -399,6 +403,7 @@ class TwoFactorChallengeController extends Controller
         $request->session()->regenerate();
     }
 
+    // セッションを確認して、認証途中の有効なスタッフか調べる
     private function pendingStaff(Request $request): ?Staff
     {
         $id = $request->session()->get(self::PENDING_SESSION_KEY);

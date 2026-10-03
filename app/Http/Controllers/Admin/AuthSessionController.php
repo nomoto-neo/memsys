@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Support\LoginRedirect;
 use App\Support\LoginThrottle;
 use App\Support\PasskeyLogin;
 use App\Support\TrustedDeviceManager;
@@ -18,12 +19,12 @@ class AuthSessionController extends Controller
     // 使わないサイトでは、このuseとroutes/web.phpのadmin.login.passkeyのルートを消す。
     use PasskeyLogin;
 
+    // パスキーでログインさせるガード（App\Support\PasskeyLogin参照）。
+    private const PASSKEY_GUARD = 'admin';
+
     // ログインの試行制限（LoginThrottle）で、このコントローラーの失敗回数を数えるカウンターの名前。
     // アカウントはログインIDで区別する。
     private const THROTTLE_SCOPE = 'admin-login';
-
-    // パスキーでログインさせるガード（App\Support\PasskeyLogin参照）。
-    private const PASSKEY_GUARD = 'admin';
 
     public function create(): View
     {
@@ -79,12 +80,13 @@ class AuthSessionController extends Controller
         // 省略してそのままログインを完了させる。省略できるのはTOTPだけで、
         // ログインID・パスワードの確認は上で毎回行っている。
         // 未登録（QRコードの登録がまだ）の場合は、信頼済みかどうかに関係なく
-        // 登録画面へ進ませる。
+        // QRコード登録画面へ進ませる。
         if ($staff->hasTwoFactorConfirmed() && TrustedDeviceManager::forStaff()->isTrusted($staff, $request)) {
             Auth::guard('admin')->login($staff, $remember);
             $request->session()->regenerate();
 
-            return redirect()->route('admin.dashboard');
+            // ログインが必要な画面から来た場合はその画面へ、そうでなければ管理画面TOPへ
+            return redirect(LoginRedirect::forStaff());
         }
 
         // 「パスワードは合っているが2段階目（TOTP）が未完了」という
@@ -97,11 +99,11 @@ class AuthSessionController extends Controller
         return redirect()->route('admin.twoFactor.show');
     }
 
-    // パスキーでログインした後の移動先。ログインID・パスワードでのログインと同じく
-    // 管理画面TOPへ（会員側と違い、元の画面へは戻さない）。
+    // パスキーでログインした後の移動先。ログインID・パスワードでのログインと同じく、
+    // ログインが必要な画面から来た場合はその画面へ戻す（App\Support\LoginRedirect）。
     private function passkeyRedirectUrl(): string
     {
-        return route('admin.dashboard');
+        return LoginRedirect::forStaff();
     }
 
     public function destroy(Request $request): RedirectResponse

@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
+use App\Support\LoginRedirect;
 use App\Support\LoginThrottle;
 use App\Support\MemberVerificationCode;
 use App\Support\PasskeyLogin;
@@ -87,7 +87,8 @@ class AuthSessionController extends Controller
             Auth::login($member, $remember);
             $request->session()->regenerate();
 
-            return redirect()->intended(route('mypage'));
+            // ログインが必要な画面から来た場合はその画面へ、そうでなければマイページへ
+            return redirect(LoginRedirect::forMember());
         }
 
         // パスワード確認済み・2段階目未完了、という状態をセッションに
@@ -105,10 +106,10 @@ class AuthSessionController extends Controller
     }
 
     // パスキーでログインした後の移動先。ログインID・パスワードでのログインと同じく、
-    // ログインが必要な画面から来た場合はその画面へ戻す。
+    // ログインが必要な画面から来た場合はその画面へ戻す（App\Support\LoginRedirect）。
     private function passkeyRedirectUrl(): string
     {
-        return redirect()->intended(route('mypage'))->getTargetUrl();
+        return LoginRedirect::forMember();
     }
 
     // ログアウト処理
