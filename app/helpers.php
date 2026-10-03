@@ -131,6 +131,7 @@ if (! function_exists('upload_preview_url')) {
     {
         return UploadFilePath::previewUrl(
             $model,
+            $field,
             upload_input_value($input, $field, $idx),
             upload_input_value($input, "{$field}_tmp", $idx),
             upload_input_value($input, "{$field}_del", $idx) === '1',

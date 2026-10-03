@@ -1,5 +1,11 @@
 @extends('layouts.app')
 
+{{-- 顔写真のアップロード欄があるので、CSRFトークンの<meta>とajax_upload.jsを読み込む。 --}}
+@push('head-extra')
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    @vite(['resources/js/ajax_upload.js'])
+@endpush
+
 @section('content')
 <div class="row justify-content-center">
     <div class="col-md-6">
@@ -70,6 +76,20 @@
                             @endforeach
                         </select>
                         <div class="invalid-feedback" data-item="prefecture">{{ $errors->first('prefecture') }}</div>
+                    </div>
+
+                    {{-- 顔写真。選んだ時点でアップロードされ、「更新する」で保存される。
+                         写真を見られるのは本人とスタッフだけ。 --}}
+                    <div class="mb-3">
+                        <label class="form-label d-block">顔写真</label>
+                        @include('_ajax_upload_block', [
+                            'model' => $member,
+                            'input' => $input,
+                            'field' => 'photo',
+                            'width' => \App\Models\Member::PHOTO_WIDTH,
+                            'readonly' => '',
+                            'uploadUrl' => route('mypage.ajaxUpload'),
+                        ])
                     </div>
 
                     <div class="d-flex gap-2">

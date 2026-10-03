@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Mail\TemplatedMail;
 use App\Models\Member;
 use App\Rules\PhoneNumberRule;
+use App\Support\AjaxFileUpload;
+use App\Support\FormFlow;
 use App\Support\MemberActivityLog;
 use App\Support\PasskeyManagement;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -19,9 +21,27 @@ use Illuminate\View\View;
 
 class MypageController extends Controller
 {
+    // ---- 共通処理（トレイト） ----
+
+    // プロフィール編集の検証・保存はFormFlowトレイトが提供する（確認画面は挟まない）。
+    // クラス側は rules() saveFieldNames() inputFromModel() を用意する。
+    use FormFlow;
+
+    // 顔写真のAjaxアップロード（入口のuploadAjaxFile()もトレイト側）。
+    // クラス側は UPLOAD_FILES を用意し、rules()に ajaxUploadRules() を足す。
+    use AjaxFileUpload;
+
     // パスキーの一覧・登録・削除（passkeyIndex()など。App\Support\PasskeyManagement参照）。
     // 使わないサイトでは、このuseとroutes/web.phpのmypage.passkeysのルートを消す。
     use PasskeyManagement;
+
+    // ---- アップロード（AjaxFileUpload）の設定 ----
+
+    // フィールド名 => 横幅(px)。管理画面（Admin\MemberController）と同じ。顔写真は非公開の
+    // フィールド（Member::PRIVATE_FILE_FIELDS）なので、本人とスタッフだけが見られる場所に保存される。
+    private const UPLOAD_FILES = [
+        'photo' => Member::PHOTO_WIDTH,
+    ];
 
     // ---- パスキー（PasskeyManagement）の設定 ----
 
@@ -36,6 +56,8 @@ class MypageController extends Controller
 
     // 登録の前の本人確認（メールの確認コード）の試行制限（LoginThrottle）のカウンターの名前。
     private const PASSKEY_THROTTLE_SCOPE = 'member-passkey-code';
+
+    // ---- プロフィールの項目の定義 ----
 
     /**
      * プロフィール編集で使うバリデーションルール一式。
@@ -53,8 +75,30 @@ class MypageController extends Controller
             'phone' => ['nullable', 'string', new PhoneNumberRule()],
             'birthdate' => ['nullable', 'date'],
             'prefecture' => ['nullable', 'integer', Rule::in(code_keys('prefectures'))],
+        ] + $this->ajaxUploadRules();
+    }
+
+    // 保存する項目（t_membersのカラム）。顔写真はcommitUploads()が保存するので書かない。
+    // パスワードはこのフォームでは扱わない（変更はAuthPasswordControllerの専用フォーム）。
+    private function saveFieldNames(array $validated, Member $member): array
+    {
+        return ['name', 'kana', 'email', 'phone', 'birthdate', 'prefecture'];
+    }
+
+    // モデルの今の値から、編集画面に渡す$inputを組み立てる。
+    private function inputFromModel(Member $member): array
+    {
+        return [
+            'name' => $member->name,
+            'kana' => $member->kana,
+            'email' => $member->email,
+            'phone' => $member->phone,
+            'birthdate' => optional($member->birthdate)->format('Y-m-d'),
+            'prefecture' => $member->prefecture,
         ];
     }
+
+    // ---- マイページ・プロフィール編集 ----
 
     /**
      * マイページ（プロフィール表示）の表示（GET /mypage）
@@ -80,55 +124,28 @@ class MypageController extends Controller
         $member = Auth::user();
 
         // admin側と同じく、表示する値はコントローラーが組み立て、ビューは
-        // $inputを見るだけにしている（詳しくは
-        // resources/views/_confirm_hiddenのコメント参照）。old()が優先され、
-        // 無ければ$memberの現在値、という優先順位は+演算子がそのまま表して
-        // いる（左側の配列のキーが勝つ）。
-        //
-        // パスワードはこのフォームでは扱わない（変更はauth/password.blade.php
-        // 側の専用フォーム）ので、ここには出てこない。
-        $input = old() + [
-            'name' => $member->name,
-            'kana' => $member->kana,
-            'email' => $member->email,
-            'phone' => $member->phone,
-            'birthdate' => optional($member->birthdate)->format('Y-m-d'),
-            'prefecture' => $member->prefecture,
-        ];
-
+        // $inputを見るだけにしている。old()があればそちらを優先し、無ければ
+        // $memberの現在値（顔写真のhiddenの値も含む）を使う（FormFlow::formInput()）。
         return view('mypage.edit', [
             'member' => $member,
-            'input' => $input,
-            'required' => required_fields($this->rules($member)),
+            'input' => $this->formInput($member, old()),
+            'required' => $this->requiredFields($member),
         ]);
     }
 
     /**
      * プロフィールの更新処理（PATCH /mypage）
      *
-     * 会員登録とは違い確認画面を挟まないシンプルな構成にしたため、
-     * $request->validate()のショートカットをそのまま使っている。失敗時に
-     * 自動で戻る「直前のページ」が、まさにこの編集フォーム自身になるため、
-     * 会員登録のstore()のような明示的なリダイレクト先指定は不要。
-     *
-     * ここで$requestが必要なのは$request->validate()の部分だけで、
+     * 会員登録とは違い確認画面を挟まないので、saveData()をそのまま呼ぶ。
+     * 検証に失敗すれば、Laravelの標準の動きで直前のページ（この編集フォーム）へ戻る。
      * 「今ログイン中の会員が誰か」はAuth::user()から取る。
      */
     public function update(Request $request): RedirectResponse
     {
         $member = Auth::user();
 
-        $validated = $request->validate($this->rules($member));
-
         try {
-            $member->update([
-                'name' => $validated['name'],
-                'kana' => $validated['kana'] ?? null,
-                'email' => $validated['email'],
-                'phone' => $validated['phone'] ?? null,
-                'birthdate' => $validated['birthdate'] ?? null,
-                'prefecture' => $validated['prefecture'] ?? null,
-            ]);
+            $this->saveData($member, $request);
         } catch (UniqueConstraintViolationException $e) {
             // Rule::unique()での事前チェックと実際のUPDATEの間の、ごく僅かな隙間で
             // 同じメールアドレスが別の会員に使われてしまった場合の最後の砦。
@@ -140,6 +157,8 @@ class MypageController extends Controller
 
         return redirect()->route('mypage')->with('status', 'プロフィールを更新しました。');
     }
+
+    // ---- 退会 ----
 
     /**
      * 退会の確認画面（GET /mypage/withdraw）。
@@ -161,6 +180,7 @@ class MypageController extends Controller
      *   パスキー（passkeysのうち、この会員の行）。どちらも汎用のテーブルで
      *   外部キー制約が無いので、会員を消しても自動では消えない
      * - ほかの端末に残っているログイン中のセッション（deleteSessionsOf()）
+     * - 顔写真のファイル（deleteAllUploads()）
      *
      * 処理の順番に意味がある。Auth::logout()は、「ログイン状態を保持する」を
      * 使ってログインしていた会員について、remember_tokenを新しい値に書き換えて
@@ -183,6 +203,8 @@ class MypageController extends Controller
             $member->trustedDevices()->delete();
             $member->passkeys()->delete();
             $this->deleteSessionsOf($member);
+            // 顔写真のファイルは、トランザクションが確定した後に消える（AjaxFileUpload参照）
+            $this->deleteAllUploads($member);
             $member->delete();
         });
 

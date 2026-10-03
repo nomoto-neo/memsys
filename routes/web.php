@@ -17,6 +17,7 @@ use App\Http\Controllers\MypageController;
 use App\Http\Controllers\NewsController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\TopController;
+use App\Http\Controllers\UploadedFileController;
 use Illuminate\Support\Facades\Route;
 
 // 静的なページを表示する場合
@@ -41,6 +42,15 @@ Route::post('/contact/store', [ContactController::class, 'store'])
     ->middleware('throttle:5,1,contact-store')
     ->name('contact.store');
 Route::get('/contact/thanks', [ContactController::class, 'thanks'])->name('contact.thanks');
+
+// ログインした人だけが見られるアップロードファイルと、アップロード直後の一時ファイル
+// （App\Http\Controllers\UploadedFileController）。会員・スタッフのどちらのガードでも使い、
+// 訪問者のお問い合わせの一時ファイルにも使うので、authのグループには入れない。
+Route::get('/uploads/tmp/{filename}', [UploadedFileController::class, 'tmp'])->name('uploads.tmp');
+Route::get('/uploads/{type}/{id}/{field}/{filename}', [UploadedFileController::class, 'show'])
+    ->whereNumber('id')
+    ->where('field', '[a-z0-9_]+')
+    ->name('uploads.show');
 
 // MailTemplate方式・AjaxFileUpload方式を使わない、普通のLaravelの書き方によるお問い合わせフォーム。
 // 比較用・技術習得のため残置（提携先向けのデモには含めない）
@@ -109,6 +119,10 @@ Route::middleware(['auth', 'auth.session'])->group(function () {
     // 会員情報の変更
     Route::get('/mypage/edit', [MypageController::class, 'edit'])->name('mypage.edit');
     Route::patch('/mypage/update', [MypageController::class, 'update'])->name('mypage.update');
+    // 顔写真のアップロード先（App\Support\AjaxFileUpload）
+    Route::post('/mypage/ajax-upload', [MypageController::class, 'uploadAjaxFile'])
+        ->middleware('throttle:20,1,mypage-upload')
+        ->name('mypage.ajaxUpload');
     // 退会（会員データを物理削除する）
     Route::get('/mypage/withdraw', [MypageController::class, 'withdraw'])->name('mypage.withdraw');
     Route::delete('/mypage/withdraw', [MypageController::class, 'destroy'])->name('mypage.destroy');
@@ -189,6 +203,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/members/csv-import', [AdminMemberController::class, 'csvImport'])->name('members.csv-import');
         Route::post('/members/csv-import/confirm', [AdminMemberController::class, 'csvImportConfirm'])->name('members.csv-import.confirm');
         Route::post('/members/csv-import/execute', [AdminMemberController::class, 'csvImportExecute'])->name('members.csv-import.execute');
+        // 顔写真のアップロード先（App\Support\AjaxFileUpload。これも/members/{member}より前に書く）
+        Route::post('/members/ajax-upload', [AdminMemberController::class, 'uploadAjaxFile'])->name('members.ajaxUpload');
         Route::get('/members/{member}', [AdminMemberController::class, 'show'])->name('members.show');
         Route::get('/members/{member}/edit', [AdminMemberController::class, 'edit'])->name('members.edit');
         Route::patch('/members/{member}/confirm', [AdminMemberController::class, 'confirmUpdate'])->name('members.confirm.edit');

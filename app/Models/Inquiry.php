@@ -9,6 +9,13 @@ use Illuminate\Database\Eloquent\Model;
  */
 class Inquiry extends Model
 {
+    /**
+     * ログインした人だけが見られる場所に置くアップロードのフィールド。添付ファイルは
+     * 個人情報を含みうるので、スタッフだけが見られる（App\Support\UploadFilePathの
+     * 「非公開」参照。見てよいかの判断はApp\Policies\InquiryPolicy::viewFiles()）。
+     */
+    public const PRIVATE_FILE_FIELDS = ['attach_file'];
+
     protected $table = 't_inquiries';
 
     protected $fillable = [

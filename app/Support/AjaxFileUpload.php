@@ -18,14 +18,19 @@ use Illuminate\Support\Facades\Validator;
  * 1. 画面上でファイルが選択(またはドロップ)されると、その場でajaxUploadRoute()
  *    (このトレイトのuploadAjaxFile()につながるルート)へ1ファイルだけPOSTする。
  * 2. サーバー側はファイル種別を検証し、画像なら必要に応じてリサイズしてから
- *    "public"ディスクのtmp/へランダムなファイル名で保存し、そのファイル名と
+ *    "local"ディスクのtmp/へランダムなファイル名で保存し、そのファイル名と
  *    元のファイル名をJSONで返す。この時点ではまだDBには何も書き込まない
  *    (対象のレコードがまだ無い=新規登録時にはidが決まっていないため)。
+ *    tmpのファイルは、アップロードしたセッションからだけ見られる
+ *    (App\Support\UploadFilePathの「一時ディレクトリ」参照)。
  * 3. 画面はhiddenの各フィールド(name_tmp・name_origin・name_del)にその情報を
  *    詰めて、確認画面を経て実際の登録/更新が行われる。
  * 4. store()/update()側で対象レコードの保存が終わり、idが確定した後に
  *    commitUploads()を呼ぶ。ここで初めて、tmp/から正式なディレクトリへ
  *    ファイルを移動し、DBのカラム(または子テーブル)へ書き込む。
+ *    正式な保存先のディスクはフィールドで決まる。普通は"public"、
+ *    持ち主のモデルのPRIVATE_FILE_FIELDSにあるフィールドは"local"
+ *    (ログインした人だけが見られる。UploadFilePathの「非公開」参照)。
  *
  * 使う側のコントローラーが用意するもの:
  * - private const UPLOAD_FILES  ['フィールド名' => 横幅(px), ...]。
@@ -217,15 +222,22 @@ trait AjaxFileUpload
             $this->cleanupTmpDirectory();
 
             $tmpName = $file->hashName();
-            $storedPath = $file->storeAs(UploadFilePath::TMP_DIR, $tmpName, 'public');
+            $storedPath = $file->storeAs(UploadFilePath::TMP_DIR, $tmpName, UploadFilePath::TMP_DISK);
 
             if ($storedPath === false) {
                 throw new \RuntimeException('storeAs()に失敗しました。');
             }
 
             if ($width > 0) {
-                $this->resizeIfNeeded(Storage::disk('public')->path($storedPath), $width);
+                $this->resizeIfNeeded(Storage::disk(UploadFilePath::TMP_DISK)->path($storedPath), $width);
             }
+
+            // tmpのファイルを見られるのは、アップロードしたセッションだけにする
+            // （UploadedFileController::tmp()がこの一覧で確かめる）。
+            $request->session()->put(UploadFilePath::TMP_SESSION_KEY, array_slice(
+                [...$request->session()->get(UploadFilePath::TMP_SESSION_KEY, []), $tmpName],
+                -UploadFilePath::TMP_SESSION_MAX
+            ));
         } catch (\Throwable $e) {
             Log::error('AjaxFileUpload: 保存処理に失敗しました。', [
                 'field' => $field,
@@ -392,7 +404,7 @@ trait AjaxFileUpload
      */
     private function cleanupTmpDirectory(): void
     {
-        $disk = Storage::disk('public');
+        $disk = Storage::disk(UploadFilePath::TMP_DISK);
         $cutoff = now()->subHours(self::TMP_MAX_AGE_HOURS)->timestamp;
 
         foreach ($disk->files(UploadFilePath::TMP_DIR) as $path) {
@@ -614,21 +626,22 @@ trait AjaxFileUpload
         }
 
         $after = $this->storedFilenames($model);
-        $removed = array_diff($before, $after);
+        $removed = array_diff_key($before, $after);
 
         DB::afterCommit(function () use ($model, $removed) {
-            foreach ($removed as $filename) {
-                $this->deleteUploadedFile($model, $filename);
+            foreach ($removed as $filename => $field) {
+                $this->deleteUploadedFile($model, $field, $filename);
             }
         });
     }
 
     /**
      * このレコードがDB上で参照しているファイル名の一覧（全フィールド分を
-     * まとめたもの）。単数フィールドはモデルのカラムの値、複数展開
-     * フィールドは子テーブルの行、WYSIWYG欄は本文の<img>から取る。
-     * 子テーブルは、読み込み済みのリレーション（古いかもしれない）ではなく、
-     * 毎回DBに問い合わせる。
+     * まとめたもの。ファイル名 => フィールド名）。フィールド名は、ファイルを
+     * 消すときに置き場所のディスク（公開・非公開）を決めるのに使う。
+     * 単数フィールドはモデルのカラムの値、複数展開フィールドは子テーブルの行、
+     * WYSIWYG欄は本文の<img>から取る。子テーブルは、読み込み済みのリレーション
+     * （古いかもしれない）ではなく、毎回DBに問い合わせる。
      *
      * $beforeCommitがtrueなら、commitUploads()の「更新前」の一覧。
      * WYSIWYG欄の本文だけは、コントローラーが直前に保存した新しい内容に
@@ -645,24 +658,24 @@ trait AjaxFileUpload
             $field = $def['field'];
 
             if ($def['kind'] === 'repeatable') {
-                $filenames = array_merge($filenames, $model->{$field}()->pluck('filename')->all());
+                $filenames += array_fill_keys($model->{$field}()->pluck('filename')->all(), $field);
 
                 continue;
             }
 
             if ($def['kind'] === 'wysiwyg') {
                 $html = array_key_exists($field, $previous) ? $previous[$field] : $model->{$field};
-                $filenames = array_merge($filenames, $this->wysiwygImageFilenames($model, $html));
+                $filenames += array_fill_keys($this->wysiwygImageFilenames($model, $field, $html), $field);
 
                 continue;
             }
 
             if ($model->{$field}) {
-                $filenames[] = $model->{$field};
+                $filenames[$model->{$field}] = $field;
             }
         }
 
-        return array_values(array_unique($filenames));
+        return $filenames;
     }
 
     /**
@@ -870,7 +883,7 @@ trait AjaxFileUpload
                 return $m[0];
             }
 
-            return $m[1].UploadFilePath::url($model::class, $model->getKey(), $moved[$tmp]).$m[3];
+            return $m[1].UploadFilePath::url($model::class, $model->getKey(), $field, $moved[$tmp]).$m[3];
         }, $html);
 
         if ($newHtml !== $html) {
@@ -888,7 +901,7 @@ trait AjaxFileUpload
      * 形をそろえる。ここで画像を取りこぼすと、使っている画像が「更新後に
      * 無くなった」とみなされて削除されてしまうため。
      */
-    private function wysiwygImageFilenames(Model $model, ?string $html): array
+    private function wysiwygImageFilenames(Model $model, string $field, ?string $html): array
     {
         $html = HtmlSanitizer::clean($html);
 
@@ -904,7 +917,7 @@ trait AjaxFileUpload
             $filename = basename(parse_url($src, PHP_URL_PATH) ?? '');
 
             if (preg_match(UploadFilePath::SAFE_FILENAME, $filename)
-                && $src === UploadFilePath::url($model::class, $model->getKey(), $filename)) {
+                && $src === UploadFilePath::url($model::class, $model->getKey(), $field, $filename)) {
                 $filenames[] = $filename;
             }
         }
@@ -964,7 +977,7 @@ trait AjaxFileUpload
             return "ファイル名「{$filename}」の種類は、この項目では使えません（".implode('・', $allowTypes).'）。';
         }
 
-        if (! Storage::disk('public')->exists($this->uploadDirectory($model).'/'.$filename)) {
+        if (! Storage::disk(UploadFilePath::disk($model::class, $field))->exists($this->uploadDirectory($model).'/'.$filename)) {
             return "ファイル「{$filename}」がサーバーにありません。";
         }
 
@@ -979,15 +992,17 @@ trait AjaxFileUpload
      *
      * 1件のレコードのファイルは、フィールド（list_image・attach等）に
      * 関係なく同じディレクトリに置く（理由はUploadFilePathのコメント参照）。
+     * 非公開のフィールドがあれば、同じ名前のディレクトリが非公開のディスクにもできる。
      */
     private function uploadDirectory(Model $model): string
     {
         return UploadFilePath::directory($model::class, $model->getKey());
     }
 
-    private function deleteUploadedFile(Model $model, string $filename): void
+    // 置き場所のディスク（公開・非公開）は、フィールドで決まる。
+    private function deleteUploadedFile(Model $model, string $field, string $filename): void
     {
-        Storage::disk('public')->delete($this->uploadDirectory($model).'/'.$filename);
+        Storage::disk(UploadFilePath::disk($model::class, $field))->delete($this->uploadDirectory($model).'/'.$filename);
     }
 
     /**
@@ -1005,8 +1020,9 @@ trait AjaxFileUpload
     private function moveTmpToFinal(Model $model, string $field, string $tmpName): ?string
     {
         $tmpPath = UploadFilePath::TMP_DIR.'/'.$tmpName;
+        $tmpDisk = Storage::disk(UploadFilePath::TMP_DISK);
 
-        if (! Storage::disk('public')->exists($tmpPath)) {
+        if (! $tmpDisk->exists($tmpPath)) {
             Log::warning('AjaxFileUpload: tmpファイルが存在しません。', [
                 'field' => $field,
                 'tmp' => $tmpName,
@@ -1016,8 +1032,20 @@ trait AjaxFileUpload
         }
 
         $finalPath = $this->uploadDirectory($model).'/'.$tmpName;
+        $finalDiskName = UploadFilePath::disk($model::class, $field);
 
-        Storage::disk('public')->move($tmpPath, $finalPath);
+        if ($finalDiskName === UploadFilePath::TMP_DISK) {
+            $tmpDisk->move($tmpPath, $finalPath);
+        } else {
+            // tmp（"local"）と保存先（公開のフィールドなら"public"）のディスクが違うときは、
+            // ディスクをまたいだmoveができないので、書き写してからtmpを消す。
+            $stream = $tmpDisk->readStream($tmpPath);
+            Storage::disk($finalDiskName)->writeStream($finalPath, $stream);
+            if (is_resource($stream)) {
+                fclose($stream);
+            }
+            $tmpDisk->delete($tmpPath);
+        }
 
         return $tmpName;
     }
@@ -1034,32 +1062,33 @@ trait AjaxFileUpload
      */
     public function deleteAllUploads(Model $model): void
     {
+        // ファイル名 => フィールド名（置き場所のディスクを決めるのに使う）
         $filenames = [];
 
         foreach ($this->uploadFieldDefinitions() as $def) {
             $base = $def['field'];
 
             if ($def['kind'] === 'wysiwyg') {
-                $filenames = array_merge($filenames, $this->wysiwygImageFilenames($model, $model->{$base}));
+                $filenames += array_fill_keys($this->wysiwygImageFilenames($model, $base, $model->{$base}), $base);
 
                 continue;
             }
 
             if ($def['kind'] === 'repeatable') {
-                $filenames = array_merge($filenames, $model->{$base}()->pluck('filename')->all());
+                $filenames += array_fill_keys($model->{$base}()->pluck('filename')->all(), $base);
                 $model->{$base}()->delete();
 
                 continue;
             }
 
             if ($model->{$base}) {
-                $filenames[] = $model->{$base};
+                $filenames[$model->{$base}] = $base;
             }
         }
 
         DB::afterCommit(function () use ($model, $filenames) {
-            foreach ($filenames as $filename) {
-                $this->deleteUploadedFile($model, $filename);
+            foreach ($filenames as $filename => $field) {
+                $this->deleteUploadedFile($model, $field, $filename);
             }
 
             // 1件のレコードのファイルは必ず1つのディレクトリ（例:
@@ -1069,8 +1098,9 @@ trait AjaxFileUpload
             // ディレクトリが残り続けないようにするため（DBに記録の無い
             // 迷子のファイルがあれば、それもここで一緒に消える）。
             // 上位のグループディレクトリ（news/000）は他のレコードと共有して
-            // いるので消さない。
-            Storage::disk('public')->deleteDirectory($this->uploadDirectory($model));
+            // いるので消さない。公開・非公開の両方のディスクにありうるので、両方で消す。
+            Storage::disk(UploadFilePath::PUBLIC_DISK)->deleteDirectory($this->uploadDirectory($model));
+            Storage::disk(UploadFilePath::PRIVATE_DISK)->deleteDirectory($this->uploadDirectory($model));
         });
     }
 

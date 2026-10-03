@@ -41,7 +41,7 @@ class NewsAttachment extends Model
     protected function url(): Attribute
     {
         return Attribute::make(
-            get: fn () => UploadFilePath::url(News::class, $this->news_id, $this->filename),
+            get: fn () => UploadFilePath::url(News::class, $this->news_id, 'attach', $this->filename),
         );
     }
 }

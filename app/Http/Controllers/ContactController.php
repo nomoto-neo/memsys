@@ -12,7 +12,6 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -246,9 +245,7 @@ class ContactController extends Controller
 
         if ($inquiry->attach_file) {
             $attachments[] = [
-                'path' => Storage::disk('public')->path(
-                    UploadFilePath::directory(Inquiry::class, $inquiry->id).'/'.$inquiry->attach_file
-                ),
+                'path' => UploadFilePath::path(Inquiry::class, $inquiry->id, 'attach_file', $inquiry->attach_file),
                 'name' => $inquiry->attach_file_origin ?: $inquiry->attach_file,
             ];
         }

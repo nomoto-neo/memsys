@@ -1,5 +1,12 @@
 @extends('layouts.admin')
 
+{{-- 顔写真のアップロード欄があるので、CSRFトークンの<meta>とajax_upload.jsを読み込む
+     （admin/news/create.blade.phpと同じ）。 --}}
+@push('head-extra')
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    @vite(['resources/js/ajax_upload.js'])
+@endpush
+
 @section('content')
 <div class="row justify-content-center">
     <div class="col-md-7">
@@ -12,6 +19,7 @@
 
                     @include('admin.members._fields', [
                         'input' => $input,
+                        'model' => $member,
                         'readonly' => '',
                         'disabled' => '',
                         'required' => $required,

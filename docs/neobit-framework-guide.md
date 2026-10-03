@@ -8,6 +8,7 @@
 | 第1.3版 | 2026-10-01 | パスキー（PasskeyLogin・PasskeyManagement）と、パスワードを変えたときの後始末（PasswordChange）を追加（14章） |
 | 第1.4版 | 2026-10-01 | 区分表の出どころにDB（t_codes・項目見出し一覧）を追加（8章） |
 | 第1.5版 | 2026-10-01 | 動作条件（PHP・Laravelの最低バージョン）を追加（1-1） |
+| 第1.6版 | 2026-10-03 | ログインした人だけが見られるアップロードファイル（フィールド単位の `PRIVATE_FILE_FIELDS`・`UploadedFileController`）を追加し、お問い合わせの添付ファイルを非公開にした。アップロード直後の一時ファイルをアップロードしたセッションだけが見られる場所に移した（7章） |
 
 ## 0. このガイドについて
 
@@ -20,7 +21,8 @@
 | 実例 | 使っている機能 |
 |---|---|
 | 管理画面：ニュース（`Admin\NewsController`） | 一覧・検索、登録・編集・確認画面、削除、アップロード（単数・複数）、WYSIWYG、CSVダウンロード・取り込み（追加あり） |
-| 管理画面：会員（`Admin\MemberController`） | 一覧・検索、詳細・編集・確認画面、区分表（都道府県）、CSVダウンロード・取り込み（更新だけ）、`@名前` の列 |
+| 管理画面：会員（`Admin\MemberController`） | 一覧・検索、詳細・編集・確認画面、区分表（都道府県）、CSVダウンロード・取り込み（更新だけ）、`@名前` の列、ログインした人だけが見られるアップロード（顔写真） |
+| マイページ（`MypageController`） | 確認画面なしの編集（FormFlow）、ログインした人だけが見られるアップロード（顔写真）、退会、パスキー |
 | 管理画面：スタッフ（`Admin\StaffController`） | 一覧・検索、登録・編集、論理削除と取り消し、権限（Policy）、列挙型、パスワード |
 | 管理画面：カテゴリー（`Admin\CategoryController`） | 確認画面なしの登録・編集、並び替え、ページ分けしない一覧 |
 | 管理画面：項目見出し一覧（`Admin\CodeController`） | DBで管理する区分表の編集（複数行をまとめて保存、行の追加・削除・並び替え） |
@@ -50,7 +52,8 @@
 | `SearchableList` | `app/Support/` | 一覧・検索（検索条件の検証と保存、完全一致・部分一致の自動判定、並び順、ページと検索条件の復元） | 3 |
 | `FormFlow` | `app/Support/` | 入力 → 確認 → 保存、削除（トランザクション込み）、必須マーク | 5・6 |
 | `AjaxFileUpload` | `app/Support/` | 画像・添付ファイルの Ajax アップロード、WYSIWYG の画像 | 7 |
-| `UploadFilePath` | `app/Support/` | アップロードしたファイルの保存先と URL の規則 | 7 |
+| `UploadFilePath` | `app/Support/` | アップロードしたファイルの保存先と URL の規則（公開・非公開・一時ファイル） | 7 |
+| `UploadedFileController` | `app/Http/Controllers/` | ログインした人だけが見られるファイルと、一時ファイルを返す | 7 |
 | `HtmlSanitizer`（`safe_html()`） | `app/Support/` | WYSIWYG の HTML の無害化 | 7 |
 | `CodeTable`（`code_table()` など） | `app/Support/`・`app/helpers.php` | 区分表（列挙型・CSV・DB） | 8 |
 | `CsvDownload`・`CsvColumnSet` | `app/Support/` | CSV ダウンロードと、CSV の項目の定義 | 9 |
@@ -415,7 +418,7 @@ private function prepareInput(array $validated): array
 - **単数のフィールド**（`list_image`）：テーブルに `list_image`（保存ファイル名）と `list_image_origin`（元のファイル名）のカラムを作り、モデルの `$fillable` に入れます。
 - **複数のフィールド**（`attach.*`）：子テーブル（`filename`・`original_name`（NULL可）・親の id）と、フィールドと同じ名前の HasMany リレーション（`News::attach()`）を用意します。
 - 許可する拡張子・大きさの上限は、サイト全体の方針としてトレイトの定数にあります（コーナーごとには変えません）。
-- **保存先**：`UploadFilePath` の規則で、モデルのクラス名と id から決まります（例：`news/000/000012/xxxx.jpg`）。1件分のファイルはフィールドに関係なく1つのディレクトリに入ります。表示の URL は `UploadFilePath::url(クラス, id, ファイル名)` で作り、モデルのアクセサにしておきます（例：`News::list_image_url`、`NewsAttachment::url`）。
+- **保存先**：`UploadFilePath` の規則で、モデルのクラス名と id から決まります（例：`news/000/000012/xxxx.jpg`）。1件分のファイルはフィールドに関係なく1つのディレクトリに入ります。表示の URL は `UploadFilePath::url(クラス, id, フィールド, ファイル名)` で作り、モデルのアクセサにしておきます（例：`News::list_image_url`、`NewsAttachment::url`）。
 
 ### 画面
 
@@ -436,6 +439,36 @@ private function prepareInput(array $validated): array
 - アップロード欄のある画面（新規登録・編集）は、`@push('head-extra')` で CSRF の `<meta>` と `resources/js/ajax_upload.js` を読み込みます。
 - **WYSIWYG**：`<textarea class="wysiwyg" data-upload-url="...">` を置き、`wysiwyg_ckeditor.js` か `wysiwyg_summernote.js` を読み込みます（どちらでもサーバー側は同じ）。確認・詳細画面では `{!! safe_html($input['body']) !!}` で表示します。
 - 表示名（元のファイル名）が空のときは、リンクの文字を「添付ファイル1」のようにします（`_ajax_upload_block` と訪問者向けのニュース詳細で実装済み）。
+
+### ログインした人だけが見られるファイル（非公開）
+
+**実例**：会員の顔写真（`Member::PRIVATE_FILE_FIELDS`、`Admin\MemberController`・`MypageController`）、お問い合わせの添付ファイル（`Inquiry::PRIVATE_FILE_FIELDS`、`ContactController`）
+
+個人情報のように、URL を知っているだけで誰でも見られては困るファイルは、持ち主のモデルに、非公開にするフィールドの名前を並べます。公開か非公開かはデータ項目の性質なので、コントローラーではなくモデルが決めます。同じモデルに公開と非公開のフィールドがあってもかまいません。コントローラー・画面の書き方は、公開のファイルと同じです。
+
+```php
+// モデル。複数のフィールド（attach.*）は末尾の「.*」を除いた名前、WYSIWYG欄は欄の名前
+public const PRIVATE_FILE_FIELDS = ['photo'];
+```
+
+```php
+// そのモデルの Policy（例：app/Policies/MemberPolicy.php）。$user はログイン中の会員かスタッフ
+public function viewFiles(Member|Staff $user, Member $member, string $field): bool
+{
+    return $user instanceof Staff || $user->id === $member->id;
+}
+```
+
+- 非公開のフィールドのファイルは `"public"` ディスクではなく `"local"` ディスク（`storage/app/private`、Web サーバーから直接は見えない）に、公開と同じ規則のディレクトリ（`member/000/000005/` のように id を上位と下位に分けた2階層）で保存されます。
+- URL は `/uploads/{種類}/{id}/{フィールド}/{ファイル名}`（ルート `uploads.show`）になります。`UploadedFileController` は、そのファイルが今そのフィールドに保存されているものかを DB で確かめ、ログイン中のユーザー（会員・スタッフのどのガードでも）の誰かが Policy の `viewFiles()` で許されたときだけ返します。見てはいけない人には 404 を返します。`$field` で、フィールドごとに見てよい人を変えられます。
+- URL の「種類」は `AppServiceProvider` の `Relation::enforceMorphMap()` の名前です。非公開のフィールドを持つモデルは、必ずそこに載せます（載っていなければ URL を作るときに例外）。
+- `UploadFilePath::url(クラス, id, フィールド, ファイル名)`・`upload_preview_url()`・モデルのアクセサは、そのまま非公開の URL を返します。メールに添付するときなど、サーバー上のパスが要るときは `UploadFilePath::path(クラス, id, フィールド, ファイル名)` を使います（例：`ContactController` の通知メール）。
+- 退会などでレコードを消すときは、FormFlow の `deleteData()` か、`deleteAllUploads($record)` をトランザクションの中で呼びます（実例：`MypageController::destroy()`）。公開・非公開の両方のディレクトリが消えます。
+- 運用を始めた後にフィールドを公開から非公開へ（または逆へ）変えるときは、すでにあるファイルをディスクの間で移すマイグレーションを書きます（実例：`move_inquiry_attach_files_to_private_disk`）。
+
+### 一時ファイル（tmp）
+
+アップロードした直後のファイルは、公開・非公開に関係なく `"local"` ディスクの `tmp/` に置き、URL は `/uploads/tmp/{ファイル名}`（ルート `uploads.tmp`）です。アップロードしたときにセッションへファイル名を覚えておき、同じセッション（アップロードしたブラウザ）にだけ返します。保存するときに、持ち主のモデルのディスク（公開なら `"public"`）へ移します。
 
 ### 消えるファイル
 
@@ -741,4 +774,4 @@ private const PASSKEY_THROTTLE_SCOPE = 'member-passkey-code';  // 本人確認�
 
 ### まだ無い機能（今後の予定）
 
-PDF 出力、操作ログ、公開日時の予約とスケジューラ、一斉メール配信（キュー）、会員限定のお知らせと認証付きダウンロード、お問い合わせのスパム対策、自動テスト。作ったときに章を足します。
+PDF 出力、操作ログ、公開日時の予約とスケジューラ、一斉メール配信（キュー）、会員限定のお知らせ、お問い合わせのスパム対策、自動テスト。作ったときに章を足します。

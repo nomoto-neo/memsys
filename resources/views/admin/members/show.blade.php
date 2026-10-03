@@ -23,6 +23,7 @@
         --}}
         @include('admin.members._fields', [
             'input' => $input,
+            'model' => $member,
             'readonly' => ' readonly',
             'disabled' => ' disabled',
             'required' => [],

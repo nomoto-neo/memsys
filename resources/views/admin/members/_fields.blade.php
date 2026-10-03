@@ -1,6 +1,6 @@
 {{--
     会員情報（お名前・フリガナ・メールアドレス・電話番号・生年月日・
-    都道府県・パスワード）の入力欄一式。
+    都道府県・顔写真・パスワード）の入力欄一式。
 
     admin/staff/_fields.blade.phpと同じ考え方で、edit（編集）・
     confirm（更新の確認画面）・show（詳細表示）の3画面すべてから、
@@ -28,7 +28,18 @@
     - $showPassword パスワード欄一式を表示するかどうか。edit/confirmは
                      常にtrue。show（詳細表示）だけfalse（ハッシュ化された
                      値しか無く、再現して見せられるものが無いため）。
+    - $model        対象の会員（$member）。顔写真のアップロード欄で、保存済みの
+                     写真のURLを求めるのに使う。
+
+    顔写真(photo)のアップロード欄は、ニュースの一覧用画像と同じく
+    _ajax_upload_blockに$readonlyを渡すだけで、編集画面ではアップロードの
+    UI、確認・詳細画面では表示だけになる。会員の写真は非公開のファイル
+    なので、表示のURLはログインした本人とスタッフだけが開ける
+    （App\Support\UploadFilePathの「非公開」参照）。
 --}}
+@php
+    $uploadUrl = route('admin.members.ajaxUpload');
+@endphp
 <div class="mb-3">
     <label for="name" class="form-label">お名前 {!! $required['name'] ?? '' !!}</label>
     <input id="name" type="text" name="name"
@@ -81,6 +92,18 @@
         @endforeach
     </select>
     <div class="invalid-feedback" data-item="prefecture">{{ $errors->first('prefecture') }}</div>
+</div>
+
+<div class="mb-3">
+    <label class="form-label d-block">顔写真</label>
+    @include('_ajax_upload_block', [
+        'model' => $model,
+        'input' => $input,
+        'field' => 'photo',
+        'width' => \App\Models\Member::PHOTO_WIDTH,
+        'readonly' => $readonly,
+        'uploadUrl' => $uploadUrl,
+    ])
 </div>
 
 @if ($showPassword)

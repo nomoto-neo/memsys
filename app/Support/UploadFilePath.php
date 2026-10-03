@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -56,36 +57,84 @@ use Illuminate\Support\Str;
  *
  * ■ ニュース専用ではない
  *
- * この規則で"public"ディスクに置いたファイルなら、どのモデルのものでも、
- * クラス名・id・ファイル名を渡すだけでURLを組み立てられる。
+ * この規則で置いたファイルなら、どのモデルのものでも、クラス名・id・
+ * フィールド名・ファイル名を渡すだけでURLを組み立てられる。
  *
- *   UploadFilePath::url(News::class, 12, 'abc.jpg')
+ *   UploadFilePath::url(News::class, 12, 'list_image', 'abc.jpg')
  *     → /storage/news/000/000012/abc.jpg
- *   UploadFilePath::url(Member::class, 5, 'xyz.jpg')
- *     → /storage/member/000/000005/xyz.jpg
+ *   UploadFilePath::url(Member::class, 5, 'photo', 'xyz.jpg')
+ *     → /uploads/member/5/photo/xyz.jpg（会員の顔写真は非公開。下の「非公開」参照）
  *
  * 別のコーナーでAjaxFileUploadを使えば、保存の時点で自動的にこの規則に
  * 従うので、表示もそのままurl()で出せる。
+ *
+ * ■ ログインした人だけが見られるファイル（非公開）
+ *
+ * 会員の顔写真のように、URLを知っているだけで誰でも見られては困るファイルは、
+ * 持ち主のモデルに、そのフィールド名を並べた定数を書く。
+ *
+ *   public const PRIVATE_FILE_FIELDS = ['photo'];
+ *
+ * ここに書いたフィールドのファイルは"public"ディスクではなく"local"ディスク
+ * （storage/app/private。Webサーバーから直接は見えない）に、同じ規則の
+ * ディレクトリで保存される。1件のレコードに公開と非公開のフィールドがあれば、
+ * 同じ名前のディレクトリが2つのディスクにできる。公開か非公開かはデータ項目の
+ * 性質なので、画面（コントローラー）ではなくモデルが決める。複数のフィールド
+ * （attach.*）は末尾の".*"を除いた名前、WYSIWYG欄は欄の名前を書く。
+ *
+ * 非公開のファイルのURLは、ファイルの置き場所ではなくルート
+ * （uploads.show。App\Http\Controllers\UploadedFileController）を指す。
+ * ルートのURLに入れる持ち主の種類は、AppServiceProviderの
+ * Relation::enforceMorphMap()に載せた名前（'member'など）なので、
+ * 非公開のフィールドを持つモデルは必ずそこに載せる。見てよいかどうかは、
+ * そのモデルのPolicyの viewFiles($user, $record, $field) が決める
+ * （例: App\Policies\MemberPolicy）。
+ *
+ * 運用を始めた後にフィールドを公開から非公開へ（または逆へ）変えるときは、
+ * すでにあるファイルをディスクの間で移す必要がある（例: お問い合わせの
+ * 添付ファイルを移したマイグレーション）。
+ *
+ * ■ 一時ディレクトリ（tmp/）
+ *
+ * アップロードした直後のファイルは、公開・非公開に関係なく、すべて"local"
+ * ディスクのtmp/に置く。確認画面を経て保存するまでのファイルを見られるのは、
+ * アップロードしたブラウザ（同じセッション）だけにするため。セッションに
+ * 覚えておくファイル名のキーがTMP_SESSION_KEYで、書き込むのはAjaxFileUpload、
+ * 読むのはUploadedFileController。
  *
  * 次のものは、このクラスの範囲外。
  * - この規則以外の場所に置いたファイル（例: 手作業で置いた
  *   banner/top.jpg）。Storage::disk('public')->url('banner/top.jpg')で
  *   直接出す。
- * - "public"ディスク以外（ログインしないと見られないファイル等）に置いた
- *   ファイル。そもそもURLで直接見せる対象ではない。
  * - idが整数でないモデル。
  *
  * また、ファイルが実際に存在するかどうかは確かめない。「規則どおりなら
  * ここにあるはず」というパス・URLを計算して返すだけ。
  *
- * 状態を持たない純粋な計算なので、staticメソッドだけのクラスにしている。
+ * 状態を持たない計算だけなので、staticメソッドだけのクラスにしている。
  */
 final class UploadFilePath
 {
-    // アップロード直後のファイルを置く一時ディレクトリ（"public"ディスク上）。
+    // アップロード直後のファイルを置く一時ディレクトリ（TMP_DISK上）。
     // 確認画面を経て登録/更新が確定した時点で、正式な保存先へ移される
     // （AjaxFileUpload::commitUploads()参照）。
     public const TMP_DIR = 'tmp';
+
+    // 一時ディレクトリを置くディスク。Webサーバーから直接は見えない"local"に置き、
+    // 表示はuploads.tmpのルートから行う（このクラスの冒頭のコメント参照）。
+    public const TMP_DISK = 'local';
+
+    // アップロードしたtmpのファイル名を覚えておくセッションのキー。
+    // uploads.tmpのルートは、ここに名前があるファイルだけを返す。
+    public const TMP_SESSION_KEY = 'ajax_upload_tmp_files';
+
+    // セッションに覚えておくtmpのファイル名の数の上限（古いものから忘れる）。
+    public const TMP_SESSION_MAX = 50;
+
+    // 公開のファイルと、非公開のファイル（モデルのPRIVATE_FILE_FIELDSのフィールド）を置くディスク。
+    public const PUBLIC_DISK = 'public';
+
+    public const PRIVATE_DISK = 'local';
 
     // 安全とみなすファイル名の形式。
     // 文字数を固定していないのは、Laravel内部の生成文字数が将来変わっても
@@ -117,27 +166,86 @@ final class UploadFilePath
     }
 
     /**
-     * 保存済みファイルの公開URLを組み立てる。ファイル名が無い（未登録）場合や、持ち主の
-     * idがまだ無い（保存前）場合はnullを返す。
+     * そのフィールドのファイルを非公開にするか（モデルのPRIVATE_FILE_FIELDSにあるか）。
+     * $fieldは素のフィールド名（複数のフィールドなら".*"を除いた名前）。
      */
-    public static function url(string $ownerClass, int|string|null $ownerKey, ?string $filename): ?string
+    public static function isPrivate(string $ownerClass, string $field): bool
+    {
+        $privateFields = defined($ownerClass.'::PRIVATE_FILE_FIELDS') ? constant($ownerClass.'::PRIVATE_FILE_FIELDS') : [];
+
+        return in_array($field, $privateFields, true);
+    }
+
+    /**
+     * そのフィールドのファイルを置くディスクの名前。
+     */
+    public static function disk(string $ownerClass, string $field): string
+    {
+        return self::isPrivate($ownerClass, $field) ? self::PRIVATE_DISK : self::PUBLIC_DISK;
+    }
+
+    /**
+     * 保存済みファイルのURLを組み立てる。ファイル名が無い（未登録）場合や、持ち主の
+     * idがまだ無い（保存前）場合はnullを返す。
+     *
+     * 非公開のフィールドのファイルは、uploads.showのルートのURLになる。どちらも
+     * 「/」で始まるパスで、ホスト名は含めない。
+     */
+    public static function url(string $ownerClass, int|string|null $ownerKey, string $field, ?string $filename): ?string
     {
         if (! $filename || $ownerKey === null) {
             return null;
         }
 
-        return Storage::disk('public')->url(self::directory($ownerClass, $ownerKey).'/'.$filename);
+        if (self::isPrivate($ownerClass, $field)) {
+            return route('uploads.show', [
+                'type' => self::morphAlias($ownerClass),
+                'id' => (int) $ownerKey,
+                'field' => $field,
+                'filename' => $filename,
+            ], false);
+        }
+
+        return Storage::disk(self::PUBLIC_DISK)->url(self::directory($ownerClass, $ownerKey).'/'.$filename);
     }
 
     /**
-     * 一時ディレクトリ（tmp/）に置いたファイルの公開URL。アップロード直後に
-     * 画面へ返すURLと、WYSIWYG欄の本文の中からtmpの画像を見分けるときに
-     * 比べるURLは、どちらもここで組み立てる（食い違うと、本文の画像が
-     * 正式な保存先へ移されなくなる）。
+     * 保存済みファイルの、サーバー上の絶対パス（PDFに画像を埋め込む、メールに添付する
+     * ときなど）。ファイル名が無い場合や、持ち主のidがまだ無い場合はnullを返す。
+     */
+    public static function path(string $ownerClass, int|string|null $ownerKey, string $field, ?string $filename): ?string
+    {
+        if (! $filename || $ownerKey === null) {
+            return null;
+        }
+
+        return Storage::disk(self::disk($ownerClass, $field))->path(self::directory($ownerClass, $ownerKey).'/'.$filename);
+    }
+
+    /**
+     * 一時ディレクトリ（tmp/）に置いたファイルのURL（uploads.tmpのルート）。
+     * アップロード直後に画面へ返すURLと、WYSIWYG欄の本文の中からtmpの画像を
+     * 見分けるときに比べるURLは、どちらもここで組み立てる（食い違うと、本文の
+     * 画像が正式な保存先へ移されなくなる）。
      */
     public static function tmpUrl(string $filename): string
     {
-        return Storage::disk('public')->url(self::TMP_DIR.'/'.$filename);
+        return route('uploads.tmp', ['filename' => $filename], false);
+    }
+
+    /**
+     * 非公開のファイルのURLに入れる、持ち主の種類の名前（enforceMorphMap()の名前）。
+     * 載っていなければ、URLからモデルを探せないので例外にする。
+     */
+    private static function morphAlias(string $ownerClass): string
+    {
+        $alias = Relation::getMorphAlias($ownerClass);
+
+        if ($alias === $ownerClass) {
+            throw new \LogicException("{$ownerClass}はPRIVATE_FILE_FIELDSのあるモデルなので、AppServiceProviderのenforceMorphMap()に載せてください。");
+        }
+
+        return $alias;
     }
 
     /**
@@ -166,7 +274,7 @@ final class UploadFilePath
      * 役割が違う。あちらは「今DBに保存されているファイル」のURLで、
      * こちらは「入力中の値から見た」URL。
      */
-    public static function previewUrl(?Model $owner, ?string $filename, ?string $tmp, bool $del): ?string
+    public static function previewUrl(?Model $owner, string $field, ?string $filename, ?string $tmp, bool $del): ?string
     {
         if ($tmp !== null && $tmp !== '') {
             return preg_match(self::SAFE_FILENAME, $tmp)
@@ -182,6 +290,6 @@ final class UploadFilePath
             return null;
         }
 
-        return self::url($owner::class, $owner->getKey(), $filename);
+        return self::url($owner::class, $owner->getKey(), $field, $filename);
     }
 }

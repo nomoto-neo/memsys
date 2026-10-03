@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\Inquiry;
 use App\Models\Member;
 use App\Models\Passkey;
 use App\Models\Staff;
@@ -43,9 +44,14 @@ class AppServiceProvider extends ServiceProvider
         // enforceMorphMap()は、ここに載っていないモデルをポリモーフィック
         // リレーションで使おうとすると例外にする。DBにクラス名が紛れ込むことが
         // 無いよう、モデルを追加したときはここにも足す。
+        //
+        // 非公開のアップロードファイル（モデルのPRIVATE_FILE_FIELDS）のURLにも、
+        // 持ち主の種類としてこの名前を使う（App\Support\UploadFilePath参照）。
+        // 非公開のフィールドを持つモデルも、ここに載せる。
         Relation::enforceMorphMap([
             'member' => Member::class,
             'staff' => Staff::class,
+            'inquiry' => Inquiry::class,
         ]);
     }
 }

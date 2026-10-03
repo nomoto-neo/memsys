@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Support\HasPasskeys;
+use App\Support\UploadFilePath;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
@@ -28,6 +30,21 @@ class Member extends Authenticatable implements PasskeyUser
     // Member::factory()の呼び出しでBadMethodCallExceptionになる。
     use HasFactory;
 
+    /**
+     * 顔写真(photo)の横幅(px)。登録される画像は、この横幅を超えないように
+     * リサイズして保存される。管理画面・マイページのどちらから登録しても
+     * 変わらない、このデータ項目の仕様なのでモデルに持たせている
+     * （Admin\MemberController・MypageControllerのUPLOAD_FILESが参照する）。
+     */
+    public const PHOTO_WIDTH = 600;
+
+    /**
+     * ログインした人だけが見られる場所に置くアップロードのフィールド。顔写真は、
+     * 本人とスタッフだけが見られる（App\Support\UploadFilePathの「非公開」参照。
+     * 見てよいかの判断はApp\Policies\MemberPolicy::viewFiles()）。
+     */
+    public const PRIVATE_FILE_FIELDS = ['photo'];
+
     // モデル名(Member)から自動推測されるテーブル名は本来 "members" だが、
     // 業務テーブルであることが分かるよう t_ 接頭辞を付けた "t_members" を
     // 使っているため、ここで明示的に上書きしている。
@@ -42,6 +59,8 @@ class Member extends Authenticatable implements PasskeyUser
         'phone',
         'birthdate',
         'prefecture',
+        'photo',
+        'photo_origin',
         // /adminから最後に更新した操作者（スタッフ）のid。
         'staff_id',
     ];
@@ -89,5 +108,17 @@ class Member extends Authenticatable implements PasskeyUser
     public function trustedDevices(): MorphMany
     {
         return $this->morphMany(TrustedDevice::class, 'authenticatable');
+    }
+
+    /**
+     * 顔写真のURL（未登録ならnull）。非公開のファイルなので、ファイルの置き場所
+     * ではなくuploads.showのルートのURLになる（見られるのは本人とスタッフだけ）。
+     * マイページのように、フォームの無い「モデルをそのまま見せる」画面で使う。
+     */
+    protected function photoUrl(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => UploadFilePath::url(self::class, $this->getKey(), 'photo', $this->photo),
+        );
     }
 }

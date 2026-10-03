@@ -110,7 +110,7 @@ class News extends Model
     protected function listImageUrl(): Attribute
     {
         return Attribute::make(
-            get: fn () => UploadFilePath::url(self::class, $this->getKey(), $this->list_image),
+            get: fn () => UploadFilePath::url(self::class, $this->getKey(), 'list_image', $this->list_image),
         );
     }
 }

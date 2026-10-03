@@ -7,12 +7,13 @@ use App\Enums\CsvImportMode;
 use App\Http\Controllers\Controller;
 use App\Models\Member;
 use App\Rules\PhoneNumberRule;
+use App\Support\AjaxFileUpload;
 use App\Support\CsvDownload;
 use App\Support\CsvImport;
 use App\Support\CsvImportSettings;
 use App\Support\FormFlow;
-use App\Support\SearchableList;
 use App\Support\PasswordChange;
+use App\Support\SearchableList;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -42,6 +43,10 @@ class MemberController extends Controller
     // CSV取り込みの共通処理はCsvImportトレイトが提供する（画面・確認・実行の入口もトレイト側）。
     // クラス側は csvImportSettings() を用意する。項目の定義はダウンロードと共通の csvColumns()。
     use CsvImport;
+
+    // 顔写真のAjaxアップロード（入口のuploadAjaxFile()もトレイト側）。
+    // クラス側は UPLOAD_FILES を用意し、rules()に ajaxUploadRules() を足す。
+    use AjaxFileUpload;
 
     // ---- 一覧・検索（SearchableList）の設定 ----
 
@@ -73,6 +78,14 @@ class MemberController extends Controller
         ],
     ];
 
+    // ---- アップロード（AjaxFileUpload）の設定 ----
+
+    // フィールド名 => 横幅(px)。顔写真は非公開のフィールド（Member::PRIVATE_FILE_FIELDS）なので、
+    // ログインした本人とスタッフだけが見られる場所に保存される。
+    private const UPLOAD_FILES = [
+        'photo' => Member::PHOTO_WIDTH,
+    ];
+
     // ---- このコーナーの項目の定義 ----
 
     // 入力バリデーションルール
@@ -91,7 +104,7 @@ class MemberController extends Controller
                 // コードテーブルとの一致を確認
                 Rule::in(code_keys('prefectures'))],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
-        ];
+        ] + $this->ajaxUploadRules();
     }
 
     // 保存する項目（t_membersのカラム）。ここに書いた項目だけを保存する。

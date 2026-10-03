@@ -32,6 +32,16 @@
 
                     <dt class="col-sm-4">都道府県</dt>
                     <dd class="col-sm-8">{{ code_label('prefectures', $member->prefecture, '（未設定）') }}</dd>
+
+                    {{-- 顔写真のURLは、本人とスタッフだけが開けるもの（Member::photo_url） --}}
+                    <dt class="col-sm-4">顔写真</dt>
+                    <dd class="col-sm-8">
+                        @if ($member->photo_url)
+                            <img src="{{ $member->photo_url }}" alt="顔写真" class="border rounded" style="max-width: 150px;">
+                        @else
+                            （未設定）
+                        @endif
+                    </dd>
                 </dl>
             </div>
             <div class="card-footer bg-white text-end">
