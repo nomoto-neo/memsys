@@ -25,6 +25,7 @@ enum OperationLogAction: string implements CodeTableEnum
     case PasskeyDelete = 'passkey_delete';
     case TwoFactorReset = 'two_factor_reset';
     case BulkMailSend = 'bulk_mail_send';
+    case Throttled = 'throttled';
 
     // 値ごとの名前
     private const LABELS = [
@@ -44,6 +45,7 @@ enum OperationLogAction: string implements CodeTableEnum
         self::PasskeyDelete->value => 'パスキーの削除',
         self::TwoFactorReset->value => '2段階認証の登録解除',
         self::BulkMailSend->value => '一斉メールの送信',
+        self::Throttled->value => '回数の制限',
     ];
 
     public function label(): string

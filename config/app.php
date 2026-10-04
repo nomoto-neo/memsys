@@ -123,6 +123,10 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    // ログイン後の管理画面で、1人のスタッフが1分に送れる回数（App\Support\AdminRequestLimit）。
+    // 超えた回は処理せず、操作ログとwarningのログに残す。人が普通に使って届かない数にする
+    'admin_requests_per_minute' => (int) env('ADMIN_REQUESTS_PER_MINUTE', 120),
+
     // 信頼するプロキシのIPアドレス。サーバーの前にロードバランサーやCDNを置いたときに、
     // そのIPアドレスをカンマ区切りで書く（192.168.0.0/24のような範囲も書ける）。
     // ここに書いたプロキシから届いたX-Forwarded-Forを、訪問者のIPアドレスとして使う

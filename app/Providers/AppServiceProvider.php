@@ -11,6 +11,7 @@ use App\Models\Member;
 use App\Models\News;
 use App\Models\Passkey;
 use App\Models\Staff;
+use App\Support\AdminRequestLimit;
 use App\Support\OperationRecorder;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
@@ -76,6 +77,10 @@ class AppServiceProvider extends ServiceProvider
         if (! empty(config('app.trusted_proxies'))) {
             TrustProxies::at(config('app.trusted_proxies'));
         }
+
+        // ログイン後の管理画面の全体に掛ける、スタッフごとの回数の制限。
+        // routes/web.phpの管理画面のグループが、throttle:admin-screenで使う
+        RateLimiter::for('admin-screen', AdminRequestLimit::limit(...));
 
         // 一斉メールを送る速さの制限。App\Jobs\SendBulkMailのRateLimitedが使う
         RateLimiter::for('bulk-mail', fn () => Limit::perMinute(config('mail.bulk_per_minute')));

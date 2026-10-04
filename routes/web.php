@@ -180,7 +180,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
     // ログイン中のスタッフだけが使う画面。auth.sessionは会員側と同じ
     // （パスワードが変わったら、ほかの端末のログインと保持用のCookieを無効にする）。
-    Route::middleware(['auth:admin', 'auth.session'])->group(function () {
+    // throttle:admin-screenは、スタッフごとの回数の制限（App\Support\AdminRequestLimit）。
+    // 一覧や詳細を、プログラムで続けて開いてデータを取り出す動きを止める。
+    Route::middleware(['auth:admin', 'auth.session', 'throttle:admin-screen'])->group(function () {
         // 管理画面TOP
         Route::view('/', 'admin.dashboard')->name('dashboard');
         // ログアウト
