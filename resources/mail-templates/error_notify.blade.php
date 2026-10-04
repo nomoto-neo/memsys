@@ -1,12 +1,12 @@
 FROM_MAIL: {!! $from_mail !!}
 FROM_NAME: {!! $from_name !!}
 TO_MAIL: {!! $to !!}
-SUBJECT: [{!! $app_name !!}] {!! $level !!}：{!! $title !!}
+SUBJECT: 【要確認：{!! $app_name !!}】{!! $level !!}：{!! $title !!}
 
-{!! $app_name !!}（{!! $app_env !!}）で、{!! $level !!}のログが記録されました。
+{!! $app_name !!}（{!! $app_env !!}）で、注意すべきログが記録されました。
 
 ■日時
-{!! $datetime !!}
+{!! $datetime !!}　{!! $level !!}
 
 ■内容
 {!! $message !!}

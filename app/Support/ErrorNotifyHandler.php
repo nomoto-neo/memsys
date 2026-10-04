@@ -25,6 +25,11 @@ use Throwable;
  * - warning   動いてはいるが気になるもの。Cloudflareが応答せず判定を素通りしたなど
  * 404や入力エラーのように利用者の操作で普通に起きるものは、Laravelが例外を報告しないので届かない。
  *
+ * ■ 件名
+ * 「【要確認：サイト名】レベル：内容」。頭の「【要確認：サイト名】」は全部の通知で同じなので、
+ * 受け取る人がメールの振り分けに使える。レベルは、一覧で急ぎかどうかを見分けるために載せる。
+ * 内容は、例外なら種類、それ以外なら文言の頭。文言の頭の「クラス名: 」は、件名には出さない。
+ *
  * ■ 間引き
  * 同じ内容の通知はERROR_NOTIFY_INTERVALの分数の間に1通だけ送る。
  * 同じ内容とは、例外なら種類と原因の場所、それ以外ならレベルと文言が同じもの。
@@ -40,6 +45,9 @@ final class ErrorNotifyHandler extends AbstractProcessingHandler
 {
     // 間引きの記録のキーの頭
     private const CACHE_PREFIX = 'error_notify:';
+
+    // 件名に載せる内容の幅（半角で数えた文字数）。これより長ければ切る
+    private const TITLE_WIDTH = 60;
 
     // メールに載せるスタックトレースの行数
     private const TRACE_LINES = 15;
@@ -149,8 +157,9 @@ final class ErrorNotifyHandler extends AbstractProcessingHandler
             $trace = array_slice(explode("\n", $exception->getTraceAsString()), 0, self::TRACE_LINES);
             $variables['trace'] = $this->relativePath(implode("\n", $trace));
         } else {
-            // 例外でなければ、件名に文言の頭を使う
-            $variables['title'] = mb_strimwidth($record->message, 0, 60, '…');
+            // 例外でなければ、件名に文言の頭を使う。文言の頭の「クラス名: 」と終わりの句点は除く
+            $title = rtrim(preg_replace('/^\w+: /', '', $record->message), '。');
+            $variables['title'] = mb_strimwidth($title, 0, self::TITLE_WIDTH, '…');
         }
 
         // Log::error()などに添えた情報。例外はほかの欄に出すので除く
