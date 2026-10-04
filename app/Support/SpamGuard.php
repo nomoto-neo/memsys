@@ -112,7 +112,10 @@ final class SpamGuard
 
         $token = (string) $request->input(self::TURNSTILE_FIELD);
 
+        // 枠の判定が終わる前に送られた。枠を出すCloudflareのスクリプトを読めない環境でもこうなる
         if ($token === '') {
+            Log::info('SpamGuard: Turnstileのトークンがありません。', ['ip' => $request->ip(), 'path' => $request->path()]);
+
             return SpamCheckResult::Failed;
         }
 
