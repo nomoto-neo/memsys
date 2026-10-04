@@ -19,6 +19,7 @@
 | 第1.14版 | 2026-10-04 | エラーの通知（`ErrorNotifyHandler`）を追加。処理されなかった例外を critical で記録するようにした（20章） |
 | 第1.15版 | 2026-10-04 | CSV 取り込みを、取り込み画面と保存の流れ（`CsvImport`）と、CSV を読んで確かめる部分（`CsvReader`）に分けた。処理だけのモードで `query` を null にできるようにした（10章） |
 | 第1.16版 | 2026-10-04 | キューと、その見本の一斉メール（文面の管理・CSV の宛先・送信の状況）を追加（21章） |
+| 第1.17版 | 2026-10-04 | サーバーへ送った後に実行するコマンド（`config:cache` が必須で、`config:clear` は実行しない）を追加（0章・19章） |
 
 ## 0. このガイドについて
 
@@ -46,6 +47,29 @@
 - 共通部品を足したり、使い方が変わったりしたら、このガイドの該当する章を直し、冒頭の版の表に1行足します。
 - 新しい機能の章を足すときは、「ファイル・実例 → コントローラーに書くもの → ルート → 画面 → 決まりごと」の順にそろえ、最後の章の後ろに足します。
 - 細かい仕様は各ファイルの冒頭のコメントに書き、このガイドには「どこを見て、どう組むか」だけを書きます（同じことを2か所に詳しく書くと、片方だけ直して食い違うため）。
+
+### サーバーへ送った後に実行するコマンド
+
+ファイルをサーバーへ送った後、サイトのディレクトリで、上から順に要るものだけを実行します。実行するのは、デプロイ用のユーザーです。開発サーバーでは devapp で、root になる必要はありません。
+
+| 順 | コマンド | 要るとき |
+|---|---|---|
+| 1 | `composer install --no-dev --optimize-autoloader` | `composer.json`・`composer.lock` を変えたとき |
+| 2 | `npm ci` | `package.json`・`package-lock.json` を変えたとき |
+| 3 | `npm run build` | `resources/js`・`resources/css`・`vite.config.js` を変えたとき |
+| 4 | `php artisan migrate --force` | マイグレーションを足したとき |
+| 5 | `php artisan config:cache` | 毎回。`.env` か `config/` を変えたときは必ず |
+| 6 | `php artisan view:clear` | 毎回 |
+
+- **`config:cache` は必須です**。サーバーでは、PHP-FPM を apache で動かし、`.env` は apache から読めないようにしています。`config:cache` は `.env` の値を取り込んだ `bootstrap/cache/config.php` を作り、Laravel はそれだけを読むようになるので、apache が `.env` を読めなくても画面も cron も動きます。
+- **`config:clear` は実行しません**。`bootstrap/cache/config.php` が消えて設定の出どころが無くなり、DB が既定の SQLite になって、画面も cron（19章）も動かなくなります。
+- `.env` を変えただけでは効きません。`config:cache` をやり直したときに効きます。
+- `bootstrap/cache/` は、apache が読めて書けない状態にしています。ディレクトリに setgid と既定の ACL（`default:user:apache:r-x`）を付けてあるので、中に作ったファイルは誰が作っても apache が読めます。作った後に権限を直す必要はありません。`ls -l` では 660 に見えますが、末尾の `+` が ACL の印で、中身は `getfacl` で確かめます。
+- 画面が「The bootstrap/cache directory must be present and writable」のエラーで止まったときは、中のファイルが古くなっています。apache は書けないので自分では作り直せません。`php artisan config:cache` をやり直します。
+- `storage/` の下は、全部を apache が書けるようにします。ログのほか、コンパイル済みの画面とメールのテンプレートの展開（`storage/framework/views`）、エラーの通知の間引きの記録（`storage/framework/cache/data`）、アップロードしたファイルと一時ファイル（`storage/app`）を置くためです。書けないと、メールの送信が「tempnam(): file created in the system's temporary directory」のエラーで止まります。
+- devapp が `storage/` の下に作ったファイル（artisan を実行したときのログなど）も、既定の ACL（`default:user:apache:rwx`）で apache が書けます。作った後に権限を直す必要はありません。
+- 設定が効いているかは、画面を開いて確かめます。sudo を使えるときは `sudo -u apache php artisan config:show database.default` でも確かめられ、`mariadb` と出れば apache が読めています。devapp で同じコマンドを実行しても、devapp は `.env` を読めるので確かめになりません。
+- 手元の開発環境は `.env` を直接読むので、`config:cache` は要りません。
 
 ### まだ無い機能（今後の予定）
 
@@ -945,6 +969,7 @@ Schedule::command(CleanupTemporaryData::class)->hourly()->withoutOverlapping();
 ```
 
 - `/etc/cron.d/` のファイルは、時刻の後に実行するユーザーを書きます。**PHP-FPM のそのサイトのプールと同じユーザー**にします（プールの設定の `user`）。root で動かすと、ログ（`storage/logs`）などのファイルが root の持ち物になり、画面からの処理が書き込めなくなります。apache のようにログインできないユーザーでも動きます。
+- cron から動かすコマンドも、`bootstrap/cache/config.php` から設定を読みます。`schedule:run` が SQLite のエラーで止まるときは、`config:cache` をやり直します（0章「サーバーへ送った後に実行するコマンド」）。
 - cron の PATH は最小限なので、`php` は絶対パスで書きます。場所は `which php` で確かめます。サイトのパスもサーバーに合わせます。
 - ファイルは root の持ち物で 644 にし、最後の行の後ろに改行を入れます（無いと最後の行が読まれないことがある）。ファイル名に `.` を入れると読み飛ばされます。
 - 開発用と本番が同じサーバーにあるときは、`memsys_dev`・`memsys` のようにファイルを分け、パスとユーザーをそれぞれに合わせます。
