@@ -44,7 +44,7 @@ class OperationLog extends Model
      * まとめて1回ずつで読む。削除したスタッフも名前を出せるよう、削除済みも含めて探す。
      * 退会した会員は行が無いので出ない。
      *
-     * @param  iterable<self>  $logs
+     * @param  iterable<object>  $logs  操作ログの行。operator_type・operator_idを持つ集計の行でもよい
      */
     public static function subjectNames(iterable $logs): array
     {
@@ -54,7 +54,8 @@ class OperationLog extends Model
         ];
 
         foreach ($logs as $log) {
-            foreach ([[$log->operator_type, $log->operator_id], [$log->target_type, $log->target_id]] as [$type, $id]) {
+            // 集計の行のように、対象を持たないものも渡せる
+            foreach ([[$log->operator_type, $log->operator_id], [$log->target_type ?? null, $log->target_id ?? null]] as [$type, $id]) {
                 if (isset($ids[$type]) && $id !== null) {
                     $ids[$type][] = $id;
                 }
@@ -69,6 +70,20 @@ class OperationLog extends Model
                 ->whereIn('id', $ids[OperationLogSubject::Member->value])
                 ->pluck('name', 'id'),
         ];
+    }
+
+    // 操作した人を「スタッフID:3　氏名」の形にした文字。誰もログインしていない操作は「訪問者」。
+    // $namesはsubjectNames()の結果。メールのように、Bladeで組み立てないところで使う
+    public static function operatorLabel(?string $type, ?int $id, array $names): string
+    {
+        if ($type === null) {
+            return '訪問者';
+        }
+
+        // 退会した会員のように、もう行が無い人は氏名が出ない
+        $name = $names[$type][$id] ?? '';
+
+        return code_label('operation_log_subject', $type).'ID:'.$id.($name !== '' ? '　'.$name : '');
     }
 
     /**

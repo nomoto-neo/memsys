@@ -8,12 +8,15 @@ use App\Enums\OperationLogSubject;
 use App\Http\Controllers\Controller;
 use App\Models\OperationLog;
 use App\Support\CsvDownload;
+use App\Support\OperationLogStats;
 use App\Support\SearchableList;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -64,6 +67,9 @@ class OperationLogController extends Controller
         ],
     ];
 
+    // 一覧の上に出す、1日ごとの棒の日数。
+    private const STATS_DAYS = 30;
+
     // 検索の「操作した人」で、誰もログインしていない訪問者の操作を選ぶときの値。
     // 訪問者の操作は、操作した人の種類が空で残っている。
     private const GUEST = 'guest';
@@ -82,6 +88,8 @@ class OperationLogController extends Controller
         $logs = $result['paginated'];
 
         return view('admin.operation_logs.index', [
+            // 一覧の上に出す集計。1ページ目にだけ出す。2ページ目から先は一覧を読み進めているので出さない
+            'stats' => $logs->currentPage() === 1 ? $this->stats($result['filters']) : null,
             'logs' => $logs,
             // 操作ログには氏名を持たせていないので、このページに出てくるスタッフと会員の、今の氏名を引く
             'names' => OperationLog::subjectNames($logs),
@@ -92,6 +100,67 @@ class OperationLogController extends Controller
             'orderOptions' => $result['orderOptions'],
             'selectedOrder' => $result['orderKey'],
         ]);
+    }
+
+    /**
+     * 一覧の上に出す集計。今の検索条件で数える。日付の条件だけは外し、期間は集計の側で決める。
+     *
+     * @return array{hourly: array, daily: array, period: string, days: int, selectedDay: ?string, topOperators: Collection, topNames: array}
+     */
+    private function stats(array $filters): array
+    {
+        $query = OperationLog::query();
+        $this->setWhere($query, Arr::except($filters, ['date_from', 'date_to']));
+
+        // 1時間ごとの棒の期間。検索で1日だけに絞っていれば、その日の0時から24時間。
+        // そうでなければ、今の時を最後にした直近の24時間
+        $selectedDay = $this->selectedDay($filters);
+        if ($selectedDay !== null) {
+            $hourlyFrom = $selectedDay;
+            $period = $selectedDay->format('Y-m-d');
+        } else {
+            $hourlyFrom = now()->startOfHour()->subHours(23);
+            $period = '直近24時間';
+        }
+
+        // 操作の多い人は、1時間ごとの棒と同じ期間で数える
+        $topOperators = OperationLogStats::topOperators($query, $hourlyFrom, $hourlyFrom->copy()->addHours(24));
+
+        return [
+            'hourly' => OperationLogStats::hourly($query, $hourlyFrom),
+            // 1日ごとの棒は、今日を最後にしたSTATS_DAYS日ぶん
+            'daily' => OperationLogStats::daily($query, today()->subDays(self::STATS_DAYS - 1), self::STATS_DAYS),
+            // 1時間ごとの棒と、操作の多い人の表の、期間の呼び名
+            'period' => $period,
+            'days' => self::STATS_DAYS,
+            'selectedDay' => $selectedDay?->format('Y-m-d'),
+            'topOperators' => $topOperators,
+            'topNames' => OperationLog::subjectNames($topOperators),
+        ];
+    }
+
+    // 検索で1日だけに絞っていれば、その日の0時。日付の「ここから」と「ここまで」が同じ日のとき。
+    // 絞っていないか、2日以上の範囲ならnull
+    private function selectedDay(array $filters): ?Carbon
+    {
+        if (empty($filters['date_from']) || empty($filters['date_to'])) {
+            return null;
+        }
+
+        $from = Carbon::parse($filters['date_from'])->startOfDay();
+
+        return $from->equalTo(Carbon::parse($filters['date_to'])->startOfDay()) ? $from : null;
+    }
+
+    // 1日ごとの棒を押したとき。今の検索条件はそのままで、日付だけをその1日に絞る。
+    // 画面は、今の検索条件をhiddenで一緒に送ってくる
+    public function searchDay(Request $request): RedirectResponse
+    {
+        $day = $request->validate(['day' => ['required', 'date']])['day'];
+
+        $request->merge(['date_from' => $day, 'date_to' => $day]);
+
+        return $this->storeSearchCondition($request);
     }
 
     // 検索の「操作した人」の選択肢。値 => 名前。ログインできるスタッフと会員に、訪問者を足す。

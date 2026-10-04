@@ -60,6 +60,7 @@
 | 第1.27版 | 2026-10-04 | エラーの通知の件名を「【要確認：サイト名】レベル：内容」に変え、本文の日時の右にレベルを載せた（20章） |
 | 第1.28版 | 2026-10-04 | ログイン後の管理画面の全体に、スタッフごとの回数の制限（`AdminRequestLimit`）を追加。超えたら操作ログと通知に残す（22章） |
 | 第1.29版 | 2026-10-04 | 操作ログの一覧で、CSV と一斉メールの送信の件数を出し、件数から内訳のモーダルを開けるようにした（22章） |
+| 第1.30版 | 2026-10-04 | 操作ログの一覧に、件数の棒グラフと操作の多い人の表（`OperationLogStats`）を追加。気になる点があった日に報告のメールを送る（`OperationLogReport`・`app:report-operation-logs`）（22章） |
 
 ## 0. このガイドについて
 
@@ -130,7 +131,7 @@ TRUSTED_PROXIES=10.0.0.5,10.0.0.6
 - `.env` を変えたら `php artisan config:cache` をやり直します。
 ### まだ無い機能（今後の予定）
 
-自動テスト。作ったときに章を足します。操作ログ（22章）は、記録・一覧・管理画面の回数の制限までできています。件数の多い時間帯の表示と定期の報告は、これから足します。
+自動テスト。作ったときに章を足します。
 
 ## 1. 全体像
 
@@ -180,6 +181,8 @@ TRUSTED_PROXIES=10.0.0.5,10.0.0.6
 | `ErrorNotifyHandler` | `app/Support/` | ログに書いたエラーを開発者にメールで知らせる（レベル・宛先・間隔は .env） | 20 |
 | `SendBulkMail` | `app/Jobs/` | 一斉メールを1通送るキューのジョブ（送る速さの制限・試し直し・バッチ） | 21 |
 | `OperationRecorder` | `app/Support/` | 操作ログ（誰が・いつ・どこから・何に・何をしたか）を書く | 22 |
+| `OperationLogStats`・`OperationLogReport` | `app/Support/` | 操作ログの件数の集計（一覧の上のグラフと表）と、1日ぶんの報告 | 22 |
+| `app:report-operation-logs` | `app/Console/Commands/` | 操作ログの報告のコマンド（スケジューラーから毎朝。気になる点があった日だけメールを送る） | 22 |
 | `AdminRequestLimit` | `app/Support/` | ログイン後の管理画面の全体に掛ける、スタッフごとの回数の制限 | 22 |
 | `MemberProfileNotice` | `app/Support/` | 会員情報が変わったことを、本人へメールで知らせる | 22 |
 | `SpamGuard`・`_spam_guard` | `app/Support/`・`resources/views/` | 訪問者向けフォームのスパム対策（ハニーポット・送信までの時間・Cloudflare Turnstile） | 12 |
@@ -1266,6 +1269,41 @@ OperationRecorder::record(OperationLogAction::Restore, $staff);
 - **CSV と一斉メールの送信は、補足の欄に件数を出します**：`23件`、`120行（追加 0・更新 15・変更なし 105）`、`宛先 300件（送信済み 298・失敗 2）` の形です。件数は操作ログには持たせず、CSV の記録（`t_csv_download_logs`・`t_csv_import_logs`）と送信の記録（`t_bulk_mails`）から、その都度読みます（`OperationLog::relatedRecords()`）。
 - **件数を押すと、内訳のモーダルが開きます**：CSV のダウンロードなら検索条件、取り込みならファイル名と件数の内訳、一斉メールなら件名と送信の結果です。検索条件は、記録してある形（検索の項目の名前と値）のまま出します。
 - 操作ログを CSV で出したときも、「補足」の列に同じ件数が入ります。内訳は入りません。
+
+### 件数の集計（OperationLogStats）
+
+**ファイル**：`app/Support/OperationLogStats.php`　**実例**：`Admin\OperationLogController::index()`・`resources/views/admin/operation_logs/index.blade.php`
+
+操作ログの一覧の上に、件数の棒グラフと、操作の多い人の表を出します。出すのは1ページ目だけです。2ページ目から先は、一覧を読み進めているので出しません。件数の多い時間帯や、ふだんと違う使われ方に気付けるようにするためです。
+
+| 集計 | 期間 |
+|---|---|
+| 1時間ごとの棒 | 直近の24時間。検索で1日だけに絞っているときは、その日の0時から24時間 |
+| 1日ごとの棒 | 今日までの30日（`STATS_DAYS`）。棒を押すと、今の検索条件のまま、その1日に絞る |
+| 操作の多い人 | 1時間ごとの棒と同じ期間。スタッフの上位3人・会員の上位3人・訪問者（`OperationLogStats::TOP_COUNT`） |
+
+- **今の検索条件で数えます**：操作を「詳細の閲覧」に絞れば閲覧だけの棒に、スタッフで絞ればその人だけの棒になります。日付の条件だけは外し、期間は上の表のとおりに決めます。
+- **棒は HTML と CSS だけで書いています**。グラフの部品は使いません。棒の高さは、いちばん多い棒を100%とした割合です。見た目は、同じ画面の `<style>` にあります。
+- `OperationLogStats` のメソッドは、対象を絞った操作ログのクエリを受け取って数えます。ほかの画面で同じ集計を出すときも、クエリを渡すだけです。
+
+### 1日1回の報告のメール（OperationLogReport）
+
+**ファイル**：`app/Support/OperationLogReport.php`（冒頭のコメント）・`app/Console/Commands/ReportOperationLogs.php`・`resources/mail-templates/operation_log_report.blade.php`
+
+毎朝8時に、前の日の操作ログの報告を管理者へ送ります（`routes/console.php`）。**気になる点があった日だけ**送ります。毎日届くと読まれなくなり、肝心の日に埋もれるためです。
+
+| 気になる点 | 目安（`OperationLogReport` の定数） |
+|---|---|
+| 1人が、1時間に詳細を開いた件数 | 50件以上（`VIEWS_PER_HOUR`） |
+| 1人が、1日に CSV をダウンロードした回数 | 5回以上（`CSV_DOWNLOADS_PER_DAY`） |
+| 1日のログインの失敗 | 10件以上（`LOGIN_FAILURES_PER_DAY`） |
+| 管理画面の回数の制限に達した人 | 1人でもいれば |
+
+- **宛先**：`.env` の `OPERATION_REPORT_TO`（カンマ区切りで複数書けます）。空なら送りません。エラーの通知（`ERROR_NOTIFY_TO`）は開発者、こちらは管理者と、読む人が違うので分けています。
+- **件名**：`【要確認：サイト名】操作ログの報告（日付）`。頭は、エラーの通知と同じです。
+- **載せるもの**：気になる点、操作の種類ごとの件数、操作の多い人です。操作ログと同じく、氏名のほかの個人情報は載せません。
+- **手で動かす**：`php artisan app:report-operation-logs --date=2026-10-04 --always`。`--date` を書かなければ前の日、`--always` を付けると気になる点が無くても送ります。文面や宛先を確かめるときに使います。
+- 目安の数を変えるときは、`OperationLogReport` の定数を直します。
 
 ### 会員情報が変わったときのお知らせメール（MemberProfileNotice）
 

@@ -296,6 +296,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('/operation-logs', [AdminOperationLogController::class, 'index'])->name('operation-logs.index');
             Route::post('/operation-logs', [AdminOperationLogController::class, 'storeSearchCondition'])->name('operation-logs.search');
             Route::get('/operation-logs/csv', [AdminOperationLogController::class, 'csv'])->name('operation-logs.csv');
+            // 1日ごとの棒を押したとき。今の検索条件のまま、その1日に絞る
+            Route::post('/operation-logs/day', [AdminOperationLogController::class, 'searchDay'])->name('operation-logs.day');
         });
 
         // ニュースカテゴリー管理

@@ -55,6 +55,10 @@ return [
     // これを過ぎた行は、App\Support\TemporaryDataCleanerが消す
     'operation_log_days' => (int) env('OPERATION_LOG_DAYS', 365),
 
+    // 操作ログの報告のメール（App\Support\OperationLogReport）の宛先。カンマ区切りで複数書ける。
+    // 空なら送らない。エラーの通知（ERROR_NOTIFY_TO）は開発者、こちらは管理者と、読む人が違うので分けている
+    'operation_report_to' => (string) env('OPERATION_REPORT_TO', ''),
+
     'channels' => [
 
         // ERROR_NOTIFY_LEVELがあれば、ファイルに書くのと一緒にerror_notifyでメールでも知らせる
