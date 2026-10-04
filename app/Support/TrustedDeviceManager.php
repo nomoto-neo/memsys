@@ -6,7 +6,6 @@ use App\Models\Member;
 use App\Models\Staff;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cookie;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 /**
@@ -17,9 +16,16 @@ use Illuminate\Support\Str;
  * DBのテーブルは会員とスタッフで共通にし、Cookieの名前だけを分けている。同じブラウザで
  * 両方にログインしたときに、片方で信頼するともう片方のCookieを上書きしてしまうため。
  *
- * 判定はパスワードの確認が済んで誰かが分かってから行う。Cookieの値をその人の期限内の
- * 記録と照合し、1件でも一致すれば2段階目を省いてよい。ハッシュ値から検索することは
- * できないので、1件ずつ照合する。
+ * 判定はパスワードの確認が済んで誰かが分かってから行う。Cookieの値のハッシュ値が、
+ * その人の期限内の記録にあれば、2段階目を省いてよい。
+ *
+ * ■ ハッシュ値
+ * DBにはCookieの値そのものではなく、SHA-256のハッシュ値を置く。DBが漏れても、
+ * そこからCookieの値を作れないようにするため。
+ * パスワードと同じHash::make()（bcrypt）は使わない。bcryptはわざと時間がかかる作りで、
+ * 同じ値でも毎回違うハッシュ値になるので検索できず、記録を1件ずつ照合することになる。
+ * 記録の数だけログインが遅くなる。Cookieの値は64文字の乱数で、総当たりでは当てられないので、
+ * 速いハッシュ値で足りる。
  *
  * パスワードの変更・2段階認証の登録解除・スタッフの削除のときは、forgetAll()ですべて無効にする。
  * 乗っ取りを疑うときの操作なので、それまでに信頼した端末からも入れないようにするため。
@@ -56,18 +62,11 @@ class TrustedDeviceManager
             return false;
         }
 
-        // 期限内の記録と1件ずつ照合する
-        $devices = $owner->trustedDevices()
+        // その人の期限内の記録に、同じハッシュ値のものがあるか
+        return $owner->trustedDevices()
+            ->where('token_hash', self::hashOf($token))
             ->where('expires_at', '>', now())
-            ->get();
-
-        foreach ($devices as $device) {
-            if (Hash::check($token, $device->token_hash)) {
-                return true;
-            }
-        }
-
-        return false;
+            ->exists();
     }
 
     /**
@@ -83,16 +82,20 @@ class TrustedDeviceManager
         $token = Str::random(64);
 
         $owner->trustedDevices()->create([
-            'token_hash' => Hash::make($token),
+            'token_hash' => self::hashOf($token),
             'expires_at' => now()->addDays(self::VALID_DAYS),
         ]);
 
-        Cookie::queue(
-            $this->cookieName,
-            $token,
-            self::VALID_DAYS * 24 * 60, // Cookie::queue()の有効期間は「分」単位
-            httpOnly: true,
-        );
+        // 有効期間は「分」単位。パスは既定の「/」、JavaScriptから読めない設定（httpOnly）も既定のまま。
+        // 引数に名前を付けて渡さないこと。Cookie::queue()は引数を順番だけで受け取るので、
+        // httpOnly: trueと書くと4番目のパスに入り、どのURLにも送られないCookieになる
+        Cookie::queue($this->cookieName, $token, self::VALID_DAYS * 24 * 60);
+    }
+
+    // DBに置く、Cookieの値のハッシュ値。理由は冒頭のコメントの「ハッシュ値」
+    private static function hashOf(string $token): string
+    {
+        return hash('sha256', $token);
     }
 
     /**
