@@ -155,8 +155,13 @@ class OperationLogController extends Controller
     // CSVダウンロード（一覧の今の検索条件・並び順で全件）
     public function csv(): StreamedResponse
     {
+        // 出すのは、このダウンロードより前の操作まで。downloadCsv()は書き出しの前に、
+        // このダウンロード自身の操作ログを書く。それも出すと、件数がまだ決まっていないので
+        // 「0件」のCSVダウンロードとして載ってしまう
+        $lastId = OperationLog::max('id') ?? 0;
+
         return $this->downloadCsv(
-            query: OperationLog::query(),
+            query: OperationLog::query()->where('id', '<=', $lastId),
             name: '操作ログ',
             encoding: CsvEncoding::Utf8Bom,
             header: true,
