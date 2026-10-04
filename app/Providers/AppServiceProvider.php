@@ -10,6 +10,7 @@ use App\Models\Passkey;
 use App\Models\Staff;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Passkeys\Passkeys;
@@ -45,6 +46,16 @@ class AppServiceProvider extends ServiceProvider
             'news' => News::class,
             'bulk_mail' => BulkMail::class,
         ]);
+
+        // 信頼するプロキシ（.envのTRUSTED_PROXIES）から届いたX-Forwarded-Forを、訪問者の
+        // IPアドレスとして使う。ログインの試行制限・回数の制限・操作ログなど、IPアドレスを
+        // 使うところの全部に効く。このヘッダーは送る側が自由に書けるので、信頼するプロキシの
+        // ほかから届いたものは使わない。書いていなければ、直接つないできた相手のIPアドレスを使う
+        // 設定のキャッシュが古くてこの項目がまだ無いとき（デプロイの直後、config:cacheをやり直す前）も、
+        // 書いていないものとして扱う
+        if (! empty(config('app.trusted_proxies'))) {
+            TrustProxies::at(config('app.trusted_proxies'));
+        }
 
         // 一斉メールを送る速さの制限。App\Jobs\SendBulkMailのRateLimitedが使う
         RateLimiter::for('bulk-mail', fn () => Limit::perMinute(config('mail.bulk_per_minute')));

@@ -123,4 +123,12 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    // 信頼するプロキシのIPアドレス。サーバーの前にロードバランサーやCDNを置いたときに、
+    // そのIPアドレスをカンマ区切りで書く（192.168.0.0/24のような範囲も書ける）。
+    // ここに書いたプロキシから届いたX-Forwarded-Forを、訪問者のIPアドレスとして使う
+    // （App\Providers\AppServiceProvider）。空なら、どのプロキシも信頼しない。
+    'trusted_proxies' => array_values(array_filter(
+        array_map('trim', explode(',', (string) env('TRUSTED_PROXIES', '')))
+    )),
+
 ];
