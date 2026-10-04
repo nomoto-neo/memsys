@@ -149,9 +149,9 @@ trait CsvReader
         $model = $settings->query?->getModel();
         $keyName = $model?->getKeyName() ?? '';
 
-        // AjaxFileUploadのアップロードの欄。エディタの欄は除く
+        // 追加と更新で取り込む、AjaxFileUploadのアップロードの欄。エディタの欄は除く
         $uploadFields = [];
-        if (method_exists($this, 'uploadFieldDefinitions')) {
+        if ($isSave && method_exists($this, 'uploadFieldDefinitions')) {
             foreach ($this->uploadFieldDefinitions() as $def) {
                 if ($def['kind'] !== 'wysiwyg') {
                     $uploadFields[$def['field']] = $def['kind'];

@@ -6,6 +6,8 @@ use App\Http\Controllers\Admin\NewsController as AdminNewsController;
 use App\Http\Controllers\Admin\StaffController as AdminStaffController;
 use App\Http\Controllers\Admin\CodeController as AdminCodeController;
 use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
+use App\Http\Controllers\Admin\BulkMailController as AdminBulkMailController;
+use App\Http\Controllers\Admin\BulkMailTemplateController as AdminBulkMailTemplateController;
 use App\Http\Controllers\Admin\TwoFactorChallengeController;
 use App\Http\Controllers\AuthPasswordController;
 use App\Http\Controllers\AuthRegisteredMemberController;
@@ -265,6 +267,23 @@ Route::prefix('admin')->name('admin.')->group(function () {
             // 項目見出し一覧（DBで管理するコード表 t_codes の編集）
             Route::get('/codes', [AdminCodeController::class, 'index'])->name('codes.index');
             Route::patch('/codes', [AdminCodeController::class, 'update'])->name('codes.update');
+
+            // 一斉メールの文面の管理
+            Route::get('/bulk-mail-templates', [AdminBulkMailTemplateController::class, 'index'])->name('bulk-mail-templates.index');
+            Route::get('/bulk-mail-templates/create', [AdminBulkMailTemplateController::class, 'create'])->name('bulk-mail-templates.create');
+            Route::post('/bulk-mail-templates', [AdminBulkMailTemplateController::class, 'store'])->name('bulk-mail-templates.store');
+            Route::get('/bulk-mail-templates/{template}/edit', [AdminBulkMailTemplateController::class, 'edit'])->name('bulk-mail-templates.edit');
+            Route::patch('/bulk-mail-templates/{template}', [AdminBulkMailTemplateController::class, 'update'])->name('bulk-mail-templates.update');
+            Route::delete('/bulk-mail-templates/{template}', [AdminBulkMailTemplateController::class, 'destroy'])->name('bulk-mail-templates.destroy');
+
+            // 一斉メールの送信。添付ファイルのAjaxアップロード先も含む
+            Route::post('/bulk-mails/ajax-upload', [AdminBulkMailController::class, 'uploadAjaxFile'])->name('bulk-mails.ajaxUpload');
+            Route::get('/bulk-mails', [AdminBulkMailController::class, 'index'])->name('bulk-mails.index');
+            Route::get('/bulk-mails/create', [AdminBulkMailController::class, 'create'])->name('bulk-mails.create');
+            Route::post('/bulk-mails/confirm', [AdminBulkMailController::class, 'confirm'])->name('bulk-mails.confirm');
+            Route::post('/bulk-mails/back', [AdminBulkMailController::class, 'back'])->name('bulk-mails.back');
+            Route::post('/bulk-mails', [AdminBulkMailController::class, 'store'])->name('bulk-mails.store');
+            Route::get('/bulk-mails/{bulkMail}', [AdminBulkMailController::class, 'show'])->name('bulk-mails.show');
         });
 
         // ニュースカテゴリー管理

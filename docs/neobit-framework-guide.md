@@ -18,6 +18,7 @@
 | 第1.13版 | 2026-10-04 | `downloadCsv()`・`CsvImportSettings` の引数から既定の値を外し、全部を書かないと動かないようにした |
 | 第1.14版 | 2026-10-04 | エラーの通知（`ErrorNotifyHandler`）を追加。処理されなかった例外を critical で記録するようにした（20章） |
 | 第1.15版 | 2026-10-04 | CSV 取り込みを、取り込み画面と保存の流れ（`CsvImport`）と、CSV を読んで確かめる部分（`CsvReader`）に分けた。処理だけのモードで `query` を null にできるようにした（10章） |
+| 第1.16版 | 2026-10-04 | キューと、その見本の一斉メール（文面の管理・CSV の宛先・送信の状況）を追加（21章） |
 
 ## 0. このガイドについて
 
@@ -48,7 +49,7 @@
 
 ### まだ無い機能（今後の予定）
 
-操作ログ、一斉メール配信（キュー）、自動テスト。作ったときに章を足します。
+操作ログ、自動テスト。作ったときに章を足します。
 
 ## 1. 全体像
 
@@ -94,6 +95,7 @@
 | `TemporaryDataCleaner` | `app/Support/` | 一時データの後片付け（一時ファイル・期限の切れたキャッシュと信頼済み端末） | 19 |
 | `app:cleanup-temporary-data` | `app/Console/Commands/` | 一時データの後片付けのコマンド（スケジューラーから1時間ごと） | 19 |
 | `ErrorNotifyHandler` | `app/Support/` | ログに書いたエラーを開発者にメールで知らせる（レベル・宛先・間隔は .env） | 20 |
+| `SendBulkMail` | `app/Jobs/` | 一斉メールを1通送るキューのジョブ（送る速さの制限・試し直し・バッチ） | 21 |
 | `SpamGuard`・`_spam_guard` | `app/Support/`・`resources/views/` | 訪問者向けフォームのスパム対策（ハニーポット・送信までの時間・Cloudflare Turnstile） | 12 |
 | `app.js` | `resources/js/` | フォームの補助（必須マークから required 属性、エラー表示） | 17 |
 
@@ -934,14 +936,19 @@ Schedule::command(CleanupTemporaryData::class)->hourly()->withoutOverlapping();
 
 ### サーバーの設定（cron）
 
-スケジューラーは、サーバーの cron で毎分 `php artisan schedule:run` を動かしたときに働きます。cron が無いと、`routes/console.php` に書いた処理は何も動きません。
+スケジューラーは、サーバーの cron で毎分 `php artisan schedule:run` を動かしたときに働きます。cron が無いと、`routes/console.php` に書いた処理も、キューのワーカー（21章）も何も動きません。
+
+サイトごとに `/etc/cron.d/` へファイルを1つ置きます。例は、開発用のサイトの `/etc/cron.d/memsys_dev` です。
 
 ```cron
-* * * * * cd /var/www/memsys && php artisan schedule:run >> /dev/null 2>&1
+* * * * * apache cd /var/www/memsys_dev && /usr/bin/php artisan schedule:run >> /dev/null 2>&1
 ```
 
-- **PHP-FPM と同じユーザーで動かします**（例：`crontab -u apache -e`）。root で動かすと、ログ（`storage/logs`）などのファイルが root の持ち物になり、画面からの処理が書き込めなくなります。
-- パス（`/var/www/memsys`）と `php` の場所は、サーバーに合わせます。
+- `/etc/cron.d/` のファイルは、時刻の後に実行するユーザーを書きます。**PHP-FPM のそのサイトのプールと同じユーザー**にします（プールの設定の `user`）。root で動かすと、ログ（`storage/logs`）などのファイルが root の持ち物になり、画面からの処理が書き込めなくなります。apache のようにログインできないユーザーでも動きます。
+- cron の PATH は最小限なので、`php` は絶対パスで書きます。場所は `which php` で確かめます。サイトのパスもサーバーに合わせます。
+- ファイルは root の持ち物で 644 にし、最後の行の後ろに改行を入れます（無いと最後の行が読まれないことがある）。ファイル名に `.` を入れると読み飛ばされます。
+- 開発用と本番が同じサーバーにあるときは、`memsys_dev`・`memsys` のようにファイルを分け、パスとユーザーをそれぞれに合わせます。
+- 動いているかは、1〜2分待ってから `php artisan schedule:list` で次に動く時刻を見るか、`storage/logs` に一時データの片付けのログが出るかで確かめます。
 
 ## 20. エラーの通知（ErrorNotifyHandler）
 
@@ -983,3 +990,48 @@ ERROR_NOTIFY_INTERVAL=10
 - 同じ内容かどうかは、例外なら種類と場所、それ以外ならレベルと文言で見分けます。間引きの記録はファイルのキャッシュに置くので、DB が落ちていても間引けます。
 - SMTP が落ちているなどで通知が送れないときは、そのことをログに残すだけにします。通知が送れないこと自体はメールでは分からないので、サーバーのログも時々見ます。
 - `LOG_CHANNEL` が `stack` のときに働きます（`config/logging.php` の `stack` に、`ERROR_NOTIFY_LEVEL` があれば `error_notify` が加わります）。
+
+## 21. キュー（一斉メール）
+
+**ファイル**：`app/Jobs/`（ジョブ）・`routes/console.php`（ワーカーのスケジュール）　**実例**：一斉メール（`Admin\BulkMailController`・`Admin\BulkMailTemplateController`・`app/Jobs/SendBulkMail.php`）
+
+画面の中で終わらない重い処理や、外のサーバーへの送信をたくさん行う処理は、キューに積んで裏で動かします。キューは DB（`QUEUE_CONNECTION=database`）を使い、積んだジョブは `jobs` テーブルに入って、終われば消えます。
+
+### ワーカー
+
+```php
+// routes/console.php。毎分動かし、積まれているものが無くなったら止まる
+Schedule::command('queue:work', ['--stop-when-empty', '--max-time=50'])->everyMinute()->withoutOverlapping();
+```
+
+- スケジューラー（19章）の cron のままで動き、Supervisor などの常駐の仕組みは要りません。積んでから送り始めるまでに、最大1分ほど掛かります。
+- 手元で試すときは `php artisan queue:work --stop-when-empty` を直接実行します。
+
+### ジョブの書き方
+
+```php
+class SendBulkMail implements ShouldQueue
+{
+    use Batchable, Queueable;
+
+    public array $backoff = [60, 300];   // 例外の後に試し直すまでの秒数
+    public int $maxExceptions = 3;       // 例外がこの回数を超えたら失敗にする
+
+    public function retryUntil(): DateTimeInterface { return now()->addDay(); }   // 速さの制限で戻されても、この期限までは試す
+    public function middleware(): array { return [new RateLimited('bulk-mail')]; }  // 送る速さの制限
+}
+```
+
+- **送る速さ**：`AppServiceProvider` の `RateLimiter::for('bulk-mail', ...)` で1分の上限を決め、ジョブの `RateLimited` で守ります。上限は `.env` の `MAIL_BULK_PER_MINUTE` で、SMTP の送信の上限を超えない値にします。
+- **失敗**：試し直しても送れなかったジョブは `failed_jobs` に残り、エラーの通知（20章）にも届きます。`php artisan queue:retry all` で送り直せます。
+- **バッチ**：たくさんのジョブを `Bus::batch()` で1つにまとめると、進み具合（済み・失敗・残り）を `job_batches` から読めます。`finally()` で、全部が終わったときの処理を書けます。
+- **トランザクション**：DB に書いた内容をジョブが読むときは、確定してから積みます。
+
+### 一斉メール
+
+- **文面の管理**：タイトル（管理用）・件名・本文を登録しておきます。確認画面を挟まない型（カテゴリーと同じ）です。
+- **送信**：入力（文面を選ぶと欄に入る。添付ファイルは1つ）→ 確認 → 送信 → 状況の画面。宛先は「氏名,メールアドレス」の見出し無しの CSV で、`CsvReader`（10章）で読み込みと検証だけを借ります。
+- **氏名の差し込み**：件名と本文の `{{$name}}` を宛先の氏名に置き換えます。Blade では展開せず、文字列を置き換えるだけです（画面から入力された文を Blade で展開すると、サーバーで何でも実行できてしまうため）。ほかの `{{…}}` は入力エラーにします。件名と CSV の氏名は、メールの見出しを崩さないよう改行を許しません。
+- **宛先は保存しない**：送るたびに送信の記録（`t_bulk_mails`）を1件作りますが、持つのは件名・本文・添付ファイル・件数だけです。宛先はジョブの中にだけあり、送り終えれば消えます。送り終えたら送れた件数と失敗した件数を記録に写します。
+- **二重の送信**：送信中の一斉メールがあれば、入力画面を開いても状況の画面に回します。送信の実行はロックの中で確かめるので、2つの画面から同時に押しても1つしか送りません。
+- 使えるのは管理者だけです。

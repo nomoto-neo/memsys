@@ -115,4 +115,8 @@ return [
         'name' => env('MAIL_FROM_NAME', env('APP_NAME', 'Laravel')),
     ],
 
+    // 一斉メールを送る速さ。1分に送る通数の上限で、SMTPの送信の上限に合わせる。
+    // App\Jobs\SendBulkMailが、AppServiceProviderのbulk-mailの制限として使う
+    'bulk_per_minute' => (int) env('MAIL_BULK_PER_MINUTE', 20),
+
 ];

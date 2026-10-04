@@ -2,12 +2,15 @@
 
 namespace App\Providers;
 
+use App\Models\BulkMail;
 use App\Models\Inquiry;
 use App\Models\Member;
 use App\Models\News;
 use App\Models\Passkey;
 use App\Models\Staff;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Passkeys\Passkeys;
 
@@ -40,6 +43,10 @@ class AppServiceProvider extends ServiceProvider
             'staff' => Staff::class,
             'inquiry' => Inquiry::class,
             'news' => News::class,
+            'bulk_mail' => BulkMail::class,
         ]);
+
+        // 一斉メールを送る速さの制限。App\Jobs\SendBulkMailのRateLimitedが使う
+        RateLimiter::for('bulk-mail', fn () => Limit::perMinute(config('mail.bulk_per_minute')));
     }
 }

@@ -31,6 +31,9 @@
         <a href="{{ route('admin.codes.index') }}" class="list-group-item list-group-item-action">
             項目見出し一覧
         </a>
+        <a href="{{ route('admin.bulk-mails.index') }}" class="list-group-item list-group-item-action">
+            一斉メール
+        </a>
     @else
         <a href="{{ route('admin.staff.show', Auth::guard('admin')->user()) }}" class="list-group-item list-group-item-action">
             自分の情報を確認

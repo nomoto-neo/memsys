@@ -17,3 +17,7 @@ Artisan::command('inspire', function () {
 // 一時データの後片付け（App\Support\TemporaryDataCleaner）。24時間を過ぎた一時ファイルが、
 // 遅くとも1時間以内に消えるよう、1時間ごとに動かす。前の回が終わっていなければ重ねて動かさない。
 Schedule::command(CleanupTemporaryData::class)->hourly()->withoutOverlapping();
+
+// キューに積んだジョブを送る係。毎分動かし、積まれているものが無くなったら止まる。
+// 常駐の仕組みを入れなくても、今のcronのままでキューが動く。--max-timeは、次の回と重ならない秒数
+Schedule::command('queue:work', ['--stop-when-empty', '--max-time=50'])->everyMinute()->withoutOverlapping();
