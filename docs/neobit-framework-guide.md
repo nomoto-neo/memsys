@@ -24,6 +24,7 @@
 - [19. スケジューラー（定期的な処理）](#19.%20スケジューラー（定期的な処理）)
 - [20. エラーの通知（ErrorNotifyHandler）](#20.%20エラーの通知（ErrorNotifyHandler）)
 - [21. キュー（一斉メール）](#21.%20キュー（一斉メール）)
+- [22. 操作ログ（OperationRecorder）](#22.%20操作ログ（OperationRecorder）)
 
 ## 版の履歴
 
@@ -54,6 +55,7 @@
 | 第1.22版 | 2026-10-04 | ログのファイルの分け方（サーバーは `daily` で90日残す）を追加（20章） |
 | 第1.23版 | 2026-10-04 | 冒頭に章の目次を、各章に目次へ戻るリンクを追加 |
 | 第1.24版 | 2026-10-04 | サーバーの前にプロキシを置くときの設定（`TRUSTED_PROXIES`。信頼するプロキシからの X-Forwarded-For を訪問者の IP アドレスとして使う）を追加（0章） |
+| 第1.25版 | 2026-10-04 | 操作ログ（`OperationRecorder`・管理画面の一覧）と、会員情報が変わったときのお知らせメール（`MemberProfileNotice`）を追加（22章）。`afterSave()` に、値が変わった列と変わる前の値を渡すようにした（5章） |
 
 ## 0. このガイドについて
 
@@ -124,7 +126,7 @@ TRUSTED_PROXIES=10.0.0.5,10.0.0.6
 - `.env` を変えたら `php artisan config:cache` をやり直します。
 ### まだ無い機能（今後の予定）
 
-操作ログ、自動テスト。作ったときに章を足します。
+自動テスト。作ったときに章を足します。操作ログ（22章）は、記録と一覧までできています。管理画面の全体への回数の制限と、件数の多い時間帯の表示・定期の報告は、これから足します。
 
 ## 1. 全体像
 
@@ -169,10 +171,12 @@ TRUSTED_PROXIES=10.0.0.5,10.0.0.6
 | `_ajax_upload_block`・`_ajax_upload_group` | `resources/views/` | アップロード欄（単数・複数） | 7 |
 | `admin/csv_import/` | `resources/views/` | CSV 取り込みの画面（全コーナー共通） | 10 |
 | `_passkeys` | `resources/views/` | パスキーの一覧・本人確認・登録の画面の中身 | 14 |
-| `TemporaryDataCleaner` | `app/Support/` | 一時データの後片付け（一時ファイル・期限の切れたキャッシュと信頼済み端末） | 19 |
+| `TemporaryDataCleaner` | `app/Support/` | 一時データの後片付け（一時ファイル・期限の切れたキャッシュと信頼済み端末・古い操作ログ） | 19 |
 | `app:cleanup-temporary-data` | `app/Console/Commands/` | 一時データの後片付けのコマンド（スケジューラーから1時間ごと） | 19 |
 | `ErrorNotifyHandler` | `app/Support/` | ログに書いたエラーを開発者にメールで知らせる（レベル・宛先・間隔は .env） | 20 |
 | `SendBulkMail` | `app/Jobs/` | 一斉メールを1通送るキューのジョブ（送る速さの制限・試し直し・バッチ） | 21 |
+| `OperationRecorder` | `app/Support/` | 操作ログ（誰が・いつ・どこから・何に・何をしたか）を書く | 22 |
+| `MemberProfileNotice` | `app/Support/` | 会員情報が変わったことを、本人へメールで知らせる | 22 |
 | `SpamGuard`・`_spam_guard` | `app/Support/`・`resources/views/` | 訪問者向けフォームのスパム対策（ハニーポット・送信までの時間・Cloudflare Turnstile） | 12 |
 | `app.js` | `resources/js/` | フォームの補助（必須マークから required 属性、エラー表示） | 17 |
 
@@ -381,7 +385,8 @@ public function show(News $news): View
 | `defaultInput()` | | 新規登録の初期値 |
 | `prepareInput($validated)` | | 検証の後、確認画面と保存の前の整形（例：`safe_html()`、郵便番号の整形） |
 | `additionalFields($validated, $record)` | | 入力値をそのまま使わずに保存する項目（例：ハッシュ化したパスワード、操作したスタッフの id、表示順） |
-| `afterSave($record, $validated)` | | 保存の直後（例：多対多の `sync()`） |
+| `afterSave($record, $validated, $changedFields)` | | 保存の直後（例：多対多の `sync()`）。`$changedFields` は更新で値が変わった列で、`列の名前 => 変わる前の値`。使わなければ引数に書かなくてよい。新規登録と CSV 取り込みでは空 |
+| `savedLogAction($created)` | | 操作ログ（22章）に残す操作の種類。登録・更新とは別の名前で残したいコーナーで書く（例：一斉メールの送信） |
 | `beforeDelete($record)` | | 削除の直前（6章） |
 
 アップロード項目は `saveFieldNames()` に書きません（`commitUploads()` が保存します）。多対多は `afterSave()` で保存します。
@@ -1045,6 +1050,7 @@ Schedule::command(CleanupTemporaryData::class)->hourly()->withoutOverlapping();
 | CSV 取り込みの作業用ファイル | `storage/app/private/csv_import` | 24時間より古いファイル |
 | 試行制限の回数などのキャッシュ | `cache`・`cache_locks` テーブル | 期限の切れた行（キャッシュを database に置いているときだけ） |
 | 「このデバイスを記憶する」の記録 | `trusted_devices` テーブル | 期限（`expires_at`）の切れた行 |
+| 操作ログ（22章） | `t_operation_logs` テーブル | `OPERATION_LOG_DAYS`（既定は365日）より古い行 |
 
 - 一時ファイルは、アップロードと CSV 取り込みのたびにも同じ処理で消します。サーバーの cron が動いていなくても溜まり続けないようにするための控えです。
 - 新しい一時データ（使い終わっても残るファイルや行）を作ったら、このクラスにメソッドを足し、`all()` に加えます。
@@ -1170,3 +1176,86 @@ class SendBulkMail implements ShouldQueue
 - **宛先は保存しない**：送るたびに送信の記録（`t_bulk_mails`）を1件作りますが、持つのは件名・本文・添付ファイル・件数だけです。宛先はジョブの中にだけあり、送り終えれば消えます。送り終えたら送れた件数と失敗した件数を記録に写します。
 - **二重の送信**：送信中の一斉メールがあれば、入力画面を開いても状況の画面に回します。送信の実行はロックの中で確かめるので、2つの画面から同時に押しても1つしか送りません。
 - 使えるのは管理者だけです。
+
+## 22. 操作ログ（OperationRecorder）
+
+<p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
+
+**ファイル**：`app/Support/OperationRecorder.php`（冒頭のコメント）・`app/Models/OperationLog.php`・`app/Enums/OperationLogAction.php`・`app/Enums/OperationLogSubject.php`　**実例**：`Admin\OperationLogController`（一覧）・`Admin\MemberController::show()`（詳細の閲覧）
+
+誰が・いつ・どこから・何に・何をしたかを、`t_operation_logs` に1行ずつ残します。情報が漏れたときや、「変えていないのに変わっている」という問い合わせがあったときに、後からたどれるようにするためです。
+
+### 残すもの・残さないもの
+
+| 列 | 中身 |
+|---|---|
+| `operator_type`・`operator_id` | 操作した人の種類（`staff`・`member`）と id。誰もログインしていない訪問者の操作は空で、画面では「訪問者」と出す |
+| `action` | 操作の種類（`OperationLogAction`） |
+| `target_type`・`target_id` | 対象の種類と id。CSV のダウンロードのように、1件に決まらないときは空 |
+| `changed_fields` | 更新のときだけ。値が変わった列の名前の一覧 |
+| `detail` | 種類ごとの補足。CSV の名前、ログインに失敗したログイン ID など |
+| `ip`・`device` | IP アドレスと、端末の種類（`UserAgentLabel`。例：iPhone・Safari） |
+
+- **氏名などの個人情報と、変更の前後の値は残しません**：操作ログが個人情報の写しにならないようにするためです。前の値までスタッフが知っていることは、会員の不信感にもつながります。画面では、id から今の氏名を引いて出します。
+- **種類の名前**は、`AppServiceProvider` の `Relation::enforceMorphMap()` に書いた名前です。操作ログに残すモデルを増やしたら、`enforceMorphMap()` と `OperationLogSubject` の両方に足します。
+
+### 記録するところ
+
+| 操作 | 記録するところ | コーナーに書くもの |
+|---|---|---|
+| 登録・更新・削除 | `FormFlow` の `saveData()`・`deleteData()` | 無い（別の名前で残すときだけ `savedLogAction()`） |
+| ログイン・ログアウト | `AppServiceProvider`（Laravel のログイン・ログアウトのイベント） | 無い |
+| ログインの失敗 | ログインのコントローラー（試行制限の回数を足すところ） | 無い |
+| パスワードの変更 | `PasswordChange::resetAndNotify()` | 無い |
+| パスキーの登録・削除 | `PasskeyManagement` | 無い |
+| CSV のダウンロード・取り込み | `CsvDownload`・`CsvImport` | 無い |
+| 詳細の閲覧 | 個人情報を持つコーナーの `show()` | 1行書く |
+| PDF の出力 | PDF を出す入口 | 1行書く |
+
+```php
+// 詳細の閲覧。個人情報を持つコーナーの show() の先頭に書く
+OperationRecorder::record(OperationLogAction::View, $member);
+
+// PDF の出力
+OperationRecorder::record(OperationLogAction::Pdf, $member, detail: ['name' => '履歴書']);
+
+// FormFlow を通らない更新や削除を、自分で記録するとき
+OperationRecorder::record(OperationLogAction::Restore, $staff);
+```
+
+### 決まりごと
+
+- **操作した人**：渡さなければ、その画面のガードでログインしている人です。管理画面ならスタッフ、マイページなら会員になります。2段階目の途中や、ログアウトした後のように、ログインはしていないが誰か分かっている操作は、`operator:` で渡します。
+- **訪問者の操作も残します**：お問い合わせの送信やログインの失敗のように、誰もログインしていない操作は、操作した人を空にして残します。IP アドレスは残るので、回数の制限をすり抜けるような大量の操作があったときに、後から調べられます。
+- **登録・更新とは別の名前で残す**：コントローラーに `savedLogAction()` を書きます。一斉メールは、送信の記録を1件作るのが送信の始まりなので、「登録」ではなく「一斉メールの送信」として残しています。
+- **一覧の表示と検索は記録しません**：1ページに出る件数が限られているためです。機械的に続けて取る動きは、回数の制限で止めて記録します（これから足します）。
+- **CSV 取り込みは、取り込み全体で1行です**：1件ずつの更新は記録しません。件数の内訳は取り込みの記録（`t_csv_import_logs`）が持ち、`detail` の id でつながります。CSV のダウンロードも同じです。
+- **変わった列に数えない列**：`created_at`・`updated_at` などの保存のたびに変わる列と、アップロードの元のファイル名の列（`〇〇_origin`）は数えません。最後に更新したスタッフの id のように、入力とは関係なく変わる列は、モデルの定数 `OPERATION_LOG_IGNORE` に書きます（例：`Member`）。
+- **変わった列は、本体のテーブルの列だけです**：多対多のような関連のテーブルの変更は、列の名前には出ません。「更新した」ことは残ります。
+- **変わった項目は、列の名前のまま出します**（`phone`・`disp_flg` など）。日本語の名前の対応表は持ちません。画面を足すたびに対応表も足すことになり、CSV の見出しなどと二重に持つことになるためです。
+- **`detail` に個人情報と入力値を入れません**。ログインの失敗のログイン ID だけは、どのアカウントが狙われたかを調べるために残しています。
+- **残す期間**：`.env` の `OPERATION_LOG_DAYS`（既定は365日）。過ぎた行は、一時データの後片付け（19章）が消します。
+
+### 画面
+
+- **一覧と検索**（`/admin/operation-logs`）：日付の範囲・操作・操作した人・対象・IP アドレスで絞れます。CSV でも出せます。見るだけの画面で、登録・編集・削除はありません。
+- **どちらの画面も、管理者だけが開けます**：記録を取っていることを、スタッフの全員に見せる必要は無いためです。管理画面のトップのリンクも、管理者にだけ出ます。
+- **会員ごとの操作ログ**（`/admin/members/{id}/operation-logs`。会員の詳細画面の「操作ログ」のボタン）：その会員を対象にした操作と、その会員が行った操作だけを出します。本人が変えたのか、スタッフが変えたのか、誰が詳細を開いたのかが、時刻の順に並びます。問い合わせに答えるのに使います。こちらも管理者だけが開け、ボタンも管理者にだけ出ます。
+- 表は、2つの画面で同じ部分ビュー（`admin/operation_logs/_table.blade.php`）を使います。
+
+### 会員情報が変わったときのお知らせメール（MemberProfileNotice）
+
+会員情報が変わると、本人へメールで知らせます（`resources/mail-templates/member_profile_changed.blade.php`）。本人が変えたときは記録が本人の手元にも残り、本人以外が変えたときは本人が気付けます。
+
+```php
+// マイページと管理画面の会員のコントローラー
+private function afterSave(Member $member, array $validated, array $changedFields): void
+{
+    MemberProfileNotice::send($member, $changedFields, changedBy: Auth::guard('admin')->user());   // マイページでは null
+}
+```
+
+- メールには、変わったことだけを書きます。どの項目が変わったかと、その値は載せません。
+- 何も変わっていないときと、パスワードだけが変わったときは送りません。パスワードの変更は、`PasswordChange` が別のメールで知らせます。
+- CSV 取り込みでは送りません。`FormFlow` が、取り込みのときは `$changedFields` を空で渡すためです。
+- メールアドレスが変わったときは、変わる前と後の両方のアドレスに送ります。他人にアドレスを書き換えられたときに、本人が気付けるのは変わる前のアドレスだけだからです。変わる前のアドレスは、`$changedFields['email']` で受け取ります。

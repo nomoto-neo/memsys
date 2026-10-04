@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Enums\OperationLogAction;
 use App\Mail\TemplatedMail;
 use App\Models\Member;
 use App\Models\Staff;
@@ -40,6 +41,9 @@ class PasswordChange
         $manager->forgetAll($owner);
 
         $deletedPasskeys = $owner->passkeys()->delete();
+
+        // 操作ログ。本人が変えたときは、ログインの前（パスワードの再設定）でも本人を操作した人にする
+        OperationRecorder::record(OperationLogAction::PasswordChange, $owner, operator: $changedBy ?? $owner);
 
         // お知らせのメールは保存が確定した後に送る。トランザクションの外ならその場で送る
         DB::afterCommit(fn () => self::sendMail($owner, $changedBy, $deletedPasskeys > 0));

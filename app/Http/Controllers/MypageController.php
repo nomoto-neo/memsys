@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\OperationLogAction;
 use App\Mail\TemplatedMail;
 use App\Models\Member;
 use App\Rules\PhoneNumberRule;
 use App\Support\AjaxFileUpload;
 use App\Support\FormFlow;
 use App\Support\MemberActivityLog;
+use App\Support\MemberProfileNotice;
+use App\Support\OperationRecorder;
 use App\Support\PasskeyManagement;
 use App\Support\PdfDownload;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -113,6 +116,13 @@ class MypageController extends Controller
         ];
     }
 
+    // 保存の直後の処理。会員情報が変わったことを、本人へメールで知らせる
+    // （App\Support\MemberProfileNotice参照）。
+    private function afterSave(Member $member, array $validated, array $changedFields): void
+    {
+        MemberProfileNotice::send($member, $changedFields, changedBy: null);
+    }
+
     // ---- マイページ・プロフィール編集 ----
 
     // マイページの表示（GET /mypage）。
@@ -162,6 +172,8 @@ class MypageController extends Controller
     public function resume(): Response
     {
         $member = Auth::user();
+
+        OperationRecorder::record(OperationLogAction::Pdf, $member, detail: ['name' => '履歴書']);
 
         return $this->downloadPdf(
             view: 'pdf.resume',
@@ -217,6 +229,9 @@ class MypageController extends Controller
             // 顔写真のファイルは、トランザクションが確定した後に消える（AjaxFileUpload参照）
             $this->deleteAllUploads($member);
             $member->delete();
+
+            // 操作ログ。もうログアウトしているので、操作した人を渡す
+            OperationRecorder::record(OperationLogAction::Delete, $member, operator: $member);
         });
 
         // 退会の記録をログに残す（delete()した後も、インスタンスのidなどは読める）

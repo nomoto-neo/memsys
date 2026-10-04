@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Enums\OperationLogAction;
 use App\Models\Member;
 use App\Models\Passkey;
 use App\Models\Staff;
@@ -191,6 +192,8 @@ trait PasskeyManagement
             $passkey->save();
         }
 
+        OperationRecorder::record(OperationLogAction::PasskeyAdd, $owner);
+
         // 本人確認は使い切り
         $request->session()->forget($this->passkeyConfirmedSessionKey());
         $request->session()->flash('status', 'パスキーを登録しました。次回から「パスキーでログイン」でログインできます。');
@@ -210,6 +213,8 @@ trait PasskeyManagement
         abort_unless($passkey->belongsToOwner($owner), 404);
 
         app(DeletePasskey::class)($owner, $passkey);
+
+        OperationRecorder::record(OperationLogAction::PasskeyDelete, $owner);
 
         return redirect()->route(self::PASSKEY_ROUTE)
             ->with('status', 'パスキーを削除しました。端末に残っているパスキーは、端末の設定から削除してください。');

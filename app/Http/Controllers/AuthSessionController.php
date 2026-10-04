@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\OperationLogAction;
 use App\Support\LoginRedirect;
 use App\Support\LoginThrottle;
+use App\Support\OperationRecorder;
 use App\Support\MemberVerificationCode;
 use App\Support\PasskeyLogin;
 use App\Support\TrustedDeviceManager;
@@ -63,6 +65,9 @@ class AuthSessionController extends Controller
         // メールアドレス・パスワードの確認だけ行う（まだログインはしない）
         if (! Auth::guard('web')->validate($credentials)) {
             $throttle->hit();
+
+            // 操作ログ。誰か分からないので、入力されたメールアドレスを補足に残す
+            OperationRecorder::record(OperationLogAction::LoginFailed, detail: ['login_id' => $credentials['email']]);
 
             throw ValidationException::withMessages([
                 'email' => 'メールアドレスまたはパスワードが正しくありません。',

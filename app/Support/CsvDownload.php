@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Enums\CsvEncoding;
+use App\Enums\OperationLogAction;
 use App\Models\CsvDownloadLog;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -102,6 +103,9 @@ trait CsvDownload
             'conditions' => $conditions,
             'ip' => request()->ip(),
         ]);
+
+        // 操作ログ。検索条件と件数はダウンロードの記録が持つので、そのidでつなぐ
+        OperationRecorder::record(OperationLogAction::CsvDownload, detail: ['name' => $name, 'csv_download_log_id' => $log->id]);
 
         $filename = $name.'_'.now()->format('Ymd_Hi').'.csv';
         $charset = $encoding === CsvEncoding::Sjis ? 'Shift_JIS' : 'UTF-8';

@@ -38,6 +38,10 @@ class Member extends Authenticatable implements PasskeyUser
     // 本人とスタッフだけが見られる。見てよいかはApp\Policies\MemberPolicyで判断する。
     public const PRIVATE_FILE_FIELDS = ['photo'];
 
+    // 操作ログで、変わった列に数えない列。最後に更新したスタッフのidは、入力とは関係なく
+    // 変わるため（App\Support\OperationRecorder::loggableFields()）。
+    public const OPERATION_LOG_IGNORE = ['staff_id'];
+
     // 業務のテーブルなので、t_を付けた名前にしている
     protected $table = 't_members';
 

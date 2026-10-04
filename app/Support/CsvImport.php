@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Enums\CsvEncoding;
 use App\Enums\CsvImportMode;
+use App\Enums\OperationLogAction;
 use App\Models\CsvImportLog;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\QueryException;
@@ -223,7 +224,7 @@ trait CsvImport
         $isSave = $settings->mode === CsvImportMode::Save;
 
         // 取り込みの記録
-        CsvImportLog::create([
+        $log = CsvImportLog::create([
             'name' => $settings->name,
             'operator_id' => Auth::id(),
             'filename' => $result->filename,
@@ -234,6 +235,9 @@ trait CsvImport
             'unchanged_count' => $isSave ? $result->count('unchanged') : 0,
             'ip' => $request->ip(),
         ]);
+
+        // 操作ログ。1件ずつの更新は書かず、取り込み全体で1行にする。件数の内訳は取り込みの記録が持つ
+        OperationRecorder::record(OperationLogAction::CsvImport, detail: ['name' => $settings->name, 'csv_import_log_id' => $log->id]);
 
         // processCsvRows()がメッセージを返さなければ件数を出す
         if ($message === null) {

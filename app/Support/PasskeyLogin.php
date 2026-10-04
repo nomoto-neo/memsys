@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Enums\OperationLogAction;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -102,6 +103,8 @@ trait PasskeyLogin
                 'exception' => $e::class,
                 'message' => $e->getMessage(),
             ]);
+
+            OperationRecorder::record(OperationLogAction::LoginFailed, detail: ['step' => 'パスキー']);
 
             throw ValidationException::withMessages([
                 'credential' => 'パスキーを確認できませんでした。もう一度お試しください。',

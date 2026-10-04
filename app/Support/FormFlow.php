@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Enums\OperationLogAction;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -29,7 +30,12 @@ use Illuminate\Support\Facades\DB;
  *                                     入力値をそのまま使わずに保存する列。例：ハッシュ値にした
  *                                     パスワード、操作したスタッフのid。saveFieldNames()と同じ列は
  *                                     こちらの値が勝つ
- * - afterSave($record, $validated)    保存の直後の処理。例：関連テーブルのsync()
+ * - afterSave($record, $validated, $changedFields)
+ *                                     保存の直後の処理。例：関連テーブルのsync()。$changedFieldsは
+ *                                     更新で値が変わった列で、列の名前 => 変わる前の値。使わなければ
+ *                                     引数に書かなくてよい。新規登録とCSV取り込みでは空
+ * - savedLogAction($created)          操作ログに残す操作の種類。登録・更新とは別の名前で残したい
+ *                                     コーナーで書く。例：一斉メールの送信
  * - beforeDelete($record)             削除の直前の処理。例：関連テーブルのdetach()
  * 何もしない版がこのトレイトにあり、コントローラーに同じ名前で書けばそちらが使われる。
  *
@@ -40,6 +46,11 @@ use Illuminate\Support\Facades\DB;
  * ■ トランザクション
  * saveData()とdeleteData()は、本体・アップロード・afterSave()・beforeDelete()の中の書き込みまで
  * 1つのトランザクションで行う。afterSave()などの中で自分でトランザクションを書く必要は無い。
+ *
+ * ■ 操作ログ
+ * saveData()とdeleteData()は、操作ログを書く（App\Support\OperationRecorder）。
+ * 更新では、値が変わった列の名前も残す。値は残さない。コントローラーに書くものは無い。
+ * 誰もログインしていない訪問者の保存も、操作した人を空にして残す。
  *
  * ■ アップロード
  * コントローラーがAjaxFileUploadも使っていれば、$inputの組み立てと保存のときにその処理も呼ぶ。
@@ -113,15 +124,44 @@ trait FormFlow
             $attributes[$field] = $validated[$field] ?? null;
         }
 
-        $record->fill($this->additionalFields($validated, $record) + $attributes)->save();
+        $record->fill($this->additionalFields($validated, $record) + $attributes);
+
+        // 新規登録か更新かと、この保存で値が変わる列を控えておく。列の名前 => 変わる前の値
+        $created = ! $record->exists;
+        $changed = [];
+        foreach (array_keys($record->getDirty()) as $field) {
+            $changed[$field] = $record->getOriginal($field);
+        }
+
+        $record->save();
 
         // アップロードしたファイルを確定する。必ず保存の直後に行う。新規登録では保存先を決める
         // idが要り、更新ではエディタの画像の片付けに保存で変わる前の本文を使うため
         if (method_exists($this, 'commitUploads')) {
+            $beforeUploads = $record->getRawOriginal();
+
             $this->commitUploads($record, $input, $fromImport);
+
+            // アップロードの確定で変わった列も足す。確定は列ごとに保存し直すので、前後の値を比べて拾う
+            foreach ($record->getRawOriginal() as $field => $value) {
+                if ($value !== ($beforeUploads[$field] ?? null)) {
+                    $changed[$field] ??= $beforeUploads[$field] ?? null;
+                }
+            }
         }
 
-        $this->afterSave($record, $validated);
+        // 新規登録では全部の列が対象なので、変わった列は持たない。更新では、保存のたびに変わる列などを除く
+        $loggable = $created ? [] : OperationRecorder::loggableFields($record, array_keys($changed));
+        $changed = array_intersect_key($changed, array_flip($loggable));
+
+        // CSV取り込みでは、変わった列を渡さない。1件ずつのお知らせなどを出さないため
+        $this->afterSave($record, $validated, $fromImport ? [] : $changed);
+
+        // 操作ログ。列の名前だけを残し、値は残さない。
+        // CSV取り込みは、取り込み全体で1行をCsvImportが書くので、1件ずつは書かない
+        if (! $fromImport) {
+            OperationRecorder::record($this->savedLogAction($created), $record, array_keys($changed));
+        }
     }
 
     // 削除の実行。関連データとアップロードを先に消してから本体を消す。
@@ -136,6 +176,8 @@ trait FormFlow
             }
 
             $record->delete();
+
+            OperationRecorder::record(OperationLogAction::Delete, $record);
         });
     }
 
@@ -159,9 +201,16 @@ trait FormFlow
         return [];
     }
 
-    // 保存の直後の処理
-    private function afterSave(Model $record, array $validated): void
+    // 保存の直後の処理。$changedFieldsは、更新で値が変わった列の、列の名前 => 変わる前の値
+    // （新規登録とCSV取り込みでは空）
+    private function afterSave(Model $record, array $validated, array $changedFields = []): void
     {
+    }
+
+    // 操作ログに残す操作の種類。$createdは新規登録ならtrue
+    private function savedLogAction(bool $created): OperationLogAction
+    {
+        return $created ? OperationLogAction::Create : OperationLogAction::Update;
     }
 
     // 削除の直前の処理

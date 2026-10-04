@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\OperationLogAction;
 use App\Enums\StaffAcl;
 use App\Http\Controllers\Controller;
 use App\Models\Staff;
 use App\Support\FormFlow;
+use App\Support\OperationRecorder;
 use App\Support\PasskeyManagement;
 use App\Support\PasswordChange;
 use App\Support\SearchableList;
@@ -308,6 +310,9 @@ class StaffController extends Controller
     // 詳細画面の表示
     public function show(Staff $staff): View
     {
+        // 個人情報を持つコーナーなので、詳細を開いたことを操作ログに残す
+        OperationRecorder::record(OperationLogAction::View, $staff);
+
         // 詳細画面にフォームの送信は無いが、_fields.blade.phpに渡す値は$input
         return view('admin.staff.show', [
             'staff' => $staff,
@@ -387,6 +392,8 @@ class StaffController extends Controller
     {
         $staff->restore();
 
+        OperationRecorder::record(OperationLogAction::Restore, $staff);
+
         return redirect()->route('admin.staff.show', $staff)
             ->with('status', 'スタッフの削除を取り消しました。');
     }
@@ -408,6 +415,8 @@ class StaffController extends Controller
             $staff->backupCodes()->delete();
             TrustedDeviceManager::forStaff()->forgetAll($staff);
             $staff->passkeys()->delete();
+
+            OperationRecorder::record(OperationLogAction::TwoFactorReset, $staff);
         });
 
         return redirect()->route('admin.staff.show', $staff)

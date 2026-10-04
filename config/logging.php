@@ -51,6 +51,10 @@ return [
     |
     */
 
+    // 操作ログ（t_operation_logs。App\Support\OperationRecorder）を残す日数。
+    // これを過ぎた行は、App\Support\TemporaryDataCleanerが消す
+    'operation_log_days' => (int) env('OPERATION_LOG_DAYS', 365),
+
     'channels' => [
 
         // ERROR_NOTIFY_LEVELがあれば、ファイルに書くのと一緒にerror_notifyでメールでも知らせる

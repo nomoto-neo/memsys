@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\AuthSessionController as AdminSessionController;
 use App\Http\Controllers\Admin\MemberController as AdminMemberController;
 use App\Http\Controllers\Admin\NewsController as AdminNewsController;
+use App\Http\Controllers\Admin\OperationLogController as AdminOperationLogController;
 use App\Http\Controllers\Admin\StaffController as AdminStaffController;
 use App\Http\Controllers\Admin\CodeController as AdminCodeController;
 use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
@@ -219,6 +220,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::patch('/members/{member}/update', [AdminMemberController::class, 'update'])->name('members.update');
         // 履歴書のPDF
         Route::get('/members/{member}/resume', [AdminMemberController::class, 'resume'])->name('members.resume');
+        // この会員の操作ログ。操作ログの一覧と同じく、管理者だけが開ける
+        Route::get('/members/{member}/operation-logs', [AdminMemberController::class, 'operationLogs'])
+            ->middleware('acl.manager')
+            ->name('members.operation-logs');
 
         // スタッフ管理
         Route::middleware('acl.manager')->group(function () {
@@ -284,6 +289,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('/bulk-mails/back', [AdminBulkMailController::class, 'back'])->name('bulk-mails.back');
             Route::post('/bulk-mails', [AdminBulkMailController::class, 'store'])->name('bulk-mails.store');
             Route::get('/bulk-mails/{bulkMail}', [AdminBulkMailController::class, 'show'])->name('bulk-mails.show');
+
+            // 操作ログの一覧・検索（App\Support\OperationRecorderが書いた記録を見るだけ）
+            Route::get('/operation-logs', [AdminOperationLogController::class, 'index'])->name('operation-logs.index');
+            Route::post('/operation-logs', [AdminOperationLogController::class, 'storeSearchCondition'])->name('operation-logs.search');
+            Route::get('/operation-logs/csv', [AdminOperationLogController::class, 'csv'])->name('operation-logs.csv');
         });
 
         // ニュースカテゴリー管理

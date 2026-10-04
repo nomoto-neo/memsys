@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Enums\BulkMailStatus;
+use App\Enums\OperationLogAction;
 use App\Enums\CsvEncoding;
 use App\Enums\CsvImportMode;
 use App\Http\Controllers\Controller;
@@ -165,6 +166,13 @@ class BulkMailController extends Controller
             allowInsert: false,
             maxRows: self::MAX_RECIPIENTS,
         );
+    }
+
+    // 操作ログに残す操作の種類。送信の記録を1件作るのが、送信の始まりなので、
+    // 「登録」ではなく「一斉メールの送信」として残す。
+    private function savedLogAction(bool $created): OperationLogAction
+    {
+        return OperationLogAction::BulkMailSend;
     }
 
     // ---- 履歴 ----

@@ -2,15 +2,22 @@
 
 namespace App\Providers;
 
+use App\Enums\OperationLogAction;
 use App\Models\BulkMail;
+use App\Models\BulkMailTemplate;
+use App\Models\Category;
 use App\Models\Inquiry;
 use App\Models\Member;
 use App\Models\News;
 use App\Models\Passkey;
 use App\Models\Staff;
+use App\Support\OperationRecorder;
+use Illuminate\Auth\Events\Login;
+use Illuminate\Auth\Events\Logout;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Middleware\TrustProxies;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Passkeys\Passkeys;
@@ -38,14 +45,27 @@ class AppServiceProvider extends ServiceProvider
         // ポリモーフィックリレーションでDBに記録する、モデルの短い名前。指定しないとクラス名が
         // そのままDBに入り、名前空間を変えたときにDBも直すことになるため。載っていないモデルを
         // 使うと例外になるので、モデルを足したらここにも足す。非公開のアップロードファイルの
-        // URLにもこの名前を使うので、非公開のフィールドを持つモデルもここに載せる
+        // URLにもこの名前を使うので、非公開のフィールドを持つモデルもここに載せる。
+        // 操作ログ（App\Support\OperationRecorder）も、操作した人と対象の種類をこの名前で残す
         Relation::enforceMorphMap([
             'member' => Member::class,
             'staff' => Staff::class,
             'inquiry' => Inquiry::class,
             'news' => News::class,
             'bulk_mail' => BulkMail::class,
+            'bulk_mail_template' => BulkMailTemplate::class,
+            'category' => Category::class,
         ]);
+
+        // ログインとログアウトを操作ログに残す。会員とスタッフの、パスワード・2段階目・パスキー・
+        // 「ログイン状態を保持する」のどの入り方でも、Laravelがこのイベントを出す
+        Event::listen(fn (Login $event) => OperationRecorder::record(OperationLogAction::Login, operator: $event->user));
+        Event::listen(function (Logout $event) {
+            // ログインしていない状態でログアウトが呼ばれたときは、誰のものでもないので書かない
+            if ($event->user !== null) {
+                OperationRecorder::record(OperationLogAction::Logout, operator: $event->user);
+            }
+        });
 
         // 信頼するプロキシ（.envのTRUSTED_PROXIES）から届いたX-Forwarded-Forを、訪問者の
         // IPアドレスとして使う。ログインの試行制限・回数の制限・操作ログなど、IPアドレスを

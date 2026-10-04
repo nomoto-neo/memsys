@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\OperationLogAction;
 use App\Http\Controllers\Controller;
 use App\Support\LoginRedirect;
 use App\Support\LoginThrottle;
+use App\Support\OperationRecorder;
 use App\Support\PasskeyLogin;
 use App\Support\TrustedDeviceManager;
 use Illuminate\Http\RedirectResponse;
@@ -63,6 +65,9 @@ class AuthSessionController extends Controller
         // ログインID・パスワードの確認だけ行う（まだログインはしない）
         if (! Auth::guard('admin')->validate($credentials)) {
             $throttle->hit();
+
+            // 操作ログ。誰か分からないので、入力されたログインIDを補足に残す
+            OperationRecorder::record(OperationLogAction::LoginFailed, detail: ['login_id' => $credentials['login_id']]);
 
             return redirect()->route('admin.login')
                 ->withErrors(['login_id' => 'ログインIDまたはパスワードが正しくありません。'])

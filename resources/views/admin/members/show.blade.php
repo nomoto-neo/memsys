@@ -5,6 +5,10 @@
     <h1 class="h4 mb-0">会員詳細</h1>
     <div class="d-flex gap-2">
         <a href="{{ route('admin.members.index', ['back']) }}" class="btn btn-sm btn-outline-secondary">一覧へ戻る</a>
+        {{-- この会員の操作ログ。管理者だけが開けるので、ボタンも管理者にだけ出す --}}
+        @if (Auth::guard('admin')->user()->isManager())
+            <a href="{{ route('admin.members.operation-logs', $member) }}" class="btn btn-sm btn-outline-secondary">操作ログ</a>
+        @endif
         <a href="{{ route('admin.members.resume', $member) }}" class="btn btn-sm btn-outline-primary" target="_blank">履歴書PDF</a>
         <a href="{{ route('admin.members.edit', $member) }}" class="btn btn-sm btn-primary">編集する</a>
     </div>

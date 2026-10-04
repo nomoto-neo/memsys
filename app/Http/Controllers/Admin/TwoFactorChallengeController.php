@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\OperationLogAction;
+use App\Support\OperationRecorder;
 use App\Http\Controllers\Controller;
 use App\Models\Staff;
 use App\Support\BackupCodeGenerator;
@@ -197,6 +199,9 @@ class TwoFactorChallengeController extends Controller
 
         if (! $ok) {
             $throttle->hit();
+
+            // 操作ログ。パスワードは通っているので、誰の失敗かが分かる
+            OperationRecorder::record(OperationLogAction::LoginFailed, detail: ['step' => '2段階目'], operator: $staff);
 
             return redirect()->route('admin.twoFactor.show')
                 ->withErrors([$errorField => $failedMessage]);

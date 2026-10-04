@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\OperationLog;
 use App\Models\TrustedDevice;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -20,6 +21,9 @@ use Illuminate\Support\Facades\Storage;
  *
  * 「このデバイスを記憶する」の記録（trusted_devicesテーブル）
  *   消すもの：期限の切れた行
+ *
+ * 操作ログ（t_operation_logsテーブル）
+ *   消すもの：config('logging.operation_log_days')の日数より古い行
  *
  * ■ 呼ぶところ
  * - スケジューラーから1時間ごとに、app:cleanup-temporary-dataコマンドがall()を呼ぶ。
@@ -48,6 +52,7 @@ final class TemporaryDataCleaner
             'CSV取り込みの作業用ファイル' => self::csvImportFiles(),
             '期限の切れたキャッシュ' => self::expiredCache(),
             '期限の切れた信頼済み端末' => self::expiredTrustedDevices(),
+            '保存期間を過ぎた操作ログ' => self::oldOperationLogs(),
         ];
     }
 
@@ -86,6 +91,14 @@ final class TemporaryDataCleaner
     public static function expiredTrustedDevices(): int
     {
         return TrustedDevice::query()->where('expires_at', '<=', now())->delete();
+    }
+
+    // 操作ログ（App\Support\OperationRecorder）のうち、残す日数を過ぎた行。
+    public static function oldOperationLogs(): int
+    {
+        return OperationLog::query()
+            ->where('created_at', '<', now()->subDays(config('logging.operation_log_days')))
+            ->delete();
     }
 
     // ディスクのディレクトリの直下にある、MAX_AGE_HOURSより古いファイルを消す。

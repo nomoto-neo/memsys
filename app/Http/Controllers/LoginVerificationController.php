@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\OperationLogAction;
+use App\Support\OperationRecorder;
 use App\Models\Member;
 use App\Support\LoginRedirect;
 use App\Support\LoginThrottle;
@@ -71,6 +73,9 @@ class LoginVerificationController extends Controller
 
         if ($verifiedMember === null || $verifiedMember->id !== $member->id) {
             $throttle->hit();
+
+            // 操作ログ。パスワードは通っているので、誰の失敗かが分かる
+            OperationRecorder::record(OperationLogAction::LoginFailed, detail: ['step' => '2段階目'], operator: $member);
 
             return redirect()->route('login.verify')
                 ->withErrors(['code' => '確認コードが正しくないか、有効期限が切れています。']);

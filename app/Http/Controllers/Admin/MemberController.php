@@ -4,14 +4,18 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\CsvEncoding;
 use App\Enums\CsvImportMode;
+use App\Enums\OperationLogAction;
 use App\Http\Controllers\Controller;
 use App\Models\Member;
+use App\Models\OperationLog;
 use App\Rules\PhoneNumberRule;
 use App\Support\AjaxFileUpload;
 use App\Support\CsvDownload;
 use App\Support\CsvImport;
 use App\Support\CsvImportSettings;
 use App\Support\FormFlow;
+use App\Support\MemberProfileNotice;
+use App\Support\OperationRecorder;
 use App\Support\PasswordChange;
 use App\Support\PdfDownload;
 use App\Support\SearchableList;
@@ -82,6 +86,11 @@ class MemberController extends Controller
             ],
         ],
     ];
+
+    // ---- この会員の操作ログの設定 ----
+
+    // 1ページに表示する件数。
+    private const OPERATION_LOGS_PER_PAGE = 50;
 
     // ---- アップロード（AjaxFileUpload）の設定 ----
 
@@ -154,8 +163,11 @@ class MemberController extends Controller
     }
 
     // 保存の直後の処理。
-    private function afterSave(Member $member, array $validated): void
+    private function afterSave(Member $member, array $validated, array $changedFields): void
     {
+        // 会員情報が変わったことを、本人へメールで知らせる（App\Support\MemberProfileNotice参照）
+        MemberProfileNotice::send($member, $changedFields, changedBy: Auth::guard('admin')->user());
+
         if ($member->wasChanged('password')) {
             // パスワードが変わったら、信頼済み端末とパスキーを無効にし、会員へ
             // お知らせのメールを送る（App\Support\PasswordChange参照）。
@@ -280,6 +292,9 @@ class MemberController extends Controller
     // 詳細画面の表示
     public function show(Member $member): View
     {
+        // 個人情報を持つコーナーなので、詳細を開いたことを操作ログに残す
+        OperationRecorder::record(OperationLogAction::View, $member);
+
         // 詳細画面にフォームの送信は無いが、_fields.blade.phpに渡す値は$input
         return view('admin.members.show', [
             'member' => $member,
@@ -329,11 +344,35 @@ class MemberController extends Controller
             ->with('status', '会員情報を更新しました。');
     }
 
+    // ---- この会員の操作ログ ----
+
+    // この会員を対象にした操作と、この会員が行った操作を、新しい順に出す。
+    // 問い合わせに答えるのに使う。操作ログの一覧と同じく、管理者だけが開ける（routes/web.phpのacl.manager）。
+    public function operationLogs(Member $member): View
+    {
+        $type = $member->getMorphClass();
+
+        $logs = OperationLog::query()
+            ->where(fn (Builder $query) => $query->where('target_type', $type)->where('target_id', $member->id))
+            ->orWhere(fn (Builder $query) => $query->where('operator_type', $type)->where('operator_id', $member->id))
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->paginate(self::OPERATION_LOGS_PER_PAGE);
+
+        return view('admin.members.operation_logs', [
+            'member' => $member,
+            'logs' => $logs,
+            'names' => OperationLog::subjectNames($logs),
+        ]);
+    }
+
     // ---- 履歴書のPDF ----
 
     // 履歴書のPDFをブラウザの中で開く（マイページのMypageController::resume()と同じPDF）
     public function resume(Member $member): Response
     {
+        OperationRecorder::record(OperationLogAction::Pdf, $member, detail: ['name' => '履歴書']);
+
         return $this->downloadPdf(
             view: 'pdf.resume',
             data: ['member' => $member],
