@@ -120,7 +120,7 @@ class MypageController extends Controller
     // （App\Support\MemberProfileNotice参照）。
     private function afterSave(Member $member, array $validated, array $changedFields): void
     {
-        MemberProfileNotice::send($member, $changedFields, changedBy: null);
+        MemberProfileNotice::send($member, $changedFields);
     }
 
     // ---- マイページ・プロフィール編集 ----

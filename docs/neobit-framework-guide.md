@@ -1264,17 +1264,17 @@ OperationRecorder::record(OperationLogAction::Restore, $staff);
 
 ### 会員情報が変わったときのお知らせメール（MemberProfileNotice）
 
-会員情報が変わると、本人へメールで知らせます（`resources/mail-templates/member_profile_changed.blade.php`）。本人が変えたときは記録が本人の手元にも残り、本人以外が変えたときは本人が気付けます。
+会員がマイページで自分の情報を変えると、本人へメールで知らせます（`resources/mail-templates/member_profile_changed.blade.php`）。本人が変えたのなら記録が本人の手元にも残り、他人がログインして変えたのなら本人が気付けます。
 
 ```php
-// マイページと管理画面の会員のコントローラー
+// マイページのコントローラー
 private function afterSave(Member $member, array $validated, array $changedFields): void
 {
-    MemberProfileNotice::send($member, $changedFields, changedBy: Auth::guard('admin')->user());   // マイページでは null
+    MemberProfileNotice::send($member, $changedFields);
 }
 ```
 
 - メールには、変わったことだけを書きます。どの項目が変わったかと、その値は載せません。
 - 何も変わっていないときと、パスワードだけが変わったときは送りません。パスワードの変更は、`PasswordChange` が別のメールで知らせます。
-- CSV 取り込みでは送りません。`FormFlow` が、取り込みのときは `$changedFields` を空で渡すためです。
+- **管理画面からスタッフが変えたときは送りません**。本人から頼まれて変えることがほとんどで、知らせる必要が無いためです。誰が変えたかは、操作ログに残ります。パスワードをスタッフが変えたときのお知らせ（`PasswordChange`）は、今までどおり送ります。
 - メールアドレスが変わったときは、変わる前と後の両方のアドレスに送ります。他人にアドレスを書き換えられたときに、本人が気付けるのは変わる前のアドレスだけだからです。変わる前のアドレスは、`$changedFields['email']` で受け取ります。

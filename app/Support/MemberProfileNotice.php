@@ -4,16 +4,17 @@ namespace App\Support;
 
 use App\Mail\TemplatedMail;
 use App\Models\Member;
-use App\Models\Staff;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 /**
- * 会員情報が変わったことを、本人へメールで知らせる。マイページと管理画面の会員の保存が、
+ * 会員がマイページで自分の情報を変えたことを、本人へメールで知らせる。マイページの保存が、
  * FormFlowのafterSave()から呼ぶ。
  *
- * 本人が変えたときは、変えた記録が本人の手元にも残る。本人以外が変えたときは、本人が気付ける。
+ * 本人が変えたのなら、変えた記録が本人の手元にも残る。他人がログインして変えたのなら、本人が気付ける。
+ * 管理画面からスタッフが変えたときは送らない。本人から頼まれて変えることがほとんどで、
+ * 知らせる必要が無いため。誰が変えたかは、操作ログ（App\Support\OperationRecorder）に残る。
  * メールには、変わったことだけを書く。どの項目が変わったかと、その値は載せない。
  * パスワードの変更は、PasswordChangeが別のメールで知らせるので、ここでは扱わない。
  * メールアドレスが変わったときは、変わる前と後の両方のアドレスに送る。他人にアドレスを
@@ -27,9 +28,8 @@ final class MemberProfileNotice
 
     /**
      * @param  array  $changedFields  値が変わった列の、列の名前 => 変わる前の値。FormFlowがafterSave()に渡すもの
-     * @param  Staff|null  $changedBy  管理画面から変えたスタッフ。本人がマイページから変えたときはnull
      */
-    public static function send(Member $member, array $changedFields, ?Staff $changedBy): void
+    public static function send(Member $member, array $changedFields): void
     {
         $fields = array_diff(array_keys($changedFields), self::SILENT_FIELDS);
 
@@ -43,7 +43,6 @@ final class MemberProfileNotice
             'from_name' => config('mail.from.name'),
             'name' => $member->name,
             'changed_at' => now()->format('Y年n月j日 H:i'),
-            'changed_by_other' => $changedBy !== null,
             'reset_url' => route('password.forgot'),
             'contact_url' => route('contact.create'),
         ];

@@ -14,7 +14,6 @@ use App\Support\CsvDownload;
 use App\Support\CsvImport;
 use App\Support\CsvImportSettings;
 use App\Support\FormFlow;
-use App\Support\MemberProfileNotice;
 use App\Support\OperationRecorder;
 use App\Support\PasswordChange;
 use App\Support\PdfDownload;
@@ -169,11 +168,8 @@ class MemberController extends Controller
     }
 
     // 保存の直後の処理。
-    private function afterSave(Member $member, array $validated, array $changedFields): void
+    private function afterSave(Member $member, array $validated): void
     {
-        // 会員情報が変わったことを、本人へメールで知らせる（App\Support\MemberProfileNotice参照）
-        MemberProfileNotice::send($member, $changedFields, changedBy: Auth::guard('admin')->user());
-
         if ($member->wasChanged('password')) {
             // パスワードが変わったら、信頼済み端末とパスキーを無効にし、会員へ
             // お知らせのメールを送る（App\Support\PasswordChange参照）。
