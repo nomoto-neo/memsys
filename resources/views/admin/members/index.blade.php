@@ -17,8 +17,8 @@
     name属性は検索対象のカラム名のまま。MemberController::srchRules()に載っている項目だけが
     検索条件として保存される。
 
-    - q：フリーワード。空白区切りで複数語に分解し、氏名かカナに
-      それぞれの語が含まれるかをAND条件で絞り込む。
+    - q：フリーワード。空白区切りで複数語に分解し、設定された項目のどれかに
+      それぞれの語が含まれるかをAND条件で絞り込む（対象の列はMemberController::FREE_WORD_COLUMNS）。
     - email・phone：単項目検索（文字列なので部分一致）
     - prefecture[]：Rule::inで区分一覧と照合しているので完全一致。
       name="...[]"で複数選択の配列として送ることで、controller側は「値が配列ならIN()」
@@ -30,7 +30,7 @@
 <form method="POST" action="{{ route('admin.members.search') }}" class="row g-2 mb-4">
     @csrf
     <div class="col-sm-3">
-        <input type="text" name="q" maxlength="100" class="form-control" placeholder="フリーワード（氏名・カナ）"
+        <input type="text" name="q" maxlength="100" class="form-control" placeholder="フリーワード（氏名・カナなど）"
                value="{{ $filters['q'] ?? '' }}">
     </div>
     <div class="col-sm-2">

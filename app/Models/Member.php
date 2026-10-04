@@ -55,6 +55,8 @@ class Member extends Authenticatable implements PasskeyUser
         'prefecture',
         'photo',
         'photo_origin',
+        // スタッフが書き残す管理メモ。管理画面でだけ読み書きし、会員には見せない
+        'staff_memo',
         // 管理画面から最後に更新したスタッフのid
         'staff_id',
     ];

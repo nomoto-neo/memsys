@@ -64,7 +64,10 @@ class MemberController extends Controller
     private const INDEX_ROUTE = 'admin.members.index';
 
     // フリーワード検索の検索対象とするカラムの一覧。
-    private const FREE_WORD_COLUMNS = ['name', 'kana'];
+    private const FREE_WORD_COLUMNS = ['name', 'kana', 'staff_memo'];
+
+    // 管理メモに書ける文字数。
+    private const STAFF_MEMO_MAX_LENGTH = 2000;
 
     // 1ページに表示する件数。
     private const PER_PAGE = 20;
@@ -121,6 +124,8 @@ class MemberController extends Controller
                 // コードテーブルとの一致を確認
                 Rule::in(code_keys('prefectures')),
             ],
+            // 管理メモ。会員には見せない、スタッフ用の欄
+            'staff_memo' => ['nullable', 'string', 'max:'.self::STAFF_MEMO_MAX_LENGTH],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
         ] + $this->ajaxUploadRules();
     }
@@ -130,7 +135,7 @@ class MemberController extends Controller
     // ここから外した項目は、更新ではDBの今の値がそのまま残る（NULLにするのとは違う）。
     private function saveFieldNames(array $validated, Member $member): array
     {
-        return ['name', 'kana', 'email', 'phone', 'birthdate', 'prefecture'];
+        return ['name', 'kana', 'email', 'phone', 'birthdate', 'prefecture', 'staff_memo'];
     }
 
     // saveFieldNames()に加えて保存する項目（項目名 => 値）。入力値をそのまま使わないものをここに書く。
@@ -159,6 +164,7 @@ class MemberController extends Controller
             'phone' => $member->phone,
             'birthdate' => optional($member->birthdate)->format('Y-m-d'),
             'prefecture' => $member->prefecture,
+            'staff_memo' => $member->staff_memo,
         ];
     }
 
@@ -249,6 +255,7 @@ class MemberController extends Controller
             '生年月日' => 'birthdate|date:Y/m/d',
             '年齢' => '@age',
             '都道府県' => ['prefecture', $prefectures],
+            '管理メモ' => 'staff_memo',
             '登録日時' => 'created_at|date:Y/m/d H:i',
             // 取り込みのとき、ダウンロードした後に画面から変更された行を見分けるのに使う
             '更新日時' => 'updated_at|date:Y/m/d H:i:s',

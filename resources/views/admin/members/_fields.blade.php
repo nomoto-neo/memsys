@@ -1,6 +1,6 @@
 {{--
     会員情報（お名前・フリガナ・メールアドレス・電話番号・生年月日・
-    都道府県・顔写真・パスワード）の入力欄一式。
+    都道府県・顔写真・管理メモ・パスワード）の入力欄一式。
 
     admin/staff/_fields.blade.phpと同じ考え方で、edit（編集）・
     confirm（更新の確認画面）・show（詳細表示）の3画面すべてから、
@@ -104,6 +104,14 @@
         'readonly' => $readonly,
         'uploadUrl' => $uploadUrl,
     ])
+</div>
+
+{{-- 管理メモ。スタッフが対応の経緯などを書き残す欄で、会員には見せない --}}
+<div class="mb-3">
+    <label for="staff_memo" class="form-label">管理メモ {!! $required['staff_memo'] ?? '' !!}</label>
+    <textarea id="staff_memo" name="staff_memo" rows="4" class="form-control"{{ $readonly }}>{{ $input['staff_memo'] ?? '' }}</textarea>
+    <div class="form-text">会員には表示されません。</div>
+    <div class="invalid-feedback" data-item="staff_memo">{{ $errors->first('staff_memo') }}</div>
 </div>
 
 @if ($showPassword)
