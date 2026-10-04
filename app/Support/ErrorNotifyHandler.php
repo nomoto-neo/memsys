@@ -27,7 +27,8 @@ use Throwable;
  *
  * ■ 間引き
  * 同じ内容の通知はERROR_NOTIFY_INTERVALの分数の間に1通だけ送る。
- * 同じ内容とは、例外なら種類と場所、それ以外ならレベルと文言が同じもの。
+ * 同じ内容とは、例外なら種類と原因の場所、それ以外ならレベルと文言が同じもの。
+ * 原因の場所は、スタックトレースの中で最初に出てくる自分たちのコードの行。
  * 間引いた場合は、間隔が過ぎて次に同じものが起きたときの通知に間引いた件数を記載する。
  * 間引きの記録はファイルのキャッシュに置く。DBが落ちたときにも間引けるようにするため。
  *
@@ -97,9 +98,9 @@ final class ErrorNotifyHandler extends AbstractProcessingHandler
             return 0;
         }
 
-        // 例外は種類と場所で、それ以外はレベルと文言で同じ内容かを見分ける
+        // 例外は種類と原因の場所で、それ以外はレベルと文言で同じ内容かを見分ける
         if ($exception !== null) {
-            $signature = $exception::class.'|'.$exception->getFile().':'.$exception->getLine();
+            $signature = $exception::class.'|'.$this->originOf($exception);
         } else {
             $signature = $record->level->getName().'|'.$record->message;
         }
@@ -141,10 +142,10 @@ final class ErrorNotifyHandler extends AbstractProcessingHandler
         ];
 
         if ($exception !== null) {
-            // 例外なら、件名に種類を使い、種類と場所とスタックトレースの頭を載せる
+            // 例外なら、件名に種類を使い、種類と原因の場所とスタックトレースの頭を載せる
             $variables['title'] = class_basename($exception);
             $variables['exception_class'] = $exception::class;
-            $variables['location'] = $this->relativePath($exception->getFile()).':'.$exception->getLine();
+            $variables['location'] = $this->originOf($exception);
             $trace = array_slice(explode("\n", $exception->getTraceAsString()), 0, self::TRACE_LINES);
             $variables['trace'] = $this->relativePath(implode("\n", $trace));
         } else {
@@ -185,6 +186,35 @@ final class ErrorNotifyHandler extends AbstractProcessingHandler
         }
 
         return implode("\n", $lines);
+    }
+
+    /**
+     * 例外の原因の場所を返す。例外が投げられた行からスタックトレースをたどり、最初に出てくる自分たちのコードの行にする。
+     * SQLのエラーのように、どこで起きてもフレームワークの同じ行から投げられる例外を、原因ごとに見分けるため。
+     * 自分たちのコードを通っていなければ、例外が投げられた行を返す。
+     */
+    private function originOf(Throwable $exception): string
+    {
+        $thrownAt = ['file' => $exception->getFile(), 'line' => $exception->getLine()];
+
+        // 自分たちのコードとはしないもの。vendorの下と、どの処理も通る入口のファイル
+        $vendor = base_path('vendor').DIRECTORY_SEPARATOR;
+        $entries = [public_path('index.php'), base_path('artisan')];
+
+        foreach ([$thrownAt, ...$exception->getTrace()] as $frame) {
+            $file = $frame['file'] ?? null;
+
+            // ファイルの無い行（PHPの内部の呼び出し）は飛ばす
+            if ($file === null) {
+                continue;
+            }
+
+            if (str_starts_with($file, base_path().DIRECTORY_SEPARATOR) && ! str_starts_with($file, $vendor) && ! in_array($file, $entries, true)) {
+                return $this->relativePath($file).':'.($frame['line'] ?? 0);
+            }
+        }
+
+        return $this->relativePath($thrownAt['file']).':'.$thrownAt['line'];
     }
 
     // サーバーの中の場所を、プロジェクトからの相対パスにする
