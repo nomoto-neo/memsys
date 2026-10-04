@@ -16,6 +16,7 @@
 | 第1.11版 | 2026-10-03 | スケジューラーと、一時データの後片付け（`TemporaryDataCleaner`・`app:cleanup-temporary-data`）を追加（19章） |
 | 第1.12版 | 2026-10-04 | ログインの後、開こうとしていた画面へ戻す（`LoginRedirect`）。管理画面も戻すようにし、会員と管理画面で戻り先が入れ違わないようにした（14章） |
 | 第1.13版 | 2026-10-04 | `downloadCsv()`・`CsvImportSettings` の引数から既定の値を外し、全部を書かないと動かないようにした |
+| 第1.14版 | 2026-10-04 | エラーの通知（`ErrorNotifyHandler`）を追加。処理されなかった例外を critical で記録するようにした（20章） |
 
 ## 0. このガイドについて
 
@@ -90,6 +91,7 @@
 | `_passkeys` | `resources/views/` | パスキーの一覧・本人確認・登録の画面の中身 | 14 |
 | `TemporaryDataCleaner` | `app/Support/` | 一時データの後片付け（一時ファイル・期限の切れたキャッシュと信頼済み端末） | 19 |
 | `app:cleanup-temporary-data` | `app/Console/Commands/` | 一時データの後片付けのコマンド（スケジューラーから1時間ごと） | 19 |
+| `ErrorNotifyHandler` | `app/Support/` | ログに書いたエラーを開発者にメールで知らせる（レベル・宛先・間隔は .env） | 20 |
 | `SpamGuard`・`_spam_guard` | `app/Support/`・`resources/views/` | 訪問者向けフォームのスパム対策（ハニーポット・送信までの時間・Cloudflare Turnstile） | 12 |
 | `app.js` | `resources/js/` | フォームの補助（必須マークから required 属性、エラー表示） | 17 |
 
@@ -937,3 +939,44 @@ Schedule::command(CleanupTemporaryData::class)->hourly()->withoutOverlapping();
 
 - **PHP-FPM と同じユーザーで動かします**（例：`crontab -u apache -e`）。root で動かすと、ログ（`storage/logs`）などのファイルが root の持ち物になり、画面からの処理が書き込めなくなります。
 - パス（`/var/www/memsys`）と `php` の場所は、サーバーに合わせます。
+
+## 20. エラーの通知（ErrorNotifyHandler）
+
+**ファイル**：`app/Support/ErrorNotifyHandler.php`・`config/logging.php`（`error_notify` のチャンネル）・`resources/mail-templates/error_notify.blade.php`
+
+本番で起きたエラーを、ログを見に行かなくても気付けるよう、ログに書くのと一緒に開発者へメールで知らせます。ログのチャンネルとして働くので、例外も `Log::error()` も同じ仕組みで届き、コントローラーや部品のコードに通知のための処理は書きません。
+
+### .env の設定
+
+```
+ERROR_NOTIFY_LEVEL=error
+ERROR_NOTIFY_TO=dev1@example.com,dev2@example.com
+ERROR_NOTIFY_INTERVAL=10
+```
+
+| 項目 | 意味 |
+|---|---|
+| `ERROR_NOTIFY_LEVEL` | 知らせる最低のレベル。空なら知らせない。手元の開発は空にする |
+| `ERROR_NOTIFY_TO` | 宛先。カンマで区切って複数書ける |
+| `ERROR_NOTIFY_INTERVAL` | 同じ内容のものを送る間隔（分）。間隔の中の2回目からは送らずに数え、次の通知に件数を添える。0なら間引かない |
+
+開発環境かどうかで切り替えるのではなく、`ERROR_NOTIFY_LEVEL` だけで切り替えます。調べものの間だけ `warning` に下げる、という使い方もできます。
+
+### レベルの使い分け
+
+| レベル | 意味 | 例 |
+|---|---|---|
+| `critical` | 処理が止まった障害 | 処理されなかった例外（プログラムの不具合、DB が落ちたなど）。`bootstrap/app.php` で例外を critical で記録している |
+| `error` | 処理は続いたが、運用に支障が出る | メールが送れなかった、Turnstile の鍵の設定が誤っている、アップロードの保存に失敗した |
+| `warning` | 動いてはいるが、気になる | Cloudflare が応答せず判定を素通りした、hidden の書き換えらしき送信 |
+| `info` | 記録だけ | スパムの検出、一時データの片付けの件数 |
+
+- 新しい処理でログを書くときは、この表に合わせてレベルを選びます。知らせてほしい失敗は `error`、知らせなくてよいものは `warning` 以下にします。
+- 404・入力エラー・ページの有効期限切れなど、利用者の操作で普通に起きるものは、Laravel が例外として報告しないので届きません。
+
+### 決まりごと
+
+- メールには、日時・内容・起きたところ（画面ならメソッドと URL と IP とログイン中の人の id、コマンドならそのコマンド）・例外の種類と場所・スタックトレースの先頭・`Log::error()` に添えた情報を載せます。入力値と URL の問い合わせの部分は載せません。
+- 同じ内容かどうかは、例外なら種類と場所、それ以外ならレベルと文言で見分けます。間引きの記録はファイルのキャッシュに置くので、DB が落ちていても間引けます。
+- SMTP が落ちているなどで通知が送れないときは、そのことをログに残すだけにします。通知が送れないこと自体はメールでは分からないので、サーバーのログも時々見ます。
+- `LOG_CHANNEL` が `stack` のときに働きます（`config/logging.php` の `stack` に、`ERROR_NOTIFY_LEVEL` があれば `error_notify` が加わります）。

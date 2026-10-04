@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\ErrorNotifyHandler;
 use Monolog\Handler\NullHandler;
 use Monolog\Handler\StreamHandler;
 use Monolog\Handler\SyslogUdpHandler;
@@ -52,10 +53,27 @@ return [
 
     'channels' => [
 
+        // ERROR_NOTIFY_LEVELがあれば、ファイルに書くのと一緒にerror_notifyでメールでも知らせる
         'stack' => [
             'driver' => 'stack',
-            'channels' => explode(',', (string) env('LOG_STACK', 'single')),
+            'channels' => array_merge(
+                explode(',', (string) env('LOG_STACK', 'single')),
+                env('ERROR_NOTIFY_LEVEL') ? ['error_notify'] : [],
+            ),
             'ignore_exceptions' => false,
+        ],
+
+        // エラーをメールで知らせる。App\Support\ErrorNotifyHandler。
+        // levelは知らせる最低のレベル、toはカンマ区切りの宛先、intervalMinutesは同じ内容を送る間隔の分数
+        'error_notify' => [
+            'driver' => 'monolog',
+            'handler' => ErrorNotifyHandler::class,
+            'level' => env('ERROR_NOTIFY_LEVEL') ?: 'critical',
+            'handler_with' => [
+                'to' => (string) env('ERROR_NOTIFY_TO', ''),
+                'intervalMinutes' => (int) env('ERROR_NOTIFY_INTERVAL', 10),
+            ],
+            'replace_placeholders' => true,
         ],
 
         'single' => [
