@@ -259,8 +259,31 @@ private function processCsvRows(CsvImportResult $result): ?string
 - 保存するモードと違い、変更の有無の比較（変更なしの行を飛ばす）、アップロード項目の反映はしない。
 - 確認画面には、処理する行の最初の30行を、読み込んだ値で表示する（閉じた状態で出し、開いて確かめる）。
 - 1つのコントローラーには取り込みを1つだけ書ける（`csvColumns()`・`rules()` がコントローラーに1つのため）。保存する取り込みと別に処理だけの取り込みを作るときは、別のコントローラーにする。
+- id で探すものが無ければ、`CsvImportSettings` の `query` は null でよい。そのときは id の列を使えない。
+- 整形の `prepareInput()` は、保存するモードでだけ通す。処理だけのモードでは、検証した値がそのまま `validated` に入る。
 
-## 15. 今回の対象外
+## 15. CSVの読み込みだけを使う（`CsvReader`）
+
+`CsvImport` は、取り込み画面と保存の流れ（`CsvImport`）と、CSVを読んで確かめる部分（`CsvReader`）の2つのトレイトでできている。一斉メールのように自分の画面を持つ機能は、`CsvReader` だけを `use` して、CSVの読み込みと検証を借りる。共通の取り込み画面に、その機能の入力欄や表示を足さないため。
+
+```php
+use CsvReader;
+
+$result = $this->readCsv(
+    settings: $settings,                          // CsvImportSettings。mode は Process、query は null でよい
+    columnDefinitions: self::RECIPIENT_COLUMNS,   // CSVの項目の定義（csvColumns() と同じ書き方）
+    rulesFor: fn (?Model $record) => self::RECIPIENT_RULES,   // 行の検証ルール
+    path: $this->csvFilePath($path),
+    filename: $filename,
+    encoding: $settings->encoding,
+);
+```
+
+- 項目の定義と行のルールを引数で渡すので、コントローラーの `rules()` を画面の入力（件名・本文など）の検証に使っていても、CSVの行には別のルールを使える。
+- 確認画面から実行までの一時ファイルと合言葉は、`storeCsvForConfirm()`・`rememberCsv()`・`pullCsv()`・`deleteCsvFiles()` を使う。合言葉は1回だけ使え、実行では一時ファイルを読み直して検証し直す。`rememberCsv()` には、件名などその機能の値も一緒に覚えさせられる。
+- 確認画面・実行の結果の出し方・取り込みの記録は、使う側が決める。
+
+## 16. 今回の対象外
 
 - CSVからの削除。
 - アップロード以外の子テーブル（明細行など）の組の取り込み（書き出しはできる）。

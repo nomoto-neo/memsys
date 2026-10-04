@@ -5,7 +5,6 @@ namespace App\Support;
 use App\Enums\CsvEncoding;
 use App\Enums\CsvImportMode;
 use App\Models\CsvImportLog;
-use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -14,17 +13,14 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Str;
-use Illuminate\Validation\Rules\Unique;
 use Illuminate\View\View;
-use InvalidArgumentException;
 use LogicException;
 use Throwable;
 
 /**
  * CSV取り込みの共通処理。ダウンロードのCsvDownloadと同じcsvColumns()の定義を使うので、
  * ダウンロードしたCSVを直してそのまま取り込める。
+ * このトレイトは取り込み画面と保存の流れを受け持ち、CSVの読み込みと検証はCsvReaderが行う。
  *
  * 流れは「ファイルを選ぶ → 全行を検証して確認画面 → エラーが無ければ実行」。実行は全行を
  * 1つのトランザクションで反映し、1件でも失敗したら何も反映しない。
@@ -89,9 +85,7 @@ use Throwable;
  */
 trait CsvImport
 {
-    // アップロードできるCSVファイルの大きさの上限(KB)。サーバーのupload_max_filesizeと
-    // post_max_sizeもこれ以上にしておく
-    private const CSV_IMPORT_MAX_KB = 10240;
+    use CsvReader;
 
     // 確認画面に並べる行の数の上限。エラーや警告の行と、処理だけのモードで読んだ行
     private const CSV_IMPORT_PREVIEW_ROWS = 30;
@@ -117,7 +111,7 @@ trait CsvImport
                 CsvEncoding::Utf8Bom => 'UTF-8',
                 CsvEncoding::Sjis => 'Shift_JIS',
             },
-            'maxKb' => self::CSV_IMPORT_MAX_KB,
+            'maxKb' => self::CSV_FILE_MAX_KB,
             'backUrl' => $this->csvImportBackUrl(),
         ]);
     }
@@ -128,38 +122,30 @@ trait CsvImport
         $settings = $this->csvImportSettings();
 
         $request->validate(
-            ['csv_file' => ['required', 'file', 'extensions:csv,txt', 'max:'.self::CSV_IMPORT_MAX_KB]],
+            ['csv_file' => $this->csvFileRules()],
             [],
             ['csv_file' => 'CSVファイル'],
         );
 
-        $disk = Storage::disk(CsvImportSettings::TMP_DISK);
-        $this->cleanupCsvImportFiles();
-
-        // 確認画面を開いたまま別のファイルを選び直したなら、前の一時ファイルを消す
-        $sessionKey = $this->csvImportSessionKey($settings);
-        if ($previous = session()->pull($sessionKey)) {
-            $disk->delete([$previous['path'], $previous['path'].'.snapshot.json']);
-        }
-
         // 一時ディレクトリに置いて全行を検証する
+        $sessionKey = $this->csvImportSessionKey($settings);
         $file = $request->file('csv_file');
-        $path = $file->storeAs(CsvImportSettings::TMP_DIR, Str::random(40).'.csv', CsvImportSettings::TMP_DISK);
+        $path = $this->storeCsvForConfirm($file, $sessionKey);
         $filename = $file->getClientOriginalName();
 
-        $result = $this->analyzeCsvImport($settings, $disk->path($path), $filename, $settings->encoding);
+        $result = $this->readImportCsv($settings, $path, $filename, $settings->encoding);
         $token = null;
 
         if ($result->hasErrors()) {
             // エラーがあれば実行させないので、一時ファイルを消す
-            $disk->delete($path);
+            $this->deleteCsvFiles($path);
         } else {
-            // エラーが無ければ、実行のための合言葉と更新日時の控えを持つ。
-            // 控えは行の数だけ大きくなるので、セッションではなく一時ファイルの隣に置く
-            $token = Str::random(40);
-            $disk->put($path.'.snapshot.json', json_encode($this->csvImportSnapshot($settings, $result)));
-            session()->put($sessionKey, [
-                'token' => $token,
+            // エラーが無ければ、更新日時の控えを一時ファイルの隣に置き、実行のための合言葉を持つ
+            Storage::disk(CsvImportSettings::TMP_DISK)->put(
+                $this->csvSidecarPath($path),
+                json_encode($this->csvImportSnapshot($settings, $result)),
+            );
+            $token = $this->rememberCsv($sessionKey, [
                 'path' => $path,
                 'filename' => $filename,
                 'encoding' => $result->encoding,
@@ -193,13 +179,9 @@ trait CsvImport
         $settings = $this->csvImportSettings();
 
         // 確認画面の合言葉は1回だけ使える。二重の送信や古い確認画面からの送信を防ぐ
-        $state = session()->pull($this->csvImportSessionKey($settings));
+        $state = $this->pullCsv($this->csvImportSessionKey($settings), $request->input('confirm_token'));
 
-        if (! $state || ! hash_equals($state['token'], (string) $request->input('confirm_token'))) {
-            if ($state) {
-                Storage::disk(CsvImportSettings::TMP_DISK)->delete([$state['path'], $state['path'].'.snapshot.json']);
-            }
-
+        if ($state === null) {
             // 取り込んだ後の確認画面からもう一度押した、別のファイルを確認し直した後に前の確認画面から
             // 押した、ログインし直すなどでセッションが切れた、のどれか
             return redirect()->route($settings->route)
@@ -209,20 +191,19 @@ trait CsvImport
         $disk = Storage::disk(CsvImportSettings::TMP_DISK);
 
         try {
-            if (! $disk->exists($state['path']) || ! $disk->exists($state['path'].'.snapshot.json')) {
+            if (! $disk->exists($this->csvSidecarPath($state['path']))) {
                 throw new CsvImportException('一時保存したCSVファイルが見つかりません。もう一度CSVファイルを選んでください。');
             }
 
             // 全行を検証し直す。確認画面の後にデータが変わってエラーになることもある
-            $encoding = $state['encoding'] === 'Shift_JIS' ? CsvEncoding::Sjis : CsvEncoding::Utf8Bom;
-            $result = $this->analyzeCsvImport($settings, $disk->path($state['path']), $state['filename'], $encoding);
+            $result = $this->readImportCsv($settings, $state['path'], $state['filename'], $this->csvEncodingOf($state['encoding']));
 
             if ($result->hasErrors()) {
                 throw new CsvImportException('確認画面を表示した後にデータが変わり、エラーになる行があります。もう一度CSVファイルを選んで確認してください。');
             }
 
             // 確認画面を出した後に画面などから変更か削除されたデータの行があれば、全体をエラーにする
-            $snapshot = (array) json_decode((string) $disk->get($state['path'].'.snapshot.json'), true);
+            $snapshot = (array) json_decode((string) $disk->get($this->csvSidecarPath($state['path'])), true);
             $changedRows = $this->csvImportChangedRows($result, $snapshot, $this->csvImportSnapshot($settings, $result));
             if ($changedRows !== []) {
                 throw new CsvImportException(sprintf(
@@ -236,7 +217,7 @@ trait CsvImport
         } catch (CsvImportException $e) {
             return redirect()->route($settings->route)->with('error', $e->getMessage());
         } finally {
-            $disk->delete([$state['path'], $state['path'].'.snapshot.json']);
+            $this->deleteCsvFiles($state['path']);
         }
 
         $isSave = $settings->mode === CsvImportMode::Save;
@@ -302,521 +283,27 @@ trait CsvImport
 
     // ---- 検証 ----
 
-    // CSVファイルを読んで全行を検証した結果を返す。確認画面と実行の両方がここを通る。
-    private function analyzeCsvImport(CsvImportSettings $settings, string $path, string $filename, ?CsvEncoding $encoding): CsvImportResult
+    // コントローラーのcsvColumns()とrules()で、CSVを読んで全行を検証する
+    private function readImportCsv(CsvImportSettings $settings, string $path, string $filename, ?CsvEncoding $encoding): CsvImportResult
     {
-        $result = new CsvImportResult($filename);
-        $isSave = $settings->mode === CsvImportMode::Save;
-        $model = $settings->query->getModel();
-        $keyName = $model->getKeyName();
-
-        // AjaxFileUploadのアップロードの欄。エディタの欄は除く
-        $uploadFields = [];
-        if (method_exists($this, 'uploadFieldDefinitions')) {
-            foreach ($this->uploadFieldDefinitions() as $def) {
-                if ($def['kind'] !== 'wysiwyg') {
-                    $uploadFields[$def['field']] = $def['kind'];
-                }
-            }
-        }
-
-        // @名前の列の取り込みは、コントローラーにcsvCustomImport()があるときだけ
-        $customImport = null;
-        if (method_exists($this, 'csvCustomImport')) {
-            $customImport = fn (string $key, ?string $value, CsvImportRow $row) => $this->csvCustomImport($key, $value, $row);
-        }
-
-        $columns = new CsvColumnSet(
-            $this->csvColumns(),
-            $uploadFields,
-            customImport: $customImport,
+        return $this->readCsv(
+            settings: $settings,
+            columnDefinitions: $this->csvColumns(),
+            rulesFor: fn (?Model $record) => $this->rules($record),
+            path: $this->csvFilePath($path),
+            filename: $filename,
+            encoding: $encoding,
         );
-
-        // 定義の書き間違いは、ファイルを読む前に例外にする
-        if ($isSave && $columns->keyHeading($keyName) === null) {
-            throw new InvalidArgumentException("CSV取り込み（追加・更新）には、csvColumns()に{$keyName}の列が必要です。");
-        }
-        if (! $settings->header) {
-            $columns->assertNoExpansion();
-        }
-
-        // 文字コードを判定して行に分ける
-        [$text, $result->encoding] = $this->decodeCsvFile((string) file_get_contents($path), $encoding);
-        if ($text === null) {
-            $result->errors[] = match ($encoding) {
-                CsvEncoding::Utf8Bom => '文字コードがUTF-8のファイルではありません。',
-                CsvEncoding::Sjis => '文字コードがShift_JISのファイルではありません。',
-                null => '文字コードを判別できません（UTF-8・Shift_JISのどちらでもないか、混在しています）。',
-            };
-
-            return $result;
-        }
-
-        $records = $this->parseCsvText($text);
-
-        // 見出しを定義と突き合わせる。見出し無しなら定義の順に並んでいる前提
-        $rules = $this->rules(null);
-        $importable = array_values(array_filter(array_map('strval', array_keys($rules)), fn ($k) => ! str_contains($k, '.')));
-        $updatedAt = $model->usesTimestamps() ? $model->getUpdatedAtColumn() : null;
-        $refPaths = $updatedAt ? [$updatedAt] : [];
-
-        if ($settings->header) {
-            if ($records === []) {
-                $result->errors[] = 'CSVに見出しの行がありません。';
-
-                return $result;
-            }
-
-            [, $headingCells] = array_shift($records);
-            $result->headings = array_map(fn ($cell) => $this->normalizeCsvCell($cell, false) ?? '', $headingCells);
-            $mapping = $columns->mapHeadings($result->headings, $importable, $keyName, $refPaths);
-        } else {
-            $result->headings = $columns->definedHeadings();
-            $mapping = $columns->mapByOrder($importable, $keyName, $refPaths);
-        }
-
-        // ファイル全体のエラーがあれば行は見ない
-        $result->errors = array_merge($result->errors, $mapping['errors']);
-        $result->warnings = $mapping['warnings'];
-
-        if ($isSave && $mapping['key'] === null) {
-            $result->errors[] = "「{$columns->keyHeading($keyName)}」の列がありません。";
-        }
-        if ($records === []) {
-            $result->errors[] = 'データの行がありません。';
-        }
-        if ($settings->maxRows !== null && count($records) > $settings->maxRows) {
-            $result->errors[] = sprintf('データの行数（%d行）が上限（%d行）を超えています。', count($records), $settings->maxRows);
-        }
-        if ($result->errors !== []) {
-            return $result;
-        }
-
-        // CSVのidのデータをまとめて読んでおく
-        $found = [];
-        if ($mapping['key'] !== null) {
-            $ids = [];
-            foreach ($records as [, $cells]) {
-                $id = $columns->readKey($this->normalizeCsvCell($cells[$mapping['key']] ?? null, $settings->escapeFormula), $keyName);
-                if ($id !== null && ctype_digit($id)) {
-                    $ids[] = $id;
-                }
-            }
-            foreach (array_chunk(array_unique($ids), 1000) as $chunk) {
-                foreach ((clone $settings->query)->reorder()->whereKey($chunk)->get() as $record) {
-                    $found[(string) $record->getKey()] = $record;
-                }
-            }
-        }
-
-        // エラーのメッセージに出す項目の名前
-        $labels = [];
-        foreach ($importable as $field) {
-            $labels[$field] = $columns->fieldLabel($field);
-        }
-        $attributes = [];
-        foreach ($labels as $field => $label) {
-            $attributes[$field] = $label;
-            $attributes["{$field}.*"] = $label;
-        }
-
-        $keyHeading = $columns->keyHeading($keyName);
-        $seenIds = [];
-
-        // 1行ずつ検証する
-        foreach ($records as [$line, $cells]) {
-            $row = new CsvImportRow($line);
-            $result->rows[] = $row;
-
-            $cells = array_map(fn ($cell) => $this->normalizeCsvCell($cell, $settings->escapeFormula), $cells);
-            foreach ($result->headings as $column => $heading) {
-                if ($heading !== '') {
-                    $row->cells[$heading] = $cells[$column] ?? null;
-                }
-            }
-
-            // どの行のデータか見分けるための値
-            if (is_int($settings->labelColumn)) {
-                // 整数なら左から何列目か
-                $row->setLabel($cells[$settings->labelColumn - 1] ?? null);
-            } elseif ($settings->labelColumn !== null) {
-                // 文字列なら見出し
-                $row->setLabel($row->cell($settings->labelColumn));
-            } else {
-                $row->setLabel(null);
-            }
-
-            if (! $settings->header && count($cells) !== count($result->headings)) {
-                $row->addError(sprintf('列の数が%d個あります（%d個にしてください）。', count($cells), count($result->headings)));
-
-                continue;
-            }
-
-            // キーの列からどのデータの行かを決める
-            if ($mapping['key'] !== null) {
-                $id = $columns->readKey($cells[$mapping['key']] ?? null, $keyName);
-
-                if ($id === null) {
-                    // 空欄は追加の行。追加できない取り込みならエラー
-                    if (! $settings->allowInsert) {
-                        $row->addError('空欄です（この取り込みでは追加はできません）。', $keyHeading);
-
-                        continue;
-                    }
-                } elseif (! ctype_digit($id)) {
-                    $row->addError('形が正しくありません。', $keyHeading);
-
-                    continue;
-                } elseif (isset($seenIds[$id])) {
-                    $row->addError("同じ値が{$seenIds[$id]}行目にもあります。", $keyHeading);
-
-                    continue;
-                } elseif (! isset($found[$id])) {
-                    $row->addError('該当するデータがありません（削除された可能性があります）。', $keyHeading);
-
-                    continue;
-                } else {
-                    // 更新の行
-                    $seenIds[$id] = $line;
-                    $row->record = $found[$id];
-                }
-            }
-
-            // 動作とCSVの値を重ねる今の値。処理だけのモードは重ねない
-            if (! $isSave) {
-                $row->action = 'process';
-                $base = [];
-            } elseif ($row->record) {
-                // 更新はDBの値
-                $row->action = 'update';
-                $base = $this->inputFromModel($row->record);
-            } else {
-                // 追加は初期値
-                $row->action = 'insert';
-                $base = $this->defaultInput();
-            }
-            $uploadsNow = $isSave ? $this->csvImportCurrentUploads($row->record, $uploadFields) : [];
-            $current = $base + $uploadsNow;
-
-            // セルを読む
-            $row->values = $columns->readRow($cells, $mapping['map'], $current, $row);
-            if ($row->hasErrors()) {
-                continue;
-            }
-
-            if ($isSave) {
-                $this->checkCsvImportUploads($row, $uploadFields, $uploadsNow, $labels);
-                if ($row->hasErrors()) {
-                    continue;
-                }
-            }
-
-            // 検証する入力。複数のアップロードの欄は、画面のフォームと同じ4本の配列の形にそろえる
-            $input = $row->values + $base;
-            foreach ($uploadFields as $field => $kind) {
-                if ($kind === 'repeatable' && array_key_exists($field, $input)) {
-                    $count = count($input[$field]);
-                    $input["{$field}_tmp"] = array_fill(0, $count, null);
-                    $input["{$field}_del"] = array_fill(0, $count, null);
-                }
-            }
-            $row->input = $input;
-
-            // rules()で検証する
-            $validator = Validator::make($input, $this->rules($row->record), [], $attributes);
-            if ($validator->fails()) {
-                foreach ($validator->errors()->messages() as $key => $messages) {
-                    $field = explode('.', $key)[0];
-                    foreach ($messages as $message) {
-                        $row->addError($message, $labels[$field] ?? null);
-                    }
-                }
-
-                continue;
-            }
-
-            $validated = $validator->validated();
-            $row->validated = method_exists($this, 'prepareInput') ? $this->prepareInput($validated) : $validated;
-
-            if ($isSave) {
-                $this->csvImportChanges($row, $columns, $current, $uploadFields);
-            }
-
-            // ダウンロードした後に画面から変更された行
-            if ($updatedAt && $row->record && isset($mapping['refs'][$updatedAt])) {
-                $this->checkCsvImportUpdatedAt($row, $columns, $updatedAt, $cells[$mapping['refs'][$updatedAt]] ?? null, $result->headings[$mapping['refs'][$updatedAt]] ?? null);
-            }
-        }
-
-        // 行をまたいだ確かめ
-        $this->checkCsvImportUniqueness($result, $rules, $labels);
-
-        $this->validateCsvRows($result);
-
-        return $result;
-    }
-
-    /**
-     * ファイルの中身をUTF-8の文字列にする。[文字列, 文字コードの名前]で、読めなければ[null, null]。
-     * 文字コードはファイル全体で判定する。先頭の数行だけで判定すると、後ろに別の文字コードが
-     * 混ざっていたときに文字化けしたまま取り込んでしまうため。
-     */
-    private function decodeCsvFile(string $bytes, ?CsvEncoding $encoding): array
-    {
-        // BOM付きUTF-8
-        if (str_starts_with($bytes, "\xEF\xBB\xBF")) {
-            $body = substr($bytes, 3);
-
-            return ($encoding !== CsvEncoding::Sjis && mb_check_encoding($body, 'UTF-8')) ? [$body, 'UTF-8'] : [null, null];
-        }
-
-        // UTF-8
-        if ($encoding !== CsvEncoding::Sjis && mb_check_encoding($bytes, 'UTF-8')) {
-            return [$bytes, 'UTF-8'];
-        }
-
-        // Shift_JIS
-        if ($encoding !== CsvEncoding::Utf8Bom && mb_check_encoding($bytes, 'SJIS-win')) {
-            return [mb_convert_encoding($bytes, 'UTF-8', 'SJIS-win'), 'Shift_JIS'];
-        }
-
-        return [null, null];
-    }
-
-    // CSVの文字列を行に分ける。[[何行目, セルの一覧], …]で、全部のセルが空欄の行は飛ばす。
-    // セルの中の改行は行に数えないので、何行目かはExcelの行番号と一致する。
-    private function parseCsvText(string $text): array
-    {
-        $stream = fopen('php://temp', 'r+');
-        fwrite($stream, $text);
-        rewind($stream);
-
-        $records = [];
-        $line = 0;
-
-        // ダウンロードと同じく、エスケープ文字を空にしてRFC 4180のとおりに読む
-        while (($cells = fgetcsv($stream, null, ',', '"', '')) !== false) {
-            $line++;
-
-            if (array_filter($cells, fn ($cell) => $cell !== null && trim($cell) !== '') === []) {
-                continue;
-            }
-
-            $records[] = [$line, $cells];
-        }
-
-        fclose($stream);
-
-        return $records;
-    }
-
-    /**
-     * セルの値をそろえる。画面からの入力でLaravelが行うのと同じく、前後の空白を除いて空ならnullにする。
-     * $escapeFormulaなら、ダウンロードで数式を無害にするために付けた先頭の「'」を、付けたときと
-     * 同じ条件のときだけ外す。
-     */
-    private function normalizeCsvCell(?string $cell, bool $escapeFormula): ?string
-    {
-        if ($cell === null) {
-            return null;
-        }
-
-        $cell = preg_replace('~^[\s\x{FEFF}\x{200B}\x{200E}]+|[\s\x{FEFF}\x{200B}\x{200E}]+$~u', '', $cell) ?? $cell;
-
-        if ($escapeFormula && str_starts_with($cell, "'") && strlen($cell) > 1) {
-            $rest = substr($cell, 1);
-
-            if (! is_numeric($rest) && in_array($rest[0], ['=', '+', '-', '@', "\t", "\r"], true)) {
-                $cell = $rest;
-            }
-        }
-
-        return $cell === '' ? null : $cell;
-    }
-
-    // アップロードの欄の今の値。1つだけの欄は{field}と{field}_origin、複数の欄は同じ名前の配列。
-    private function csvImportCurrentUploads(?Model $record, array $uploadFields): array
-    {
-        $current = [];
-
-        foreach ($uploadFields as $field => $kind) {
-            if ($kind === 'single') {
-                $current[$field] = $record?->{$field};
-                $current["{$field}_origin"] = $record?->{"{$field}_origin"};
-            } else {
-                $rows = $record ? $record->{$field}()->orderBy('id')->get(['filename', 'original_name']) : collect();
-                $current[$field] = $rows->pluck('filename')->all();
-                $current["{$field}_origin"] = $rows->pluck('original_name')->all();
-            }
-        }
-
-        return $current;
-    }
-
-    // アップロードの欄のファイル名を確かめる。今と違うファイル名はこのレコードの保存先に
-    // あるものだけ使える。確かめるのはAjaxFileUpload::checkImportedUploadFilename()。
-    private function checkCsvImportUploads(CsvImportRow $row, array $uploadFields, array $uploadsNow, array $labels): void
-    {
-        foreach ($uploadFields as $field => $kind) {
-            $label = $labels[$field] ?? $field;
-
-            if (! array_key_exists($field, $row->values)) {
-                // 1つだけの欄で、ファイルが無いのに表示名の列だけがある
-                if ($kind === 'single' && ($row->values["{$field}_origin"] ?? null) !== null && $uploadsNow[$field] === null) {
-                    $row->addError('ファイルが無いので、表示名は入力できません。', $labels["{$field}_origin"] ?? $label);
-                }
-
-                continue;
-            }
-
-            // 1つだけの欄で、ファイル名が空欄なのに表示名がある
-            if ($kind === 'single' && $row->values[$field] === null && ($row->values["{$field}_origin"] ?? null) !== null) {
-                $row->addError('ファイル名が空欄です。', $label);
-
-                continue;
-            }
-
-            $filenames = $kind === 'single' ? array_filter([$row->values[$field]]) : $row->values[$field];
-            $now = (array) $uploadsNow[$field];
-
-            foreach ($filenames as $filename) {
-                // 今のファイルのままなら確かめない
-                if (in_array($filename, $now, true)) {
-                    continue;
-                }
-
-                // 追加の行はまだ保存先が無い
-                if ($row->record === null) {
-                    $row->addError("追加の行には、ファイル名（{$filename}）を指定できません。", $label);
-
-                    continue;
-                }
-
-                if ($message = $this->checkImportedUploadFilename($row->record, $field, $filename)) {
-                    $row->addError($message, $label);
-                }
-            }
-        }
-    }
-
-    // 変更の内容を求める。CSVから読んだ項目ごとに今の値と比べる。
-    // 変更の無い更新の行は、実行しても保存しない'unchanged'にする。
-    private function csvImportChanges(CsvImportRow $row, CsvColumnSet $columns, array $current, array $uploadFields): void
-    {
-        foreach (array_keys($row->values) as $field) {
-            // 複数のアップロードの欄の表示名はファイル名と一緒に比べる
-            if (str_ends_with($field, '_origin') && ($uploadFields[substr($field, 0, -7)] ?? null) === 'repeatable') {
-                continue;
-            }
-
-            // 追加の行は初期値と比べずに入れる値を全部見せるため、変更前を空欄にする
-            $new = $row->validated[$field] ?? null;
-            $old = $row->record !== null ? ($current[$field] ?? null) : null;
-
-            // 複数のアップロードの欄は、「ファイル名（表示名）」の並びで比べる
-            if (($uploadFields[$field] ?? null) === 'repeatable') {
-                $pair = fn (array $names, array $origins) => array_map(
-                    fn ($name, $i) => $name.(($origins[$i] ?? null) !== null ? "（{$origins[$i]}）" : ''),
-                    $names,
-                    array_keys($names),
-                );
-                $newList = $pair(array_values((array) $new), array_values((array) ($row->validated["{$field}_origin"] ?? [])));
-                $oldList = $pair(array_values((array) $old), array_values((array) ($row->record !== null ? ($current["{$field}_origin"] ?? []) : [])));
-
-                if ($newList !== $oldList) {
-                    $row->changes[] = [$columns->fieldLabel($field), implode('、', $oldList), implode('、', $newList)];
-                }
-
-                continue;
-            }
-
-            if (CsvColumnSet::normalize($new) !== CsvColumnSet::normalize($old)) {
-                $row->changes[] = [$columns->fieldLabel($field), $columns->displayValue($field, $old), $columns->displayValue($field, $new)];
-            }
-        }
-
-        if ($row->record !== null && $row->changes === []) {
-            $row->action = 'unchanged';
-        }
-    }
-
-    /**
-     * ダウンロードした時点のCSVの更新日時とDBの今の更新日時を比べ、DBの方が新しければ警告にする。
-     * ExcelでCSVを保存すると日時が「2026/9/29 6:15」のような形になって秒が落ちる。そこで文字列では
-     * 比べず、日時として読んでからCSVの値に書いてある秒・分・日までで比べる。秒が無ければ同じ分の
-     * うちの変更は見分けられない。日時として読めない値は比べずに警告だけ出す。
-     */
-    private function checkCsvImportUpdatedAt(CsvImportRow $row, CsvColumnSet $columns, string $updatedAt, ?string $cell, ?string $heading): void
-    {
-        $now = $row->record->{$updatedAt};
-
-        if ($cell === null || $now === null) {
-            return;
-        }
-
-        $read = $columns->readDateTime($cell);
-
-        if ($read === null) {
-            $row->addWarning('日時として読めないので、ダウンロードした後に更新されたかどうかは確かめていません。', $heading);
-
-            return;
-        }
-
-        // DBの日時をCSVに書いてある細かさまでにそろえて比べる
-        [$csvTime, $precision] = $read;
-        $dbTime = Carbon::parse($now)->format(match ($precision) {
-            'second' => 'Y-m-d H:i:s',
-            'minute' => 'Y-m-d H:i:00',
-            'day' => 'Y-m-d 00:00:00',
-        });
-
-        if ($dbTime > $csvTime) {
-            $row->addWarning("ダウンロードした後に更新されています（今の更新日時：{$columns->exportCell($row->record, $updatedAt)}）。取り込むと、その変更を上書きします。", $heading);
-        }
-    }
-
-    /**
-     * CSVの中での重複を確かめる。rules()にRule::uniqueかunique:がある項目で同じ値が2回以上
-     * 出てきたら、それぞれの行をエラーにする。DBとの重複は1行ずつの検証で見ている。
-     * DBの照合順序で同じ値とみなされることが多いので、大文字と小文字の違いは同じ値として扱う。
-     */
-    private function checkCsvImportUniqueness(CsvImportResult $result, array $rules, array $labels): void
-    {
-        foreach ($rules as $field => $fieldRules) {
-            $fieldRules = is_string($fieldRules) ? explode('|', $fieldRules) : (array) $fieldRules;
-            $isUnique = array_filter($fieldRules, fn ($rule) => $rule instanceof Unique || (is_string($rule) && str_starts_with($rule, 'unique:')));
-
-            if ($isUnique === []) {
-                continue;
-            }
-
-            // 値ごとに行を集める
-            $lines = [];
-            foreach ($result->rows as $row) {
-                $value = $row->values[$field] ?? null;
-                if (is_string($value) && $value !== '') {
-                    $lines[mb_strtolower($value)][] = $row;
-                }
-            }
-
-            // 2行以上ある値は、それぞれの行にほかの行の番号を添えてエラーにする
-            foreach ($lines as $rows) {
-                if (count($rows) < 2) {
-                    continue;
-                }
-
-                foreach ($rows as $row) {
-                    $others = array_map(fn (CsvImportRow $other) => $other->line, array_filter($rows, fn ($other) => $other !== $row));
-                    $row->addError('同じ値が'.implode('・', $others).'行目にもあります。', $labels[$field] ?? null);
-                }
-            }
-        }
     }
 
     // 確認から実行までの変更を見つけるための控え。CSVにあるidのデータのid => DBの更新日時の文字列。
-    // モデルが更新日時を持たなければid => ''で、削除されたかだけを見る。
+    // モデルが更新日時を持たなければid => ''で、削除されたかだけを見る。処理だけのモードでは空。
     private function csvImportSnapshot(CsvImportSettings $settings, CsvImportResult $result): array
     {
+        if ($settings->query === null) {
+            return [];
+        }
+
         $model = $settings->query->getModel();
         $updatedAt = $model->usesTimestamps() ? $model->getUpdatedAtColumn() : null;
         $ids = array_values(array_filter(array_map(fn (CsvImportRow $row) => $row->record?->getKey(), $result->rows)));
@@ -925,18 +412,11 @@ trait CsvImport
         return defined('self::INDEX_ROUTE') ? route(self::INDEX_ROUTE, ['back']) : null;
     }
 
-    // ---- 一時ファイル・セッション ----
+    // ---- セッション ----
 
     // 確認の状態を持つセッションのキー。キーの「.」は階層の区切りになるので、ルート名の「.」は置き換える。
     private function csvImportSessionKey(CsvImportSettings $settings): string
     {
         return 'csv_import_'.str_replace('.', '_', $settings->route);
-    }
-
-    // 確認画面を開いたまま実行しなかったなどで置いたままの、古い一時ファイルを消す。本来はスケジューラーが
-    // 1時間ごとに消すが、cronが動いていなくても溜まり続けないようここでも消す。
-    private function cleanupCsvImportFiles(): void
-    {
-        TemporaryDataCleaner::csvImportFiles();
     }
 }

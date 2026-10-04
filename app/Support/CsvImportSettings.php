@@ -10,7 +10,8 @@ use Illuminate\Database\Eloquent\Builder;
  * CSV取り込みの設定。コントローラーのcsvImportSettings()で作り、確認画面と実行の両方で使う。
  * どんな取り込みかが1か所で分かるよう、引数に既定の値は持たせず、名前付き引数で全部書く。
  *
- * - query          取り込み先のモデルのクエリ。CSVのidで探す範囲になる
+ * - query          取り込み先のモデルのクエリ。CSVのidで探す範囲になる。処理だけのモードで
+ *                  探すものが無ければnull
  * - name           画面の見出しと取り込みの記録の名前。例：'会員一覧'
  * - route          取り込み画面のルート名。確認は後ろに「.confirm」、実行は「.execute」を付けた名前。
  *                  取り込みが終わるとこの画面に戻って結果を出す
@@ -34,7 +35,7 @@ final class CsvImportSettings
 
     // 引数の意味はこのクラスの説明にある。どれも省略できない
     public function __construct(
-        public readonly Builder $query,
+        public readonly ?Builder $query,
         public readonly string $name,
         public readonly string $route,
         public readonly string|int|null $labelColumn,

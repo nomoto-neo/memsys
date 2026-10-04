@@ -17,6 +17,7 @@
 | 第1.12版 | 2026-10-04 | ログインの後、開こうとしていた画面へ戻す（`LoginRedirect`）。管理画面も戻すようにし、会員と管理画面で戻り先が入れ違わないようにした（14章） |
 | 第1.13版 | 2026-10-04 | `downloadCsv()`・`CsvImportSettings` の引数から既定の値を外し、全部を書かないと動かないようにした |
 | 第1.14版 | 2026-10-04 | エラーの通知（`ErrorNotifyHandler`）を追加。処理されなかった例外を critical で記録するようにした（20章） |
+| 第1.15版 | 2026-10-04 | CSV 取り込みを、取り込み画面と保存の流れ（`CsvImport`）と、CSV を読んで確かめる部分（`CsvReader`）に分けた。処理だけのモードで `query` を null にできるようにした（10章） |
 
 ## 0. このガイドについて
 
@@ -76,7 +77,8 @@
 | `HtmlSanitizer`（`safe_html()`） | `app/Support/` | WYSIWYG の HTML の無害化 | 7 |
 | `CodeTable`（`code_table()` など） | `app/Support/`・`app/helpers.php` | 区分表（列挙型・CSV・DB） | 8 |
 | `CsvDownload`・`CsvColumnSet` | `app/Support/` | CSV ダウンロードと、CSV の項目の定義 | 9 |
-| `CsvImport` ほか | `app/Support/` | CSV 取り込み | 10 |
+| `CsvImport` ほか | `app/Support/` | CSV 取り込み（取り込み画面と保存の流れ） | 10 |
+| `CsvReader` | `app/Support/` | CSV を読んで確かめる部分。自分の画面を持つ機能が、CSV の読み込みと検証だけを借りるときに使う | 10 |
 | `MailTemplate`・`TemplatedMail` | `app/Support/`・`app/Mail/` | テンプレートファイルによるメール送信 | 11 |
 | `LoginThrottle` | `app/Support/` | 認証の失敗回数による試行制限 | 14 |
 | `LoginRedirect` | `app/Support/` | ログインの後の移動先（開こうとしていた画面へ戻す。会員と管理画面で入れ違わない） | 14 |
@@ -629,6 +631,7 @@ Route::post('/members/csv-import/execute', [AdminMemberController::class, 'csvIm
 - `labelColumn` を指定すると、確認画面のエラー・警告と実行を中止したときのメッセージで、「2行目（山田太郎）」のように行の見分けになる値を添えます（10文字を超えたら「...」で縮める。空欄なら添えない）。
 - **処理を組み込む**：`validateCsvRows()`（行をまたいだチェック）・`afterCsvImportRow()`（1行保存するたび）・`afterCsvImport()`（確定後の通知など）・`processCsvRows()`（処理だけのモード）。
 - 取り込むたびに `t_csv_import_logs` に記録します。
+- 自分の画面を持つ機能が CSV の読み込みと検証だけを使うときは、`CsvReader` を `use` します。項目の定義と行の検証ルールを引数で渡し、画面と流れは自分で作ります（設計 15）。
 
 ## 11. メール送信（MailTemplate・TemplatedMail）
 
