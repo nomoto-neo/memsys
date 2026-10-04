@@ -1,16 +1,21 @@
 @extends('layouts.admin')
 
 {{--
-    CSRFトークンの<meta>・resources/js/ajax_upload.js・
-    resources/js/wysiwyg_ckeditor.jsは、一覧用画像・添付ファイルの
-    アップロード欄や、画像を挿入できる本文のエディタが実際にある画面
-    だけで必要なので、layouts/admin.blade.phpの@vite(['resources/js/app.js'])とは
-    別に、@stack('head-extra')経由でこの画面からだけ<head>へ追加する
-    （layouts/admin.blade.phpの<head>に@stack('head-extra')がある前提）。
+    アップロードの欄とエディタに要るものを、この画面だけで<head>に足す。
+    layouts/admin.blade.phpの@stack('head-extra')に入る。
+    エディタはsummernoteのwysiwyg_summernote.jsか、CKEditorのwysiwyg_ckeditor.jsのどちらか一方を読み込む。
+    summernoteを使うときは、layouts/admin.blade.phpのjQueryも有効にしておく。
 --}}
 @push('head-extra')
     <meta name="csrf-token" content="{{ csrf_token() }}">
+{{-- summernote --}}
+    <link href="https://cdn.jsdelivr.net/npm/summernote@0.9.0/dist/summernote-bs5.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/summernote@0.9.0/dist/summernote-bs5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/summernote@0.9.0/dist/lang/summernote-ja-JP.min.js"></script>
+    @vite(['resources/js/ajax_upload.js', 'resources/js/wysiwyg_summernote.js'])
+{{-- CKEditor
     @vite(['resources/js/ajax_upload.js', 'resources/js/wysiwyg_ckeditor.js'])
+--}}
 @endpush
 
 @section('content')

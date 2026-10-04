@@ -52,7 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         $note.summernote({
             lang: 'ja-JP',
-            height: 300,
+            minHeight: 250,
             acceptImageFileTypes: ACCEPT_IMAGE_TYPES,
             callbacks: {
                 // 画像の挿入(ボタン・ドラッグ&ドロップ・貼り付け)のたびに
