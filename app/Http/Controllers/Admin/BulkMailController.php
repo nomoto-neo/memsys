@@ -222,7 +222,7 @@ class BulkMailController extends Controller
                 ->with('error', '送信中の一斉メールがあるため、終わるまで新しく送れません。');
         }
 
-        $request->validate(['csv_file' => $this->csvFileRules()], [], ['csv_file' => '宛先のCSVファイル']);
+        $request->validate(['csv_file' => $this->csvFileRules()]);
         $input = $this->confirmInput($request);
         $this->checkAttachLimit($input['attach_tmp'] ?? null);
 
