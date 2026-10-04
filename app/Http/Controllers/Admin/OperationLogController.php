@@ -10,6 +10,7 @@ use App\Models\OperationLog;
 use App\Support\CsvDownload;
 use App\Support\SearchableList;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -84,6 +85,8 @@ class OperationLogController extends Controller
             'logs' => $logs,
             // 操作ログには氏名を持たせていないので、このページに出てくるスタッフと会員の、今の氏名を引く
             'names' => OperationLog::subjectNames($logs),
+            // CSVと一斉メールの件数と内訳は別の記録が持っているので、このページの分を読む
+            'related' => OperationLog::relatedRecords($logs),
             'operatorOptions' => $this->operatorOptions(),
             'filters' => $result['filters'],
             'orderOptions' => $result['orderOptions'],
@@ -171,7 +174,8 @@ class OperationLogController extends Controller
             '操作した人の種類' => ['operator_type', $subjects],
             '操作した人のID' => 'operator_id',
             '操作' => '@action',
-            '対象の種類' => ['target_type', $subjects],
+            // CSVのダウンロードと取り込みは、CSVの名前を出す
+            '対象の種類' => '@target',
             '対象のID' => 'target_id',
             '変わった項目' => '@changed_fields',
             '補足' => '@detail',
@@ -185,8 +189,18 @@ class OperationLogController extends Controller
     {
         return match ($key) {
             'action' => $log->action->label(),
+            'target' => $log->csvName() ?? code_label('operation_log_subject', $log->target_type),
             'changed_fields' => implode('、', $log->changed_fields ?? []),
-            'detail' => $log->detailText(),
+            // CSVと一斉メールは、件数も入れる。内訳は入れない
+            'detail' => trim($log->detailText().' '.$log->countSummary($this->relatedRecordOf($log))),
         };
+    }
+
+    // 1行の操作ログの、件数を持っている別の記録。CSVに1行ずつ書き出すときに使う。無ければnull
+    private function relatedRecordOf(OperationLog $log): ?Model
+    {
+        [$class, $id] = $log->relatedKey();
+
+        return $id !== null ? $class::find($id) : null;
     }
 }

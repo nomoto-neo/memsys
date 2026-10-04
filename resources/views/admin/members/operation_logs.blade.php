@@ -11,7 +11,7 @@
     <a href="{{ route('admin.members.show', $member) }}" class="btn btn-sm btn-outline-secondary">会員詳細へ戻る</a>
 </div>
 
-@include('admin.operation_logs._table', ['logs' => $logs, 'names' => $names])
+@include('admin.operation_logs._table', ['logs' => $logs, 'names' => $names, 'related' => $related])
 
 {{ $logs->links('pagination::bootstrap-5') }}
 @endsection

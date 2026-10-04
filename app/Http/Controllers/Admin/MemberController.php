@@ -366,6 +366,7 @@ class MemberController extends Controller
             'member' => $member,
             'logs' => $logs,
             'names' => OperationLog::subjectNames($logs),
+            'related' => OperationLog::relatedRecords($logs),
         ]);
     }
 

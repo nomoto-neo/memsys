@@ -79,7 +79,7 @@
     </div>
 </form>
 
-@include('admin.operation_logs._table', ['logs' => $logs, 'names' => $names])
+@include('admin.operation_logs._table', ['logs' => $logs, 'names' => $names, 'related' => $related])
 
 {{ $logs->links('pagination::bootstrap-5') }}
 @endsection
