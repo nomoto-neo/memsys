@@ -1,5 +1,32 @@
 # ネオビットフレームワーク 利用ガイド
 
+## 目次
+
+- [0. このガイドについて](#0.%20このガイドについて)
+- [1. 全体像](#1.%20全体像)
+- [2. 新しいコーナーを作る手順](#2.%20新しいコーナーを作る手順)
+- [3. 一覧・検索（SearchableList）](#3.%20一覧・検索（SearchableList）)
+- [4. 詳細表示](#4.%20詳細表示)
+- [5. 登録・更新（FormFlow）](#5.%20登録・更新（FormFlow）)
+- [6. 削除](#6.%20削除)
+- [7. ファイルアップロード・WYSIWYG（AjaxFileUpload）](#7.%20ファイルアップロード・WYSIWYG（AjaxFileUpload）)
+- [8. 区分表・選択肢](#8.%20区分表・選択肢)
+- [9. CSV ダウンロード（CsvDownload）](#9.%20CSV%20ダウンロード（CsvDownload）)
+- [10. CSV 取り込み（CsvImport）](#10.%20CSV%20取り込み（CsvImport）)
+- [11. メール送信（MailTemplate・TemplatedMail）](#11.%20メール送信（MailTemplate・TemplatedMail）)
+- [12. 訪問者向けのフォーム（お問い合わせ）](#12.%20訪問者向けのフォーム（お問い合わせ）)
+- [13. 権限](#13.%20権限)
+- [14. ログイン認証](#14.%20ログイン認証)
+- [15. トランザクションとファイルの削除](#15.%20トランザクションとファイルの削除)
+- [16. テーブル・モデルの決まり](#16.%20テーブル・モデルの決まり)
+- [17. 画面（Blade）の決まり](#17.%20画面（Blade）の決まり)
+- [18. PDF 出力（PdfDownload）](#18.%20PDF%20出力（PdfDownload）)
+- [19. スケジューラー（定期的な処理）](#19.%20スケジューラー（定期的な処理）)
+- [20. エラーの通知（ErrorNotifyHandler）](#20.%20エラーの通知（ErrorNotifyHandler）)
+- [21. キュー（一斉メール）](#21.%20キュー（一斉メール）)
+
+## 版の履歴
+
 | 版 | 日付 | 内容 |
 |---|---|---|
 | 第1版 | 2026-09-29 | 最初の版（一覧・検索、詳細、登録・更新、削除、アップロード・WYSIWYG、区分表、CSVダウンロード・取り込み、メール、お問い合わせ、権限、ログイン認証） |
@@ -25,8 +52,11 @@
 | 第1.20版 | 2026-10-04 | 一斉メールを1分に送る通数の見本の値を、さくらのレンタルサーバの送信の上限に合わせて20から5に変更（21章） |
 | 第1.21版 | 2026-10-04 | エラーの通知で、同じ内容かどうかを例外の原因の行（最初に出てくる自分たちのコード）で見分ける（20章） |
 | 第1.22版 | 2026-10-04 | ログのファイルの分け方（サーバーは `daily` で90日残す）を追加（20章） |
+| 第1.23版 | 2026-10-04 | 冒頭に章の目次を、各章に目次へ戻るリンクを追加 |
 
 ## 0. このガイドについて
+
+<p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
 
 ネオビットフレームワークは、Laravel の上に「コーナー（一覧・詳細・登録・編集・削除などをひとまとめにした管理単位）を同じ型で作るための共通部品」を載せたものです。見本のサイト（memsys）で、実際に動くコーナーを作りながら育てています。このガイドは、新しいコーナーや機能を作るときに、どの部品を使い、コントローラー・画面・ルートに何を書けばよいかを、機能ごとにまとめたものです。
 
@@ -50,6 +80,7 @@
 ### 改版について
 
 - 共通部品を足したり、使い方が変わったりしたら、このガイドの該当する章を直し、冒頭の版の表に1行足します。
+- 章を足したら、冒頭の目次にも1行足します。目次のリンク先は、章の見出しの文言そのままで、空白だけを `%20` に変えたものです（`## 9. CSV ダウンロード（CsvDownload）` なら `#9.%20CSV%20ダウンロード（CsvDownload）`）。Obsidian で飛べる形です。章の見出しを変えたら、目次のリンクも同じ文言に直します。章の見出しのすぐ下には、右寄せの「目次へ戻る」のリンクを置きます。Markdown には右寄せの書き方が無いので、ほかの章と同じ HTML の1行（`<p align="right"><a href="#目次" ...>目次へ戻る</a></p>`）を写します。
 - 新しい機能の章を足すときは、「ファイル・実例 → コントローラーに書くもの → ルート → 画面 → 決まりごと」の順にそろえ、最後の章の後ろに足します。
 - 細かい仕様は各ファイルの冒頭のコメントに書き、このガイドには「どこを見て、どう組むか」だけを書きます（同じことを2か所に詳しく書くと、片方だけ直して食い違うため）。
 
@@ -81,6 +112,8 @@
 操作ログ、自動テスト。作ったときに章を足します。
 
 ## 1. 全体像
+
+<p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
 
 ### 1-1. 動作条件
 
@@ -187,6 +220,8 @@ class NewsController extends Controller
 
 ## 2. 新しいコーナーを作る手順
 
+<p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
+
 管理画面に「一覧・検索・登録・詳細・編集・削除」のあるコーナーを作る場合の手順です。一番近い実例（多くはニュースか会員）を写しながら進めます。
 
 1. **テーブル**：マイグレーションを作る。業務で参照・削除するテーブルは `t_` を付ける（16章）。
@@ -203,6 +238,8 @@ class NewsController extends Controller
 8. **確かめる**：一覧の検索と並び順、詳細から「一覧へ戻る」で検索条件とページが戻ること、登録・編集の確認画面と「戻る」、必須マーク、削除。
 
 ## 3. 一覧・検索（SearchableList）
+
+<p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
 
 **ファイル**：`app/Support/SearchableList.php`　**実例**：`Admin\StaffController`・`Admin\MemberController`・`Admin\NewsController`・`NewsController`（訪問者向け）
 
@@ -285,6 +322,8 @@ Route::post('/members', [AdminMemberController::class, 'storeSearchCondition'])-
 
 ## 4. 詳細表示
 
+<p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
+
 **実例**：`Admin\MemberController::show()`・`Admin\NewsController::show()`
 
 詳細画面も、入力欄と同じ `_fields.blade.php` を読み取り専用で表示します。値は `formInput($record)` で作ります（モデルの今の値。アップロード項目も含む）。
@@ -312,6 +351,8 @@ public function show(News $news): View
 訪問者向けの詳細（フォームの無い「モデルをそのまま見せる」画面）では `$input` を作らず、モデルとアクセサ（`$news->list_image_url` など）で表示します。
 
 ## 5. 登録・更新（FormFlow）
+
+<p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
 
 **ファイル**：`app/Support/FormFlow.php`　**実例**：`Admin\NewsController`（確認画面あり）・`Admin\CategoryController`（確認画面なし）
 
@@ -411,6 +452,8 @@ Route::patch('/news/{news}/update', ...'update')->name('news.update');
 
 ## 6. 削除
 
+<p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
+
 **実例**：`Admin\NewsController::destroy()`（物理削除）・`Admin\StaffController`（論理削除と取り消し）
 
 ```php
@@ -434,6 +477,8 @@ private function beforeDelete(News $news): void
 - 画面の削除ボタンで防いでいる条件（使用中のカテゴリーは削除できない、など）も、`destroy()` の中で必ずもう一度確かめます。
 
 ## 7. ファイルアップロード・WYSIWYG（AjaxFileUpload）
+
+<p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
 
 **ファイル**：`app/Support/AjaxFileUpload.php`・`UploadFilePath.php`　**実例**：`Admin\NewsController`（一覧用画像・添付ファイル・本文）、`ContactController`（添付ファイル1つ）
 
@@ -546,6 +591,8 @@ public function viewFiles(Member|Staff|null $user, News $news, string $field): b
 
 ## 8. 区分表・選択肢
 
+<p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
+
 **ファイル**：`app/Support/CodeTable.php`・`app/helpers.php`・`app/Enums/`・`code/*.csv`・`App\Enums\CodeType`・`t_codes`（`Admin\CodeController`）
 
 区分表（値と名称の組）は、出どころに関係なく次のヘルパーで使います。
@@ -584,6 +631,8 @@ public function label(): string
 Blade には `\App\Enums\...` を書かず、`code_table()` 系で書きます。画面の説明文のような文面は、列挙型に持たせず Blade に書きます。
 
 ## 9. CSV ダウンロード（CsvDownload）
+
+<p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
 
 **ファイル**：`app/Support/CsvDownload.php`・`CsvColumnSet.php`（項目の定義の書き方）　**実例**：`Admin\MemberController`・`Admin\NewsController`
 
@@ -626,6 +675,8 @@ private function csvColumns(): array
 
 ## 10. CSV 取り込み（CsvImport）
 
+<p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
+
 **ファイル**：`app/Support/CsvImport.php` ほか（冒頭のコメント）、設計の詳細は「CSV取り込みの設計」（`docs/csv-import-spec.md`）　**実例**：`Admin\MemberController`（更新だけ）・`Admin\NewsController`（追加あり、アップロード項目あり）
 
 項目の定義は、ダウンロードと同じ `csvColumns()` を使います。ダウンロードした CSV を直して、そのまま取り込めます。検証・保存は画面からの登録・更新（FormFlow）と同じ処理を通ります。
@@ -667,6 +718,8 @@ Route::post('/members/csv-import/execute', [AdminMemberController::class, 'csvIm
 
 ## 11. メール送信（MailTemplate・TemplatedMail）
 
+<p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
+
 **ファイル**：`app/Support/MailTemplate.php`・`MailTemplateParser.php`・`app/Mail/TemplatedMail.php`・`resources/mail-templates/`　**実例**：`ContactController::sendStaffNotification()`・`MemberVerificationCode`
 
 送信元・宛先・件名・本文は、テンプレートファイルがすべて決めます。呼び出し側は変数と添付ファイルを渡すだけです。
@@ -701,6 +754,8 @@ Mail::send(new TemplatedMail('contact_staff', [
 - 保存と一緒に送るメールは、保存のトランザクションが確定した後に送り、送信に失敗しても保存は取り消さず、ログに残します（実例：お問い合わせ）。
 
 ## 12. 訪問者向けのフォーム（お問い合わせ）
+
+<p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
 
 **実例**：`ContactController`・`resources/views/contact/`
 
@@ -753,6 +808,8 @@ if ($spam === SpamCheckResult::Failed) {
 
 ## 13. 権限
 
+<p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
+
 **ファイル**：`app/Policies/StaffPolicy.php`・`app/Http/Middleware/EnsureStaffIsManager.php`　**実例**：スタッフ
 
 - **管理者だけの機能**（一覧・新規登録など、特定の1件に対する操作ではないもの）：ルートを `Route::middleware('acl.manager')` のグループに入れます。
@@ -764,6 +821,8 @@ if ($spam === SpamCheckResult::Failed) {
 - 管理者かどうかの判定は `Staff::isManager()` です。
 
 ## 14. ログイン認証
+
+<p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
 
 **実例**：会員は `AuthSessionController`・`LoginVerificationController`・`PasswordResetController`・`AuthPasswordController`・`AuthRegisteredMemberController`・`MypageController`、管理は `Admin\AuthSessionController`・`Admin\TwoFactorChallengeController`
 
@@ -857,6 +916,8 @@ private const PASSKEY_THROTTLE_SCOPE = 'member-passkey-code';  // 本人確認�
 
 ## 15. トランザクションとファイルの削除
 
+<p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
+
 - DB への書き込みが2つ以上続く処理は `DB::transaction()` で囲みます。FormFlow の `saveData()`・`deleteData()`、CSV 取り込みの実行は、中で囲んでいます。
 - ファイルの実物の削除は `DB::afterCommit()` に渡し、トランザクションが確定してから行います（取り消されたときに、元に戻った DB が参照しているファイルを消さないため）。トランザクションの外で呼ばれたときは、その場で消えます。
 - メールの送信も、保存のトランザクションが確定した後に行います。
@@ -864,12 +925,16 @@ private const PASSKEY_THROTTLE_SCOPE = 'member-passkey-code';  // 本人確認�
 
 ## 16. テーブル・モデルの決まり
 
+<p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
+
 - **テーブル名**：業務のデータ、業務の側で参照したり古い行を消したりする記録（問い合わせ、CSV のダウンロード・取り込みの記録など）は `t_` を付けます。認証の保持や試行制限のようなフレームワーク内部のものは `t_` を付けず、会員・スタッフ共通の汎用のテーブルにします。
 - DB の外部キー制約（`constrained()`）は付けていません。関連の片付けは `beforeDelete()` などでコードで行います。
 - **モデル**：データ項目の仕様（画像の横幅など）は定数、表示用の値（ファイルの URL など）はアクセサにします。日付は `date`、フラグは `boolean`、列挙型は列挙型のクラスで `$casts` に書きます。
 - 論理削除が要るものは `SoftDeletes`（`deleted_at`）を使います。
 
 ## 17. 画面（Blade）の決まり
+
+<p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
 
 - **レイアウト**：管理画面は `layouts/admin.blade.php`、訪問者向けは `layouts/app.blade.php`。処理結果のメッセージは `->with('status', '...')`（緑）・`->with('error', '...')`（赤）で渡すと、レイアウトが表示します。
 - **画面ごとのスクリプト**：その画面だけで使うもの（アップロード、WYSIWYG、並び替えなど）は `@push('head-extra')` で読み込みます。全画面で使うものは `resources/js/app.js` に書きます。
@@ -880,6 +945,8 @@ private const PASSKEY_THROTTLE_SCOPE = 'member-passkey-code';  // 本人確認�
 - **共通の部分ビュー**（`_confirm_hidden`・`_ajax_upload_block` など）は `resources/views/` 直下に置き、モデル名やコントローラー名を書きません。コーナー専用のテンプレート（`admin/news/_fields` など）は、そのコーナーのモデルの定数を参照してかまいません。
 
 ## 18. PDF 出力（PdfDownload）
+
+<p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
 
 **ファイル**：`app/Support/PdfDownload.php`（冒頭のコメント）・`resources/fonts/ipaex/`（IPAex フォントとライセンス）・`resources/views/pdf/`　**実例**：履歴書（`Admin\MemberController::resume()`・`MypageController::resume()`・`resources/views/pdf/resume.blade.php`）
 
@@ -921,6 +988,8 @@ public function resume(Member $member): Response
 - フォントを足すときは、`resources/fonts/` にファイルとライセンスを置き、`PdfDownload` の `PDF_FONTS` に足します。
 
 ## 19. スケジューラー（定期的な処理）
+
+<p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
 
 **ファイル**：`routes/console.php`（スケジュールの一覧）・`app/Console/Commands/`（コマンド）　**実例**：一時データの後片付け（`app/Support/TemporaryDataCleaner.php`・`app/Console/Commands/CleanupTemporaryData.php`）
 
@@ -984,6 +1053,8 @@ Schedule::command(CleanupTemporaryData::class)->hourly()->withoutOverlapping();
 
 ## 20. エラーの通知（ErrorNotifyHandler）
 
+<p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
+
 **ファイル**：`app/Support/ErrorNotifyHandler.php`・`config/logging.php`（`error_notify` のチャンネル）・`resources/mail-templates/error_notify.blade.php`
 
 本番で起きたエラーを、ログを見に行かなくても気付けるよう、ログに書くのと一緒に開発者へメールで知らせます。ログのチャンネルとして働くので、例外も `Log::error()` も同じ仕組みで届き、コントローラーや部品のコードに通知のための処理は書きません。
@@ -1039,6 +1110,8 @@ ERROR_NOTIFY_INTERVAL=10
 - エラーの通知の間引きは、メールだけのものです。ログには、起きたエラーが1件ずつ全部残ります。
 
 ## 21. キュー（一斉メール）
+
+<p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
 
 **ファイル**：`app/Jobs/`（ジョブ）・`routes/console.php`（ワーカーのスケジュール）　**実例**：一斉メール（`Admin\BulkMailController`・`Admin\BulkMailTemplateController`・`app/Jobs/SendBulkMail.php`）
 

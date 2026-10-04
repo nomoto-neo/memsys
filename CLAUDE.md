@@ -65,7 +65,7 @@
 - 本番・開発サーバーは AlmaLinux 10＋Apache＋PHP-FPM＋MariaDB。サーバーには触らない（サーバーへの送信・デプロイは人が行う）
 - DB を消すコマンド（`migrate:fresh`・`db:wipe` など）、`git push`、パッケージの追加・更新は、実行する前に確認を取る
 - 手元の DB は `php artisan migrate:fresh --seed` で作り直せる前提。サーバーのデータは持ってこない（`APP_KEY` が違うので、暗号化した列を復号できない）
-- 共通部品を足したり使い方を変えたりしたら、`docs/neobit-framework-guide.md` の該当する章と、冒頭の版の表も直す
+- 共通部品を足したり使い方を変えたりしたら、`docs/neobit-framework-guide.md` の該当する章と、冒頭の版の表も直す。章を足したり見出しを変えたりしたら、冒頭の目次も直す（リンク先の作り方は、ガイド0章の「改版について」）
 
 ## コミットのメッセージ
 
