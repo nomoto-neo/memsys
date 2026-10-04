@@ -74,10 +74,10 @@
 
 @push('scripts')
 <script>
-    // SortableJSでドラッグ並び替えを有効にする。handle: '.drag-handle'を
-    // 指定しているので、行全体ではなく⠿の部分をつかんだときだけ
-    // ドラッグが始まる（誤操作で「編集」「削除」ボタンをドラッグして
-    // しまうのを防ぐため）。
+    {{-- SortableJSでドラッグ並び替えを有効にする。handle: '.drag-handle'を
+         指定しているので、行全体ではなく⠿の部分をつかんだときだけ
+         ドラッグが始まる（誤操作で「編集」「削除」ボタンをドラッグして
+         しまうのを防ぐため）。 --}}
     document.addEventListener('DOMContentLoaded', () => {
         const list = document.getElementById('category-list');
         Sortable.create(list, {
@@ -85,10 +85,10 @@
             animation: 150,
         });
 
-        // 送信直前に、今のDOM上の並び順（li[data-id]の出現順）から
-        // order[]という名前のhiddenをまとめて作り直す。サーバー側は
-        // この配列のインデックス（0, 1, 2, ...）をそのまま新しい
-        // display_orderとして書き込む（CategoryController::reorder()参照）。
+        {{-- 送信直前に、今のDOM上の並び順（li[data-id]の出現順）から
+             order[]という名前のhiddenをまとめて作り直す。サーバー側は
+             この配列のインデックス（0, 1, 2, ...）をそのまま新しい
+             display_orderとして書き込む（CategoryController::reorder()参照）。 --}}
         document.getElementById('category-order-form').addEventListener('submit', (event) => {
             const form = event.target;
 

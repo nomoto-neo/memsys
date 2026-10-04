@@ -84,7 +84,7 @@
 
 @push('scripts')
 <script>
-    // 文面を選んだら、その件名と本文を欄に入れる。「選ばない」に戻しても欄は消さない
+    {{-- 文面を選んだら、その件名と本文を欄に入れる。「選ばない」に戻しても欄は消さない --}}
     document.getElementById('template')?.addEventListener('change', (event) => {
         const option = event.target.selectedOptions[0];
 

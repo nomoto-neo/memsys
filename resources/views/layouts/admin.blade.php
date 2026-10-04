@@ -23,8 +23,8 @@
     opacity: 1;
     color: inherit;
 }
-/* WYSIWYGエディタで作った本文の表示。挿入した画像は保存時に横幅を
-   縮めているが、表示欄の幅より大きいことがあるので、欄の幅に収める。 */
+{{-- WYSIWYGエディタで作った本文の表示。挿入した画像は保存時に横幅を
+     縮めているが、表示欄の幅より大きいことがあるので、欄の幅に収める。 --}}
 .wysiwyg-content img {
     max-width: 100%;
     height: auto;
@@ -38,9 +38,9 @@
 .invalid-feedback:not(:empty) {
     display: block;
 }
-/* 一覧の表で、削除済み（論理削除）のデータの行を赤字にする。<tr>にrow-deletedを付ける。
-   Bootstrapの表はセル（<td>）ごとに文字色を決めているので、<tr>に色を付けても
-   セルには効かない。そのため<tr>の下の<td>を指定して色を変える。 */
+{{-- 一覧の表で、削除済み（論理削除）のデータの行を赤字にする。<tr>にrow-deletedを付ける。
+     Bootstrapの表はセル（<td>）ごとに文字色を決めているので、<tr>に色を付けても
+     セルには効かない。そのため<tr>の下の<td>を指定して色を変える。 --}}
 .table > tbody > tr.row-deleted > td {
     color: var(--bs-danger);
 }

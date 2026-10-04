@@ -28,26 +28,26 @@
     </div>
     <script>
         (() => {
-            // 判定が終わらないときに、案内を「確認できませんでした」に変えるまでの秒数
+            {{-- 判定が終わらないときに、案内を「確認できませんでした」に変えるまでの秒数 --}}
             const WAIT_SECONDS = 10;
 
             const box = document.currentScript.previousElementSibling;
             const form = box.closest('form');
             const widget = box.querySelector('[data-spam-guard-widget]');
 
-            // 判定に通ってトークンを受け取っている間だけtrue
+            {{-- 判定に通ってトークンを受け取っている間だけtrue --}}
             let passed = false;
             let waitTimer = null;
 
-            // 案内の文を1つだけ出す。nullを渡すと両方隠す
+            {{-- 案内の文を1つだけ出す。nullを渡すと両方隠す --}}
             const showMessage = (name) => {
                 box.querySelectorAll('[data-spam-guard-message]').forEach((message) => {
                     message.hidden = message.dataset.spamGuardMessage !== name;
                 });
             };
 
-            // 送信ボタンを押せなくする・戻す。disabled属性はフォームの側が別の条件
-            // （同意のチェックなど）で使うので触らず、Bootstrapのdisabledクラスで行う
+            {{-- 送信ボタンを押せなくする・戻す。disabled属性はフォームの側が別の条件
+                 （同意のチェックなど）で使うので触らず、Bootstrapのdisabledクラスで行う --}}
             const blockButtons = (blocked) => {
                 form.querySelectorAll('button[type="submit"]').forEach((button) => {
                     button.classList.toggle('disabled', blocked);
@@ -55,7 +55,7 @@
                 });
             };
 
-            // 判定を待っている。枠が出る前と、期限が切れてトークンを取り直している間
+            {{-- 判定を待っている。枠が出る前と、期限が切れてトークンを取り直している間 --}}
             const wait = () => {
                 passed = false;
                 blockButtons(true);
@@ -64,8 +64,8 @@
                 waitTimer = setTimeout(fail, WAIT_SECONDS * 1000);
             };
 
-            // 判定できなかった。Cloudflareのスクリプトを読めないときと、待つ秒数を過ぎたとき。
-            // この後で判定に通れば、pass()で送信できるようになる
+            {{-- 判定できなかった。Cloudflareのスクリプトを読めないときと、待つ秒数を過ぎたとき。
+                 この後で判定に通れば、pass()で送信できるようになる --}}
             const fail = () => {
                 passed = false;
                 blockButtons(true);
@@ -73,7 +73,7 @@
                 clearTimeout(waitTimer);
             };
 
-            // 判定に通った
+            {{-- 判定に通った --}}
             const pass = () => {
                 passed = true;
                 blockButtons(false);
@@ -81,8 +81,8 @@
                 clearTimeout(waitTimer);
             };
 
-            // Enterキーでの送信も止める。フォームのほかの送信時の処理（二重送信の防止など）が
-            // 動かないよう、それらより先に受け取って打ち切る
+            {{-- Enterキーでの送信も止める。フォームのほかの送信時の処理（二重送信の防止など）が
+                 動かないよう、それらより先に受け取って打ち切る --}}
             form.addEventListener('submit', (event) => {
                 if (! passed) {
                     event.preventDefault();
@@ -90,8 +90,8 @@
                 }
             }, true);
 
-            // Cloudflareのスクリプトを読み込み、読めたら枠を出す。読めなかったことを
-            // 受け取れるよう、<script>のタグを書かずにここで読み込む
+            {{-- Cloudflareのスクリプトを読み込み、読めたら枠を出す。読めなかったことを
+                 受け取れるよう、<script>のタグを書かずにここで読み込む --}}
             const script = document.createElement('script');
             script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
             script.async = true;
