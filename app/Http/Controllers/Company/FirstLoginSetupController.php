@@ -123,7 +123,7 @@ class FirstLoginSetupController extends Controller
 
         // 今までのパスワードは全社で使い回していたものなので、同じものは使わせない
         if (Hash::check($validated['password'], (string) $user->password)) {
-            return $this->backToForm($request, ['password' => '今までのパスワードとは別のパスワードを決めてください。']);
+            return $this->backToForm($request, ['password' => '今までと同じパスワードは使えません。']);
         }
 
         // 企業の情報の照合。失敗回数による試行制限（IP単位・担当者id単位。App\Support\LoginThrottle）
