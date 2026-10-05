@@ -39,6 +39,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  *   パスワードは本人が決める。運営が担当者のパスワードを決めることになる形にはしない
  * 企業IDと状態は、登録・編集の画面では変えない。企業IDは自動で決まり、状態は、
  * 承認・却下・停止・再開のボタンで変える。
+ * 企業の側に退会の画面は無い。退会の連絡を受けたら、ここで停止してから削除する。
  * 担当者を足すのは企業の側の役目だが、招待のメールを送ることだけは、ここからもできる。
  * 担当者が1人もいなくなった企業の立て直しに要るため（App\Support\CompanyInvitationManager）。
  */
@@ -184,6 +185,19 @@ class CompanyController extends Controller
             // 新しく登録した企業の最初の担当者へ、招待のメールを送る
             // （メールは保存が確定した後に送られる。App\Support\CompanyInvitationManager参照）。
             CompanyInvitationManager::invite($company, $validated['invite_email']);
+        }
+    }
+
+    // 削除の直前の処理。却下と削除の両方で働く。外部キー制約を付けていないので、
+    // 企業に属する招待と担当者、担当者の信頼済みの端末とパスキーを、ここで消す
+    private function beforeDelete(Company $company): void
+    {
+        $company->invitations()->delete();
+
+        foreach ($company->users as $user) {
+            TrustedDeviceManager::forMember($user)->forgetAll($user);
+            $user->passkeys()->delete();
+            $user->delete();
         }
     }
 
@@ -429,20 +443,8 @@ class CompanyController extends Controller
         // 行を消す前に、お知らせの宛先を控える
         $users = $company->users()->with('company')->get();
 
-        // 担当者と、その信頼済みの端末・パスキー、招待を消してから、企業を消す
-        DB::transaction(function () use ($company, $users) {
-            $company->invitations()->delete();
-
-            foreach ($users as $user) {
-                TrustedDeviceManager::forMember($user)->forgetAll($user);
-                $user->passkeys()->delete();
-                $user->delete();
-            }
-
-            $company->delete();
-
-            OperationRecorder::record(OperationLogAction::Delete, $company);
-        });
+        // 担当者と招待を消してから、企業を消す（beforeDelete()）
+        $this->deleteData($company);
 
         // メールは削除が確定した後に送る
         foreach ($users as $user) {
@@ -477,6 +479,24 @@ class CompanyController extends Controller
 
         return redirect()->route('admin.companies.show', $company)
             ->with('status', '企業の利用を再開しました。');
+    }
+
+    /**
+     * 止めた企業を削除する（DELETE /admin/companies/{company}/delete）。
+     * 企業から退会の連絡を受けたときに使う。企業と担当者の行を消すので、元に戻せない。
+     * 削除できるのは、停止の企業だけ。承認済みの企業を、押し間違いで消さないようにするため。
+     * まず停止して担当者をログインできなくしてから、削除する。担当者へのお知らせは送らない。
+     */
+    public function destroy(Company $company): RedirectResponse
+    {
+        if (! $company->isSuspended()) {
+            return $this->statusAlreadyChanged($company);
+        }
+
+        $this->deleteData($company);
+
+        return redirect()->route(self::INDEX_ROUTE, ['back'])
+            ->with('status', '企業を削除しました。');
     }
 
     // ---- 担当者の招待 ----

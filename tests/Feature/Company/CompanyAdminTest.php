@@ -10,6 +10,8 @@ use App\Models\CompanyInvitation;
 use App\Models\CompanyUser;
 use App\Models\OperationLog;
 use App\Models\Staff;
+use App\Support\CompanyInvitationManager;
+use App\Support\TrustedDeviceManager;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Tests\Support\ReadsSentMail;
@@ -199,6 +201,35 @@ class CompanyAdminTest extends TestCase
         $this->actingAs($staff, 'admin')->patch("/admin/companies/{$company->id}/resume")
             ->assertRedirect(route('admin.companies.show', $company));
         $this->assertSame(CompanyStatus::Approved, $company->fresh()->status);
+    }
+
+    public function test_only_a_suspended_company_can_be_deleted(): void
+    {
+        $company = $this->company(CompanyStatus::Approved);
+        $user = $this->user($company);
+        TrustedDeviceManager::forMember($user)->remember($user);
+        CompanyInvitationManager::invite($company, 'guest@example.com');
+        $other = $this->company(CompanyStatus::Approved, 'other');
+        $staff = $this->staff();
+
+        // 承認済みのままでは、削除できない
+        $this->actingAs($staff, 'admin')->delete("/admin/companies/{$company->id}/delete")->assertSessionHas('error');
+        $this->assertSame(2, Company::count());
+
+        // 停止してから削除する。詳細に、削除のボタンが出る
+        $this->actingAs($staff, 'admin')->patch("/admin/companies/{$company->id}/suspend");
+        $this->actingAs($staff, 'admin')->get("/admin/companies/{$company->id}")->assertOk()->assertSee('この企業を削除する');
+        $this->actingAs($staff, 'admin')->delete("/admin/companies/{$company->id}/delete")
+            ->assertRedirect(route('admin.companies.index', ['back']));
+
+        // 企業と、担当者・招待・信頼済みの端末を消す。ほかの企業は残る
+        $this->assertSame([$other->id], Company::pluck('id')->all());
+        $this->assertSame(0, CompanyUser::count());
+        $this->assertSame(0, CompanyInvitation::count());
+        $this->assertDatabaseCount('trusted_devices', 0);
+
+        $log = OperationLog::where('action', OperationLogAction::Delete)->sole();
+        $this->assertSame(['staff', $staff->id, 'company', $company->id], [$log->operator_type, $log->operator_id, $log->target_type, $log->target_id]);
     }
 
     public function test_status_buttons_work_only_from_the_expected_status(): void

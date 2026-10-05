@@ -172,9 +172,13 @@
         </button>
     </div>
 @elseif ($company->isSuspended())
-    <div class="mt-3">
+    {{-- 削除できるのは、停止の企業だけ。承認済みの企業を、押し間違いで消さないようにするため --}}
+    <div class="mt-3 d-flex gap-2">
         <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#resumeCompanyModal">
             この企業の利用を再開する
+        </button>
+        <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteCompanyModal">
+            この企業を削除する
         </button>
     </div>
 @endif
@@ -276,6 +280,29 @@
                         @csrf
                         @method('PATCH')
                         <button type="submit" class="btn btn-primary">再開する</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="deleteCompanyModal" tabindex="-1" aria-labelledby="deleteCompanyModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteCompanyModalLabel">企業会員の削除</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="閉じる"></button>
+                </div>
+                <div class="modal-body">
+                    「{{ $company->name }}」を削除します。企業の情報と、担当者{{ $users->count() }}人の情報を、すべて削除します。
+                    <strong>削除した情報は元に戻せません。</strong>担当者へのお知らせは送りません。よろしいですか？
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">キャンセル</button>
+                    <form method="POST" action="{{ route('admin.companies.destroy', $company) }}">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="btn btn-danger">削除する</button>
                     </form>
                 </div>
             </div>

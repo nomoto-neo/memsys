@@ -386,6 +386,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::delete('/companies/{company}/reject', [AdminCompanyController::class, 'reject'])->name('companies.reject');
         Route::patch('/companies/{company}/suspend', [AdminCompanyController::class, 'suspend'])->name('companies.suspend');
         Route::patch('/companies/{company}/resume', [AdminCompanyController::class, 'resume'])->name('companies.resume');
+        // 削除。停止の企業だけ。企業の側に退会の画面は無いので、退会の連絡を受けたときに使う
+        Route::delete('/companies/{company}/delete', [AdminCompanyController::class, 'destroy'])->name('companies.destroy');
         // 担当者の招待のメールの送信・送り直し・取り消し（App\Support\CompanyInvitationManager）。
         // scopeBindings()で、{invitation}をその{company}の招待に限る
         Route::post('/companies/{company}/invitations', [AdminCompanyController::class, 'storeInvitation'])->name('companies.invitations.store');
