@@ -34,7 +34,7 @@
                     </div>
 
                     <div class="mb-3">
-                        <label for="login_id" class="form-label">担当者ID {!! $required['login_id'] !!}</label>
+                        <label for="login_id" class="form-label">担当者ID（ログインID） {!! $required['login_id'] !!}</label>
                         <input id="login_id" type="text" name="login_id"
                                class="form-control"
                                autocomplete="username"

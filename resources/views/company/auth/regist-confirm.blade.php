@@ -55,7 +55,7 @@
                     <dt class="col-sm-4">メールアドレス</dt>
                     <dd class="col-sm-8">{{ $input['email'] }}</dd>
 
-                    <dt class="col-sm-4">担当者ID</dt>
+                    <dt class="col-sm-4">担当者ID（ログインID）</dt>
                     <dd class="col-sm-8">{{ $input['login_id'] }}</dd>
 
                     <dt class="col-sm-4">パスワード</dt>
