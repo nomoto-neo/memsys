@@ -25,6 +25,7 @@
 - [20. エラーの通知（ErrorNotifyHandler）](#20.%20エラーの通知（ErrorNotifyHandler）)
 - [21. キュー（一斉メール）](#21.%20キュー（一斉メール）)
 - [22. 操作ログ（OperationRecorder）](#22.%20操作ログ（OperationRecorder）)
+- [23. 個人会員と企業会員（MemberAccount）](#23.%20個人会員と企業会員（MemberAccount）)
 - [付録. フレームワーク外で考慮すべきセキュリティ対策](#付録.%20フレームワーク外で考慮すべきセキュリティ対策)
 
 ## 版の履歴
@@ -44,6 +45,7 @@
 | 第2.9版 | 2026-10-05 | 企業会員の担当者の招待（`CompanyInvitationManager`）を追加。企業の側の担当者の管理（一覧・招待・編集・削除）、招待された人の登録、管理画面からの企業の登録と招待。期限の切れた招待を、後片付けの対象に足した（14章・19章・22章） |
 | 第2.10版 | 2026-10-05 | コメントの書き方（残すコメント・書かないコメント・置く場所）を追加（1章の 1-5） |
 | 第2.11版 | 2026-10-05 | 既存のシステムから移した企業の、初回のログインでの登録（`Company\FirstLoginSetupController`）を追加。確認コードの使い道に、初回のログインでの登録を足した。照合する列は `config/members.php` の `identity_check_column`（14章） |
+| 第2.12版 | 2026-10-05 | 個人会員と企業会員の章（23章）を追加。名前の決まり、モデルとコントローラーに書くもの、企業会員の画面と決まりごと、企業会員を使わないサイトで消すもの、個人会員をログインID でログインさせる手順、会員の種類の足し方。14章の区分の表に企業会員を足し、企業会員の説明を23章へ移した |
 
 ## 0. このガイドについて
 
@@ -66,6 +68,7 @@
 | 管理画面：項目見出し一覧（`Admin\CodeController`） | DBで管理する区分表の編集（複数行をまとめて保存、行の追加・削除・並び替え） |
 | お問い合わせ（`ContactController`） | 訪問者向けの入力・確認・送信、添付ファイル、メール送信、二重送信防止、スパム対策 |
 | 訪問者向けニュース（`NewsController`） | ログイン不要の一覧・検索・詳細、会員限定の記事（ログイン中の会員にだけ見せる）、掲載期間（掲載開始日時・掲載終了日時。表示するたびに今の時刻と比べるので、スケジューラーは使わない）。条件は `News::visibleTo()`・`isVisibleTo()` にまとめてある |
+| 企業会員（`app/Http/Controllers/Company/` の下） | 企業と担当者、企業ID・担当者ID でのログイン、登録と運営の承認、担当者の招待、既存のシステムから移したデータの初回のログイン（23章） |
 | 会員の認証まわり（`AuthSessionController` ほか） | ログイン、確認コード、パスワード再設定・変更、会員登録、退会、パスキー |
 | 管理画面のログイン（`Admin\AuthSessionController` ほか） | TOTP・バックアップコード、信頼済み端末、パスキー |
 
@@ -115,7 +118,7 @@ TRUSTED_PROXIES=10.0.0.5,10.0.0.6
 - `.env` を変えたら `php artisan config:cache` をやり直します。
 ### まだ無い機能（今後の予定）
 
-自動テストは、認証の流れ（個人会員とスタッフのログイン、パスワードの変更と再設定、会員登録）から書き始めています（`tests/Feature/Auth/`）。パスキーと、管理画面のコーナーは、まだです。そろってきたら、章を足します。
+自動テストは、認証の流れ（個人会員とスタッフのログイン、パスワードの変更と再設定、会員登録。`tests/Feature/Auth/`）と、企業会員（登録・ログイン・マイページ・招待・初回のログインでの登録と、管理画面の企業会員と担当者。`tests/Feature/Company/`）にあります。パスキーと、ほかの管理画面のコーナーは、まだです。そろってきたら、章を足します。
 
 テストは `php artisan test` で動かします。テスト用の DB（`memsys_testing`。`phpunit.xml` に書いてあります）を、手元の DB のサーバーに作っておきます。テストのたびにテーブルを作り直すので、ふだんの DB（`memsys_local`）とは別にします。
 
@@ -901,15 +904,18 @@ if ($spam === SpamCheckResult::Failed) {
 
 ### ガードと画面の区分
 
-| | 会員 | 管理画面 |
-|---|---|---|
-| ガード | `web`（`Member`、`t_members`） | `admin`（`Staff`、`t_staffs`） |
-| ログインが要る画面 | `Route::middleware(['auth', 'auth.session'])` | `Route::middleware(['auth:admin', 'auth.session'])` |
-| ログイン前だけの画面 | `guest` | `guest:admin` |
-| 2段階目 | メールの確認コード（`MemberVerificationCode`） | TOTP（`TwoFactorAuthenticator`）＋バックアップコード |
-| 2段階目の省略 | 「このデバイスを記憶する」（`TrustedDeviceManager::forMember()`） | 「この端末を信頼する」（`TrustedDeviceManager::forStaff()`） |
+| | 個人会員 | 企業会員 | 管理画面 |
+|---|---|---|---|
+| ガード | `web`（`Member`、`t_members`） | `company`（`CompanyUser`、`t_company_users`） | `admin`（`Staff`、`t_staffs`） |
+| ログインに使う値 | メールアドレス | 企業ID・担当者ID | ログインID |
+| ログインが要る画面 | `Route::middleware(['auth:web', 'auth.session'])` | `Route::middleware(['auth:company', 'auth.session', 'company.approved'])` | `Route::middleware(['auth:admin', 'auth.session'])` |
+| ログイン前だけの画面 | `guest` | `guest:company` | `guest:admin` |
+| 2段階目 | メールの確認コード（`MemberVerificationCode`） | 同じ | TOTP（`TwoFactorAuthenticator`）＋バックアップコード |
+| 2段階目の省略 | 「このデバイスを記憶する」（`TrustedDeviceManager::forMember()`） | 同じ | 「この端末を信頼する」（`TrustedDeviceManager::forStaff()`） |
 
-未ログインのときの行き先・ログイン済みでゲスト専用画面に来たときの行き先は、`bootstrap/app.php` でルート名（`admin.*` かどうか）から振り分けています。
+未ログインのときの行き先・ログイン済みでゲスト専用画面に来たときの行き先は、`bootstrap/app.php` でルート名（`admin.*`・`company.*` かどうか）から振り分けています。
+
+個人会員と企業会員は、同じ共通部品を、会員のモデルを渡して使い分けます。企業会員だけの仕組み（企業と担当者、承認、招待、移したデータの初回のログイン）と、会員の種類の足し方・外し方は、23章にまとめてあります。
 
 ### ログインの流れ（会員・管理とも同じ形）
 
@@ -925,7 +931,7 @@ if ($spam === SpamCheckResult::Failed) {
 
 ### 会員の共通の型（MemberAccount）
 
-訪問者側でログインするモデルは、共通の型 `App\Support\MemberAccount` を実装します。認証の共通部品は、会員を `Member` の名指しではなく、この型で受け取ります。メールのテンプレート・ルート・信頼済み端末の Cookie の名前は、モデルの「種類の名前」（`MEMBER_TYPE`）から、決まりのとおりに作ります。個人会員と企業会員を共存させるための作りで、設計は `docs/member-types-spec.md` にあります。企業会員は、ログイン（`Company\AuthSessionController`）と、マイページ（企業の情報の変更 `Company\MypageController`、自分の情報の変更 `Company\ProfileController`、パスワードの変更 `Company\AuthPasswordController`、再設定 `Company\PasswordResetController`、パスキーの管理）と、登録（`Company\RegistrationController`）、管理画面の企業会員の管理（`Admin\CompanyController`。担当者の確認・編集・削除は `Admin\CompanyUserController`）、担当者の管理（`Company\UserController`）と招待（`Company\InvitationController`）までができています。担当者は、招待のメールのリンクから本人が登録して足します。招待の発行・送り直し・取り消し・照合は `CompanyInvitationManager` にまとめてあり、企業の側のマイページと管理画面の両方から呼びます。リンクに入れる値は、ハッシュ値にして `t_company_invitations` に持ちます。既存のシステムから移した企業の最初の担当者は、メールアドレスが空なので、ログインの1段階目の後、2段階目の代わりに初回のログインでの登録（`Company\FirstLoginSetupController`）へ回します。企業のデータにある値を1つ（`config/members.php` の `identity_check_column`。見本のサイトでは電話番号）照合してから、入力されたメールアドレスに確認コードを送ります。新しく始めるサイトでは使われないので、コントローラーとルートを消して構いません。登録した企業は「申請中」で、運営が管理画面で承認すると、担当者がログインできるようになります。申請を知らせるメールの宛先は、`.env` の `COMPANY_REGISTRATION_STAFF_EMAIL`（`config/members.php`）です。どれも個人会員のコントローラーを写したもので、共通部品には会員のモデル（`CompanyUser`）を渡すだけです。メールのテンプレートは、`company_password_changed`・`company_profile_changed` のように、種類の名前を頭に付けて用意します。そろってから、この章を書き直します。
+訪問者側でログインするモデル（`Member`・`CompanyUser`）は、共通の型 `App\Support\MemberAccount` を実装します。認証の共通部品は、会員を `Member` の名指しではなく、この型で受け取ります。ガード・ルート・メールのテンプレート・信頼済み端末の Cookie の名前は、モデルの「種類の名前」（`MEMBER_TYPE`）から、決まりのとおりに作ります。名前の決まりと、モデル・コントローラーに書くものは、23章にあります。
 
 ### 古い方式のパスワード（LegacyPasswordUserProvider）
 
@@ -995,17 +1001,19 @@ if ($throttle->isBlocked()) {
 
 ### 確認コード（MemberVerificationCode）
 
-用途（`PURPOSE_LOGIN`・`PURPOSE_PASSWORD_RESET`・`PURPOSE_MYPAGE_PASSWORD`・`PURPOSE_REGISTER`・`PURPOSE_PASSKEY`）ごとにセッションで管理します。`issue()` で発行とメール送信、`verify()` で照合します。会員登録のようにまだ会員がいない場合は `issueForAddress()`・`verifyForAddress()` です。
+会員の種類は、作るときにモデルで渡します（`new MemberVerificationCode(Member::class)`）。メールのテンプレートとセッションのキーは、種類の名前から決まります。
+
+用途（`PURPOSE_LOGIN`・`PURPOSE_PASSWORD_RESET`・`PURPOSE_MYPAGE_PASSWORD`・`PURPOSE_REGISTER`・`PURPOSE_PASSKEY`・`PURPOSE_FIRST_LOGIN`）ごとにセッションで管理します。`issue()` で発行とメール送信、`verify()` で照合します。会員登録のようにまだ会員がいない場合と、初回のログインでの登録のようにメールアドレスがまだ保存されていない場合は、`issueForAddress()`・`verifyForAddress()` です。
 
 ### パスワードを変えるとき
 
 - `auth.session` が、パスワードを変えたときにほかの端末のログインと「ログイン状態を保持する」の Cookie を無効にします。
 - パスワードの更新は、必ず「ログイン中のユーザーのインスタンス」に対して行います（別のインスタンスを更新すると本人までログアウトされます）。別のインスタンスを保存した場合は `Auth::guard(...)->setUser($record)` で差し替えます（実例：`StaffController::afterSave()`）。
-- パスワードを変えたら、保存の直後に `PasswordChange::resetAndNotify($record, changedBy: 管理画面から変えたスタッフ)` を呼びます（トランザクションの中でよい）。信頼済み端末とパスキーをすべて無効にし、確定後に登録されているメールアドレスへお知らせを送ります（テンプレートは `member_password_changed`・`staff_password_changed`）。スタッフの2段階認証（TOTP）は消しません。戻り値は削除したパスキーの件数で、画面のメッセージに使えます。
+- パスワードを変えたら、保存の直後に `PasswordChange::resetAndNotify($record, changedBy: 管理画面から変えたスタッフ)` を呼びます（トランザクションの中でよい）。信頼済み端末とパスキーをすべて無効にし、確定後に登録されているメールアドレスへお知らせを送ります（テンプレートは `member_password_changed`・`company_password_changed`・`staff_password_changed`）。スタッフの2段階認証（TOTP）は消しません。戻り値は削除したパスキーの件数で、画面のメッセージに使えます。
 
 ### 認証まわりのテーブル
 
-信頼済み端末（`trusted_devices`）・バックアップコード（`two_factor_backup_codes`）・パスキー（`passkeys`）のようなフレームワーク内部のテーブルは、会員・スタッフで共通の1つにし、`authenticatable_type`（`'member'`・`'staff'`）と `authenticatable_id` で区別します。新しい認証対象のモデルを足したら、`AppServiceProvider` の `Relation::enforceMorphMap()` にも足します。
+信頼済み端末（`trusted_devices`）・バックアップコード（`two_factor_backup_codes`）・パスキー（`passkeys`）のようなフレームワーク内部のテーブルは、会員・スタッフで共通の1つにし、`authenticatable_type`（`'member'`・`'company_user'`・`'staff'`）と `authenticatable_id` で区別します。新しい認証対象のモデルを足したら、`AppServiceProvider` の `Relation::enforceMorphMap()` にも足します。
 
 ### パスキー（PasskeyLogin・PasskeyManagement）
 
@@ -1444,6 +1452,197 @@ private function afterSave(Member $member, array $validated, array $changedField
 - 何も変わっていないときと、パスワードだけが変わったときは送りません。パスワードの変更は、`PasswordChange` が別のメールで知らせます。
 - **管理画面からスタッフが変えたときは送りません**。本人から頼まれて変えることがほとんどで、知らせる必要が無いためです。誰が変えたかは、操作ログに残ります。パスワードをスタッフが変えたときのお知らせ（`PasswordChange`）は、今までどおり送ります。
 - メールアドレスが変わったときは、変わる前と後の両方のアドレスに送ります。他人にアドレスを書き換えられたときに、本人が気付けるのは変わる前のアドレスだけだからです。変わる前のアドレスは、`$changedFields['email']` で受け取ります。
+
+## 23. 個人会員と企業会員（MemberAccount）
+
+<p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
+
+**ファイル**：`app/Support/MemberAccount.php`・`IsMemberAccount.php`・`MemberLogin.php`・`CompanyInvitationManager.php`・`LoginIdMemory.php`、`config/members.php`、設計の詳細は「個人会員と企業会員を共存させる設計」（`docs/member-types-spec.md`）　**実例**：個人会員は `AuthSessionController` ほか、企業会員は `app/Http/Controllers/Company/` の下と `Admin\CompanyController`・`Admin\CompanyUserController`
+
+訪問者側でログインする人は、個人会員と、企業の担当者の2種類です。ログインの仕組み（14章）は同じ共通部品を使い、画面・URL・コントローラーは種類ごとに分けて書きます。企業会員を使わないサイトは、企業会員のファイルを消します。
+
+### 名前の決まり
+
+ログインするモデルは、共通の型 `MemberAccount` を実装します。ガード・ルート・メールのテンプレート・Cookie の名前は、モデルの「種類の名前」から決まりで作り、設定には書きません。共通部品は、渡されたモデルに名前を聞くだけで、個人か企業かの場合分けを持ちません。
+
+| もの | 決まり | 個人会員（`Member`） | 企業の担当者（`CompanyUser`） |
+|---|---|---|---|
+| 種類の名前 | モデルの定数 `MEMBER_TYPE` | `member` | `company` |
+| ガード | 種類の名前。個人会員だけは `web` | `web` | `company` |
+| ルートの名前 | 頭に「種類の名前.」。個人会員だけは付けない | `login`・`mypage` | `company.login`・`company.mypage` |
+| メールのテンプレート | 頭に「種類の名前_」 | `member_verification_code` | `company_verification_code` |
+| 信頼済み端末の Cookie | 「種類の名前_trusted_device」 | `member_trusted_device` | `company_trusted_device` |
+| 操作ログなどでの名前 | `enforceMorphMap()` に書いた名前 | `member` | `company_user` |
+
+個人会員のガードとルートに頭を付けていないのは、URL とルートの名前を短いままにするためです。モデルの定数 `MEMBER_GUARD`・`MEMBER_ROUTE_PREFIX` で、決まりと違う名前にしています。
+
+### モデルに書くもの
+
+```php
+class CompanyUser extends Authenticatable implements MemberAccount, PasskeyUser
+{
+    use HasPasskeys;        // パスキー（14章）
+    use IsMemberAccount;    // 名前の決まり
+
+    public const MEMBER_TYPE = 'company';
+
+    // 画面やメールに出す名前
+    public function displayName(): string { ... }
+
+    // お知らせや確認コードを送るメールアドレス。未登録なら null
+    public function notificationEmail(): ?string { ... }
+
+    // ログインに使う値。メールアドレスでログインする会員は、書かなくてよい
+    public function loginId(): string { ... }
+
+    public function trustedDevices(): MorphMany { ... }
+}
+```
+
+### コントローラーに書くもの
+
+共通部品には、会員のモデルを渡します。
+
+```php
+// ログインのコントローラー
+use MemberLogin;
+private const MEMBER_CLASS = CompanyUser::class;                 // ガード・ルート・テンプレートの名前は、ここから決まる
+private const LOGIN_VERIFY_VIEW = 'company.auth.login-verify';   // 確認コードの入力画面
+
+// パスワードが合った後は、トレイトに任せる（記憶済みの端末か、確認コードか）
+return $this->continueAfterPassword($request, $user, $request->boolean('remember'));
+```
+
+| したいこと | 書き方 |
+|---|---|
+| ログイン中の人を取る | `Auth::guard(CompanyUser::memberGuard())->user()` |
+| その種類のルートへ移す | `route(CompanyUser::memberRoute('mypage'))` |
+| 確認コード | `new MemberVerificationCode(CompanyUser::class)` |
+| 信頼済み端末 | `TrustedDeviceManager::forMember($user)` |
+| ログインの後の移動先 | `LoginRedirect::forMember(CompanyUser::class)` |
+| パスワードを変えた後始末 | `PasswordChange::resetAndNotify($user)` |
+| 情報が変わったお知らせ | `MemberProfileNotice::send($user, $changedFields)` |
+| ログアウト | トレイトの `logoutMember($request)` |
+
+### ルート
+
+```php
+Route::prefix('company')->name('company.')->group(function () {
+    Route::middleware('guest:company')->group(function () { /* 登録・ログイン・パスワードの再設定・招待された人の登録 */ });
+
+    // 2段階目と、初回のログインでの登録。1段階目の後の中間の状態なので、ミドルウェアでは守らない
+    Route::get('/login/verify', ...);
+
+    Route::middleware(['auth:company', 'auth.session', 'company.approved'])->group(function () { /* マイページ */ });
+});
+```
+
+- `company.approved`（`EnsureCompanyIsApproved`）は、企業が承認済みかを、画面を開くたびに確かめます。運営が企業を止めると、ログイン中の担当者も次の操作でログアウトになります。
+- ログインしていないときの移動先は、`bootstrap/app.php` で、ルートの名前の頭（`company.`）から決めています。
+
+### 企業会員の画面
+
+| 画面 | コントローラー | 中身 |
+|---|---|---|
+| 登録 | `Company\RegistrationController` | 企業と最初の担当者を「申請中」で作る。確認コードでメールアドレスを確かめ、運営へメールで知らせる |
+| ログイン | `Company\AuthSessionController` | 企業ID・担当者ID・パスワード。「企業ID と担当者ID を記憶する」（`LoginIdMemory`） |
+| 初回のログインでの登録 | `Company\FirstLoginSetupController` | 既存のシステムから移した企業だけ。企業の情報を1つ照合して、氏名・メールアドレス・担当者ID・パスワードを決める |
+| マイページ・企業の情報の変更 | `Company\MypageController` | どの担当者も変えられる。パスキーの管理も持つ |
+| 自分の情報の変更 | `Company\ProfileController` | 氏名とメールアドレス |
+| パスワードの変更・再設定 | `Company\AuthPasswordController`・`Company\PasswordResetController` | 再設定は、企業ID・担当者ID・メールアドレスの3つが合う人に確認コードを送る |
+| 担当者の管理 | `Company\UserController` | 一覧・招待・ほかの担当者の編集と削除 |
+| 招待された人の登録 | `Company\InvitationController` | 招待のメールのリンクから、担当者ID・氏名・パスワードを決める |
+| 管理画面：企業会員 | `Admin\CompanyController` | 一覧・登録・詳細・編集・CSV、承認・却下・停止・再開、招待のメールの送信 |
+| 管理画面：担当者 | `Admin\CompanyUserController` | 確認・編集・削除 |
+
+### 企業会員の決まりごと
+
+- **企業と担当者に分かれます**。企業（`Company`）は情報を持つだけで、ログインするのは担当者（`CompanyUser`）です。担当者に権限の区別は無く、どの担当者も同じことができます。誰が行ったかは、操作ログ（22章）で追います。
+- **企業ID**（`t_companies.code`）は、新しく登録した企業では id と同じ番号が自動で入ります。始まりの番号は `app:set-next-id`（16章）で決めます。既存のシステムから移した企業には、今までのログインID を入れます。
+- **担当者ID**（`t_company_users.login_id`）は、企業の中でだけ重ならなければよい値です。使える文字は `CompanyUser::LOGIN_ID_PATTERN` です。メールアドレスは、担当者どうしで重なっていて構いません。
+- **状態**（`CompanyStatus`）は、申請中・承認済み・停止の3つです。ログインできるのは、承認済みの企業の担当者だけです。企業の側が登録した企業は申請中、運営が管理画面で登録した企業は承認済みで作られます。
+- **担当者は、招待のメールで足します**（`CompanyInvitationManager`）。招待する側が担当者ID やパスワードを決めて渡すことはしません。パスワードを本人のほかに知っている人を作らないためです。運営が企業を登録するときも、最初の担当者へ招待を送ります。
+- **招待のリンク**は7日間有効で、1回使うと消えます。DB には、リンクに入れた値のハッシュ値だけを持ちます（`t_company_invitations`）。期限の切れた招待は、後片付け（19章）が消します。
+- **お知らせのメール**は、次のときに送ります。運営が管理画面から氏名やメールアドレスを変えたときは、送りません。
+
+| メール | テンプレート | 送るとき |
+|---|---|---|
+| 確認コード | `company_verification_code` | 登録・ログイン・パスワードの変更と再設定・パスキーの登録・初回のログインでの登録 |
+| 申請の通知（運営宛） | `company_registration_staff` | 企業の側が登録したとき。宛先は `.env` の `COMPANY_REGISTRATION_STAFF_EMAIL` |
+| 承認・却下 | `company_approved`・`company_rejected` | 運営が承認・却下したとき。停止と再開では送らない |
+| 招待 | `company_invitation` | 担当者か運営が招待したとき、送り直したとき |
+| パスワードの変更 | `company_password_changed` | 本人か運営がパスワードを変えたとき |
+| 担当者の情報の変更 | `company_profile_changed` | 本人か、同じ企業のほかの担当者が、氏名やメールアドレスを変えたとき |
+
+### 既存のシステムから会員を移すサイト
+
+既存のシステムからデータを移すサイトだけで働く機能が、2つあります。新しく始めるサイトでは、対象の会員がいないので、何も起きません。初回のログインでの登録は、コントローラーとルートを消しても構いません。
+
+| 機能 | 設定（`config/members.php`） | 働く条件 |
+|---|---|---|
+| 古い方式のパスワードの置き換え（14章） | `legacy_passwords` | `legacy_password` に値がある会員 |
+| 初回のログインでの登録 | `identity_check_column` | メールアドレスが空の担当者 |
+
+- 移した企業は、企業1件にログインID とパスワードが1組であることが多いので、企業ごとに「最初の担当者」を1人だけ作ります。担当者ID は全部の企業で同じ初期値にし、氏名とメールアドレスは空にします。
+- 最初の担当者がログインすると、2段階目の代わりに、初回のログインでの登録へ回ります。企業のデータにある値を1つ（`identity_check_column`。見本のサイトでは電話番号）照合してから、入力されたメールアドレスに確認コードを送ります。既存の ID とパスワードは漏れている前提で扱い、それだけを知っている他人に登録させないためです。
+- 照合する列を変えたら、登録の画面（`company/auth/login-setup.blade.php`）の入力欄の見出しも合わせて直します。
+- 照合する列の値が空の企業は、本人では登録できません。スタッフが、管理画面の担当者の編集からメールアドレスを入れます。
+- 手元で試すための見本（企業ID `legacy`）は、`CompanySeeder` にあります。
+
+### 企業会員を使わないサイト
+
+個人会員だけのサイトでは、次を消します。パスキーを使わないサイトで、該当のルートを消すのと同じ扱いです。
+
+| 場所 | 消すもの |
+|---|---|
+| `app/Http/Controllers/` | `Company/` の下の全部、`Admin/CompanyController.php`・`Admin/CompanyUserController.php` |
+| `app/Models/`・`app/Enums/` | `Company`・`CompanyUser`・`CompanyInvitation`、`CompanyStatus` |
+| `app/Support/`・`app/Http/Middleware/` | `CompanyInvitationManager`・`LoginIdMemory`、`EnsureCompanyIsApproved` |
+| `resources/` | `views/company/`・`views/layouts/company.blade.php`・`views/admin/companies/`・`views/admin/company_users/`、`mail-templates/company_*.blade.php`、管理画面のトップのリンク |
+| `routes/web.php` | 企業会員のグループと、管理画面の企業会員管理のルート |
+| `config/` | `auth.php` の `company` のガードとプロバイダー、`members.php` の `company` |
+| `bootstrap/app.php` | 移動先の `company.*` の行、`company.approved` の短い名前 |
+| `database/` | 企業会員の3つのテーブルのマイグレーション、`CompanySeeder` と、`DatabaseSeeder` の呼び出し |
+| `tests/Feature/Company/` | 全部 |
+
+共通部品の中にも、企業会員の名前を書いた行があります。残しておいても動きますが、消すなら次の所です。
+
+- `AppServiceProvider` の `enforceMorphMap()` の `company`・`company_user`
+- `OperationLogSubject` の `Company`・`CompanyUser` と、`OperationLog::subjectNames()` の読み方
+- `OperationLogAction` の `InvitationSend`・`InvitationCancel`
+- `TemporaryDataCleaner::expiredCompanyInvitations()` と、`all()` の行
+- `ErrorNotifyHandler` の `company` のガードを見る行
+
+### 個人会員をログインID でログインさせるサイト
+
+見本のサイトの個人会員は、メールアドレスでログインします。ログインID に切り替える設定は、持っていません。設定で切り替える形にすると、見本のサイトが使わない形のために、ログイン・パスワードの再設定・会員登録・マイページの全部に分岐が入るためです。ログインID でログインさせるサイトでは、企業会員のものを写して、個人会員のものを書き換えます。企業ID の入力が要らない分、企業会員より簡単になります。
+
+| 直す所 | 中身 | 写す元 |
+|---|---|---|
+| `t_members` | `login_id` の列を足し、重ならない制約を付ける。メールアドレスの重ならない制約は外す | `t_company_users` |
+| `Member` | `loginId()` を書いて `login_id` を返す | `CompanyUser` |
+| ログイン | `login_id` で会員を探す。試行制限のアカウントも `login_id` にする | `Company\AuthSessionController::store()` |
+| パスワードの再設定 | ログインID とメールアドレスの両方を入力させ、両方が合う人に確認コードを送る | `Company\PasswordResetController` |
+| 会員登録 | ログインID を入力させ、重なりを確かめる。メールアドレスの重なりは確かめない | `Company\RegistrationController` |
+| マイページ・管理画面の会員 | メールアドレスの重なりの検証を外す。ログインID を変えさせるかを決める | `Company\ProfileController` |
+| 初回のログインでの登録 | メールアドレスが空の会員を移すサイトだけ。会員のデータにある値を1つ（生年月日や電話番号）照合する | `Company\FirstLoginSetupController` |
+
+- ログインID は、個人会員の中で重ならないようにします。メールアドレスは、重なっていて構いません（家族で1つのアドレスを使っている、など）。
+- 「メールアドレスでログインする人」と「ログインID でログインする人」が混ざるデータは、ログインID の列にそろえます。メールアドレスでログインしていた人には、メールアドレスをログインID として入れ、入力欄は「ログインID またはメールアドレス」の1つにします。
+- 2つの列のどちらかに一致すれば通す、という形にはしません。ある人のログインID と、別の人のメールアドレスが同じ文字列だったときに、どちらの人かを決められないためです。
+- メールアドレスが重なってよくなると、メールアドレスだけでは本人を決められません。パスワードの再設定で、ログインID も一緒に入力させるのはこのためです。
+
+### 会員の種類をもう1つ足すとき
+
+代理店のような3つ目が要るようになったら、企業会員のモデル・コントローラー・画面・ルートを写して作ります。共通部品は、種類の名前をモデルから聞いて動くので、次の所に名前を足すだけです。
+
+1. モデルに `MemberAccount`・`IsMemberAccount` と、`MEMBER_TYPE` を書く。
+2. `config/auth.php` に、種類の名前のガードとプロバイダーを足す。古い方式のパスワードを使うなら、`driver` を `eloquent-legacy` にする。
+3. `AppServiceProvider` の `enforceMorphMap()` と、`OperationLogSubject`（`OPERATORS` にも）、`OperationLog::subjectNames()` に足す。
+4. `bootstrap/app.php` の、ログインしていないときの移動先に足す。
+5. メールのテンプレートを、種類の名前を頭に付けて用意する（`種類の名前_verification_code`・`_password_changed`・`_profile_changed`）。
+6. `ErrorNotifyHandler` の、ログイン中の人を見る所に足す。
+7. `config/members.php` に、種類の名前のキーを足す。
 
 ## 付録. フレームワーク外で考慮すべきセキュリティ対策
 

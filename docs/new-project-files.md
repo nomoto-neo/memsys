@@ -21,11 +21,11 @@
 
 | ファイル | 触る内容 |
 |---|---|
-| `config/auth.php` | ログインできるモデル（今は `Member` と `Staff`） |
+| `config/auth.php` | ログインできるモデル（今は `Member`・`CompanyUser`・`Staff`） |
 | `config/mail.php` | 送信元の既定の値（`staff@example.com`）。実際の値は `.env` の `MAIL_FROM_ADDRESS` に書く |
 | `phpunit.xml` | テスト用の DB の名前（`memsys_testing`） |
 | `config/form.php` | 必須マークの HTML |
-| `config/members.php` | 既存のシステムから会員を移すサイトだけ。古い方式のパスワードの種類（`legacy_passwords`）。新しく始めるサイトは、空のまま |
+| `config/members.php` | 既存のシステムから会員を移すサイトでは、古い方式のパスワードの種類（`legacy_passwords`）と、初回のログインで照合する列（`identity_check_column`）。新しく始めるサイトは、そのまま。企業会員のあるサイトでは、申請の通知の宛先（中身は `.env`） |
 | `config/contact.php`・`config/services.php` | お問い合わせの宛先、Turnstile の鍵（中身は `.env`） |
 | `bootstrap/app.php` | ログインしていないときの移動先のルート名、ミドルウェアの短い名前 |
 | `composer.json`・`package.json` | プロジェクトの名前 |
@@ -33,30 +33,43 @@
 
 ## 3. 共通部品なのに、このサイトの形が入っているもの
 
-`app/Support/` は「どのプロジェクトでもそのまま使う」前提ですが、会員とスタッフの構成や、ルートの名前を直接書いているものがあります。次のプロジェクトも「会員とスタッフがいて、ルートの名前も同じ」なら、どれも直さずに使えます。会員がいないサイトや、モデルの名前が違うサイト（`User`・`Admin` など）では、ここを直すことになります。
+`app/Support/` は「どのプロジェクトでもそのまま使う」前提ですが、スタッフの構成や、ルートの名前を直接書いているものがあります。次のプロジェクトも「スタッフがいて、ルートの名前も同じ」なら、どれも直さずに使えます。スタッフのモデルの名前が違うサイト（`Admin` など）では、ここを直すことになります。
 
-### 会員（Member）とスタッフ（Staff）のモデルを名指ししているもの
+### 会員は、名指ししていない
 
-- `PasswordChange`・`TrustedDeviceManager`・`PasskeyManagement`
-- `MemberVerificationCode`・`MemberActivityLog`・`MemberProfileNotice`
-- `BackupCodeGenerator`（スタッフ）
-- `OperationLog`・`OperationLogReport`（スタッフと会員の氏名を引く所）
+訪問者側でログインする会員（`Member`・`CompanyUser`）は、共通の型 `MemberAccount` で受け取ります。ガード・ルート・メールのテンプレートの名前は、モデルの「種類の名前」から決まりで作るので、共通部品に会員のモデルやルートの名前は書いていません。会員のモデルを足したり外したりするときに触る所は、利用ガイドの23章にまとめてあります。
+
+- 企業会員を使わないサイトで消すもの：23章の「企業会員を使わないサイト」
+- 個人会員をログインID でログインさせるサイトで直すもの：23章の「個人会員をログインID でログインさせるサイト」
+- 会員の種類をもう1つ足すときに触るもの：23章の「会員の種類をもう1つ足すとき」
+
+### スタッフ（Staff）のモデルを名指ししているもの
+
+- `PasswordChange`・`TrustedDeviceManager`・`PasskeyManagement`（会員かスタッフかで、動きを分けている所）
+- `BackupCodeGenerator`
+
+### モデルの種類ごとの一覧を持っているもの
+
+モデルを足したり外したりしたら、ここも合わせます。
+
+| 部品 | 持っているもの |
+|---|---|
+| `AppServiceProvider`（`enforceMorphMap()`） | モデルの短い名前 |
+| `OperationLogSubject` | 操作ログに残すモデルの種類と、操作した人になれる種類 |
+| `OperationLog::subjectNames()` | 画面に出す名前の読み方（スタッフ・個人会員・企業・企業の担当者） |
+| `ErrorNotifyHandler` | ログイン中の人を見るガードの名前（`admin`・`web`・`company`） |
+| `CompanyInvitationManager`・`TemporaryDataCleaner` | 企業会員の招待（`Company`・`CompanyUser`・`CompanyInvitation`） |
 
 ### ルートやビューの名前を直接書いているもの
 
 | 部品 | 書いてある名前 |
 |---|---|
-| `LoginRedirect` | `admin.dashboard`・`mypage` |
-| `PasswordChange` | `admin.login`・`password.forgot`・`contact.create` |
-| `MemberProfileNotice` | `password.forgot`・`contact.create` |
+| `LoginRedirect` | `admin.dashboard`。会員の側は、種類の名前から作る |
+| `PasswordChange` | `admin.login`・`contact.create`。会員の側は、種類の名前から作る |
+| `MemberProfileNotice` | `contact.create` |
 | `AdminRequestLimit` | ビュー `admin.too_many_requests` |
 | `CsvImport` | ビュー `admin.csv_import.form`・`confirm` |
 | `UploadFilePath` | `uploads.show`・`uploads.tmp` |
-| `ErrorNotifyHandler` | ガードの名前 `admin`・`web` |
-
-### この先の予定
-
-3 の「会員を名指ししている所」と「ルートの名前を直接書いている所」は、会員の種類を複数にする設計（`member-types-spec.md`）で直す予定です。個人会員と企業会員が共存するサイトに対応するためです。直した後は、この節の内容が変わるので、この文書も合わせて直します。
 
 ## サーバーへ送らないもの
 
