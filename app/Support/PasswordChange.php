@@ -41,6 +41,12 @@ class PasswordChange
 
         $deletedPasskeys = $owner->passkeys()->delete();
 
+        // 既存のシステムから移した会員の、古い方式のパスワードが残っていれば消す。新しいパスワードを
+        // 決めたので、もう要らない（App\Support\LegacyPasswordUserProvider）
+        if ($owner instanceof MemberAccount && $owner->legacy_password !== null) {
+            $owner->forceFill(['legacy_password' => null])->save();
+        }
+
         // 操作ログ。本人が変えたときは、ログインの前（パスワードの再設定）でも本人を操作した人にする
         OperationRecorder::record(OperationLogAction::PasswordChange, $owner, operator: $changedBy ?? $owner);
 

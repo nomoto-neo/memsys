@@ -78,6 +78,8 @@ class Member extends Authenticatable implements MemberAccount, PasskeyUser
     // 配列やJSONにしたときに出さない項目。パスワードのハッシュ値などを、うっかり出さないように
     protected $hidden = [
         'password',
+        // 既存のシステムから移した会員の、古い方式のパスワード（App\Support\LegacyPasswordUserProvider）
+        'legacy_password',
         'remember_token',
     ];
 

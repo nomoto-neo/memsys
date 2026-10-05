@@ -1,5 +1,8 @@
 <?php
 
+use App\Models\Member;
+use App\Models\Staff;
+
 return [
 
     /*
@@ -64,13 +67,16 @@ return [
     */
 
     'providers' => [
+        // 会員。driverのeloquent-legacyは、既存のシステムから移した会員の、古い方式のパスワードも
+        // 受け付ける照合（App\Support\LegacyPasswordUserProvider）。移した会員がいなければ、
+        // 標準のeloquentと同じに働く
         'users' => [
-            'driver' => 'eloquent',
-            'model' => env('AUTH_MODEL', App\Models\Member::class),
+            'driver' => 'eloquent-legacy',
+            'model' => env('AUTH_MODEL', Member::class),
         ],
         'admins' => [
             'driver' => 'eloquent',
-            'model' => App\Models\Staff::class,
+            'model' => Staff::class,
         ],
     ],
 

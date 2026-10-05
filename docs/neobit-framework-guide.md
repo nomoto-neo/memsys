@@ -36,6 +36,7 @@
 | 第2.1版 | 2026-10-05 | 新しく登録する行の id の始まりを決めるコマンド（`app:set-next-id`）を追加（16章） |
 | 第2.2版 | 2026-10-05 | 自動テストを、認証の流れから書き始めた。テスト用の DB の作り方を追加（0章） |
 | 第2.3版 | 2026-10-05 | 会員の共通の型（`MemberAccount`）と、ログインの流れのトレイト（`MemberLogin`）を追加。ログアウトを、そのガードの分だけにした（`LoginSession`）。ログインの必要なルートには、ガードの名前を省かずに書く（14章） |
+| 第2.4版 | 2026-10-05 | 既存のシステムから移した会員の、古い方式のパスワードの置き換え（`LegacyPasswordUserProvider`・`config/members.php`）を追加（14章） |
 
 ## 0. このガイドについて
 
@@ -150,6 +151,7 @@ GRANT ALL PRIVILEGES ON memsys_testing.* TO 'memsys'@'localhost';
 | `LoginThrottle` | `app/Support/` | 認証の失敗回数による試行制限 | 14 |
 | `MemberAccount`・`IsMemberAccount` | `app/Support/` | 訪問者側でログインするモデルの共通の型と、名前の決まり | 14 |
 | `MemberLogin` | `app/Support/` | 会員のログインの、パスワードが合った後の流れ（確認コード・記憶済みの端末）と、ログアウト | 14 |
+| `LegacyPasswordUserProvider`・`LegacyPassword` | `app/Support/` | 既存のシステムから移した会員の、古い方式のパスワードの照合と、今の方式への置き換え | 14 |
 | `LoginSession` | `app/Support/` | そのガードだけのログアウト（同じブラウザのほかのログインは残す） | 14 |
 | `LoginRedirect` | `app/Support/` | ログインの後の移動先（開こうとしていた画面へ戻す。会員と管理画面で入れ違わない） | 14 |
 | `MemberVerificationCode` | `app/Support/` | メールで送る確認コード | 14 |
@@ -870,6 +872,49 @@ if ($spam === SpamCheckResult::Failed) {
 ### 会員の共通の型（MemberAccount）
 
 訪問者側でログインするモデルは、共通の型 `App\Support\MemberAccount` を実装します。認証の共通部品は、会員を `Member` の名指しではなく、この型で受け取ります。メールのテンプレート・ルート・信頼済み端末の Cookie の名前は、モデルの「種類の名前」（`MEMBER_TYPE`）から、決まりのとおりに作ります。個人会員と企業会員を共存させるための作りで、設計は `docs/member-types-spec.md` にあります。企業会員を足したら、この章を書き直します。
+
+### 古い方式のパスワード（LegacyPasswordUserProvider）
+
+**ファイル**：`app/Support/LegacyPasswordUserProvider.php`（冒頭のコメント）・`app/Support/LegacyPassword.php`・`app/Support/Legacy/`・`config/members.php`
+
+既存のシステムから会員を移したサイトだけで使います。既存のシステムのパスワードは、MD5 や SHA-1 のような古い方式のハッシュ値で持っていることが多く、元のパスワードには戻せません。古いハッシュ値のまま移し、本人が次にログインしたときに、今の方式（bcrypt）に置き換えます。会員にパスワードを決め直してもらう必要はありません。
+
+**移すとき**
+
+古いハッシュ値を、今の方式でもう一度ハッシュ値にして、`legacy_password` の列に入れます。`password` の列は空にします。古い方式のハッシュ値は短い時間で破られるので、新しいシステムの DB には、そのままでは置きません。
+
+```php
+$member->forceFill([
+    'password' => null,
+    'legacy_password' => LegacyPasswordUserProvider::wrap($oldHash),   // $oldHash は既存のシステムのハッシュ値
+])->save();
+```
+
+**設定**（`config/members.php`）
+
+```php
+'member' => [
+    'legacy_passwords' => [
+        App\Support\Legacy\Md5Password::class,
+        App\Support\Legacy\Sha1Password::class,
+    ],
+],
+```
+
+- 書いた順に試します。途中で方式を変えたシステムのデータも、並べておけば通ったものを採ります。
+- ソルトの無い MD5・SHA-1・SHA-256 は、`App\Support\Legacy` に用意してあります。
+- ソルトを付ける、何度も繰り返す、といったそのサイトだけの方式は、`LegacyPassword` を実装したクラスを書いて、設定に足します。メソッドは「入力されたパスワードと会員を受け取って、古い方式のハッシュ値を返す」の1つです。会員を受け取るので、会員ごとのソルトの列も読めます。
+- **新しく始めるサイトは、空のままにします**。古い方式は、何も働きません。
+
+**決まりごと**
+
+- 照合は、Laravel がパスワードを確かめる所（`config/auth.php` の会員のプロバイダー。`driver` が `eloquent-legacy`）に入れてあります。ログインのコントローラーには、何も書きません。
+- 通ったら、入力されたパスワードを今の方式で `password` に保存し、`legacy_password` を消します。次からは、標準の照合です。
+- 今の方式のパスワードを持っている会員は、`legacy_password` に値があっても、今のパスワードだけで照合します。
+- パスワードを変えるか再設定すると、`legacy_password` は消えます（`PasswordChange`）。
+- `legacy_password` が残っている会員は、まだ一度もログインしていない会員です。件数は `Member::whereNotNull('legacy_password')->count()` で数えられます。
+- `LegacyPasswordUserProvider::wrap()` は、1件ごとに時間がかかります（今の方式が、わざと時間をかける作りのため）。件数が多いときは、データの取り込みとは別に進めます。
+- 包んでおくことは、既に漏れているパスワードには効きません。新しいシステムの DB が漏れたときに、古いハッシュ値から短い時間でパスワードを割り出されることを防ぐ、という備えです。
 
 ### ログアウト（LoginSession）
 

@@ -12,12 +12,14 @@ use App\Models\News;
 use App\Models\Passkey;
 use App\Models\Staff;
 use App\Support\AdminRequestLimit;
+use App\Support\LegacyPasswordUserProvider;
 use App\Support\OperationRecorder;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Middleware\TrustProxies;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
@@ -67,6 +69,10 @@ class AppServiceProvider extends ServiceProvider
                 OperationRecorder::record(OperationLogAction::Logout, operator: $event->user);
             }
         });
+
+        // 会員のパスワードの照合。古い方式のパスワードを、ログインのときに今の方式へ置き換える。
+        // config/auth.phpの会員のプロバイダーが、この名前で使う
+        Auth::provider('eloquent-legacy', fn ($app, array $config) => new LegacyPasswordUserProvider($app['hash'], $config['model']));
 
         // 信頼するプロキシ（.envのTRUSTED_PROXIES）から届いたX-Forwarded-Forを、訪問者の
         // IPアドレスとして使う。ログインの試行制限・回数の制限・操作ログなど、IPアドレスを

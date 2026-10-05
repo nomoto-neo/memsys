@@ -25,6 +25,7 @@
 | `config/mail.php` | 送信元の既定の値（`staff@example.com`）。実際の値は `.env` の `MAIL_FROM_ADDRESS` に書く |
 | `phpunit.xml` | テスト用の DB の名前（`memsys_testing`） |
 | `config/form.php` | 必須マークの HTML |
+| `config/members.php` | 既存のシステムから会員を移すサイトだけ。古い方式のパスワードの種類（`legacy_passwords`）。新しく始めるサイトは、空のまま |
 | `config/contact.php`・`config/services.php` | お問い合わせの宛先、Turnstile の鍵（中身は `.env`） |
 | `bootstrap/app.php` | ログインしていないときの移動先のルート名、ミドルウェアの短い名前 |
 | `composer.json`・`package.json` | プロジェクトの名前 |
