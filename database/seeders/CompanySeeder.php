@@ -17,13 +17,16 @@ class CompanySeeder extends Seeder
      * 企業IDは、決まった値（sample）にしている。何度シーダーを実行しても、同じ企業を使い回すため。
      * 新しく登録した企業の企業IDは、idと同じ番号になる（App\Models\Company）。
      *
+     * どの行も、すでにあれば何もしない。画面から変えた内容を、シーダーの値で上書きしないため。
+     * 作り直したいときは、その行を消してから実行する。
+     *
      * ログインは、企業ID「sample」・担当者ID「tanto」・パスワード「testtest」。
      * 2段階目の確認コードは、担当者のメールアドレスに届く。手元で試すときは、emailを
-     * 自分が受け取れるアドレスに書き換えてから実行する。
+     * 自分が受け取れるアドレスに書き換えてから実行するか、作った後で管理画面から直す。
      */
     public function run(): void
     {
-        $company = Company::updateOrCreate(
+        $company = Company::firstOrCreate(
             ['code' => 'sample'],
             [
                 'name' => '株式会社サンプル',
@@ -38,7 +41,7 @@ class CompanySeeder extends Seeder
             ]
         );
 
-        CompanyUser::updateOrCreate(
+        CompanyUser::firstOrCreate(
             ['company_id' => $company->id, 'login_id' => 'tanto'],
             [
                 'name' => '担当 花子',
