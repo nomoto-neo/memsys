@@ -13,9 +13,10 @@ class StaffSeeder extends Seeder
      * 最初の管理者アカウントを1件作る。
      *
      * 会員登録と違い、管理者は自己登録の画面を用意しない方針にしたので、
-     * 最初の1人はこのシーダー経由で作る。updateOrCreate()にしているのは、
-     * 何度シーダーを実行してもlogin_idが重複してエラーにならないようにするため
-     * （Note 06で扱った「あればUPDATE、無ければINSERT」の使い方そのもの）。
+     * 最初の1人はこのシーダー経由で作る。firstOrCreate()にしているので、
+     * 何度シーダーを実行しても、login_idが重複してエラーになることはない。
+     * すでにあれば何もしない。画面から変えたパスワードや権限を、シーダーの値で上書きしないため。
+     * 作り直したいときは、その行を消してから実行する。
      *
      * 配置後、login_id・passwordは必ずご自身のものに書き換えてから実行してください。
      * ログインはlogin_id（必須）で行うようにしたので、emailはここでは
@@ -33,7 +34,7 @@ class StaffSeeder extends Seeder
      */
     public function run(): void
     {
-        Staff::updateOrCreate(
+        Staff::firstOrCreate(
             ['login_id' => 'admin'],
             [
                 'name' => '管理者',
