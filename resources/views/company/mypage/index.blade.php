@@ -7,7 +7,10 @@
 <div class="row justify-content-center">
     <div class="col-md-8">
         <div class="card mb-4">
-            <div class="card-header">企業の情報</div>
+            <div class="card-header d-flex justify-content-between align-items-center">
+                企業の情報
+                <a href="{{ route('company.mypage.edit') }}" class="btn btn-sm btn-outline-primary">編集する</a>
+            </div>
             <div class="card-body">
                 <dl class="row mb-0">
                     <dt class="col-sm-4">企業ID</dt>
@@ -47,7 +50,17 @@
         </div>
 
         <div class="card">
-            <div class="card-header">あなたの情報</div>
+            <div class="card-header d-flex justify-content-between align-items-center">
+                あなたの情報
+                <span class="d-flex gap-2">
+                    <a href="{{ route('company.password.edit') }}" class="btn btn-sm btn-outline-primary">パスワードを変更する</a>
+                    {{-- パスキーの画面への入口。routes/web.phpにcompany.mypage.passkeysのルートがあるときだけ出す --}}
+                    @if (Route::has('company.mypage.passkeys'))
+                        <a href="{{ route('company.mypage.passkeys') }}" class="btn btn-sm btn-outline-primary">パスキー</a>
+                    @endif
+                    <a href="{{ route('company.mypage.profile') }}" class="btn btn-sm btn-outline-primary">編集する</a>
+                </span>
+            </div>
             <div class="card-body">
                 <dl class="row mb-0">
                     <dt class="col-sm-4">担当者ID</dt>

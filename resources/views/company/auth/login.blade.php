@@ -67,6 +67,10 @@
             <div class="text-danger small mt-2" data-passkey-message></div>
         </div>
     @endif
+
+    <p class="mt-3">
+        <a href="{{ route('company.password.forgot') }}">パスワードをお忘れの方はこちら</a>
+    </p>
     </div>
 </div>
 @endsection

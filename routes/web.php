@@ -14,7 +14,10 @@ use App\Http\Controllers\AuthPasswordController;
 use App\Http\Controllers\AuthRegisteredMemberController;
 use App\Http\Controllers\AuthSessionController;
 use App\Http\Controllers\Company\AuthSessionController as CompanySessionController;
+use App\Http\Controllers\Company\AuthPasswordController as CompanyPasswordController;
 use App\Http\Controllers\Company\MypageController as CompanyMypageController;
+use App\Http\Controllers\Company\PasswordResetController as CompanyPasswordResetController;
+use App\Http\Controllers\Company\ProfileController as CompanyProfileController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\Contact2Controller;
 use App\Http\Controllers\MypageController;
@@ -177,6 +180,16 @@ Route::prefix('company')->name('company.')->group(function () {
         Route::post('/login/passkey', [CompanySessionController::class, 'passkeyLogin'])
             ->middleware('throttle:10,1,company-passkey-login')
             ->name('login.passkey');
+
+        // パスワード忘れ。企業ID・担当者ID・メールアドレスが合わなくても、送信完了メッセージはわざと同じにする
+        Route::get('/password/forgot', [CompanyPasswordResetController::class, 'create'])->name('password.forgot');
+        Route::post('/password/forgot', [CompanyPasswordResetController::class, 'sendCode'])
+            ->middleware('throttle:5,1,company-password-forgot')
+            ->name('password.forgot.send');
+        Route::get('/password/reset', [CompanyPasswordResetController::class, 'edit'])->name('password.reset');
+        Route::post('/password/reset', [CompanyPasswordResetController::class, 'update'])
+            ->middleware('throttle:5,1,company-password-reset')
+            ->name('password.reset.update');
     });
 
     // メールによる2段階目（入口はApp\Support\MemberLoginトレイト）。
@@ -192,6 +205,30 @@ Route::prefix('company')->name('company.')->group(function () {
     Route::middleware(['auth:company', 'auth.session', 'company.approved'])->group(function () {
         // マイページ
         Route::get('/mypage', [CompanyMypageController::class, 'index'])->name('mypage');
+        // 企業の情報の変更。どの担当者も変えられる
+        Route::get('/mypage/edit', [CompanyMypageController::class, 'edit'])->name('mypage.edit');
+        Route::patch('/mypage/update', [CompanyMypageController::class, 'update'])->name('mypage.update');
+        // 自分の情報（氏名・メールアドレス）の変更
+        Route::get('/mypage/profile', [CompanyProfileController::class, 'edit'])->name('mypage.profile');
+        Route::patch('/mypage/profile', [CompanyProfileController::class, 'update'])->name('mypage.profile.update');
+
+        // パスワード変更
+        Route::get('/mypage/password', [CompanyPasswordController::class, 'edit'])->name('password.edit');
+        Route::patch('/mypage/password/update', [CompanyPasswordController::class, 'update'])->name('password.update');
+        Route::post('/mypage/password/resend', [CompanyPasswordController::class, 'resend'])
+            ->middleware('throttle:3,1,company-password-resend')
+            ->name('password.resend');
+
+        // パスキーの一覧・登録・削除（App\Support\PasskeyManagement）。使わない場合はこの6つを消す
+        // （マイページの入口も消える）
+        Route::get('/mypage/passkeys', [CompanyMypageController::class, 'passkeyIndex'])->name('mypage.passkeys');
+        Route::post('/mypage/passkeys/code', [CompanyMypageController::class, 'passkeySendCode'])
+            ->middleware('throttle:3,1,company-passkey-code-send')
+            ->name('mypage.passkeys.code');
+        Route::post('/mypage/passkeys/confirm', [CompanyMypageController::class, 'passkeyConfirm'])->name('mypage.passkeys.confirm');
+        Route::get('/mypage/passkeys/options', [CompanyMypageController::class, 'passkeyRegistrationOptions'])->name('mypage.passkeys.options');
+        Route::post('/mypage/passkeys', [CompanyMypageController::class, 'passkeyStore'])->name('mypage.passkeys.store');
+        Route::delete('/mypage/passkeys/{passkey}', [CompanyMypageController::class, 'passkeyDestroy'])->name('mypage.passkeys.destroy');
 
         // ログアウト
         Route::post('/logout', [CompanySessionController::class, 'destroy'])->name('logout');
