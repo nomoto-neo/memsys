@@ -10,8 +10,9 @@ class CodeSeeder extends Seeder
     /**
      * DBで管理するコード表（t_codes）のサンプル。
      *
-     * コード表ごとに、今ある行を消してから入れ直すので、何度実行しても
-     * 重複しない（管理画面で書き換えた内容は、このサンプルに戻る）。
+     * コード表ごとに、行が1つも無いときだけ入れるので、何度実行しても重複しない。
+     * 行があるコード表には何もしない。管理画面で書き換えた内容や、足したり消したりした行を、
+     * このサンプルに戻さないため。作り直したいときは、そのコード表の行を消してから実行する。
      */
     public function run(): void
     {
@@ -28,7 +29,10 @@ class CodeSeeder extends Seeder
         ];
 
         foreach ($tables as $type => $rows) {
-            Code::where('type', $type)->delete();
+            // 行があるコード表は、そのままにする
+            if (Code::where('type', $type)->exists()) {
+                continue;
+            }
 
             $order = 0;
             foreach ($rows as $code => $name) {
