@@ -6,10 +6,9 @@ use App\Enums\OperationLogAction;
 use App\Models\Member;
 use App\Support\LoginRedirect;
 use App\Support\LoginThrottle;
+use App\Support\MemberLogin;
 use App\Support\OperationRecorder;
-use App\Support\MemberVerificationCode;
 use App\Support\PasskeyLogin;
-use App\Support\TrustedDeviceManager;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -17,25 +16,43 @@ use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 /**
- * 会員のログイン・ログアウト。
+ * 個人会員のログイン・ログアウト。
  *
  * ログインは2段階で、メールアドレスとパスワードが合っても、すぐにはログインさせない。
- * メールで送る確認コードを入力してもらい、LoginVerificationControllerで本ログインにする。
+ * メールで送る確認コードを入力してもらってから、本ログインにする。
  * そのため、ここでは確認だけを行うAuth::validate()を使い、Auth::attempt()は使わない。
- * 「このデバイスを記憶する」を選んだ端末では、確認コードを省く。
+ * パスワードが合った後の流れ（確認コードの送信・照合・記憶済みの端末）は、MemberLoginトレイトにある。
  */
 class AuthSessionController extends Controller
 {
+    // ---- 共通処理（トレイト） ----
+
+    // パスワードが合った後の流れ（continueAfterPassword()）、確認コードの入力画面と照合
+    // （showVerification()・verifyCode()・resendCode()）、ログアウト（logoutMember()）。
+    use MemberLogin;
+
     // パスキーでのログイン（passkeyLoginOptions()・passkeyLogin()）。
     // 使わないサイトでは、このuseとroutes/web.phpのlogin.passkeyのルートを消す。
     use PasskeyLogin;
+
+    // ---- ログイン（MemberLogin）の設定 ----
+
+    // ログインする会員のモデル。ガード・ルート・メールのテンプレートの名前は、ここから決まる。
+    private const MEMBER_CLASS = Member::class;
+
+    // 確認コードの入力画面のビュー。
+    private const LOGIN_VERIFY_VIEW = 'auth.login-verify';
 
     // ログインの試行制限（LoginThrottle）で、このコントローラーの失敗回数を数えるカウンターの名前。
     // アカウントはメールアドレスで区別する。
     private const THROTTLE_SCOPE = 'member-login';
 
+    // ---- パスキーでのログイン（PasskeyLogin）の設定 ----
+
     // パスキーでログインさせるガード（App\Support\PasskeyLogin参照）。
     private const PASSKEY_GUARD = 'web';
+
+    // ---- ログイン・ログアウト ----
 
     // ログインフォームの表示
     public function create(): View
@@ -60,11 +77,10 @@ class AuthSessionController extends Controller
             ]);
         }
 
-        // 「ログイン状態を保持する」のチェック（チェックが無ければfalse）
-        $remember = $request->boolean('remember');
-
         // メールアドレス・パスワードの確認だけ行う（まだログインはしない）
-        if (! Auth::guard('web')->validate($credentials)) {
+        $guard = Auth::guard(self::MEMBER_CLASS::memberGuard());
+
+        if (! $guard->validate($credentials)) {
             $throttle->hit();
 
             // 操作ログ。誰か分からないので、入力されたメールアドレスを補足に残す
@@ -77,45 +93,22 @@ class AuthSessionController extends Controller
 
         $throttle->clear();
 
-        $member = Auth::guard('web')->getLastAttempted();
-
-        // 記憶済みの端末なら、確認コードを省いてログインを完了する
-        if (TrustedDeviceManager::forMember($member)->isTrusted($member, $request)) {
-            Auth::login($member, $remember);
-            $request->session()->regenerate();
-
-            // ログインが必要な画面から来た場合はその画面へ、そうでなければマイページへ
-            return redirect(LoginRedirect::forMember(Member::class));
-        }
-
-        // それ以外は、「パスワード確認済み・2段階目が未完了」をセッションに置き、
-        // 確認コードを送って入力画面へ（本ログインはLoginVerificationController::verify()）
-        $request->session()->put(LoginVerificationController::PENDING_SESSION_KEY, $member->id);
-        $request->session()->put(LoginVerificationController::REMEMBER_SESSION_KEY, $remember);
-
-        if (! (new MemberVerificationCode())->issue($request, $member, MemberVerificationCode::PURPOSE_LOGIN)) {
-            return redirect()->route('login')
-                ->with('error', '確認コードの送信に失敗しました。時間をおいて再度お試しください。');
-        }
-
-        return redirect()->route('login.verify');
+        // 記憶済みの端末ならそのままログイン、そうでなければ確認コードの入力へ。
+        // 「ログイン状態を保持する」のチェックも渡す（チェックが無ければfalse）
+        return $this->continueAfterPassword($request, $guard->getLastAttempted(), $request->boolean('remember'));
     }
 
     // パスキーでログインした後の移動先。メールアドレス・パスワードでのログインと同じく、
     // ログインが必要な画面から来た場合はその画面へ戻す（App\Support\LoginRedirect）。
     private function passkeyRedirectUrl(): string
     {
-        return LoginRedirect::forMember(Member::class);
+        return LoginRedirect::forMember(self::MEMBER_CLASS);
     }
 
     // ログアウト
     public function destroy(Request $request): RedirectResponse
     {
-        Auth::logout();
-
-        // セッションを破棄し、CSRFトークンも作り直す
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+        $this->logoutMember($request);
 
         return redirect('/');
     }

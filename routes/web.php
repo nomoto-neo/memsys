@@ -15,7 +15,6 @@ use App\Http\Controllers\AuthRegisteredMemberController;
 use App\Http\Controllers\AuthSessionController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\Contact2Controller;
-use App\Http\Controllers\LoginVerificationController;
 use App\Http\Controllers\MypageController;
 use App\Http\Controllers\NewsController;
 use App\Http\Controllers\PasswordResetController;
@@ -106,9 +105,10 @@ Route::middleware('guest')->group(function () {
 
 // メールによる二段階認証（認証試行のthrottle制御はコントローラー側で行う）
 // パスワード通過後で二段階認証前という中間状態なのでmiddleware判断はせず独自にSESSIONで判定
-Route::get('/login/verify', [LoginVerificationController::class, 'show'])->name('login.verify');
-Route::post('/login/verify', [LoginVerificationController::class, 'verify'])->name('login.verify.confirm');
-Route::post('/login/verify/resend', [LoginVerificationController::class, 'resend'])
+// （入口はApp\Support\MemberLoginトレイト）
+Route::get('/login/verify', [AuthSessionController::class, 'showVerification'])->name('login.verify');
+Route::post('/login/verify', [AuthSessionController::class, 'verifyCode'])->name('login.verify.confirm');
+Route::post('/login/verify/resend', [AuthSessionController::class, 'resendCode'])
     ->middleware('throttle:3,1,login-verify-resend')
     ->name('login.verify.resend');
 
@@ -119,7 +119,9 @@ Route::post('/login/verify/resend', [LoginVerificationController::class, 'resend
 // 保持する」のCookieも、Cookieに入っているパスワードのハッシュ値で同じように比べる。
 // これにより、パスワードを変えると、ほかの端末のログインと保持用のCookieが無効になる
 // （変えた本人の端末は、変えたリクエストの最後に新しい値を控え直すので、そのまま使える）。
-Route::middleware(['auth', 'auth.session'])->group(function () {
+// ガードの名前（auth:web）を省かずに書く。ログインの後に元の画面へ戻す仕組み（App\Support\LoginRedirect）が、
+// どのガードの画面かを、ここから読むため。
+Route::middleware(['auth:web', 'auth.session'])->group(function () {
     // マイページ
     Route::get('/mypage', [MypageController::class, 'index'])->name('mypage');
     // 会員情報の変更

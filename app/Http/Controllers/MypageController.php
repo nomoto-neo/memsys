@@ -8,6 +8,7 @@ use App\Models\Member;
 use App\Rules\PhoneNumberRule;
 use App\Support\AjaxFileUpload;
 use App\Support\FormFlow;
+use App\Support\LoginSession;
 use App\Support\MemberActivityLog;
 use App\Support\MemberProfileNotice;
 use App\Support\OperationRecorder;
@@ -218,8 +219,9 @@ class MypageController extends Controller
         $email = $member->email;
         $name = $member->name;
 
-        // ログアウト（行を消す前に。理由は上のコメント）
-        Auth::logout();
+        // ログアウト（行を消す前に。理由は上のコメント）。会員のログインだけを終わらせ、
+        // このブラウザのセッションも作り直す（App\Support\LoginSession）
+        LoginSession::logout($request, Member::memberGuard());
 
         // 会員と、会員に付いている記録・ファイルをまとめて消す
         DB::transaction(function () use ($member) {
@@ -237,10 +239,6 @@ class MypageController extends Controller
         // 退会の記録をログに残す（delete()した後も、インスタンスのidなどは読める）
         MemberActivityLog::withdrawn($member, $request);
 
-        // このブラウザのセッションを破棄し、CSRFトークンも作り直す
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-
         // 退会完了のお知らせメール
         $this->sendWithdrawnMail($email, $name);
 
@@ -252,8 +250,8 @@ class MypageController extends Controller
      * ほかの端末でログインしたままになっていても、そこから使い続けられないようにするため。
      *
      * sessionsテーブルに会員のidが入るのは、会員のガードでログインしているときだけなので、
-     * 管理画面のログインは消えない。ただし、同じブラウザで両方にログインしていた場合は、
-     * セッションが共通なので、管理画面もログアウトされる。
+     * 管理画面のログインは消えない。このブラウザのセッションは、先にログアウトで作り直して
+     * あるので、ここでは消えない。同じブラウザの管理画面のログインも残る。
      */
     private function deleteSessionsOf(Member $member): void
     {

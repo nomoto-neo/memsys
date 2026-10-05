@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Enums\OperationLogAction;
 use App\Http\Controllers\Controller;
 use App\Support\LoginRedirect;
+use App\Support\LoginSession;
 use App\Support\LoginThrottle;
 use App\Support\OperationRecorder;
 use App\Support\PasskeyLogin;
@@ -106,11 +107,9 @@ class AuthSessionController extends Controller
     // ログアウト
     public function destroy(Request $request): RedirectResponse
     {
-        Auth::guard('admin')->logout();
-
-        // セッションを破棄し、CSRFトークンも作り直す
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+        // 管理画面のログインだけを終わらせる。同じブラウザの会員のログインは残す
+        // （App\Support\LoginSession）
+        LoginSession::logout($request, 'admin');
 
         return redirect()->route('admin.login');
     }

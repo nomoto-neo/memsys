@@ -35,6 +35,7 @@
 | 第2版 | 2026-10-05 | ネオビットフレームワークの基本機能を実装 |
 | 第2.1版 | 2026-10-05 | 新しく登録する行の id の始まりを決めるコマンド（`app:set-next-id`）を追加（16章） |
 | 第2.2版 | 2026-10-05 | 自動テストを、認証の流れから書き始めた。テスト用の DB の作り方を追加（0章） |
+| 第2.3版 | 2026-10-05 | 会員の共通の型（`MemberAccount`）と、ログインの流れのトレイト（`MemberLogin`）を追加。ログアウトを、そのガードの分だけにした（`LoginSession`）。ログインの必要なルートには、ガードの名前を省かずに書く（14章） |
 
 ## 0. このガイドについて
 
@@ -147,6 +148,9 @@ GRANT ALL PRIVILEGES ON memsys_testing.* TO 'memsys'@'localhost';
 | `CsvReader` | `app/Support/` | CSV を読んで確かめる部分。自分の画面を持つ機能が、CSV の読み込みと検証だけを借りるときに使う | 10 |
 | `MailTemplate`・`TemplatedMail` | `app/Support/`・`app/Mail/` | テンプレートファイルによるメール送信 | 11 |
 | `LoginThrottle` | `app/Support/` | 認証の失敗回数による試行制限 | 14 |
+| `MemberAccount`・`IsMemberAccount` | `app/Support/` | 訪問者側でログインするモデルの共通の型と、名前の決まり | 14 |
+| `MemberLogin` | `app/Support/` | 会員のログインの、パスワードが合った後の流れ（確認コード・記憶済みの端末）と、ログアウト | 14 |
+| `LoginSession` | `app/Support/` | そのガードだけのログアウト（同じブラウザのほかのログインは残す） | 14 |
 | `LoginRedirect` | `app/Support/` | ログインの後の移動先（開こうとしていた画面へ戻す。会員と管理画面で入れ違わない） | 14 |
 | `MemberVerificationCode` | `app/Support/` | メールで送る確認コード | 14 |
 | `TrustedDeviceManager` | `app/Support/` | 2段階目を省略できる信頼済み端末 | 14 |
@@ -835,7 +839,7 @@ if ($spam === SpamCheckResult::Failed) {
 
 <p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
 
-**実例**：会員は `AuthSessionController`・`LoginVerificationController`・`PasswordResetController`・`AuthPasswordController`・`AuthRegisteredMemberController`・`MypageController`、管理は `Admin\AuthSessionController`・`Admin\TwoFactorChallengeController`
+**実例**：会員は `AuthSessionController`（パスワードが合った後の流れは `MemberLogin` トレイト）・`PasswordResetController`・`AuthPasswordController`・`AuthRegisteredMemberController`・`MypageController`、管理は `Admin\AuthSessionController`・`Admin\TwoFactorChallengeController`
 
 認証の画面は遷移が独特なので、FormFlow には載せず、それぞれのコントローラーで書いています。新しく作るより、実例を写して直す方が安全です。
 
@@ -857,9 +861,23 @@ if ($spam === SpamCheckResult::Failed) {
 2. 信頼済み端末なら、そのまま `Auth::login()`。
 3. そうでなければ「パスワード確認済み・2段階目が未完了」をセッションに置き、2段階目の画面へ。2段階目の画面は `guest` にも `auth` にも入れず、コントローラー自身がセッションで守る。
 4. 2段階目が通ったら `Auth::login()` と `session()->regenerate()`。
-5. ログインが必要な画面から来た場合はその画面へ、そうでなければ既定の画面（マイページ・管理画面TOP）へ移す。移動先は `LoginRedirect::forMember()`・`forStaff()` で決める（2・4とパスキーで通ったとき）。
+5. ログインが必要な画面から来た場合はその画面へ、そうでなければ既定の画面（マイページ・管理画面TOP）へ移す。移動先は `LoginRedirect::forMember(Member::class)`・`forStaff()` で決める（2・4とパスキーで通ったとき）。
 
 開こうとしていた画面の記録（セッションの `url.intended`）は、会員と管理画面で1つしか無いので、`redirect()->intended()` を直接使わず `LoginRedirect` を通します。記録された URL がログインした側の画面（管理画面なら `admin.*` のルート）のときだけ戻り先にし、そうでなければ既定の画面へ移して、記録はもう一方の側のために残します。
+
+記録された URL がどちらの側の画面かは、そのルートの `auth` のミドルウェアから読みます。ログインの必要なルートには、`auth:web`・`auth:admin` のように、ガードの名前を省かずに書きます。
+
+### 会員の共通の型（MemberAccount）
+
+訪問者側でログインするモデルは、共通の型 `App\Support\MemberAccount` を実装します。認証の共通部品は、会員を `Member` の名指しではなく、この型で受け取ります。メールのテンプレート・ルート・信頼済み端末の Cookie の名前は、モデルの「種類の名前」（`MEMBER_TYPE`）から、決まりのとおりに作ります。個人会員と企業会員を共存させるための作りで、設計は `docs/member-types-spec.md` にあります。企業会員を足したら、この章を書き直します。
+
+### ログアウト（LoginSession）
+
+ログアウトは `LoginSession::logout($request, ガードの名前)` で行います。会員のコントローラーは、`MemberLogin` トレイトの `logoutMember()` を呼びます。
+
+- **そのガードのログインだけを終わらせます**。同じブラウザのほかのガードのログイン（会員と管理画面）は残ります。運営のスタッフが、会員の側の画面を確かめながら管理画面で操作する、といった使い方のためです。
+- **ログアウトした人がセッションに残したものは、全部消えます**（検索条件、確認コードの仮置きなど）。残したほかのガードの側でも、検索条件などは消えます。
+- `$request->session()->invalidate()` を直接呼ぶと、ほかのガードのログインも切れます。ログアウトの処理には使いません。
 
 ### 試行制限（LoginThrottle）
 
