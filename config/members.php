@@ -24,6 +24,12 @@ return [
     |   スタッフ側の受信アドレス。.envのCOMPANY_REGISTRATION_STAFF_EMAILで指定する。
     |   カンマ区切りで複数指定できる。
     |
+    | identity_check_column
+    |   既存のシステムから企業を移したサイトだけで使う。移した企業の最初の担当者が、初回の
+    |   ログインで登録するときに、入力させて照合する企業（t_companies）の列
+    |   （App\Http\Controllers\Company\FirstLoginSetupController）。列を変えたら、
+    |   登録の画面（company/auth/login-setup.blade.php）の入力欄の見出しも合わせて直す。
+    |
     */
 
     // 個人会員
@@ -41,6 +47,7 @@ return [
             //
         ],
         'registration_staff_email' => env('COMPANY_REGISTRATION_STAFF_EMAIL', 'staff@example.com'),
+        'identity_check_column' => 'tel',
     ],
 
 ];

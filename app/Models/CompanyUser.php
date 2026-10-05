@@ -68,6 +68,13 @@ class CompanyUser extends Authenticatable implements MemberAccount, PasskeyUser
         return $this->morphMany(TrustedDevice::class, 'authenticatable');
     }
 
+    // 初回のログインでの登録が要るか。既存のシステムから移した企業の最初の担当者は、
+    // メールアドレスが空で、2段階目の確認コードを送れない（Company\FirstLoginSetupController）
+    public function needsFirstLoginSetup(): bool
+    {
+        return empty($this->email);
+    }
+
     // 画面やメールに出す名前。どの企業の人かが分かるよう、企業名を前に付ける
     public function displayName(): string
     {

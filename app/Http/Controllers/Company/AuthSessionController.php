@@ -131,6 +131,15 @@ class AuthSessionController extends Controller
             ]);
         }
 
+        // 既存のシステムから移した企業の最初の担当者は、メールアドレスが空で確認コードを送れない。
+        // 2段階目の代わりに、初回のログインでの登録へ回す（FirstLoginSetupController）。
+        // 担当者IDはそこで決め直すので、ここでは記憶しない
+        if ($user->needsFirstLoginSetup()) {
+            $request->session()->put(FirstLoginSetupController::USER_SESSION_KEY, $user->id);
+
+            return redirect()->route('company.login.setup');
+        }
+
         // 「企業IDと担当者IDを記憶する」。チェックが無ければ、覚えていた値を消す
         (new LoginIdMemory(self::LOGIN_ID_COOKIE))->store($request->boolean('remember_ids'), [
             'company_code' => $credentials['company_code'],

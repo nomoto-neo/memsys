@@ -17,6 +17,7 @@ use App\Http\Controllers\AuthRegisteredMemberController;
 use App\Http\Controllers\AuthSessionController;
 use App\Http\Controllers\Company\AuthSessionController as CompanySessionController;
 use App\Http\Controllers\Company\AuthPasswordController as CompanyPasswordController;
+use App\Http\Controllers\Company\FirstLoginSetupController as CompanyFirstLoginSetupController;
 use App\Http\Controllers\Company\InvitationController as CompanyInvitationController;
 use App\Http\Controllers\Company\MypageController as CompanyMypageController;
 use App\Http\Controllers\Company\PasswordResetController as CompanyPasswordResetController;
@@ -229,6 +230,21 @@ Route::prefix('company')->name('company.')->group(function () {
     Route::post('/login/verify/resend', [CompanySessionController::class, 'resendCode'])
         ->middleware('throttle:3,1,company-login-verify-resend')
         ->name('login.verify.resend');
+
+    // 既存のシステムから移した企業の、初回のログインでの登録（FirstLoginSetupController）。
+    // メールアドレスが空の担当者を、2段階目の代わりにここへ回す。これも1段階目の後の中間の状態なので、
+    // セッションで判定する。照合と確認コードのthrottle制御は、コントローラー側で行う。
+    // 新しく始めるサイトでは使われないので、この6つを消してよい
+    Route::get('/login/setup', [CompanyFirstLoginSetupController::class, 'create'])->name('login.setup');
+    Route::post('/login/setup', [CompanyFirstLoginSetupController::class, 'send'])
+        ->middleware('throttle:10,1,company-login-setup')
+        ->name('login.setup.send');
+    Route::get('/login/setup/verify', [CompanyFirstLoginSetupController::class, 'verifyForm'])->name('login.setup.verify');
+    Route::post('/login/setup/verify', [CompanyFirstLoginSetupController::class, 'verify'])->name('login.setup.verify.confirm');
+    Route::post('/login/setup/verify/resend', [CompanyFirstLoginSetupController::class, 'resend'])
+        ->middleware('throttle:3,1,company-login-setup-resend')
+        ->name('login.setup.verify.resend');
+    Route::post('/login/setup/verify/back', [CompanyFirstLoginSetupController::class, 'backFromVerify'])->name('login.setup.verify.back');
 
     // ログイン中の担当者だけが使う画面。company.approvedは、承認済みの企業かを毎回確かめる
     // （App\Http\Middleware\EnsureCompanyIsApproved）。auth.sessionは個人会員の側と同じ

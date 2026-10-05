@@ -43,6 +43,7 @@
 | 第2.8版 | 2026-10-05 | 管理画面の、企業会員の担当者の確認・編集・削除を追加。共通部品は変えていない（14章） |
 | 第2.9版 | 2026-10-05 | 企業会員の担当者の招待（`CompanyInvitationManager`）を追加。企業の側の担当者の管理（一覧・招待・編集・削除）、招待された人の登録、管理画面からの企業の登録と招待。期限の切れた招待を、後片付けの対象に足した（14章・19章・22章） |
 | 第2.10版 | 2026-10-05 | コメントの書き方（残すコメント・書かないコメント・置く場所）を追加（1章の 1-5） |
+| 第2.11版 | 2026-10-05 | 既存のシステムから移した企業の、初回のログインでの登録（`Company\FirstLoginSetupController`）を追加。確認コードの使い道に、初回のログインでの登録を足した。照合する列は `config/members.php` の `identity_check_column`（14章） |
 
 ## 0. このガイドについて
 
@@ -924,7 +925,7 @@ if ($spam === SpamCheckResult::Failed) {
 
 ### 会員の共通の型（MemberAccount）
 
-訪問者側でログインするモデルは、共通の型 `App\Support\MemberAccount` を実装します。認証の共通部品は、会員を `Member` の名指しではなく、この型で受け取ります。メールのテンプレート・ルート・信頼済み端末の Cookie の名前は、モデルの「種類の名前」（`MEMBER_TYPE`）から、決まりのとおりに作ります。個人会員と企業会員を共存させるための作りで、設計は `docs/member-types-spec.md` にあります。企業会員は、ログイン（`Company\AuthSessionController`）と、マイページ（企業の情報の変更 `Company\MypageController`、自分の情報の変更 `Company\ProfileController`、パスワードの変更 `Company\AuthPasswordController`、再設定 `Company\PasswordResetController`、パスキーの管理）と、登録（`Company\RegistrationController`）、管理画面の企業会員の管理（`Admin\CompanyController`。担当者の確認・編集・削除は `Admin\CompanyUserController`）、担当者の管理（`Company\UserController`）と招待（`Company\InvitationController`）までができています。担当者は、招待のメールのリンクから本人が登録して足します。招待の発行・送り直し・取り消し・照合は `CompanyInvitationManager` にまとめてあり、企業の側のマイページと管理画面の両方から呼びます。リンクに入れる値は、ハッシュ値にして `t_company_invitations` に持ちます。登録した企業は「申請中」で、運営が管理画面で承認すると、担当者がログインできるようになります。申請を知らせるメールの宛先は、`.env` の `COMPANY_REGISTRATION_STAFF_EMAIL`（`config/members.php`）です。どれも個人会員のコントローラーを写したもので、共通部品には会員のモデル（`CompanyUser`）を渡すだけです。メールのテンプレートは、`company_password_changed`・`company_profile_changed` のように、種類の名前を頭に付けて用意します。そろってから、この章を書き直します。
+訪問者側でログインするモデルは、共通の型 `App\Support\MemberAccount` を実装します。認証の共通部品は、会員を `Member` の名指しではなく、この型で受け取ります。メールのテンプレート・ルート・信頼済み端末の Cookie の名前は、モデルの「種類の名前」（`MEMBER_TYPE`）から、決まりのとおりに作ります。個人会員と企業会員を共存させるための作りで、設計は `docs/member-types-spec.md` にあります。企業会員は、ログイン（`Company\AuthSessionController`）と、マイページ（企業の情報の変更 `Company\MypageController`、自分の情報の変更 `Company\ProfileController`、パスワードの変更 `Company\AuthPasswordController`、再設定 `Company\PasswordResetController`、パスキーの管理）と、登録（`Company\RegistrationController`）、管理画面の企業会員の管理（`Admin\CompanyController`。担当者の確認・編集・削除は `Admin\CompanyUserController`）、担当者の管理（`Company\UserController`）と招待（`Company\InvitationController`）までができています。担当者は、招待のメールのリンクから本人が登録して足します。招待の発行・送り直し・取り消し・照合は `CompanyInvitationManager` にまとめてあり、企業の側のマイページと管理画面の両方から呼びます。リンクに入れる値は、ハッシュ値にして `t_company_invitations` に持ちます。既存のシステムから移した企業の最初の担当者は、メールアドレスが空なので、ログインの1段階目の後、2段階目の代わりに初回のログインでの登録（`Company\FirstLoginSetupController`）へ回します。企業のデータにある値を1つ（`config/members.php` の `identity_check_column`。見本のサイトでは電話番号）照合してから、入力されたメールアドレスに確認コードを送ります。新しく始めるサイトでは使われないので、コントローラーとルートを消して構いません。登録した企業は「申請中」で、運営が管理画面で承認すると、担当者がログインできるようになります。申請を知らせるメールの宛先は、`.env` の `COMPANY_REGISTRATION_STAFF_EMAIL`（`config/members.php`）です。どれも個人会員のコントローラーを写したもので、共通部品には会員のモデル（`CompanyUser`）を渡すだけです。メールのテンプレートは、`company_password_changed`・`company_profile_changed` のように、種類の名前を頭に付けて用意します。そろってから、この章を書き直します。
 
 ### 古い方式のパスワード（LegacyPasswordUserProvider）
 

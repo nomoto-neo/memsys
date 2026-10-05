@@ -13,13 +13,14 @@ use Illuminate\Support\Facades\Mail;
  * 会員向けの、メールで送る確認コードの発行と照合。
  *
  * 使い道はログイン・パスワードの再設定・マイページのパスワード変更・会員登録・
- * パスキーの登録の前の本人確認の5つ。どれもコードを作ってハッシュ値にしてセッションに仮置きし、
+ * パスキーの登録の前の本人確認・初回のログインでの登録の6つ。どれもコードを作ってハッシュ値にしてセッションに仮置きし、
  * メールで送って照合するという同じ処理なので、1つのクラスにまとめている。
  * コードはその場で作って使ったら捨てるので、DBには持たずセッションだけで済ませる。
  *
  * 使い道ごとにセッションのキーを分けているので、ある使い道で発行したコードを
  * 別の画面で使い回すことはできない。
- * 会員登録だけはまだ会員がいないので、宛先のメールアドレスに結び付けて発行と照合をする。
+ * 会員登録と初回のログインでの登録は、メールアドレスがまだ保存されていないので、
+ * 宛先のメールアドレスに結び付けて発行と照合をする。
  *
  * 会員の種類（個人会員か、企業の担当者か）は、作るときにモデルのクラスで渡す。
  *     new MemberVerificationCode(Member::class)
@@ -40,6 +41,8 @@ class MemberVerificationCode
     public const PURPOSE_REGISTER = 'register';
 
     public const PURPOSE_PASSKEY = 'passkey';
+
+    public const PURPOSE_FIRST_LOGIN = 'first_login';
 
     // メールのテンプレートの、会員の種類の名前を除いた名前。例：member_verification_code
     private const TEMPLATE = 'verification_code';
@@ -201,6 +204,7 @@ class MemberVerificationCode
             self::PURPOSE_MYPAGE_PASSWORD => 'パスワードの変更',
             self::PURPOSE_REGISTER => '会員登録',
             self::PURPOSE_PASSKEY => 'パスキーの登録',
+            self::PURPOSE_FIRST_LOGIN => '初回ログインの登録',
             default => 'お手続き',
         };
 
