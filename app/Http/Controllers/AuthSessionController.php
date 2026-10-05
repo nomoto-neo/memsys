@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\OperationLogAction;
+use App\Models\Member;
 use App\Support\LoginRedirect;
 use App\Support\LoginThrottle;
 use App\Support\OperationRecorder;
@@ -79,12 +80,12 @@ class AuthSessionController extends Controller
         $member = Auth::guard('web')->getLastAttempted();
 
         // 記憶済みの端末なら、確認コードを省いてログインを完了する
-        if (TrustedDeviceManager::forMember()->isTrusted($member, $request)) {
+        if (TrustedDeviceManager::forMember($member)->isTrusted($member, $request)) {
             Auth::login($member, $remember);
             $request->session()->regenerate();
 
             // ログインが必要な画面から来た場合はその画面へ、そうでなければマイページへ
-            return redirect(LoginRedirect::forMember());
+            return redirect(LoginRedirect::forMember(Member::class));
         }
 
         // それ以外は、「パスワード確認済み・2段階目が未完了」をセッションに置き、
@@ -104,7 +105,7 @@ class AuthSessionController extends Controller
     // ログインが必要な画面から来た場合はその画面へ戻す（App\Support\LoginRedirect）。
     private function passkeyRedirectUrl(): string
     {
-        return LoginRedirect::forMember();
+        return LoginRedirect::forMember(Member::class);
     }
 
     // ログアウト

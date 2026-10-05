@@ -2,7 +2,6 @@
 
 namespace App\Support;
 
-use App\Models\Member;
 use App\Models\Staff;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cookie;
@@ -41,10 +40,14 @@ class TrustedDeviceManager
     {
     }
 
-    // 会員の「このデバイスを記憶する」
-    public static function forMember(): self
+    /**
+     * 会員の「このデバイスを記憶する」。Cookieの名前は、会員の種類の名前から決まる。
+     *
+     * @param  MemberAccount|class-string<MemberAccount>  $member  会員か、会員のモデルのクラス
+     */
+    public static function forMember(MemberAccount|string $member): self
     {
-        return new self('member_trusted_device');
+        return new self($member::trustedDeviceCookie());
     }
 
     // スタッフの「この端末を信頼する」
@@ -54,7 +57,7 @@ class TrustedDeviceManager
     }
 
     // この端末が、その人に信頼されているか
-    public function isTrusted(Member|Staff $owner, Request $request): bool
+    public function isTrusted(MemberAccount|Staff $owner, Request $request): bool
     {
         $token = $request->cookie($this->cookieName);
 
@@ -74,7 +77,7 @@ class TrustedDeviceManager
      * 自宅のパソコンとスマートフォンのように端末ごとに信頼できるよう、今ある記録は残して
      * 1件増やす。
      */
-    public function remember(Member|Staff $owner): void
+    public function remember(MemberAccount|Staff $owner): void
     {
         // 期限の切れた記録は使われずに残るので、ここで消しておく
         $owner->trustedDevices()->where('expires_at', '<=', now())->delete();
@@ -102,7 +105,7 @@ class TrustedDeviceManager
      * その人の信頼済みの端末をすべて無効にし、消した件数を返す。
      * 端末に残ったCookieは照合の相手が無くなるので効かなくなる。
      */
-    public function forgetAll(Member|Staff $owner): int
+    public function forgetAll(MemberAccount|Staff $owner): int
     {
         return $owner->trustedDevices()->delete();
     }

@@ -3,7 +3,6 @@
 namespace App\Support;
 
 use App\Enums\OperationLogAction;
-use App\Models\Member;
 use App\Models\Passkey;
 use App\Models\Staff;
 use Illuminate\Http\JsonResponse;
@@ -58,7 +57,7 @@ trait PasskeyManagement
             'confirmBy' => $owner instanceof Staff ? 'totp' : 'email',
             'identityConfirmed' => $this->passkeyIdentityConfirmed($request),
             // 会員：確認コードを送って入力を待っているか
-            'codeSent' => $owner instanceof Member
+            'codeSent' => $owner instanceof MemberAccount
                 && (new MemberVerificationCode())->hasPending($request, MemberVerificationCode::PURPOSE_PASSKEY, $owner),
             // スタッフ：2段階認証の認証アプリが未登録だと、本人確認ができない
             'twoFactorMissing' => $owner instanceof Staff && ! $owner->hasTwoFactorConfirmed(),
@@ -70,7 +69,7 @@ trait PasskeyManagement
     {
         $owner = $this->passkeyOwner();
 
-        abort_unless($owner instanceof Member, 404);
+        abort_unless($owner instanceof MemberAccount, 404);
 
         if (! (new MemberVerificationCode())->issue($request, $owner, MemberVerificationCode::PURPOSE_PASSKEY)) {
             return redirect()->route(self::PASSKEY_ROUTE)
@@ -221,17 +220,17 @@ trait PasskeyManagement
     }
 
     // ログイン中の本人
-    private function passkeyOwner(): Member|Staff
+    private function passkeyOwner(): MemberAccount|Staff
     {
         $owner = Auth::guard(self::PASSKEY_GUARD)->user();
 
-        abort_unless($owner instanceof Member || $owner instanceof Staff, 403);
+        abort_unless($owner instanceof MemberAccount || $owner instanceof Staff, 403);
 
         return $owner;
     }
 
     // 本人確認のコードを照合する。確かめ方は、その人のログインの2段階目と同じ
-    private function passkeyVerifyIdentity(Request $request, Member|Staff $owner, string $code): bool
+    private function passkeyVerifyIdentity(Request $request, MemberAccount|Staff $owner, string $code): bool
     {
         if ($owner instanceof Staff) {
             return $owner->hasTwoFactorConfirmed()

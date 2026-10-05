@@ -85,14 +85,14 @@ class LoginVerificationController extends Controller
 
         // 「このデバイスを記憶する」にチェックがあれば、次回から確認コードを省く
         if ($request->boolean('remember_device')) {
-            TrustedDeviceManager::forMember()->remember($member);
+            TrustedDeviceManager::forMember($member)->remember($member);
         }
 
         $this->completeLogin($request, $member);
 
         // ログインが必要な画面から来た場合はその画面へ、そうでなければマイページへ
         // （App\Support\LoginRedirect）
-        return redirect(LoginRedirect::forMember());
+        return redirect(LoginRedirect::forMember(Member::class));
     }
 
     // 確認コードの再送信。メールが届かない・見失った場合の救済。

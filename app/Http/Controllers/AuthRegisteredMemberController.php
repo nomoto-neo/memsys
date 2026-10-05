@@ -268,7 +268,7 @@ class AuthRegisteredMemberController extends Controller
 
         RateLimiter::hit($key, self::MAIL_LIMIT_DECAY_SECONDS);
 
-        if (! (new MemberVerificationCode())->issueForAddress($request, $pending['email'], $pending['name'], self::PURPOSE)) {
+        if (! (new MemberVerificationCode())->issueForAddress($request, Member::class, $pending['email'], $pending['name'], self::PURPOSE)) {
             return '確認コードの送信に失敗しました。時間をおいて「確認コードを再送する」からお試しください。';
         }
 

@@ -4,7 +4,6 @@ namespace App\Support;
 
 use App\Enums\OperationLogAction;
 use App\Mail\TemplatedMail;
-use App\Models\Member;
 use App\Models\Staff;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -29,15 +28,15 @@ use Illuminate\Support\Facades\Mail;
 class PasswordChange
 {
     /**
-     * @param  Member|Staff  $owner  パスワードを変えたアカウント
+     * @param  MemberAccount|Staff  $owner  パスワードを変えたアカウント
      * @param  Staff|null  $changedBy  管理画面から変えたスタッフ。本人がマイページなどから
      *                                 変えたときはnull。お知らせのメールの文面に使う
      * @return int  削除したパスキーの件数。画面のメッセージに使う
      */
-    public static function resetAndNotify(Member|Staff $owner, ?Staff $changedBy = null): int
+    public static function resetAndNotify(MemberAccount|Staff $owner, ?Staff $changedBy = null): int
     {
         // 信頼済みの端末とパスキーを無効にする
-        $manager = $owner instanceof Staff ? TrustedDeviceManager::forStaff() : TrustedDeviceManager::forMember();
+        $manager = $owner instanceof Staff ? TrustedDeviceManager::forStaff() : TrustedDeviceManager::forMember($owner);
         $manager->forgetAll($owner);
 
         $deletedPasskeys = $owner->passkeys()->delete();
@@ -52,10 +51,14 @@ class PasswordChange
     }
 
     // パスワードが変わったことのお知らせのメール
-    private static function sendMail(Member|Staff $owner, ?Staff $changedBy, bool $passkeysDeleted): void
+    private static function sendMail(MemberAccount|Staff $owner, ?Staff $changedBy, bool $passkeysDeleted): void
     {
+        // 宛先と宛名。会員は、共通の型のメソッドから取る
+        $email = $owner instanceof Staff ? $owner->email : $owner->notificationEmail();
+        $name = $owner instanceof Staff ? $owner->name : $owner->displayName();
+
         // メールアドレスが無ければ送らない
-        if (empty($owner->email)) {
+        if (empty($email)) {
             return;
         }
 
@@ -65,14 +68,14 @@ class PasswordChange
         $variables = [
             'from_mail' => config('mail.from.address'),
             'from_name' => config('mail.from.name'),
-            'to_mail' => $owner->email,
-            'name' => $owner->name,
+            'to_mail' => $email,
+            'name' => $name,
             'changed_at' => now()->format('Y年n月j日 H:i'),
             'changed_by_other' => $byOther,
             'passkeys_deleted' => $passkeysDeleted,
         ];
 
-        // スタッフと会員でテンプレートと案内のURLを変える
+        // スタッフと会員でテンプレートと案内のURLを変える。会員のものは、種類の名前から決まる
         if ($owner instanceof Staff) {
             $template = 'staff_password_changed';
             $variables += [
@@ -81,9 +84,9 @@ class PasswordChange
                 'login_url' => route('admin.login'),
             ];
         } else {
-            $template = 'member_password_changed';
+            $template = $owner::memberMailTemplate('password_changed');
             $variables += [
-                'reset_url' => route('password.forgot'),
+                'reset_url' => route($owner::memberRoute('password.forgot')),
                 'contact_url' => route('contact.create'),
             ];
         }

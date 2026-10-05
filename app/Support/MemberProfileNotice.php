@@ -3,7 +3,6 @@
 namespace App\Support;
 
 use App\Mail\TemplatedMail;
-use App\Models\Member;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -29,7 +28,7 @@ final class MemberProfileNotice
     /**
      * @param  array  $changedFields  値が変わった列の、列の名前 => 変わる前の値。FormFlowがafterSave()に渡すもの
      */
-    public static function send(Member $member, array $changedFields): void
+    public static function send(MemberAccount $member, array $changedFields): void
     {
         $fields = array_diff(array_keys($changedFields), self::SILENT_FIELDS);
 
@@ -41,23 +40,27 @@ final class MemberProfileNotice
         $variables = [
             'from_mail' => config('mail.from.address'),
             'from_name' => config('mail.from.name'),
-            'name' => $member->name,
+            'name' => $member->displayName(),
             'changed_at' => now()->format('Y年n月j日 H:i'),
-            'reset_url' => route('password.forgot'),
+            'reset_url' => route($member::memberRoute('password.forgot')),
             'contact_url' => route('contact.create'),
         ];
 
         // 宛先。メールアドレスが変わったときは、変わる前のアドレスにも送る
-        $recipients = array_unique(array_filter([$member->email, $changedFields['email'] ?? null]));
+        $recipients = array_unique(array_filter([$member->notificationEmail(), $changedFields['email'] ?? null]));
+
+        // メールのテンプレートは、会員の種類の名前から決まる
+        $template = $member::memberMailTemplate('profile_changed');
 
         // 保存が確定した後に送る
-        DB::afterCommit(function () use ($member, $variables, $recipients) {
+        DB::afterCommit(function () use ($member, $variables, $recipients, $template) {
             foreach ($recipients as $recipient) {
                 try {
-                    Mail::send(new TemplatedMail('member_profile_changed', ['to_mail' => $recipient] + $variables));
+                    Mail::send(new TemplatedMail($template, ['to_mail' => $recipient] + $variables));
                 } catch (\Throwable $e) {
                     Log::error('MemberProfileNotice: 会員情報変更のお知らせメールの送信に失敗しました。', [
-                        'member_id' => $member->id,
+                        'member_type' => $member->getMorphClass(),
+                        'member_id' => $member->getKey(),
                         'message' => $e->getMessage(),
                     ]);
                 }

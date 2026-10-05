@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Support\HasPasskeys;
+use App\Support\IsMemberAccount;
+use App\Support\MemberAccount;
 use App\Support\UploadFilePath;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -13,10 +15,13 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Passkeys\Contracts\PasskeyUser;
 
 /**
- * 会員。ログインできるモデルなので、Authenticatableを継承している（webガード）。
+ * 個人会員。ログインできるモデルなので、Authenticatableを継承している（webガード）。
+ * 訪問者側でログインするモデルの共通の型（App\Support\MemberAccount）を実装している。
  */
-class Member extends Authenticatable implements PasskeyUser
+class Member extends Authenticatable implements MemberAccount, PasskeyUser
 {
+    // 訪問者側でログインするモデルの、決まった中身（種類の名前からルートなどの名前を作る）
+    use IsMemberAccount;
     use Notifiable;
 
     // パスキーを持てるようにする。パスキーでログインさせるかどうかは、ルートと
@@ -25,6 +30,15 @@ class Member extends Authenticatable implements PasskeyUser
 
     // Member::factory()を使えるようにする（database/factories/MemberFactory.php）
     use HasFactory;
+
+    // 種類の名前。メールのテンプレート（member_...）や、信頼済み端末のCookieの名前の頭になる
+    public const MEMBER_TYPE = 'member';
+
+    // ガードとルートの名前は、今のまま変えない。決まりのとおりなら、ガードはmember、
+    // ルートはmember.loginのようになる（App\Support\IsMemberAccount）
+    public const MEMBER_GUARD = 'web';
+
+    public const MEMBER_ROUTE_PREFIX = '';
 
     // 顔写真の横幅(px)。これより大きい画像は、この横幅に縮めて保存する。
     // どの画面から登録しても同じ、このデータ項目の仕様なので、モデルに持たせている。
@@ -73,6 +87,18 @@ class Member extends Authenticatable implements PasskeyUser
         'prefecture' => 'integer',
         'staff_id' => 'integer',
     ];
+
+    // 画面やメールに出す名前
+    public function displayName(): string
+    {
+        return (string) $this->name;
+    }
+
+    // お知らせや確認コードを送るメールアドレス
+    public function notificationEmail(): ?string
+    {
+        return $this->email;
+    }
 
     // 管理画面から最後にこの会員を更新したスタッフ。
     // そのスタッフを削除した後も名前を出せるよう、削除済みのスタッフも含めて探す。

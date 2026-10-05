@@ -3,7 +3,7 @@
 namespace App\Support;
 
 use App\Mail\TemplatedMail;
-use App\Models\Member;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -20,6 +20,10 @@ use Illuminate\Support\Facades\Mail;
  * 使い道ごとにセッションのキーを分けているので、ある使い道で発行したコードを
  * 別の画面で使い回すことはできない。
  * 会員登録だけはまだ会員がいないので、宛先のメールアドレスに結び付けて発行と照合をする。
+ *
+ * 会員は、共通の型（MemberAccount）で受け取る。メールのテンプレートは、会員の種類の名前から
+ * 決まる（個人会員ならmember_verification_code）。仮置きには、会員の種類とidの両方を持つ。
+ * 種類が違えばidが同じでも別の人なので、取り違えないようにするため。
  */
 class MemberVerificationCode
 {
@@ -32,6 +36,9 @@ class MemberVerificationCode
     public const PURPOSE_REGISTER = 'register';
 
     public const PURPOSE_PASSKEY = 'passkey';
+
+    // メールのテンプレートの、会員の種類の名前を除いた名前。例：member_verification_code
+    private const TEMPLATE = 'verification_code';
 
     // コードの桁数。認証アプリのコードと同じ6桁にそろえ、利用者が迷わないようにする
     private const CODE_LENGTH = 6;
@@ -54,26 +61,35 @@ class MemberVerificationCode
      * エラーにしてよい。パスワードの再設定では会員かどうかを知られないよう、送れなくても
      * 同じ案内を出す。PasswordResetController::sendCode()がその例。
      */
-    public function issue(Request $request, Member $member, string $purpose): bool
+    public function issue(Request $request, MemberAccount $member, string $purpose): bool
     {
         $code = $this->generateCode();
 
         $request->session()->put($this->sessionKey($purpose), [
-            'member_id' => $member->id,
+            'member_type' => $member->getMorphClass(),
+            'member_id' => $member->getKey(),
             'code_hash' => Hash::make($code),
             'expires_at' => now()->addMinutes(self::VALID_MINUTES)->timestamp,
         ]);
 
-        return $this->sendMail($member->email, $member->name, $code, $purpose, ['member_id' => $member->id]);
+        return $this->sendMail(
+            $member::memberMailTemplate(self::TEMPLATE),
+            (string) $member->notificationEmail(),
+            $member->displayName(),
+            $code,
+            $purpose,
+            ['member_type' => $member->getMorphClass(), 'member_id' => $member->getKey()],
+        );
     }
 
     /**
      * まだ会員がいない会員登録のために、宛先のメールアドレスに結び付けてコードを発行して
      * メールで送る。それ以外はissue()と同じ。
      *
+     * @param  class-string<MemberAccount>  $memberClass  登録しようとしている会員のモデル。メールのテンプレートを決める
      * @param  string  $name  メールの宛名に使う
      */
-    public function issueForAddress(Request $request, string $email, string $name, string $purpose): bool
+    public function issueForAddress(Request $request, string $memberClass, string $email, string $name, string $purpose): bool
     {
         $code = $this->generateCode();
 
@@ -83,19 +99,20 @@ class MemberVerificationCode
             'expires_at' => now()->addMinutes(self::VALID_MINUTES)->timestamp,
         ]);
 
-        return $this->sendMail($email, $name, $code, $purpose, []);
+        return $this->sendMail($memberClass::memberMailTemplate(self::TEMPLATE), $email, $name, $code, $purpose, []);
     }
 
     /**
      * その使い道と会員に、まだ有効なコードを発行してあるか。マイページのパスワード変更で
      * 画面を読み直すたびにコードを送り直さないよう、先にこれで確かめる。
      */
-    public function hasPending(Request $request, string $purpose, Member $member): bool
+    public function hasPending(Request $request, string $purpose, MemberAccount $member): bool
     {
         $state = $request->session()->get($this->sessionKey($purpose));
 
         return is_array($state)
-            && ($state['member_id'] ?? null) === $member->id
+            && ($state['member_type'] ?? null) === $member->getMorphClass()
+            && ($state['member_id'] ?? null) === $member->getKey()
             && ($state['expires_at'] ?? 0) > now()->timestamp;
     }
 
@@ -103,15 +120,18 @@ class MemberVerificationCode
      * 入力されたコードを照合する。通ったらその会員を返し、通らなければnullを返す。
      * 通ったら仮置きを消すので、コードは1回だけ使える。
      */
-    public function verify(Request $request, string $purpose, string $inputCode): ?Member
+    public function verify(Request $request, string $purpose, string $inputCode): ?MemberAccount
     {
         $state = $this->consume($request, $purpose, $inputCode);
 
-        if ($state === null || ! isset($state['member_id'])) {
+        if ($state === null || ! isset($state['member_type'], $state['member_id'])) {
             return null;
         }
 
-        return Member::find($state['member_id']);
+        // 仮置きした種類の名前から、会員のモデルを決めて読む
+        $memberClass = Relation::getMorphedModel($state['member_type']);
+
+        return $memberClass !== null ? $memberClass::find($state['member_id']) : null;
     }
 
     /**
@@ -164,7 +184,7 @@ class MemberVerificationCode
      * @param  array<string, mixed>  $logContext  送れなかったときのログに添える情報。
      *         メールアドレスは個人情報なので、ログには出さない。
      */
-    private function sendMail(string $email, string $name, string $code, string $purpose, array $logContext): bool
+    private function sendMail(string $template, string $email, string $name, string $code, string $purpose, array $logContext): bool
     {
         $label = match ($purpose) {
             self::PURPOSE_LOGIN => 'ログイン',
@@ -176,7 +196,7 @@ class MemberVerificationCode
         };
 
         try {
-            Mail::send(new TemplatedMail('member_verification_code', [
+            Mail::send(new TemplatedMail($template, [
                 'from_mail' => config('mail.from.address'),
                 'from_name' => config('mail.from.name'),
                 'to_mail' => $email,

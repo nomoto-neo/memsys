@@ -36,10 +36,14 @@ final class LoginRedirect
         return self::intendedUrl(admin: true) ?? route('admin.dashboard');
     }
 
-    // 会員のログイン後の移動先。
-    public static function forMember(): string
+    /**
+     * 会員のログイン後の移動先。開こうとしていた画面が無ければ、その種類のマイページ。
+     *
+     * @param  class-string<MemberAccount>  $memberClass  ログインした会員のモデル
+     */
+    public static function forMember(string $memberClass): string
     {
-        return self::intendedUrl(admin: false) ?? route('mypage');
+        return self::intendedUrl(admin: false) ?? route($memberClass::memberRoute('mypage'));
     }
 
     // 記録されたURLがログインした側の画面なら、パスと問い合わせの部分を返して記録を消す。
