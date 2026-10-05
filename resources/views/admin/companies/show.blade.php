@@ -84,6 +84,7 @@
             <th>お名前</th>
             <th>メールアドレス</th>
             <th>登録日</th>
+            <th></th>
         </tr>
     </thead>
     <tbody>
@@ -93,10 +94,17 @@
                 <td>{{ $user->name ?? '（未設定）' }}</td>
                 <td>{{ $user->email ?? '（未設定）' }}</td>
                 <td>{{ $user->created_at->format('Y-m-d') }}</td>
+                <td class="text-end">
+                    {{-- 削除は、担当者の詳細画面で行う --}}
+                    <a href="{{ route('admin.companies.users.show', [$company, $user]) }}"
+                       class="btn btn-sm btn-outline-secondary">詳細</a>
+                    <a href="{{ route('admin.companies.users.edit', [$company, $user]) }}"
+                       class="btn btn-sm btn-outline-primary">編集</a>
+                </td>
             </tr>
         @empty
             <tr>
-                <td colspan="4" class="text-center text-muted">担当者がいません。</td>
+                <td colspan="5" class="text-center text-muted">担当者がいません。</td>
             </tr>
         @endforelse
     </tbody>

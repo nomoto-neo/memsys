@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\AuthSessionController as AdminSessionController;
 use App\Http\Controllers\Admin\CompanyController as AdminCompanyController;
+use App\Http\Controllers\Admin\CompanyUserController as AdminCompanyUserController;
 use App\Http\Controllers\Admin\MemberController as AdminMemberController;
 use App\Http\Controllers\Admin\NewsController as AdminNewsController;
 use App\Http\Controllers\Admin\OperationLogController as AdminOperationLogController;
@@ -340,6 +341,16 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::delete('/companies/{company}/reject', [AdminCompanyController::class, 'reject'])->name('companies.reject');
         Route::patch('/companies/{company}/suspend', [AdminCompanyController::class, 'suspend'])->name('companies.suspend');
         Route::patch('/companies/{company}/resume', [AdminCompanyController::class, 'resume'])->name('companies.resume');
+        // 企業の担当者の確認・編集・削除。入口は、企業の詳細画面の担当者の一覧。
+        // scopeBindings()で、{user}をその{company}の担当者に限る（ほかの企業の担当者のidでは404になる）
+        Route::prefix('/companies/{company}/users/{user}')->name('companies.users.')->scopeBindings()->group(function () {
+            Route::get('/', [AdminCompanyUserController::class, 'show'])->name('show');
+            Route::get('/edit', [AdminCompanyUserController::class, 'edit'])->name('edit');
+            Route::patch('/confirm', [AdminCompanyUserController::class, 'confirmUpdate'])->name('confirm.edit');
+            Route::post('/back', [AdminCompanyUserController::class, 'backToEdit'])->name('confirm.edit.back');
+            Route::patch('/update', [AdminCompanyUserController::class, 'update'])->name('update');
+            Route::delete('/delete', [AdminCompanyUserController::class, 'destroy'])->name('destroy');
+        });
 
         // スタッフ管理
         Route::middleware('acl.manager')->group(function () {

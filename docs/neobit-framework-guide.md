@@ -40,6 +40,7 @@
 | 第2.5版 | 2026-10-05 | 企業会員の土台（企業と担当者、企業ID・担当者ID・パスワードでのログイン）を追加。確認コードは、会員のモデルを渡して作る（`new MemberVerificationCode(Member::class)`）。章は、企業会員がそろってから書く（14章） |
 | 第2.6版 | 2026-10-05 | 企業会員のマイページ（企業の情報の変更、自分の情報の変更、パスワードの変更と再設定、パスキーの管理）を追加。共通部品は変えていない（14章） |
 | 第2.7版 | 2026-10-05 | 企業会員の登録（確認コード、申請中での作成）と、管理画面の企業会員の管理（一覧・詳細・編集・承認・却下・停止・再開）を追加。共通部品は変えていない（14章） |
+| 第2.8版 | 2026-10-05 | 管理画面の、企業会員の担当者の確認・編集・削除を追加。共通部品は変えていない（14章） |
 
 ## 0. このガイドについて
 
@@ -876,7 +877,7 @@ if ($spam === SpamCheckResult::Failed) {
 
 ### 会員の共通の型（MemberAccount）
 
-訪問者側でログインするモデルは、共通の型 `App\Support\MemberAccount` を実装します。認証の共通部品は、会員を `Member` の名指しではなく、この型で受け取ります。メールのテンプレート・ルート・信頼済み端末の Cookie の名前は、モデルの「種類の名前」（`MEMBER_TYPE`）から、決まりのとおりに作ります。個人会員と企業会員を共存させるための作りで、設計は `docs/member-types-spec.md` にあります。企業会員は、ログイン（`Company\AuthSessionController`）と、マイページ（企業の情報の変更 `Company\MypageController`、自分の情報の変更 `Company\ProfileController`、パスワードの変更 `Company\AuthPasswordController`、再設定 `Company\PasswordResetController`、パスキーの管理）と、登録（`Company\RegistrationController`）、管理画面の企業会員の管理（`Admin\CompanyController`）までができています。登録した企業は「申請中」で、運営が管理画面で承認すると、担当者がログインできるようになります。申請を知らせるメールの宛先は、`.env` の `COMPANY_REGISTRATION_STAFF_EMAIL`（`config/members.php`）です。どれも個人会員のコントローラーを写したもので、共通部品には会員のモデル（`CompanyUser`）を渡すだけです。メールのテンプレートは、`company_password_changed`・`company_profile_changed` のように、種類の名前を頭に付けて用意します。そろってから、この章を書き直します。
+訪問者側でログインするモデルは、共通の型 `App\Support\MemberAccount` を実装します。認証の共通部品は、会員を `Member` の名指しではなく、この型で受け取ります。メールのテンプレート・ルート・信頼済み端末の Cookie の名前は、モデルの「種類の名前」（`MEMBER_TYPE`）から、決まりのとおりに作ります。個人会員と企業会員を共存させるための作りで、設計は `docs/member-types-spec.md` にあります。企業会員は、ログイン（`Company\AuthSessionController`）と、マイページ（企業の情報の変更 `Company\MypageController`、自分の情報の変更 `Company\ProfileController`、パスワードの変更 `Company\AuthPasswordController`、再設定 `Company\PasswordResetController`、パスキーの管理）と、登録（`Company\RegistrationController`）、管理画面の企業会員の管理（`Admin\CompanyController`。担当者の確認・編集・削除は `Admin\CompanyUserController`）までができています。登録した企業は「申請中」で、運営が管理画面で承認すると、担当者がログインできるようになります。申請を知らせるメールの宛先は、`.env` の `COMPANY_REGISTRATION_STAFF_EMAIL`（`config/members.php`）です。どれも個人会員のコントローラーを写したもので、共通部品には会員のモデル（`CompanyUser`）を渡すだけです。メールのテンプレートは、`company_password_changed`・`company_profile_changed` のように、種類の名前を頭に付けて用意します。そろってから、この章を書き直します。
 
 ### 古い方式のパスワード（LegacyPasswordUserProvider）
 
