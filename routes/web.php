@@ -13,6 +13,8 @@ use App\Http\Controllers\Admin\TwoFactorChallengeController;
 use App\Http\Controllers\AuthPasswordController;
 use App\Http\Controllers\AuthRegisteredMemberController;
 use App\Http\Controllers\AuthSessionController;
+use App\Http\Controllers\Company\AuthSessionController as CompanySessionController;
+use App\Http\Controllers\Company\MypageController as CompanyMypageController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\Contact2Controller;
 use App\Http\Controllers\MypageController;
@@ -157,6 +159,43 @@ Route::middleware(['auth:web', 'auth.session'])->group(function () {
 
     // 会員ログアウト
     Route::post('/logout', [AuthSessionController::class, 'destroy'])->name('logout');
+});
+
+// 企業会員：個人会員の"web"ガードとは別の"company"ガードで保護する。
+// ログインするのは、企業に属する担当者（App\Models\CompanyUser）。URLは/companyの下にまとめ、
+// ルートの名前の頭にcompany.を付ける（共通部品が、この名前の決まりからルートを作る）。
+Route::prefix('company')->name('company.')->group(function () {
+    Route::middleware('guest:company')->group(function () {
+        // ログイン（企業ID・担当者ID・パスワード。試行のthrottle制御はコントローラー側で行う）
+        Route::get('/login', [CompanySessionController::class, 'create'])->name('login');
+        Route::post('/login', [CompanySessionController::class, 'store'])->name('login.store');
+
+        // パスキーでのログイン（App\Support\PasskeyLogin）。使わない場合はこの2つを消す
+        Route::get('/login/passkey/options', [CompanySessionController::class, 'passkeyLoginOptions'])
+            ->middleware('throttle:20,1,company-passkey-options')
+            ->name('login.passkey.options');
+        Route::post('/login/passkey', [CompanySessionController::class, 'passkeyLogin'])
+            ->middleware('throttle:10,1,company-passkey-login')
+            ->name('login.passkey');
+    });
+
+    // メールによる2段階目（入口はApp\Support\MemberLoginトレイト）。
+    // パスワード通過後で2段階目の前という中間の状態なので、ミドルウェアでは守らず、セッションで判定する
+    Route::get('/login/verify', [CompanySessionController::class, 'showVerification'])->name('login.verify');
+    Route::post('/login/verify', [CompanySessionController::class, 'verifyCode'])->name('login.verify.confirm');
+    Route::post('/login/verify/resend', [CompanySessionController::class, 'resendCode'])
+        ->middleware('throttle:3,1,company-login-verify-resend')
+        ->name('login.verify.resend');
+
+    // ログイン中の担当者だけが使う画面。company.approvedは、承認済みの企業かを毎回確かめる
+    // （App\Http\Middleware\EnsureCompanyIsApproved）。auth.sessionは個人会員の側と同じ
+    Route::middleware(['auth:company', 'auth.session', 'company.approved'])->group(function () {
+        // マイページ
+        Route::get('/mypage', [CompanyMypageController::class, 'index'])->name('mypage');
+
+        // ログアウト
+        Route::post('/logout', [CompanySessionController::class, 'destroy'])->name('logout');
+    });
 });
 
 // 管理画面：会員用の"web"ガードとは別の"admin"ガードで保護する。

@@ -12,6 +12,8 @@ enum OperationLogSubject: string implements CodeTableEnum
 {
     case Staff = 'staff';
     case Member = 'member';
+    case CompanyUser = 'company_user';
+    case Company = 'company';
     case News = 'news';
     case Category = 'category';
     case Inquiry = 'inquiry';
@@ -22,6 +24,8 @@ enum OperationLogSubject: string implements CodeTableEnum
     private const LABELS = [
         self::Staff->value => 'スタッフ',
         self::Member->value => '会員',
+        self::CompanyUser->value => '企業の担当者',
+        self::Company->value => '企業',
         self::News->value => 'ニュース',
         self::Category->value => 'ニュースカテゴリー',
         self::Inquiry->value => 'お問い合わせ',
@@ -33,6 +37,7 @@ enum OperationLogSubject: string implements CodeTableEnum
     public const OPERATORS = [
         self::Staff,
         self::Member,
+        self::CompanyUser,
     ];
 
     public function label(): string

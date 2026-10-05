@@ -58,7 +58,7 @@ trait PasskeyManagement
             'identityConfirmed' => $this->passkeyIdentityConfirmed($request),
             // 会員：確認コードを送って入力を待っているか
             'codeSent' => $owner instanceof MemberAccount
-                && (new MemberVerificationCode())->hasPending($request, MemberVerificationCode::PURPOSE_PASSKEY, $owner),
+                && (new MemberVerificationCode($owner::class))->hasPending($request, MemberVerificationCode::PURPOSE_PASSKEY, $owner),
             // スタッフ：2段階認証の認証アプリが未登録だと、本人確認ができない
             'twoFactorMissing' => $owner instanceof Staff && ! $owner->hasTwoFactorConfirmed(),
         ]);
@@ -71,7 +71,7 @@ trait PasskeyManagement
 
         abort_unless($owner instanceof MemberAccount, 404);
 
-        if (! (new MemberVerificationCode())->issue($request, $owner, MemberVerificationCode::PURPOSE_PASSKEY)) {
+        if (! (new MemberVerificationCode($owner::class))->issue($request, $owner, MemberVerificationCode::PURPOSE_PASSKEY)) {
             return redirect()->route(self::PASSKEY_ROUTE)
                 ->with('error', '確認コードの送信に失敗しました。時間をおいて再度お試しください。');
         }
@@ -237,7 +237,7 @@ trait PasskeyManagement
                 && (new TwoFactorAuthenticator())->verifyCode($owner->totp_secret, $code);
         }
 
-        $verified = (new MemberVerificationCode())
+        $verified = (new MemberVerificationCode($owner::class))
             ->verify($request, MemberVerificationCode::PURPOSE_PASSKEY, $code);
 
         return $verified !== null && $verified->id === $owner->id;

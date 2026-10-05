@@ -178,7 +178,7 @@ class AuthRegisteredMemberController extends Controller
 
         // 確認コードの照合。コードの宛先と、仮置きした入力のメールアドレスが同じかも確かめる
         // （別のアドレスで送り直すと、仮置きもコードも置き換わるので、通常は同じ）
-        $email = (new MemberVerificationCode())->verifyForAddress($request, self::PURPOSE, $validated['code']);
+        $email = (new MemberVerificationCode(Member::class))->verifyForAddress($request, self::PURPOSE, $validated['code']);
 
         if ($email === null || $email !== $pending['email']) {
             $throttle->hit();
@@ -268,7 +268,7 @@ class AuthRegisteredMemberController extends Controller
 
         RateLimiter::hit($key, self::MAIL_LIMIT_DECAY_SECONDS);
 
-        if (! (new MemberVerificationCode())->issueForAddress($request, Member::class, $pending['email'], $pending['name'], self::PURPOSE)) {
+        if (! (new MemberVerificationCode(Member::class))->issueForAddress($request, $pending['email'], $pending['name'], self::PURPOSE)) {
             return '確認コードの送信に失敗しました。時間をおいて「確認コードを再送する」からお試しください。';
         }
 

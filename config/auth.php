@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\CompanyUser;
 use App\Models\Member;
 use App\Models\Staff;
 
@@ -47,6 +48,11 @@ return [
             'driver' => 'session',
             'provider' => 'admins',
         ],
+        // 企業会員。ログインするのは、企業に属する担当者（App\Models\CompanyUser）
+        'company' => [
+            'driver' => 'session',
+            'provider' => 'company_users',
+        ],
     ],
 
     /*
@@ -77,6 +83,11 @@ return [
         'admins' => [
             'driver' => 'eloquent',
             'model' => Staff::class,
+        ],
+        // 企業の担当者。会員と同じく、古い方式のパスワードも受け付ける
+        'company_users' => [
+            'driver' => 'eloquent-legacy',
+            'model' => CompanyUser::class,
         ],
     ],
 

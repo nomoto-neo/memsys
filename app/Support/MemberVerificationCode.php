@@ -21,9 +21,13 @@ use Illuminate\Support\Facades\Mail;
  * 別の画面で使い回すことはできない。
  * 会員登録だけはまだ会員がいないので、宛先のメールアドレスに結び付けて発行と照合をする。
  *
- * 会員は、共通の型（MemberAccount）で受け取る。メールのテンプレートは、会員の種類の名前から
- * 決まる（個人会員ならmember_verification_code）。仮置きには、会員の種類とidの両方を持つ。
- * 種類が違えばidが同じでも別の人なので、取り違えないようにするため。
+ * 会員の種類（個人会員か、企業の担当者か）は、作るときにモデルのクラスで渡す。
+ *     new MemberVerificationCode(Member::class)
+ * メールのテンプレートと、セッションのキーは、種類の名前から決まる（個人会員なら
+ * member_verification_codeと、member.verification_code.使い道）。同じブラウザで個人会員と
+ * 企業の担当者の両方を使っても、片方のコードがもう片方の仮置きを上書きしない。
+ * 仮置きには、会員の種類とidの両方を持つ。種類が違えばidが同じでも別の人なので、
+ * 取り違えないようにするため。
  */
 class MemberVerificationCode
 {
@@ -47,10 +51,17 @@ class MemberVerificationCode
     // 間に合わない。よくある確認コードのメールに合わせた長さ
     private const VALID_MINUTES = 10;
 
-    // 使い道ごとのセッションのキー
+    /**
+     * @param  class-string<MemberAccount>  $memberClass  確認コードを送る相手の、会員のモデル
+     */
+    public function __construct(private readonly string $memberClass)
+    {
+    }
+
+    // 会員の種類と使い道ごとのセッションのキー
     private function sessionKey(string $purpose): string
     {
-        return "member.verification_code.$purpose";
+        return $this->memberClass::memberType().".verification_code.$purpose";
     }
 
     /**
@@ -73,7 +84,6 @@ class MemberVerificationCode
         ]);
 
         return $this->sendMail(
-            $member::memberMailTemplate(self::TEMPLATE),
             (string) $member->notificationEmail(),
             $member->displayName(),
             $code,
@@ -86,10 +96,9 @@ class MemberVerificationCode
      * まだ会員がいない会員登録のために、宛先のメールアドレスに結び付けてコードを発行して
      * メールで送る。それ以外はissue()と同じ。
      *
-     * @param  class-string<MemberAccount>  $memberClass  登録しようとしている会員のモデル。メールのテンプレートを決める
      * @param  string  $name  メールの宛名に使う
      */
-    public function issueForAddress(Request $request, string $memberClass, string $email, string $name, string $purpose): bool
+    public function issueForAddress(Request $request, string $email, string $name, string $purpose): bool
     {
         $code = $this->generateCode();
 
@@ -99,7 +108,7 @@ class MemberVerificationCode
             'expires_at' => now()->addMinutes(self::VALID_MINUTES)->timestamp,
         ]);
 
-        return $this->sendMail($memberClass::memberMailTemplate(self::TEMPLATE), $email, $name, $code, $purpose, []);
+        return $this->sendMail($email, $name, $code, $purpose, []);
     }
 
     /**
@@ -184,7 +193,7 @@ class MemberVerificationCode
      * @param  array<string, mixed>  $logContext  送れなかったときのログに添える情報。
      *         メールアドレスは個人情報なので、ログには出さない。
      */
-    private function sendMail(string $template, string $email, string $name, string $code, string $purpose, array $logContext): bool
+    private function sendMail(string $email, string $name, string $code, string $purpose, array $logContext): bool
     {
         $label = match ($purpose) {
             self::PURPOSE_LOGIN => 'ログイン',
@@ -196,7 +205,7 @@ class MemberVerificationCode
         };
 
         try {
-            Mail::send(new TemplatedMail($template, [
+            Mail::send(new TemplatedMail($this->memberClass::memberMailTemplate(self::TEMPLATE), [
                 'from_mail' => config('mail.from.address'),
                 'from_name' => config('mail.from.name'),
                 'to_mail' => $email,

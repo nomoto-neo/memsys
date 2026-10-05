@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Member;
 use App\Support\LoginThrottle;
 use App\Support\MemberVerificationCode;
 use App\Support\PasswordChange;
@@ -49,8 +50,8 @@ class AuthPasswordController extends Controller
         // まだ有効なコードが無いときだけ、確認コードを送る
         $sendFailed = false;
 
-        if (! (new MemberVerificationCode())->hasPending($request, self::PURPOSE, $member)) {
-            $sendFailed = ! (new MemberVerificationCode())->issue($request, $member, self::PURPOSE);
+        if (! (new MemberVerificationCode(Member::class))->hasPending($request, self::PURPOSE, $member)) {
+            $sendFailed = ! (new MemberVerificationCode(Member::class))->issue($request, $member, self::PURPOSE);
         }
 
         return view('auth.password', [
@@ -65,7 +66,7 @@ class AuthPasswordController extends Controller
     {
         $member = Auth::user();
 
-        if (! (new MemberVerificationCode())->issue($request, $member, self::PURPOSE)) {
+        if (! (new MemberVerificationCode(Member::class))->issue($request, $member, self::PURPOSE)) {
             return redirect()->route('password.edit')
                 ->with('error', '確認コードの送信に失敗しました。時間をおいて再度お試しください。');
         }
@@ -88,7 +89,7 @@ class AuthPasswordController extends Controller
 
         // 確認コードの照合。コードの宛先と、今ログイン中の本人が同じかも念のため確かめる
         // （このpurposeのコードは、edit()でログイン中の本人宛にしか発行しないので、通常は必ず同じ）
-        $verifiedMember = (new MemberVerificationCode())->verify($request, self::PURPOSE, $validated['code']);
+        $verifiedMember = (new MemberVerificationCode(Member::class))->verify($request, self::PURPOSE, $validated['code']);
 
         if ($verifiedMember === null || $verifiedMember->id !== Auth::id()) {
             $throttle->hit();

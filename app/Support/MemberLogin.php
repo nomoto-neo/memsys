@@ -75,7 +75,7 @@ trait MemberLogin
         $request->session()->put($this->pendingSessionKey(), $member->getKey());
         $request->session()->put($this->rememberSessionKey(), $remember);
 
-        if (! (new MemberVerificationCode())->issue($request, $member, MemberVerificationCode::PURPOSE_LOGIN)) {
+        if (! (new MemberVerificationCode(self::MEMBER_CLASS))->issue($request, $member, MemberVerificationCode::PURPOSE_LOGIN)) {
             return $this->redirectToMemberRoute('login')
                 ->with('error', '確認コードの送信に失敗しました。時間をおいて再度お試しください。');
         }
@@ -119,7 +119,7 @@ trait MemberLogin
 
         // 確認コードの照合。コードを発行した会員と、パスワードを確認した会員が同じかも
         // 念のため確かめる（通常は必ず同じ）
-        $verified = (new MemberVerificationCode())
+        $verified = (new MemberVerificationCode(self::MEMBER_CLASS))
             ->verify($request, MemberVerificationCode::PURPOSE_LOGIN, $validated['code']);
 
         if ($verified === null || ! $verified->is($member)) {
@@ -163,7 +163,7 @@ trait MemberLogin
             return $this->redirectToMemberRoute('login');
         }
 
-        if (! (new MemberVerificationCode())->issue($request, $member, MemberVerificationCode::PURPOSE_LOGIN)) {
+        if (! (new MemberVerificationCode(self::MEMBER_CLASS))->issue($request, $member, MemberVerificationCode::PURPOSE_LOGIN)) {
             return $this->redirectToMemberRoute('login.verify')
                 ->with('error', '確認コードの送信に失敗しました。時間をおいて再度お試しください。');
         }

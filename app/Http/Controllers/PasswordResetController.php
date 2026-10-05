@@ -52,7 +52,7 @@ class PasswordResetController extends Controller
         // 会員がいれば確認コードを送る。送信に失敗しても、案内は変えない
         // （開発者はMemberVerificationCode::issue()が残すログで気付ける）
         if ($member !== null) {
-            (new MemberVerificationCode())->issue($request, $member, self::PURPOSE);
+            (new MemberVerificationCode(Member::class))->issue($request, $member, self::PURPOSE);
         }
 
         return redirect()->route('password.reset')
@@ -73,7 +73,7 @@ class PasswordResetController extends Controller
     {
         $validated = $request->validate($this->rules());
 
-        $member = (new MemberVerificationCode())->verify($request, self::PURPOSE, $validated['code']);
+        $member = (new MemberVerificationCode(Member::class))->verify($request, self::PURPOSE, $validated['code']);
 
         if ($member === null) {
             return redirect()->route('password.reset')

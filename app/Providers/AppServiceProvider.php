@@ -6,6 +6,8 @@ use App\Enums\OperationLogAction;
 use App\Models\BulkMail;
 use App\Models\BulkMailTemplate;
 use App\Models\Category;
+use App\Models\Company;
+use App\Models\CompanyUser;
 use App\Models\Inquiry;
 use App\Models\Member;
 use App\Models\News;
@@ -58,6 +60,9 @@ class AppServiceProvider extends ServiceProvider
             'bulk_mail' => BulkMail::class,
             'bulk_mail_template' => BulkMailTemplate::class,
             'category' => Category::class,
+            // 企業会員。企業と、ログインする担当者
+            'company' => Company::class,
+            'company_user' => CompanyUser::class,
         ]);
 
         // ログインとログアウトを操作ログに残す。会員とスタッフの、パスワード・2段階目・パスキー・

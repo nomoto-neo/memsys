@@ -30,4 +30,11 @@ return [
         ],
     ],
 
+    // 企業の担当者
+    'company' => [
+        'legacy_passwords' => [
+            //
+        ],
+    ],
+
 ];

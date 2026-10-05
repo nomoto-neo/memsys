@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureCompanyIsApproved;
 use App\Http\Middleware\EnsureStaffIsManager;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -14,22 +15,28 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        // 非ログイン時の飛び先：管理画面配下(admin.*)だけadmin.loginへ、それ以外はloginへ
-        $middleware->redirectGuestsTo(fn (Request $request) => $request->routeIs('admin.*')
-            ? route('admin.login')
-            : route('login'));
+        // 非ログイン時の飛び先：管理画面(admin.*)はadmin.loginへ、企業会員の画面(company.*)は
+        // company.loginへ、それ以外はloginへ
+        $middleware->redirectGuestsTo(fn (Request $request) => match (true) {
+            $request->routeIs('admin.*') => route('admin.login'),
+            $request->routeIs('company.*') => route('company.login'),
+            default => route('login'),
+        });
 
-        // ログイン済みなのにゲスト専用画面（ログイン画面など）に来たときの飛び先も、
-        // 同じ考え方で管理画面配下(admin.*)ならadmin.dashboardへ、それ以外はmypageへ
-        $middleware->redirectUsersTo(fn (Request $request) => $request->routeIs('admin.*')
-            ? route('admin.dashboard')
-            : route('mypage'));
+        // ログイン済みなのにゲスト専用画面（ログイン画面など）に来たときの飛び先も、同じ考え方で分ける
+        $middleware->redirectUsersTo(fn (Request $request) => match (true) {
+            $request->routeIs('admin.*') => route('admin.dashboard'),
+            $request->routeIs('company.*') => route('company.mypage'),
+            default => route('mypage'),
+        });
 
         // 'manager'という短い名前で、ルート定義からEnsureStaffIsManagerを
         // 呼べるようにする登録。routes/web.php側のRoute::middleware('manager')が
         // これを見に行く（詳しくはEnsureStaffIsManager::class参照）。
         $middleware->alias([
             'acl.manager' => EnsureStaffIsManager::class,
+            // 企業会員の画面を、承認済みの企業の担当者だけに使わせる
+            'company.approved' => EnsureCompanyIsApproved::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

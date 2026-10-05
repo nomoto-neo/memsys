@@ -191,6 +191,9 @@ final class ErrorNotifyHandler extends AbstractProcessingHandler
             if (auth('web')->id() !== null) {
                 $lines[] = '会員：'.auth('web')->id();
             }
+            if (auth('company')->id() !== null) {
+                $lines[] = '企業の担当者：'.auth('company')->id();
+            }
         } catch (Throwable) {
         }
 

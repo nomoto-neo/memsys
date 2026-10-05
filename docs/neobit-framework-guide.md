@@ -37,6 +37,7 @@
 | 第2.2版 | 2026-10-05 | 自動テストを、認証の流れから書き始めた。テスト用の DB の作り方を追加（0章） |
 | 第2.3版 | 2026-10-05 | 会員の共通の型（`MemberAccount`）と、ログインの流れのトレイト（`MemberLogin`）を追加。ログアウトを、そのガードの分だけにした（`LoginSession`）。ログインの必要なルートには、ガードの名前を省かずに書く（14章） |
 | 第2.4版 | 2026-10-05 | 既存のシステムから移した会員の、古い方式のパスワードの置き換え（`LegacyPasswordUserProvider`・`config/members.php`）を追加（14章） |
+| 第2.5版 | 2026-10-05 | 企業会員の土台（企業と担当者、企業ID・担当者ID・パスワードでのログイン）を追加。確認コードは、会員のモデルを渡して作る（`new MemberVerificationCode(Member::class)`）。章は、企業会員がそろってから書く（14章） |
 
 ## 0. このガイドについて
 
@@ -152,6 +153,7 @@ GRANT ALL PRIVILEGES ON memsys_testing.* TO 'memsys'@'localhost';
 | `MemberAccount`・`IsMemberAccount` | `app/Support/` | 訪問者側でログインするモデルの共通の型と、名前の決まり | 14 |
 | `MemberLogin` | `app/Support/` | 会員のログインの、パスワードが合った後の流れ（確認コード・記憶済みの端末）と、ログアウト | 14 |
 | `LegacyPasswordUserProvider`・`LegacyPassword` | `app/Support/` | 既存のシステムから移した会員の、古い方式のパスワードの照合と、今の方式への置き換え | 14 |
+| `LoginIdMemory` | `app/Support/` | ログイン画面の入力（企業ID と担当者ID）を、ブラウザに覚えさせる | 14 |
 | `LoginSession` | `app/Support/` | そのガードだけのログアウト（同じブラウザのほかのログインは残す） | 14 |
 | `LoginRedirect` | `app/Support/` | ログインの後の移動先（開こうとしていた画面へ戻す。会員と管理画面で入れ違わない） | 14 |
 | `MemberVerificationCode` | `app/Support/` | メールで送る確認コード | 14 |
@@ -871,7 +873,7 @@ if ($spam === SpamCheckResult::Failed) {
 
 ### 会員の共通の型（MemberAccount）
 
-訪問者側でログインするモデルは、共通の型 `App\Support\MemberAccount` を実装します。認証の共通部品は、会員を `Member` の名指しではなく、この型で受け取ります。メールのテンプレート・ルート・信頼済み端末の Cookie の名前は、モデルの「種類の名前」（`MEMBER_TYPE`）から、決まりのとおりに作ります。個人会員と企業会員を共存させるための作りで、設計は `docs/member-types-spec.md` にあります。企業会員を足したら、この章を書き直します。
+訪問者側でログインするモデルは、共通の型 `App\Support\MemberAccount` を実装します。認証の共通部品は、会員を `Member` の名指しではなく、この型で受け取ります。メールのテンプレート・ルート・信頼済み端末の Cookie の名前は、モデルの「種類の名前」（`MEMBER_TYPE`）から、決まりのとおりに作ります。個人会員と企業会員を共存させるための作りで、設計は `docs/member-types-spec.md` にあります。企業会員は、ログインまでができています（`Company\AuthSessionController`）。そろってから、この章を書き直します。
 
 ### 古い方式のパスワード（LegacyPasswordUserProvider）
 

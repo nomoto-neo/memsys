@@ -39,19 +39,27 @@ class OperationLog extends Model
     ];
 
     /**
-     * 画面に出すための、スタッフと会員の今の氏名。[種類 => [id => 氏名]]で返す。
-     * 操作ログには氏名を持たせていないので、渡された行の操作した人と対象を、種類ごとに
+     * 画面に出すための、今の名前。[種類 => [id => 名前]]で返す。
+     * スタッフ・個人会員・企業の担当者は氏名、企業は企業名。企業の担当者は、どの企業の人かが
+     * 分かるよう、企業名を前に付ける。
+     * 操作ログには名前を持たせていないので、渡された行の操作した人と対象を、種類ごとに
      * まとめて1回ずつで読む。削除したスタッフも名前を出せるよう、削除済みも含めて探す。
-     * 退会した会員は行が無いので出ない。
+     * 退会した会員のように、もう行が無いものは出ない。
      *
      * @param  iterable<object>  $logs  操作ログの行。operator_type・operator_idを持つ集計の行でもよい
      */
     public static function subjectNames(iterable $logs): array
     {
-        $ids = [
-            OperationLogSubject::Staff->value => [],
-            OperationLogSubject::Member->value => [],
+        // 名前を引く種類と、その読み方。idの一覧を受け取って、[id => 名前]を返す
+        $readers = [
+            OperationLogSubject::Staff->value => fn (array $ids) => Staff::withTrashed()->whereIn('id', $ids)->pluck('name', 'id'),
+            OperationLogSubject::Member->value => fn (array $ids) => Member::query()->whereIn('id', $ids)->pluck('name', 'id'),
+            OperationLogSubject::Company->value => fn (array $ids) => Company::query()->whereIn('id', $ids)->pluck('name', 'id'),
+            OperationLogSubject::CompanyUser->value => fn (array $ids) => CompanyUser::query()->with('company')->whereIn('id', $ids)->get()
+                ->mapWithKeys(fn (CompanyUser $user) => [$user->id => $user->displayName()]),
         ];
+
+        $ids = array_fill_keys(array_keys($readers), []);
 
         foreach ($logs as $log) {
             // 集計の行のように、対象を持たないものも渡せる
@@ -62,14 +70,12 @@ class OperationLog extends Model
             }
         }
 
-        return [
-            OperationLogSubject::Staff->value => Staff::withTrashed()
-                ->whereIn('id', $ids[OperationLogSubject::Staff->value])
-                ->pluck('name', 'id'),
-            OperationLogSubject::Member->value => Member::query()
-                ->whereIn('id', $ids[OperationLogSubject::Member->value])
-                ->pluck('name', 'id'),
-        ];
+        $names = [];
+        foreach ($readers as $type => $read) {
+            $names[$type] = $ids[$type] !== [] ? $read(array_unique($ids[$type])) : collect();
+        }
+
+        return $names;
     }
 
     // 操作した人を「スタッフID:3　氏名」の形にした文字。誰もログインしていない操作は「訪問者」。
