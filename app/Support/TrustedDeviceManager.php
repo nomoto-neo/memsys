@@ -93,6 +93,16 @@ class TrustedDeviceManager
         // 引数に名前を付けて渡さないこと。Cookie::queue()は引数を順番だけで受け取るので、
         // httpOnly: trueと書くと4番目のパスに入り、どのURLにも送られないCookieになる
         Cookie::queue($this->cookieName, $token, self::VALID_DAYS * 24 * 60);
+
+        // 同じ名前で、パスが「今のURLのフォルダー」になっている古いCookieを消す。
+        // パスの指定を誤っていた頃に保存されたもので、ブラウザに残っていると、パスの長いほうが
+        // 先に送られてきて、上で保存した新しい値が使われない。会員なら/login/verifyで保存されて
+        // パスが/loginになっており、ログインのURL（/login）に、古い値のほうが届く。
+        // 新しいCookie（パスは「/」）より後に書くこと。同じ名前のCookieを、パスごとに別々に送る
+        $oldPath = dirname('/'.ltrim(request()->path(), '/'));
+        if ($oldPath !== '/' && $oldPath !== '\\' && $oldPath !== '.') {
+            Cookie::queue(Cookie::forget($this->cookieName, str_replace('\\', '/', $oldPath)));
+        }
     }
 
     // DBに置く、Cookieの値のハッシュ値。理由は冒頭のコメントの「ハッシュ値」
