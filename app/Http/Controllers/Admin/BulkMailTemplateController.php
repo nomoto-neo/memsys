@@ -25,6 +25,11 @@ class BulkMailTemplateController extends Controller
     // 一覧画面のルート名。登録・更新・削除の後の戻り先
     private const INDEX_ROUTE = 'admin.bulk-mail-templates.index';
 
+    // ---- 入力をそろえる処理（InputNormalizer）の設定 ----
+
+    // 全角と半角をそろえない項目。データの仕様なので、モデルの指定を引く
+    private const RAW_INPUT_FIELDS = BulkMailTemplate::RAW_INPUT_FIELDS;
+
     // ---- このコーナーの項目の定義 ----
 
     // 本文の初期値。宛先の氏名の差し込みと敬称を1行目に入れておく

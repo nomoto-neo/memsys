@@ -16,6 +16,10 @@ class Inquiry extends Model
      */
     public const PRIVATE_FILE_FIELDS = ['attach_file'];
 
+    // 入力の全角と半角をそろえない項目（App\Support\InputNormalizer）。
+    // お問い合わせの内容は、書いたとおりに残す。氏名や住所はそろえる
+    public const RAW_INPUT_FIELDS = ['body'];
+
     protected $table = 't_inquiries';
 
     protected $fillable = [

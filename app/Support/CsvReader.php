@@ -231,6 +231,10 @@ trait CsvReader
             return $result;
         }
 
+        // 全角と半角をそろえない列。コントローラーがそろえないと決めた項目に取り込む列
+        // （App\Support\InputNormalizer）
+        $rawColumns = $columns->columnsOfFields($mapping['map'], InputNormalizer::rawFieldsOf(static::class));
+
         // CSVのidのデータをまとめて読んでおく
         $found = [];
         if ($mapping['key'] !== null) {
@@ -268,6 +272,14 @@ trait CsvReader
             $result->rows[] = $row;
 
             $cells = array_map(fn ($cell) => $this->normalizeCsvCell($cell, $settings->escapeFormula), $cells);
+
+            // 画面からの入力と同じく、全角と半角の揺らぎをそろえる。そろえない項目の列は除く
+            foreach ($cells as $column => $cell) {
+                if ($cell !== null && ! isset($rawColumns[$column])) {
+                    $cells[$column] = InputNormalizer::normalize($cell);
+                }
+            }
+
             foreach ($result->headings as $column => $heading) {
                 if ($heading !== '') {
                     $row->cells[$heading] = $cells[$column] ?? null;

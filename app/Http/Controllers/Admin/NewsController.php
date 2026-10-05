@@ -82,6 +82,11 @@ class NewsController extends Controller
         'body' => News::BODY_IMAGE_WIDTH,
     ];
 
+    // ---- 入力をそろえる処理（InputNormalizer）の設定 ----
+
+    // 全角と半角をそろえない項目。データの仕様なので、モデルの指定を引く。CSV取り込みにも効く
+    private const RAW_INPUT_FIELDS = News::RAW_INPUT_FIELDS;
+
     // ---- このコーナーの項目の定義 ----
 
     // 入力バリデーションルール

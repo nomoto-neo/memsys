@@ -8,6 +8,7 @@ use App\Enums\OperationLogAction;
 use App\Http\Controllers\Controller;
 use App\Models\Member;
 use App\Models\OperationLog;
+use App\Rules\KatakanaRule;
 use App\Rules\PhoneNumberRule;
 use App\Support\AjaxFileUpload;
 use App\Support\CsvDownload;
@@ -110,7 +111,7 @@ class MemberController extends Controller
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'kana' => ['nullable', 'string', 'max:255'],
+            'kana' => ['nullable', 'string', 'max:255', new KatakanaRule()],
             'email' => [
                 'required', 'string', 'email', 'max:255',
                 // 自idを除外してユニークであること

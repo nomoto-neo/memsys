@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Member;
+use App\Rules\KatakanaRule;
 use App\Rules\PhoneNumberRule;
 use App\Support\LoginThrottle;
 use App\Support\MemberActivityLog;
@@ -52,7 +53,7 @@ class AuthRegisteredMemberController extends Controller
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'kana' => ['nullable', 'string', 'max:255'],
+            'kana' => ['nullable', 'string', 'max:255', new KatakanaRule()],
             'email' => [
                 'required', 'string', 'email', 'max:255',
                 // まだ誰も使っていないメールアドレスであること

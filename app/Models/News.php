@@ -30,6 +30,10 @@ class News extends Model
      */
     public const PRIVATE_FILE_FIELDS = ['list_image', 'attach', 'body'];
 
+    // 入力の全角と半角をそろえない項目（App\Support\InputNormalizer）。
+    // 本文は、書いたとおりに残す。件名はそろえる
+    public const RAW_INPUT_FIELDS = ['body'];
+
     protected $table = 't_news';
 
     protected $fillable = [

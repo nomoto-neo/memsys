@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Mail\TemplatedMail;
 use App\Models\Company;
 use App\Models\CompanyUser;
+use App\Rules\KatakanaRule;
 use App\Rules\PhoneNumberRule;
 use App\Support\LoginThrottle;
 use App\Support\MemberVerificationCode;
@@ -62,7 +63,7 @@ class RegistrationController extends Controller
         return [
             // 企業の情報
             'name' => ['required', 'string', 'max:255'],
-            'kana' => ['nullable', 'string', 'max:255'],
+            'kana' => ['nullable', 'string', 'max:255', new KatakanaRule()],
             'representative' => ['nullable', 'string', 'max:255'],
             // ハイフンは、あっても無くてもよい
             'zip' => ['nullable', 'string', 'regex:/^[0-9]{3}-?[0-9]{4}$/'],

@@ -1017,6 +1017,35 @@ final class CsvColumnSet
 
     // ---- 確認画面の表示 ----
 
+    /**
+     * 渡した項目に取り込む列の番号。[列の番号 => true]で返す。
+     * 全角と半角をそろえない項目の列を、CSVを読む側が見分けるのに使う。
+     *
+     * @param  array  $map  mapHeadings()・mapByOrder()が返す、列の番号 => [定義の番号, 部分]
+     * @param  string[]  $fields  項目の名前
+     */
+    public function columnsOfFields(array $map, array $fields): array
+    {
+        $columns = [];
+
+        if ($fields === []) {
+            return $columns;
+        }
+
+        foreach ($map as $column => [$specIndex]) {
+            $spec = $this->specs[$specIndex];
+
+            // @名前の列は取り込む項目を複数持ち、ほかの列は1つ持つ
+            $targets = $spec['type'] === 'custom' ? $spec['targets'] : [$spec['target']];
+
+            if (array_intersect($targets, $fields) !== []) {
+                $columns[$column] = true;
+            }
+        }
+
+        return $columns;
+    }
+
     // 確認画面の変更内容に出す項目の名前。その項目に取り込む最初の列の見出し。
     public function fieldLabel(string $field): string
     {

@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\EnsureCompanyIsApproved;
 use App\Http\Middleware\EnsureStaffIsManager;
+use App\Http\Middleware\NormalizeInput;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -29,6 +30,11 @@ return Application::configure(basePath: dirname(__DIR__))
             $request->routeIs('company.*') => route('company.mypage'),
             default => route('mypage'),
         });
+
+        // 入力された文字の、全角と半角の揺らぎをそろえる（App\Support\InputNormalizer）。
+        // 画面のルートの全部に掛ける。コントローラーの定数を見て、そろえない項目を決めるので、
+        // 全体のミドルウェアではなく、ルートが決まった後に通るwebのグループに足す
+        $middleware->web(append: [NormalizeInput::class]);
 
         // 'manager'という短い名前で、ルート定義からEnsureStaffIsManagerを
         // 呼べるようにする登録。routes/web.php側のRoute::middleware('manager')が

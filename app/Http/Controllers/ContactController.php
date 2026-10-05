@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\SpamCheckResult;
 use App\Mail\TemplatedMail;
 use App\Models\Inquiry;
+use App\Rules\KatakanaRule;
 use App\Rules\PhoneNumberRule;
 use App\Support\AjaxFileUpload;
 use App\Support\FormFlow;
@@ -56,6 +57,11 @@ class ContactController extends Controller
     // 機械からとみなす（名前・メール・本文の入力と同意のチェックに、人ならこれ以上かかる）。
     private const SPAM_GUARD_MIN_SECONDS = 3;
 
+    // ---- 入力をそろえる処理（InputNormalizer）の設定 ----
+
+    // 全角と半角をそろえない項目。データの仕様なので、モデルの指定を引く
+    private const RAW_INPUT_FIELDS = Inquiry::RAW_INPUT_FIELDS;
+
     // ---- このコーナーの項目の定義 ----
 
     // 入力バリデーションルール。添付ファイルのhiddenのルールは、ajaxUploadRules()が
@@ -64,7 +70,7 @@ class ContactController extends Controller
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'kana' => ['required', 'string', 'max:255'],
+            'kana' => ['required', 'string', 'max:255', new KatakanaRule()],
             'email' => ['required', 'string', 'email', 'max:255'],
             'phone' => ['nullable', 'string', new PhoneNumberRule()],
             // ハイフンの有無どちらでも受け付ける（画面のJavaScriptが"123-4567"の形に整えるが、

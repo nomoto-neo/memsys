@@ -103,6 +103,12 @@ class BulkMailController extends Controller
     // 送信の直前に読んだ宛先のCSV。additionalFields()で件数を決めるのに使う
     private ?CsvImportResult $sendingCsv = null;
 
+    // ---- 入力をそろえる処理（InputNormalizer）の設定 ----
+
+    // 全角と半角をそろえない項目。データの仕様なので、モデルの指定を引く。
+    // 宛先のCSVの氏名とメールアドレスは、そろえる
+    private const RAW_INPUT_FIELDS = BulkMail::RAW_INPUT_FIELDS;
+
     // ---- 宛先のCSVの定義 ----
 
     // CSVの列。見出しの行は無く、この順に並んでいる前提

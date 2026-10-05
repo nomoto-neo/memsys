@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Company;
 use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Models\CompanyUser;
+use App\Rules\KatakanaRule;
 use App\Rules\PhoneNumberRule;
 use App\Support\FormFlow;
 use App\Support\PasskeyManagement;
@@ -54,7 +55,7 @@ class MypageController extends Controller
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'kana' => ['nullable', 'string', 'max:255'],
+            'kana' => ['nullable', 'string', 'max:255', new KatakanaRule()],
             'representative' => ['nullable', 'string', 'max:255'],
             // ハイフンは、あっても無くてもよい
             'zip' => ['nullable', 'string', 'regex:/^[0-9]{3}-?[0-9]{4}$/'],

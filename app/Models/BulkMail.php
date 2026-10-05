@@ -25,6 +25,10 @@ class BulkMail extends Model
     // ログインしたスタッフだけが見られる場所に置くアップロードのフィールド。見てよいかはBulkMailPolicyが決める
     public const PRIVATE_FILE_FIELDS = ['attach'];
 
+    // 入力の全角と半角をそろえない項目（App\Support\InputNormalizer）。
+    // メールの件名と本文は、書いたとおりに送る
+    public const RAW_INPUT_FIELDS = ['subject', 'body'];
+
     // 氏名の差し込みの印
     public const NAME_PLACEHOLDER = '/\{\{\s*\$name\s*\}\}/';
 
