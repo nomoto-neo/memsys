@@ -19,6 +19,9 @@
     <a href="{{ route('admin.members.index') }}" class="list-group-item list-group-item-action">
         会員一覧
     </a>
+    <a href="{{ route('admin.companies.index') }}" class="list-group-item list-group-item-action">
+        企業会員一覧
+    </a>
 
     {{-- スタッフ一覧はacl=1（管理者）専用の画面なので、ここでも
          リンク自体を出し分けている。実際にはEnsureStaffIsManagerが

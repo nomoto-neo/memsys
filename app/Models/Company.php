@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\CompanyStatus;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
@@ -60,9 +61,29 @@ class Company extends Model
         return $this->hasMany(CompanyUser::class);
     }
 
+    // 管理画面から最後にこの企業を更新したスタッフ。
+    // そのスタッフを削除した後も名前を出せるよう、削除済みのスタッフも含めて探す。
+    public function editorStaff(): BelongsTo
+    {
+        return $this->belongsTo(Staff::class, 'staff_id')
+            ->withTrashed();
+    }
+
     // 担当者がログインできる状態か。承認済みのときだけ
     public function isApproved(): bool
     {
         return $this->status === CompanyStatus::Approved;
+    }
+
+    // 運営の承認を待っている状態か
+    public function isPending(): bool
+    {
+        return $this->status === CompanyStatus::Pending;
+    }
+
+    // 運営が利用を止めている状態か
+    public function isSuspended(): bool
+    {
+        return $this->status === CompanyStatus::Suspended;
     }
 }

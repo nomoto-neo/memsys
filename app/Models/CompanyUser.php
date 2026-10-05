@@ -29,6 +29,10 @@ class CompanyUser extends Authenticatable implements MemberAccount, PasskeyUser
     // 種類の名前
     public const MEMBER_TYPE = 'company';
 
+    // 担当者IDに使える文字。半角の英数字と、記号の「_」「.」「-」。
+    // 企業IDと「/」でつないで1人を決めるので、「/」は使わせない
+    public const LOGIN_ID_PATTERN = '/^[A-Za-z0-9_.\-]+$/';
+
     protected $table = 't_company_users';
 
     protected $fillable = [

@@ -27,7 +27,7 @@ use Illuminate\Support\Facades\Auth;
  *                         CSV取り込みの1件ずつは記録しない
  * - ログイン・ログアウト  AppServiceProviderが、Laravelのログイン・ログアウトのイベントで記録する
  * - ログインの失敗        ログインのコントローラーが、試行制限の回数を足すところで記録する
- * - 詳細の閲覧            個人情報を持つコーナーの詳細画面（会員・スタッフ）
+ * - 詳細の閲覧            個人情報を持つコーナーの詳細画面（会員・スタッフ・企業会員）
  * - CSV・PDF              CsvDownload・CsvImportと、PDFを出すコントローラー
  * - パスワードの変更      PasswordChange
  * - パスキーの登録・削除  PasskeyManagement

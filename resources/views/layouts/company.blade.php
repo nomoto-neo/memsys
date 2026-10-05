@@ -35,6 +35,7 @@
                 </form>
             @else
                 <a href="{{ route('company.login') }}" class="btn btn-sm btn-outline-light">ログイン</a>
+                <a href="{{ route('company.regist.create') }}" class="btn btn-sm btn-light">企業会員登録</a>
             @endauth
         </div>
     </div>

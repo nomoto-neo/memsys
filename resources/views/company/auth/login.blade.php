@@ -71,6 +71,9 @@
     <p class="mt-3">
         <a href="{{ route('company.password.forgot') }}">パスワードをお忘れの方はこちら</a>
     </p>
+    <p>
+        <a href="{{ route('company.regist.create') }}">企業会員の登録はこちら</a>
+    </p>
     </div>
 </div>
 @endsection

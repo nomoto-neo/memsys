@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AuthSessionController as AdminSessionController;
+use App\Http\Controllers\Admin\CompanyController as AdminCompanyController;
 use App\Http\Controllers\Admin\MemberController as AdminMemberController;
 use App\Http\Controllers\Admin\NewsController as AdminNewsController;
 use App\Http\Controllers\Admin\OperationLogController as AdminOperationLogController;
@@ -18,6 +19,7 @@ use App\Http\Controllers\Company\AuthPasswordController as CompanyPasswordContro
 use App\Http\Controllers\Company\MypageController as CompanyMypageController;
 use App\Http\Controllers\Company\PasswordResetController as CompanyPasswordResetController;
 use App\Http\Controllers\Company\ProfileController as CompanyProfileController;
+use App\Http\Controllers\Company\RegistrationController as CompanyRegistrationController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\Contact2Controller;
 use App\Http\Controllers\MypageController;
@@ -169,6 +171,24 @@ Route::middleware(['auth:web', 'auth.session'])->group(function () {
 // ルートの名前の頭にcompany.を付ける（共通部品が、この名前の決まりからルートを作る）。
 Route::prefix('company')->name('company.')->group(function () {
     Route::middleware('guest:company')->group(function () {
+        // 企業会員の登録。企業と最初の担当者を「申請中」で作る。運営が承認するまでは、ログインできない
+        Route::get('/regist', [CompanyRegistrationController::class, 'create'])->name('regist.create');
+        Route::post('/regist/confirm', [CompanyRegistrationController::class, 'confirm'])->name('regist.confirm');
+        Route::post('/regist/back', [CompanyRegistrationController::class, 'back'])->name('regist.back');
+        // 確認画面から先：確認コードをメールで送り、コードの入力が済んだら企業と担当者を作る
+        // （コード照合のthrottle制御はコントローラー側で行う）
+        Route::post('/regist/send', [CompanyRegistrationController::class, 'send'])
+            ->middleware('throttle:3,1,company-regist-send')
+            ->name('regist.send');
+        Route::get('/regist/verify', [CompanyRegistrationController::class, 'verifyForm'])->name('regist.verify');
+        Route::post('/regist/verify', [CompanyRegistrationController::class, 'verify'])->name('regist.verify.confirm');
+        Route::post('/regist/verify/resend', [CompanyRegistrationController::class, 'resend'])
+            ->middleware('throttle:3,1,company-regist-verify-resend')
+            ->name('regist.verify.resend');
+        Route::post('/regist/verify/back', [CompanyRegistrationController::class, 'backFromVerify'])->name('regist.verify.back');
+        // 申請の完了（承認待ちの案内）
+        Route::get('/regist/thanks', [CompanyRegistrationController::class, 'thanks'])->name('regist.thanks');
+
         // ログイン（企業ID・担当者ID・パスワード。試行のthrottle制御はコントローラー側で行う）
         Route::get('/login', [CompanySessionController::class, 'create'])->name('login');
         Route::post('/login', [CompanySessionController::class, 'store'])->name('login.store');
@@ -304,6 +324,22 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/members/{member}/operation-logs', [AdminMemberController::class, 'operationLogs'])
             ->middleware('acl.manager')
             ->name('members.operation-logs');
+
+        // 企業会員管理。企業は企業の側が自分で登録するので、ここに登録の画面は無い
+        Route::get('/companies', [AdminCompanyController::class, 'index'])->name('companies.index');
+        Route::post('/companies', [AdminCompanyController::class, 'storeSearchCondition'])->name('companies.search');
+        // CSVダウンロード（/companies/{company}より前に書く。後ろだと"csv"が企業のidとして扱われる）
+        Route::get('/companies/csv', [AdminCompanyController::class, 'csv'])->name('companies.csv');
+        Route::get('/companies/{company}', [AdminCompanyController::class, 'show'])->name('companies.show');
+        Route::get('/companies/{company}/edit', [AdminCompanyController::class, 'edit'])->name('companies.edit');
+        Route::patch('/companies/{company}/confirm', [AdminCompanyController::class, 'confirmUpdate'])->name('companies.confirm.edit');
+        Route::post('/companies/{company}/back', [AdminCompanyController::class, 'backToEdit'])->name('companies.confirm.edit.back');
+        Route::patch('/companies/{company}/update', [AdminCompanyController::class, 'update'])->name('companies.update');
+        // 申請の承認・却下と、利用の停止・再開。却下は、企業と担当者の行を消す
+        Route::patch('/companies/{company}/approve', [AdminCompanyController::class, 'approve'])->name('companies.approve');
+        Route::delete('/companies/{company}/reject', [AdminCompanyController::class, 'reject'])->name('companies.reject');
+        Route::patch('/companies/{company}/suspend', [AdminCompanyController::class, 'suspend'])->name('companies.suspend');
+        Route::patch('/companies/{company}/resume', [AdminCompanyController::class, 'resume'])->name('companies.resume');
 
         // スタッフ管理
         Route::middleware('acl.manager')->group(function () {
