@@ -34,6 +34,7 @@
 | 第1版 | 2026-09-29 | 最初の版（一覧・検索、詳細、登録・更新、削除、アップロード・WYSIWYG、区分表、CSVダウンロード・取り込み、メール、お問い合わせ、権限、ログイン認証） |
 | 第2版 | 2026-10-05 | ネオビットフレームワークの基本機能を実装 |
 | 第2.1版 | 2026-10-05 | 新しく登録する行の id の始まりを決めるコマンド（`app:set-next-id`）を追加（16章） |
+| 第2.2版 | 2026-10-05 | 自動テストを、認証の流れから書き始めた。テスト用の DB の作り方を追加（0章） |
 
 ## 0. このガイドについて
 
@@ -104,7 +105,14 @@ TRUSTED_PROXIES=10.0.0.5,10.0.0.6
 - `.env` を変えたら `php artisan config:cache` をやり直します。
 ### まだ無い機能（今後の予定）
 
-自動テスト。作ったときに章を足します。
+自動テストは、認証の流れ（個人会員とスタッフのログイン、パスワードの変更と再設定、会員登録）から書き始めています（`tests/Feature/Auth/`）。パスキーと、管理画面のコーナーは、まだです。そろってきたら、章を足します。
+
+テストは `php artisan test` で動かします。テスト用の DB（`memsys_testing`。`phpunit.xml` に書いてあります）を、手元の DB のサーバーに作っておきます。テストのたびにテーブルを作り直すので、ふだんの DB（`memsys_local`）とは別にします。
+
+```sql
+CREATE DATABASE memsys_testing CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+GRANT ALL PRIVILEGES ON memsys_testing.* TO 'memsys'@'localhost';
+```
 
 ## 1. 全体像
 
