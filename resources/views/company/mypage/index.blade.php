@@ -49,6 +49,17 @@
             </div>
         </div>
 
+        {{-- 担当者の管理への入口。どの担当者も、招待と、ほかの担当者の編集・削除ができる --}}
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                担当者
+                <a href="{{ route('company.users.index') }}" class="btn btn-sm btn-outline-primary">担当者を管理する</a>
+            </div>
+            <div class="card-body">
+                この企業の担当者の確認と、招待・編集・削除ができます。
+            </div>
+        </div>
+
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 あなたの情報

@@ -31,6 +31,7 @@ use Illuminate\Support\Facades\Auth;
  * - CSV・PDF              CsvDownload・CsvImportと、PDFを出すコントローラー
  * - パスワードの変更      PasswordChange
  * - パスキーの登録・削除  PasskeyManagement
+ * - 担当者の招待          CompanyInvitationManager。送信と取り消し
  * 一覧の表示と検索は記録しない。
  *
  * ■ 片付け

@@ -61,6 +61,12 @@ class Company extends Model
         return $this->hasMany(CompanyUser::class);
     }
 
+    // この企業の担当者の招待。期限の切れたものも含む（App\Support\CompanyInvitationManager）
+    public function invitations(): HasMany
+    {
+        return $this->hasMany(CompanyInvitation::class);
+    }
+
     // 管理画面から最後にこの企業を更新したスタッフ。
     // そのスタッフを削除した後も名前を出せるよう、削除済みのスタッフも含めて探す。
     public function editorStaff(): BelongsTo

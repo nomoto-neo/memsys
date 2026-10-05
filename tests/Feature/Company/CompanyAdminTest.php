@@ -6,6 +6,7 @@ use App\Enums\CompanyStatus;
 use App\Enums\OperationLogAction;
 use App\Enums\StaffAcl;
 use App\Models\Company;
+use App\Models\CompanyInvitation;
 use App\Models\CompanyUser;
 use App\Models\OperationLog;
 use App\Models\Staff;
@@ -213,6 +214,76 @@ class CompanyAdminTest extends TestCase
 
         $this->assertSame(CompanyStatus::Approved, $approved->fresh()->status);
         $this->assertSame(1, CompanyUser::count());
+        $this->assertCount(0, $this->sentMails());
+    }
+
+    public function test_staff_registers_a_company_and_the_first_user_is_invited(): void
+    {
+        $staff = $this->staff();
+        $input = $this->companyInput(['name' => '株式会社運営登録', 'invite_email' => 'first@example.com']);
+
+        $this->actingAs($staff, 'admin')->get('/admin/companies/create')->assertOk();
+        $this->actingAs($staff, 'admin')->post('/admin/companies/confirm', $input)->assertOk()->assertSee('first@example.com');
+
+        // 招待の宛先が無ければ、登録しない
+        $this->actingAs($staff, 'admin')->post('/admin/companies/store', ['invite_email' => ''] + $input)
+            ->assertSessionHasErrors('invite_email');
+        $this->assertSame(0, Company::count());
+
+        $this->actingAs($staff, 'admin')->post('/admin/companies/store', $input);
+
+        // 運営が登録した企業は、初めから承認済み。企業IDは、idと同じ番号
+        $company = Company::sole();
+        $this->assertSame(['株式会社運営登録', CompanyStatus::Approved, (string) $company->id, $staff->id], [$company->name, $company->status, $company->code, $company->staff_id]);
+
+        // 担当者は作らず、最初の担当者へ招待のメールを送る。パスワードは本人が決める
+        $this->assertSame(0, CompanyUser::count());
+        $this->assertSame(['first@example.com'], $this->recipientsOf($this->lastMail()));
+        $this->assertStringContainsString('/company/invitation/', $this->lastMail()->getTextBody());
+        $this->assertSame('first@example.com', CompanyInvitation::sole()->email);
+
+        // 詳細の招待中の一覧に出る
+        $this->actingAs($staff, 'admin')->get("/admin/companies/{$company->id}")->assertOk()->assertSee('first@example.com');
+    }
+
+    public function test_staff_can_invite_resend_and_cancel(): void
+    {
+        $company = $this->company(CompanyStatus::Approved);
+        $other = $this->company(CompanyStatus::Approved, 'other');
+        $staff = $this->staff();
+
+        $this->actingAs($staff, 'admin')->post("/admin/companies/{$company->id}/invitations", ['email' => 'not-an-address'])
+            ->assertSessionHasErrorsIn('invitation', ['email']);
+
+        $this->actingAs($staff, 'admin')->post("/admin/companies/{$company->id}/invitations", ['email' => 'new@example.com'])
+            ->assertRedirect(route('admin.companies.show', $company));
+        $invitation = CompanyInvitation::sole();
+        $this->assertSame([$company->id, 'new@example.com'], [$invitation->company_id, $invitation->email]);
+
+        // 操作ログには、送ったスタッフと、企業が残る
+        $log = OperationLog::where('action', OperationLogAction::InvitationSend)->sole();
+        $this->assertSame(['staff', $staff->id, 'company', $company->id], [$log->operator_type, $log->operator_id, $log->target_type, $log->target_id]);
+
+        // URLの企業と、招待の企業が違えば、扱えない
+        $this->actingAs($staff, 'admin')->delete("/admin/companies/{$other->id}/invitations/{$invitation->id}")->assertNotFound();
+
+        $this->actingAs($staff, 'admin')->post("/admin/companies/{$company->id}/invitations/{$invitation->id}/resend")
+            ->assertRedirect(route('admin.companies.show', $company));
+        $this->assertCount(2, $this->sentMails());
+
+        $this->actingAs($staff, 'admin')->delete("/admin/companies/{$company->id}/invitations/{$invitation->id}")
+            ->assertRedirect(route('admin.companies.show', $company));
+        $this->assertSame(0, CompanyInvitation::count());
+    }
+
+    public function test_pending_company_cannot_be_invited_from_the_admin(): void
+    {
+        $company = $this->company(CompanyStatus::Pending);
+
+        $this->actingAs($this->staff(), 'admin')->post("/admin/companies/{$company->id}/invitations", ['email' => 'new@example.com'])
+            ->assertSessionHas('error');
+
+        $this->assertSame(0, CompanyInvitation::count());
         $this->assertCount(0, $this->sentMails());
     }
 

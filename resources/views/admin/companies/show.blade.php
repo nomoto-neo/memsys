@@ -42,6 +42,7 @@
         {{-- edit/confirmと同じ_fields.blade.phpを、readonly/disabled付きで呼び出しているだけ。
              表示する値（$input）はCompanyController::show()が組み立てて渡す --}}
         @include('admin.companies._fields', [
+            'isCreate' => false,
             'input' => $input,
             'company' => $company,
             'readonly' => ' readonly',
@@ -109,6 +110,59 @@
         @endforelse
     </tbody>
 </table>
+
+{{-- 招待中の人と、招待のメールの送信。担当者を足すのは企業の側の役目だが、招待を送ることだけは
+     ここからもできる。運営が登録した企業の最初の担当者と、担当者がいなくなった企業の立て直しに使う。
+     申請中の企業には、まだ担当者を足せないので出さない --}}
+@if (! $company->isPending())
+    <h2 class="h5 mt-4 mb-3">招待中</h2>
+
+    <table class="table table-striped align-middle">
+        <thead>
+            <tr>
+                <th>メールアドレス</th>
+                <th>リンクの期限</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @forelse ($invitations as $invitation)
+                <tr>
+                    <td>{{ $invitation->email }}</td>
+                    <td>{{ $invitation->expires_at->format('Y年n月j日 H:i') }}</td>
+                    <td class="text-end">
+                        <form method="POST" action="{{ route('admin.companies.invitations.resend', [$company, $invitation]) }}" class="d-inline">
+                            @csrf
+                            <button type="submit" class="btn btn-sm btn-outline-primary">送り直す</button>
+                        </form>
+                        <form method="POST" action="{{ route('admin.companies.invitations.cancel', [$company, $invitation]) }}" class="d-inline">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-sm btn-outline-danger">取り消す</button>
+                        </form>
+                    </td>
+                </tr>
+            @empty
+                <tr>
+                    <td colspan="3" class="text-center text-muted">招待中の人はいません。</td>
+                </tr>
+            @endforelse
+        </tbody>
+    </table>
+
+    <form method="POST" action="{{ route('admin.companies.invitations.store', $company) }}" class="row g-2 align-items-start">
+        @csrf
+        <div class="col-sm-6">
+            <label for="invitation_email" class="visually-hidden">招待する人のメールアドレス {!! $invitationRequired['email'] !!}</label>
+            <input id="invitation_email" type="email" name="email" class="form-control"
+                   placeholder="招待する人のメールアドレス" value="{{ old('email') }}">
+            <div class="invalid-feedback" data-item="email">{{ $errors->invitation->first('email') }}</div>
+        </div>
+        <div class="col-sm-3">
+            <button type="submit" class="btn btn-outline-primary">招待のメールを送る</button>
+        </div>
+    </form>
+@endif
 
 {{-- 利用の停止と再開。停止すると担当者はログインできなくなり、ログイン中の担当者も次の操作から使えなくなる --}}
 @if ($company->isApproved())

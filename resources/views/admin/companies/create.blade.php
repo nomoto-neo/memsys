@@ -1,19 +1,19 @@
 @extends('layouts.admin')
 
+{{-- 運営による企業の登録。企業は承認済みで作られ、最初の担当者へ招待のメールを送る --}}
 @section('content')
 <div class="row justify-content-center">
     <div class="col-md-7">
         <div class="card">
-            <div class="card-header">企業会員編集</div>
+            <div class="card-header">企業会員登録</div>
             <div class="card-body">
-                <form method="POST" action="{{ route('admin.companies.confirm.edit', $company) }}">
+                <form method="POST" action="{{ route('admin.companies.confirm.create') }}">
                     @csrf
-                    @method('PATCH')
 
                     @include('admin.companies._fields', [
-                        'isCreate' => false,
+                        'isCreate' => true,
                         'input' => $input,
-                        'company' => $company,
+                        'company' => null,
                         'readonly' => '',
                         'disabled' => '',
                         'required' => $required,

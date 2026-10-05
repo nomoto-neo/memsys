@@ -41,6 +41,7 @@
 | 第2.6版 | 2026-10-05 | 企業会員のマイページ（企業の情報の変更、自分の情報の変更、パスワードの変更と再設定、パスキーの管理）を追加。共通部品は変えていない（14章） |
 | 第2.7版 | 2026-10-05 | 企業会員の登録（確認コード、申請中での作成）と、管理画面の企業会員の管理（一覧・詳細・編集・承認・却下・停止・再開）を追加。共通部品は変えていない（14章） |
 | 第2.8版 | 2026-10-05 | 管理画面の、企業会員の担当者の確認・編集・削除を追加。共通部品は変えていない（14章） |
+| 第2.9版 | 2026-10-05 | 企業会員の担当者の招待（`CompanyInvitationManager`）を追加。企業の側の担当者の管理（一覧・招待・編集・削除）、招待された人の登録、管理画面からの企業の登録と招待。期限の切れた招待を、後片付けの対象に足した（14章・19章・22章） |
 
 ## 0. このガイドについて
 
@@ -158,6 +159,7 @@ GRANT ALL PRIVILEGES ON memsys_testing.* TO 'memsys'@'localhost';
 | `MemberLogin` | `app/Support/` | 会員のログインの、パスワードが合った後の流れ（確認コード・記憶済みの端末）と、ログアウト | 14 |
 | `LegacyPasswordUserProvider`・`LegacyPassword` | `app/Support/` | 既存のシステムから移した会員の、古い方式のパスワードの照合と、今の方式への置き換え | 14 |
 | `LoginIdMemory` | `app/Support/` | ログイン画面の入力（企業ID と担当者ID）を、ブラウザに覚えさせる | 14 |
+| `CompanyInvitationManager` | `app/Support/` | 企業会員の担当者の招待（リンクの発行・送り直し・取り消し・照合） | 14 |
 | `LoginSession` | `app/Support/` | そのガードだけのログアウト（同じブラウザのほかのログインは残す） | 14 |
 | `LoginRedirect` | `app/Support/` | ログインの後の移動先（開こうとしていた画面へ戻す。会員と管理画面で入れ違わない） | 14 |
 | `MemberVerificationCode` | `app/Support/` | メールで送る確認コード | 14 |
@@ -877,7 +879,7 @@ if ($spam === SpamCheckResult::Failed) {
 
 ### 会員の共通の型（MemberAccount）
 
-訪問者側でログインするモデルは、共通の型 `App\Support\MemberAccount` を実装します。認証の共通部品は、会員を `Member` の名指しではなく、この型で受け取ります。メールのテンプレート・ルート・信頼済み端末の Cookie の名前は、モデルの「種類の名前」（`MEMBER_TYPE`）から、決まりのとおりに作ります。個人会員と企業会員を共存させるための作りで、設計は `docs/member-types-spec.md` にあります。企業会員は、ログイン（`Company\AuthSessionController`）と、マイページ（企業の情報の変更 `Company\MypageController`、自分の情報の変更 `Company\ProfileController`、パスワードの変更 `Company\AuthPasswordController`、再設定 `Company\PasswordResetController`、パスキーの管理）と、登録（`Company\RegistrationController`）、管理画面の企業会員の管理（`Admin\CompanyController`。担当者の確認・編集・削除は `Admin\CompanyUserController`）までができています。登録した企業は「申請中」で、運営が管理画面で承認すると、担当者がログインできるようになります。申請を知らせるメールの宛先は、`.env` の `COMPANY_REGISTRATION_STAFF_EMAIL`（`config/members.php`）です。どれも個人会員のコントローラーを写したもので、共通部品には会員のモデル（`CompanyUser`）を渡すだけです。メールのテンプレートは、`company_password_changed`・`company_profile_changed` のように、種類の名前を頭に付けて用意します。そろってから、この章を書き直します。
+訪問者側でログインするモデルは、共通の型 `App\Support\MemberAccount` を実装します。認証の共通部品は、会員を `Member` の名指しではなく、この型で受け取ります。メールのテンプレート・ルート・信頼済み端末の Cookie の名前は、モデルの「種類の名前」（`MEMBER_TYPE`）から、決まりのとおりに作ります。個人会員と企業会員を共存させるための作りで、設計は `docs/member-types-spec.md` にあります。企業会員は、ログイン（`Company\AuthSessionController`）と、マイページ（企業の情報の変更 `Company\MypageController`、自分の情報の変更 `Company\ProfileController`、パスワードの変更 `Company\AuthPasswordController`、再設定 `Company\PasswordResetController`、パスキーの管理）と、登録（`Company\RegistrationController`）、管理画面の企業会員の管理（`Admin\CompanyController`。担当者の確認・編集・削除は `Admin\CompanyUserController`）、担当者の管理（`Company\UserController`）と招待（`Company\InvitationController`）までができています。担当者は、招待のメールのリンクから本人が登録して足します。招待の発行・送り直し・取り消し・照合は `CompanyInvitationManager` にまとめてあり、企業の側のマイページと管理画面の両方から呼びます。リンクに入れる値は、ハッシュ値にして `t_company_invitations` に持ちます。登録した企業は「申請中」で、運営が管理画面で承認すると、担当者がログインできるようになります。申請を知らせるメールの宛先は、`.env` の `COMPANY_REGISTRATION_STAFF_EMAIL`（`config/members.php`）です。どれも個人会員のコントローラーを写したもので、共通部品には会員のモデル（`CompanyUser`）を渡すだけです。メールのテンプレートは、`company_password_changed`・`company_profile_changed` のように、種類の名前を頭に付けて用意します。そろってから、この章を書き直します。
 
 ### 古い方式のパスワード（LegacyPasswordUserProvider）
 
@@ -1129,6 +1131,7 @@ Schedule::command(CleanupTemporaryData::class)->hourly()->withoutOverlapping();
 | CSV 取り込みの作業用ファイル | `storage/app/private/csv_import` | 24時間より古いファイル |
 | 試行制限の回数などのキャッシュ | `cache`・`cache_locks` テーブル | 期限の切れた行（キャッシュを database に置いているときだけ） |
 | 「このデバイスを記憶する」の記録 | `trusted_devices` テーブル | 期限（`expires_at`）の切れた行 |
+| 企業会員の担当者の招待（14章） | `t_company_invitations` テーブル | 期限（`expires_at`）の切れた行 |
 | 操作ログ（22章） | `t_operation_logs` テーブル | `OPERATION_LOG_DAYS`（既定は365日）より古い行 |
 
 - 一時ファイルは、アップロードと CSV 取り込みのたびにも同じ処理で消します。サーバーの cron が動いていなくても溜まり続けないようにするための控えです。
@@ -1288,6 +1291,7 @@ class SendBulkMail implements ShouldQueue
 | ログインの失敗 | ログインのコントローラー（試行制限の回数を足すところ） | 無い |
 | パスワードの変更 | `PasswordChange::resetAndNotify()` | 無い |
 | パスキーの登録・削除 | `PasskeyManagement` | 無い |
+| 担当者の招待の送信・取り消し | `CompanyInvitationManager` | 無い |
 | CSV のダウンロード・取り込み | `CsvDownload`・`CsvImport` | 無い |
 | 詳細の閲覧 | 個人情報を持つコーナーの `show()` | 1行書く |
 | PDF の出力 | PDF を出す入口 | 1行書く |

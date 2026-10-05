@@ -6,6 +6,8 @@
     <div class="d-flex gap-2">
         {{-- 今の検索条件・並び順で、全件をCSVにする（ページ分けはしない） --}}
         <a href="{{ route('admin.companies.csv') }}" class="btn btn-outline-secondary btn-sm">CSVダウンロード</a>
+        {{-- 運営による登録。企業の側が自分で登録した企業は、申請中でこの一覧に出てくる --}}
+        <a href="{{ route('admin.companies.create') }}" class="btn btn-primary btn-sm">新規登録</a>
     </div>
 </div>
 

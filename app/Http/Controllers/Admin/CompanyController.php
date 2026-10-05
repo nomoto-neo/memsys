@@ -8,8 +8,10 @@ use App\Enums\OperationLogAction;
 use App\Http\Controllers\Controller;
 use App\Mail\TemplatedMail;
 use App\Models\Company;
+use App\Models\CompanyInvitation;
 use App\Models\CompanyUser;
 use App\Rules\PhoneNumberRule;
+use App\Support\CompanyInvitationManager;
 use App\Support\CsvDownload;
 use App\Support\FormFlow;
 use App\Support\OperationRecorder;
@@ -27,11 +29,18 @@ use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
- * 管理画面の企業会員の管理。企業の一覧・詳細・編集と、申請の承認・却下、利用の停止・再開。
+ * 管理画面の企業会員の管理。企業の一覧・登録・詳細・編集と、申請の承認・却下、利用の停止・再開、
+ * 担当者の招待。
  *
- * 企業は、企業の側が自分で登録する（App\Http\Controllers\Company\RegistrationController）。
- * 登録された企業は「申請中」で、ここで承認すると担当者がログインできるようになる。
- * 企業IDと状態は、編集の画面では変えない。状態は、承認・却下・停止・再開のボタンで変える。
+ * 企業は、企業の側が自分で登録するか（App\Http\Controllers\Company\RegistrationController）、
+ * 運営がここで登録する。
+ * - 企業の側が登録した企業は「申請中」で、ここで承認すると担当者がログインできるようになる
+ * - 運営が登録した企業は、初めから「承認済み」。最初の担当者には招待のメールを送り、担当者IDと
+ *   パスワードは本人が決める。運営が担当者のパスワードを決めることになる形にはしない
+ * 企業IDと状態は、登録・編集の画面では変えない。企業IDは自動で決まり、状態は、
+ * 承認・却下・停止・再開のボタンで変える。
+ * 担当者を足すのは企業の側の役目だが、招待のメールを送ることだけは、ここからもできる。
+ * 担当者が1人もいなくなった企業の立て直しに要るため（App\Support\CompanyInvitationManager）。
  */
 class CompanyController extends Controller
 {
@@ -96,9 +105,18 @@ class CompanyController extends Controller
 
     // ---- このコーナーの項目の定義 ----
 
-    // 入力バリデーションルール。企業IDと状態は、編集の画面では変えないので書かない。
+    // 入力バリデーションルール。企業IDと状態は、登録・編集の画面では変えないので書かない。
+    // $companyは既存の企業の編集ならそのインスタンス、新規登録ならnull。
     private function rules(?Company $company): array
     {
+        // 最初の担当者に招待を送るメールアドレス。新規登録のときだけ入力する。
+        // 編集の画面には欄が無いので、'exclude'で検証の対象からも入力値からも外す
+        if ($company === null) {
+            $inviteEmailRules = ['required', 'string', 'email', 'max:255'];
+        } else {
+            $inviteEmailRules = ['exclude'];
+        }
+
         return [
             'name' => ['required', 'string', 'max:255'],
             'kana' => ['nullable', 'string', 'max:255'],
@@ -115,6 +133,7 @@ class CompanyController extends Controller
             'url' => ['nullable', 'string', 'url', 'max:255'],
             // 管理メモ。企業の側には見せない、スタッフ用の欄
             'staff_memo' => ['nullable', 'string', 'max:'.self::STAFF_MEMO_MAX_LENGTH],
+            'invite_email' => $inviteEmailRules,
         ];
     }
 
@@ -126,8 +145,17 @@ class CompanyController extends Controller
         ];
     }
 
+    // 招待の宛先の検証ルール。詳細画面の招待のフォームで使う
+    private function invitationRules(): array
+    {
+        return [
+            'email' => ['required', 'string', 'email', 'max:255'],
+        ];
+    }
+
     // 保存する項目（t_companiesのカラム）。ここに書いた項目だけを保存する。
     // 最終更新者（staff_id）は入力値をそのまま保存しないので、additionalFields()で扱う。
+    // 招待の宛先（invite_email）は企業の列ではないので、ここには書かない。afterSave()で使う。
     private function saveFieldNames(array $validated, Company $company): array
     {
         return ['name', 'kana', 'representative', 'zip', 'prefecture', 'address', 'tel', 'url', 'staff_memo'];
@@ -136,10 +164,27 @@ class CompanyController extends Controller
     // saveFieldNames()に加えて保存する項目（項目名 => 値）。入力値をそのまま使わないものをここに書く。
     private function additionalFields(array $validated, Company $company): array
     {
-        return [
+        $additional = [
             // 最後に更新した操作者（スタッフ）
             'staff_id' => Auth::guard('admin')->id(),
         ];
+
+        if (! $company->exists) {
+            // 運営が登録した企業は、初めから承認済みにする
+            $additional['status'] = CompanyStatus::Approved;
+        }
+
+        return $additional;
+    }
+
+    // 保存の直後の処理。
+    private function afterSave(Company $company, array $validated): void
+    {
+        if ($company->wasRecentlyCreated) {
+            // 新しく登録した企業の最初の担当者へ、招待のメールを送る
+            // （メールは保存が確定した後に送られる。App\Support\CompanyInvitationManager参照）。
+            CompanyInvitationManager::invite($company, $validated['invite_email']);
+        }
     }
 
     // モデルの今の値から、_fields.blade.phpに渡す$inputを組み立てる（詳細・編集で使う）。
@@ -248,9 +293,49 @@ class CompanyController extends Controller
         };
     }
 
+    // ---- 登録 ----
+
+    // 新規登録フォームの表示
+    public function create(): View
+    {
+        return view('admin.companies.create', [
+            'input' => $this->formInput(null, old()),
+            'required' => $this->requiredFields(null),
+        ]);
+    }
+
+    // 新規登録の確認画面を表示
+    public function confirmStore(Request $request): View
+    {
+        return view('admin.companies.confirm', [
+            'isCreate' => true,
+            'company' => null,
+            'input' => $this->confirmInput($request),
+        ]);
+    }
+
+    // 確認画面からの「戻る」
+    public function backToCreate(Request $request): RedirectResponse
+    {
+        return redirect()->route('admin.companies.create')
+            ->withInput($request->except('_token'));
+    }
+
+    // 新規登録の実行。企業を承認済みで作り、最初の担当者へ招待のメールを送る（afterSave()）。
+    // 終わったら、登録した企業の詳細画面へ移る。企業IDと、招待中の一覧を確かめられる
+    public function store(Request $request): RedirectResponse
+    {
+        $company = new Company();
+
+        $this->saveData($company, $request);
+
+        return redirect()->route('admin.companies.show', $company)
+            ->with('status', '企業を登録しました。最初の担当者へ、招待のメールを送りました。');
+    }
+
     // ---- 詳細・編集 ----
 
-    // 詳細画面の表示。その企業の担当者の一覧も出す
+    // 詳細画面の表示。その企業の担当者と、招待中の人の一覧も出す
     public function show(Company $company): View
     {
         // 担当者の個人情報を出す画面なので、詳細を開いたことを操作ログに残す
@@ -261,7 +346,9 @@ class CompanyController extends Controller
             'company' => $company,
             'input' => $this->formInput($company),
             'users' => $company->users()->orderBy('id')->get(),
+            'invitations' => CompanyInvitationManager::pending($company),
             'rejectRequired' => required_fields($this->rejectRules()),
+            'invitationRequired' => required_fields($this->invitationRules()),
         ]);
     }
 
@@ -279,6 +366,7 @@ class CompanyController extends Controller
     public function confirmUpdate(Request $request, Company $company): View
     {
         return view('admin.companies.confirm', [
+            'isCreate' => false,
             'company' => $company,
             'input' => $this->confirmInput($request, $company),
         ]);
@@ -341,8 +429,10 @@ class CompanyController extends Controller
         // 行を消す前に、お知らせの宛先を控える
         $users = $company->users()->with('company')->get();
 
-        // 担当者と、その信頼済みの端末・パスキーを消してから、企業を消す
+        // 担当者と、その信頼済みの端末・パスキー、招待を消してから、企業を消す
         DB::transaction(function () use ($company, $users) {
+            $company->invitations()->delete();
+
             foreach ($users as $user) {
                 TrustedDeviceManager::forMember($user)->forgetAll($user);
                 $user->passkeys()->delete();
@@ -388,6 +478,45 @@ class CompanyController extends Controller
         return redirect()->route('admin.companies.show', $company)
             ->with('status', '企業の利用を再開しました。');
     }
+
+    // ---- 担当者の招待 ----
+
+    // 招待のメールを送る（POST /admin/companies/{company}/invitations）。
+    // 申請中の企業には送れない。担当者を足せるのは、承認した後
+    public function storeInvitation(Request $request, Company $company): RedirectResponse
+    {
+        // 招待のフォームは詳細画面の下の方にあるので、エラーは名前を分けて持つ
+        $validated = $request->validateWithBag('invitation', $this->invitationRules());
+
+        if ($company->isPending()) {
+            return $this->statusAlreadyChanged($company);
+        }
+
+        CompanyInvitationManager::invite($company, $validated['email']);
+
+        return redirect()->route('admin.companies.show', $company)
+            ->with('status', '招待のメールを送りました。');
+    }
+
+    // 招待のメールを送り直す。リンクと期限が新しくなり、前のメールのリンクは使えなくなる
+    public function resendInvitation(Company $company, CompanyInvitation $invitation): RedirectResponse
+    {
+        CompanyInvitationManager::resend($invitation);
+
+        return redirect()->route('admin.companies.show', $company)
+            ->with('status', '招待のメールを送り直しました。');
+    }
+
+    // 招待を取り消す
+    public function cancelInvitation(Company $company, CompanyInvitation $invitation): RedirectResponse
+    {
+        CompanyInvitationManager::cancel($invitation);
+
+        return redirect()->route('admin.companies.show', $company)
+            ->with('status', '招待を取り消しました。');
+    }
+
+    // ---- 状態を変える処理の共通 ----
 
     /**
      * 企業の状態を変える。今の状態が$fromのときだけ変え、変えたらtrueを返す。

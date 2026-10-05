@@ -2,24 +2,27 @@
     企業の情報（企業名・フリガナ・代表者名・郵便番号・都道府県・住所・電話番号・
     ホームページURL・管理メモ）の入力欄一式。
 
-    admin/members/_fields.blade.phpと同じ考え方で、edit（編集）・confirm（更新の確認画面）・
-    show（詳細表示）の3画面すべてから、この同じタグをそのまま呼び出す。
-    企業は企業の側が自分で登録するので、新規登録の画面は無い。
+    admin/staff/_fields.blade.phpと同じ考え方で、create（新規登録）・edit（編集）・
+    confirm（確認画面）・show（詳細表示）の4画面すべてから、この同じタグをそのまま呼び出す。
 
-    企業IDと状態は、ここでは変えない。企業IDは表示だけにし、状態は詳細画面の
-    承認・却下・停止・再開のボタンで変える。
+    企業IDと状態は、ここでは変えない。企業IDは登録のときに自動で決まるので、登録の後の画面で
+    表示だけにし、状態は詳細画面の承認・却下・停止・再開のボタンで変える。
+    新規登録のときだけ、最初の担当者に招待を送るメールアドレスの欄を出す。
 
     呼び出し側が用意する変数：
+    - $isCreate  新規登録（とその確認画面）ならtrue。
     - $input     画面に表示する値の配列。送信される項目だけを入れる。
-    - $company   対象の企業。企業IDの表示に使う。
+    - $company   対象の企業。新規登録ではnull。企業IDの表示に使う。
     - $readonly  text系inputとtextareaに付ける文字列（' readonly'または''）。
     - $disabled  select（都道府県）に付ける文字列（' disabled'または''）。
     - $required  必須マークのHTML配列。閲覧専用画面では[]でよい。
 --}}
-<div class="mb-3">
-    <label class="form-label">企業ID</label>
-    <div class="form-control-plaintext">{{ $company->code }}</div>
-</div>
+@if (! $isCreate)
+    <div class="mb-3">
+        <label class="form-label">企業ID</label>
+        <div class="form-control-plaintext">{{ $company->code }}</div>
+    </div>
+@endif
 
 <div class="mb-3">
     <label for="name" class="form-label">企業名 {!! $required['name'] ?? '' !!}</label>
@@ -98,3 +101,17 @@
     <div class="form-text">企業会員には表示されません。</div>
     <div class="invalid-feedback" data-item="staff_memo">{{ $errors->first('staff_memo') }}</div>
 </div>
+
+{{-- 最初の担当者への招待。担当者IDとパスワードは、招待のメールのリンクから本人が決める --}}
+@if ($isCreate)
+    <hr>
+
+    <div class="mb-3">
+        <label for="invite_email" class="form-label">最初の担当者のメールアドレス {!! $required['invite_email'] ?? '' !!}</label>
+        <input id="invite_email" type="email" name="invite_email"
+               class="form-control"
+               value="{{ $input['invite_email'] ?? '' }}"{{ $readonly }}>
+        <div class="form-text">登録すると、このアドレスへ招待のメールを送ります。担当者IDとパスワードは、招待された方がご自身で決めます。</div>
+        <div class="invalid-feedback" data-item="invite_email">{{ $errors->first('invite_email') }}</div>
+    </div>
+@endif

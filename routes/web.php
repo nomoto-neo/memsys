@@ -17,10 +17,12 @@ use App\Http\Controllers\AuthRegisteredMemberController;
 use App\Http\Controllers\AuthSessionController;
 use App\Http\Controllers\Company\AuthSessionController as CompanySessionController;
 use App\Http\Controllers\Company\AuthPasswordController as CompanyPasswordController;
+use App\Http\Controllers\Company\InvitationController as CompanyInvitationController;
 use App\Http\Controllers\Company\MypageController as CompanyMypageController;
 use App\Http\Controllers\Company\PasswordResetController as CompanyPasswordResetController;
 use App\Http\Controllers\Company\ProfileController as CompanyProfileController;
 use App\Http\Controllers\Company\RegistrationController as CompanyRegistrationController;
+use App\Http\Controllers\Company\UserController as CompanyUserController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\Contact2Controller;
 use App\Http\Controllers\MypageController;
@@ -190,6 +192,13 @@ Route::prefix('company')->name('company.')->group(function () {
         // 申請の完了（承認待ちの案内）
         Route::get('/regist/thanks', [CompanyRegistrationController::class, 'thanks'])->name('regist.thanks');
 
+        // 招待された人の、担当者としての登録。招待のメールのリンクから開く
+        // （App\Support\CompanyInvitationManager）。リンクの値を総当たりで探られないよう、回数を制限する
+        Route::middleware('throttle:20,1,company-invitation')->group(function () {
+            Route::get('/invitation/{token}', [CompanyInvitationController::class, 'show'])->name('invitation.show');
+            Route::post('/invitation/{token}', [CompanyInvitationController::class, 'store'])->name('invitation.store');
+        });
+
         // ログイン（企業ID・担当者ID・パスワード。試行のthrottle制御はコントローラー側で行う）
         Route::get('/login', [CompanySessionController::class, 'create'])->name('login');
         Route::post('/login', [CompanySessionController::class, 'store'])->name('login.store');
@@ -232,6 +241,21 @@ Route::prefix('company')->name('company.')->group(function () {
         // 自分の情報（氏名・メールアドレス）の変更
         Route::get('/mypage/profile', [CompanyProfileController::class, 'edit'])->name('mypage.profile');
         Route::patch('/mypage/profile', [CompanyProfileController::class, 'update'])->name('mypage.profile.update');
+
+        // 担当者の管理。同じ企業の担当者の一覧・招待・編集・削除。どの担当者も行える。
+        // 招待と送り直しはメールを送るので、回数を制限する
+        Route::get('/mypage/users', [CompanyUserController::class, 'index'])->name('users.index');
+        Route::get('/mypage/users/invite', [CompanyUserController::class, 'inviteForm'])->name('users.invite');
+        Route::post('/mypage/users/invite', [CompanyUserController::class, 'invite'])
+            ->middleware('throttle:10,1,company-invite')
+            ->name('users.invite.send');
+        Route::post('/mypage/users/invitations/{invitation}/resend', [CompanyUserController::class, 'resendInvitation'])
+            ->middleware('throttle:10,1,company-invite')
+            ->name('users.invitations.resend');
+        Route::delete('/mypage/users/invitations/{invitation}', [CompanyUserController::class, 'cancelInvitation'])->name('users.invitations.cancel');
+        Route::get('/mypage/users/{user}/edit', [CompanyUserController::class, 'edit'])->name('users.edit');
+        Route::patch('/mypage/users/{user}', [CompanyUserController::class, 'update'])->name('users.update');
+        Route::delete('/mypage/users/{user}', [CompanyUserController::class, 'destroy'])->name('users.destroy');
 
         // パスワード変更
         Route::get('/mypage/password', [CompanyPasswordController::class, 'edit'])->name('password.edit');
@@ -326,9 +350,14 @@ Route::prefix('admin')->name('admin.')->group(function () {
             ->middleware('acl.manager')
             ->name('members.operation-logs');
 
-        // 企業会員管理。企業は企業の側が自分で登録するので、ここに登録の画面は無い
+        // 企業会員管理。企業は、企業の側が自分で登録するほか、運営がここで登録することもできる
         Route::get('/companies', [AdminCompanyController::class, 'index'])->name('companies.index');
         Route::post('/companies', [AdminCompanyController::class, 'storeSearchCondition'])->name('companies.search');
+        // 登録（これも/companies/{company}より前に書く）。最初の担当者へ、招待のメールを送る
+        Route::get('/companies/create', [AdminCompanyController::class, 'create'])->name('companies.create');
+        Route::post('/companies/confirm', [AdminCompanyController::class, 'confirmStore'])->name('companies.confirm.create');
+        Route::post('/companies/back', [AdminCompanyController::class, 'backToCreate'])->name('companies.confirm.create.back');
+        Route::post('/companies/store', [AdminCompanyController::class, 'store'])->name('companies.store');
         // CSVダウンロード（/companies/{company}より前に書く。後ろだと"csv"が企業のidとして扱われる）
         Route::get('/companies/csv', [AdminCompanyController::class, 'csv'])->name('companies.csv');
         Route::get('/companies/{company}', [AdminCompanyController::class, 'show'])->name('companies.show');
@@ -341,6 +370,13 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::delete('/companies/{company}/reject', [AdminCompanyController::class, 'reject'])->name('companies.reject');
         Route::patch('/companies/{company}/suspend', [AdminCompanyController::class, 'suspend'])->name('companies.suspend');
         Route::patch('/companies/{company}/resume', [AdminCompanyController::class, 'resume'])->name('companies.resume');
+        // 担当者の招待のメールの送信・送り直し・取り消し（App\Support\CompanyInvitationManager）。
+        // scopeBindings()で、{invitation}をその{company}の招待に限る
+        Route::post('/companies/{company}/invitations', [AdminCompanyController::class, 'storeInvitation'])->name('companies.invitations.store');
+        Route::prefix('/companies/{company}/invitations/{invitation}')->name('companies.invitations.')->scopeBindings()->group(function () {
+            Route::post('/resend', [AdminCompanyController::class, 'resendInvitation'])->name('resend');
+            Route::delete('/', [AdminCompanyController::class, 'cancelInvitation'])->name('cancel');
+        });
         // 企業の担当者の確認・編集・削除。入口は、企業の詳細画面の担当者の一覧。
         // scopeBindings()で、{user}をその{company}の担当者に限る（ほかの企業の担当者のidでは404になる）
         Route::prefix('/companies/{company}/users/{user}')->name('companies.users.')->scopeBindings()->group(function () {

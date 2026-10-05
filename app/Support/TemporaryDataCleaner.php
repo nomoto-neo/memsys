@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\CompanyInvitation;
 use App\Models\OperationLog;
 use App\Models\TrustedDevice;
 use Illuminate\Support\Facades\DB;
@@ -20,6 +21,9 @@ use Illuminate\Support\Facades\Storage;
  *   消すもの：期限の切れた行
  *
  * 「このデバイスを記憶する」の記録（trusted_devicesテーブル）
+ *   消すもの：期限の切れた行
+ *
+ * 企業会員の担当者の招待（t_company_invitationsテーブル）
  *   消すもの：期限の切れた行
  *
  * 操作ログ（t_operation_logsテーブル）
@@ -52,6 +56,7 @@ final class TemporaryDataCleaner
             'CSV取り込みの作業用ファイル' => self::csvImportFiles(),
             '期限の切れたキャッシュ' => self::expiredCache(),
             '期限の切れた信頼済み端末' => self::expiredTrustedDevices(),
+            '期限の切れた担当者の招待' => self::expiredCompanyInvitations(),
             '保存期間を過ぎた操作ログ' => self::oldOperationLogs(),
         ];
     }
@@ -91,6 +96,12 @@ final class TemporaryDataCleaner
     public static function expiredTrustedDevices(): int
     {
         return TrustedDevice::query()->where('expires_at', '<=', now())->delete();
+    }
+
+    // 企業会員の担当者の招待（App\Support\CompanyInvitationManager）のうち、期限の切れた行。
+    public static function expiredCompanyInvitations(): int
+    {
+        return CompanyInvitation::query()->where('expires_at', '<=', now())->delete();
     }
 
     // 操作ログ（App\Support\OperationRecorder）のうち、残す日数を過ぎた行。
