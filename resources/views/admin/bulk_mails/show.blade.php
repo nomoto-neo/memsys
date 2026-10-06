@@ -1,9 +1,17 @@
 @extends('layouts.admin')
 
-{{-- 1件の一斉メールの送信の状況。送信中は$refreshSecondsごとに読み直して件数を新しくする --}}
+{{--
+    1件の一斉メールの送信の状況。送信中は$refreshSeconds秒ごとに読み直して、件数を新しくする。
+    読み直しまでの残りの秒数を、行の最後に「（あと3秒）」と出して1秒ずつ減らす。
+    送信が終わっていれば、同じ場所に「送信処理は完了しました」を出す。失敗が無ければ緑、
+    1件でもあれば赤にして、失敗の件数を添える。過去の送信を履歴から開いたときも、同じ表示になる。
+
+    読み直しは、画面の下のスクリプトが、残りの秒数を減らして0になったときに行う。
+    スクリプトが動かないブラウザでは、<noscript>の中の<meta>が同じ秒数で読み直す。
+--}}
 @if ($refreshSeconds !== null)
     @push('head-extra')
-        <meta http-equiv="refresh" content="{{ $refreshSeconds }}">
+        <noscript><meta http-equiv="refresh" content="{{ $refreshSeconds }}"></noscript>
     @endpush
 @endif
 
@@ -29,7 +37,12 @@
         </table>
 
         @if ($refreshSeconds !== null)
-            <p class="text-muted small">送信中です。この画面は{{ $refreshSeconds }}秒ごとに読み直します。画面を閉じても送信は続きます。</p>
+            {{-- 残りの秒数は、スクリプトがdata-secondsの秒数から数えて、この<span>に入れる --}}
+            <p class="text-muted small">送信中です。画面を閉じても送信処理は続きます。この画面は{{ $refreshSeconds }}秒ごとに読み直します。<span id="refresh-countdown" data-seconds="{{ $refreshSeconds }}"></span></p>
+        @elseif ($counts['failed'] > 0)
+            <p class="text-danger small fw-bold">送信処理は完了しました（失敗 {{ number_format($counts['failed']) }}件）。</p>
+        @else
+            <p class="text-success small fw-bold">送信処理は完了しました。</p>
         @endif
 
         <dl class="row mb-0">
@@ -60,3 +73,32 @@
     </div>
 </div>
 @endsection
+
+@if ($refreshSeconds !== null)
+    @push('scripts')
+    <script>
+        {{-- 読み直しまでの残りの秒数を出し、1秒ずつ減らして、0になったら読み直す。
+             表示と読み直しを1つのタイマーで行うので、秒数がずれない --}}
+        document.addEventListener('DOMContentLoaded', () => {
+            const countdown = document.getElementById('refresh-countdown');
+            let remaining = Number(countdown.dataset.seconds);
+
+            const show = () => {
+                countdown.textContent = `（あと${remaining}秒）`;
+            };
+
+            show();
+
+            const timer = setInterval(() => {
+                remaining--;
+                show();
+
+                if (remaining <= 0) {
+                    clearInterval(timer);
+                    location.reload();
+                }
+            }, 1000);
+        });
+    </script>
+    @endpush
+@endif
