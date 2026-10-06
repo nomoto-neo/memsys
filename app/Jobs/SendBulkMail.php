@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Mail\TemplatedMail;
 use App\Models\BulkMail;
+use App\Support\MailUnsubscribe;
 use DateTimeInterface;
 use Illuminate\Bus\Batchable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -19,6 +20,11 @@ use Illuminate\Support\Facades\Mail;
  * RateLimitedのミドルウェアで、AppServiceProviderのbulk-mailの制限を超えないようにする。
  * 超えた分は送らずにキューへ戻され、少し後にまた試される。SMTPの送信の上限を超えて
  * 止められたり、迷惑メールと判定されたりしないため。
+ *
+ * ■ 配信停止
+ * 本文の末尾に、この宛先の配信停止のURLを付ける。付ける文はテンプレート
+ * （resources/mail-templates/bulk_mail.blade.php）にある。メールソフトの「登録解除」のボタン用の
+ * ヘッダーも付ける（App\Support\MailUnsubscribe）。
  *
  * ■ 送れなかったとき
  * 例外が起きたら、backoffの秒数を空けて試し直す。maxExceptionsの回数を超えたら失敗にし、
@@ -54,7 +60,8 @@ class SendBulkMail implements ShouldQueue
         return [new RateLimited('bulk-mail')];
     }
 
-    // 1通を送る。件名と本文の{{$name}}は、この宛先の氏名に置き換える
+    // 1通を送る。件名と本文の{{$name}}は、この宛先の氏名に置き換える。
+    // 配信停止のURLは、宛先ごとに違う
     public function handle(): void
     {
         // 送信が中止されていれば送らない
@@ -73,12 +80,15 @@ class SendBulkMail implements ShouldQueue
             ];
         }
 
+        $unsubscribeUrl = MailUnsubscribe::url($this->email);
+
         Mail::send(new TemplatedMail('bulk_mail', [
             'from_mail' => config('mail.from.address'),
             'from_name' => config('mail.from.name'),
             'email' => $this->email,
             'subject' => BulkMail::fillName($bulkMail->subject, $this->name),
             'body' => BulkMail::fillName($bulkMail->body, $this->name),
-        ], $attachments));
+            'unsubscribe_url' => $unsubscribeUrl,
+        ], $attachments, MailUnsubscribe::headers($unsubscribeUrl)));
     }
 }

@@ -122,6 +122,12 @@ class MypageController extends Controller
                 // コードテーブルとの一致を確認
                 Rule::in(code_keys('prefectures')),
             ],
+            // お知らせメールを受け取るかどうか
+            'notice_mail' => [
+                'required', 'integer',
+                // コードテーブルとの一致を確認
+                Rule::in(code_keys('notice_mail')),
+            ],
         ] + $this->ajaxUploadRules();
     }
 
@@ -129,7 +135,7 @@ class MypageController extends Controller
     // パスワードはこのフォームでは扱わない（変更はAuthPasswordControllerの専用フォーム）。
     private function saveFieldNames(array $validated, Member $member): array
     {
-        return ['name', 'kana', 'email', 'phone', 'birthdate', 'prefecture'];
+        return ['name', 'kana', 'email', 'phone', 'birthdate', 'prefecture', 'notice_mail'];
     }
 
     // モデルの今の値から、編集画面に渡す$inputを組み立てる。
@@ -142,6 +148,7 @@ class MypageController extends Controller
             'phone' => $member->phone,
             'birthdate' => optional($member->birthdate)->format('Y-m-d'),
             'prefecture' => $member->prefecture,
+            'notice_mail' => $member->notice_mail,
         ];
     }
 

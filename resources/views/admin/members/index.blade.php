@@ -23,6 +23,8 @@
     - prefecture[]：Rule::inで区分一覧と照合しているので完全一致。
       name="...[]"で複数選択の配列として送ることで、controller側は「値が配列ならIN()」
       という分岐で自動的にOR条件（複数県のいずれか）にしてくれる。
+    - notice_mail：お知らせメールを受け取るかどうか。Rule::inで区分一覧と照合しているので完全一致。
+      一斉メールの宛先のCSVを作るときは、「受け取る」で絞ってからCSVをダウンロードする。
     - orderby：並び順。MemberController::ORDER_OPTIONSに定義した選択肢を
       そのまま並べているだけなので、選択肢を増減させてもここは直さなくてよい。
       他の検索条件と同じくsearch_session経由で保存・復元される。
@@ -50,6 +52,18 @@
             @foreach (code_table('prefectures') as $code => $name)
                 <option value="{{ $code }}"
                         @selected(in_array((string) $code, $filters['prefecture'] ?? [], true))>
+                    {{ $name }}
+                </option>
+            @endforeach
+        </select>
+    </div>
+    <div class="col-sm-2">
+        {{-- $filters['notice_mail']はセッションに保存された生のPOST値（文字列）なので、
+             (string)キャストしてから比較している。 --}}
+        <select name="notice_mail" class="form-select" title="お知らせメール">
+            <option value="">お知らせメール（指定なし）</option>
+            @foreach (code_table('notice_mail') as $code => $name)
+                <option value="{{ $code }}" @selected(($filters['notice_mail'] ?? '') === (string) $code)>
                     {{ $name }}
                 </option>
             @endforeach

@@ -32,6 +32,8 @@ use Illuminate\Support\Facades\Auth;
  * - パスワードの変更      PasswordChange
  * - パスキーの登録・削除  PasskeyManagement
  * - 担当者の招待          CompanyInvitationManager。送信と取り消し
+ * - お知らせメールの配信停止  MailUnsubscribe。メールの中のURLからの停止。会員がいないときだけ、
+ *                         メールアドレスを補足に残す
  * 一覧の表示と検索は記録しない。
  *
  * ■ 片付け

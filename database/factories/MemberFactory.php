@@ -2,10 +2,10 @@
 
 namespace Database\Factories;
 
+use App\Enums\NoticeMail;
 use App\Models\Member;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 
 /**
  * ダミー会員（t_members）を1件分作るための「型紙」。
@@ -66,6 +66,7 @@ class MemberFactory extends Factory
             // 一度確認してください。ズレていると、登録画面で
             // 見たときに違う都道府県が選択された状態に見えてしまう。
             'prefecture' => $faker->numberBetween(1, 47),
+            'notice_mail' => NoticeMail::Receive->value,
             'staff_id' => null,
         ];
     }

@@ -9,6 +9,7 @@ use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
+use Illuminate\Mail\Mailables\Headers;
 use Illuminate\Queue\SerializesModels;
 
 /**
@@ -39,11 +40,15 @@ class TemplatedMail extends Mailable
      * @param  array<int, array{path: string, name: string}>  $attachmentFiles  添付ファイル。
      *         pathはサーバー上のファイルの場所、nameはメールに付けるときのファイル名。
      *         $attachmentsという名前は、親クラスのMailableがすでに持っているので使えない。
+     * @param  array<string, string>  $headerLines  メールに足すヘッダー。ヘッダーの名前 => 値。
+     *         一斉メールの配信停止のヘッダー（App\Support\MailUnsubscribe）のように、
+     *         テンプレートの見出しの行では書けないものに使う。
      */
     public function __construct(
         string $templateName,
         array $vars,
         private readonly array $attachmentFiles = [],
+        private readonly array $headerLines = [],
     ) {
         $this->parsed = MailTemplate::render($templateName, $vars);
     }
@@ -62,6 +67,12 @@ class TemplatedMail extends Mailable
             replyTo: $this->parsed['reply_to'],
             subject: $this->parsed['subject'] ?? '',
         );
+    }
+
+    // 呼び出し側が足したヘッダー
+    public function headers(): Headers
+    {
+        return new Headers(text: $this->headerLines);
     }
 
     // 本文。テンプレートで組み立て済みの本文を、そのまま出すだけの最小限のビューに通す

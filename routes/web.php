@@ -26,6 +26,7 @@ use App\Http\Controllers\Company\RegistrationController as CompanyRegistrationCo
 use App\Http\Controllers\Company\UserController as CompanyUserController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\Contact2Controller;
+use App\Http\Controllers\MailUnsubscribeController;
 use App\Http\Controllers\MypageController;
 use App\Http\Controllers\NewsController;
 use App\Http\Controllers\PasswordResetController;
@@ -58,6 +59,13 @@ Route::post('/contact/store', [ContactController::class, 'store'])
     ->middleware('throttle:5,1,contact-store')
     ->name('contact.store');
 Route::get('/contact/thanks', [ContactController::class, 'thanks'])->name('contact.thanks');
+
+// お知らせメールの配信停止（App\Support\MailUnsubscribe）。メールの中のURLから開くので、ログインは要らない。
+// 停止の操作は全部を操作ログに残すので、回数を制限する
+Route::get('/mail/unsubscribe', [MailUnsubscribeController::class, 'show'])->name('mail.unsubscribe');
+Route::post('/mail/unsubscribe', [MailUnsubscribeController::class, 'store'])
+    ->middleware('throttle:10,1,mail-unsubscribe')
+    ->name('mail.unsubscribe.store');
 
 // ログインした人だけが見られるアップロードファイルと、アップロード直後の一時ファイル
 // （App\Http\Controllers\UploadedFileController）。会員・スタッフのどちらのガードでも使い、

@@ -124,6 +124,12 @@ class MemberController extends Controller
                 // コードテーブルとの一致を確認
                 Rule::in(code_keys('prefectures')),
             ],
+            // お知らせメールを受け取るかどうか
+            'notice_mail' => [
+                'required', 'integer',
+                // コードテーブルとの一致を確認
+                Rule::in(code_keys('notice_mail')),
+            ],
             // 管理メモ。会員には見せない、スタッフ用の欄
             'staff_memo' => ['nullable', 'string', 'max:'.self::STAFF_MEMO_MAX_LENGTH],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
@@ -135,7 +141,7 @@ class MemberController extends Controller
     // ここから外した項目は、更新ではDBの今の値がそのまま残る（NULLにするのとは違う）。
     private function saveFieldNames(array $validated, Member $member): array
     {
-        return ['name', 'kana', 'email', 'phone', 'birthdate', 'prefecture', 'staff_memo'];
+        return ['name', 'kana', 'email', 'phone', 'birthdate', 'prefecture', 'notice_mail', 'staff_memo'];
     }
 
     // saveFieldNames()に加えて保存する項目（項目名 => 値）。入力値をそのまま使わないものをここに書く。
@@ -164,6 +170,7 @@ class MemberController extends Controller
             'phone' => $member->phone,
             'birthdate' => optional($member->birthdate)->format('Y-m-d'),
             'prefecture' => $member->prefecture,
+            'notice_mail' => $member->notice_mail,
             'staff_memo' => $member->staff_memo,
         ];
     }
@@ -214,6 +221,11 @@ class MemberController extends Controller
                 // コードテーブルとの一致を確認
                 Rule::in(code_keys('prefectures')),
             ],
+            // 一斉メールの宛先のCSVを作るときに、「受け取る」の会員だけに絞るのに使う
+            'notice_mail' => [
+                'nullable', 'integer',
+                Rule::in(code_keys('notice_mail')),
+            ],
         ];
     }
 
@@ -252,6 +264,7 @@ class MemberController extends Controller
             '生年月日' => 'birthdate|date:Y/m/d',
             '年齢' => '@age',
             '都道府県' => ['prefecture', $prefectures],
+            'お知らせメール' => ['notice_mail', code_table('notice_mail')],
             '管理メモ' => 'staff_memo',
             '登録日時' => 'created_at|date:Y/m/d H:i',
             // 取り込みのとき、ダウンロードした後に画面から変更された行を見分けるのに使う

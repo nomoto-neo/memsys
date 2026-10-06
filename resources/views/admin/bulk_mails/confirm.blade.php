@@ -15,7 +15,10 @@
             <dd class="col-sm-10">{{ $sampleSubject }}</dd>
 
             <dt class="col-sm-2">本文</dt>
-            <dd class="col-sm-10"><div class="form-control" style="white-space: pre-wrap; height: auto;">{{ $sampleBody }}</div></dd>
+            <dd class="col-sm-10">
+                <div class="form-control" style="white-space: pre-wrap; height: auto;">{{ $sampleBody }}</div>
+                <div class="form-text">本文の末尾に、配信停止のURLが宛先ごとに付きます。</div>
+            </dd>
 
             <dt class="col-sm-2">添付ファイル</dt>
             <dd class="col-sm-10">

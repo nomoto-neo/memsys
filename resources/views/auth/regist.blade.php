@@ -74,6 +74,22 @@
                         <div class="invalid-feedback" data-item="prefecture">{{ $errors->first('prefecture') }}</div>
                     </div>
 
+                    {{-- お知らせメールを受け取るかどうか。$input['notice_mail']は、送信された文字列と
+                         それ以外のintの2通りがあるので、比べる前に(int)でそろえる。 --}}
+                    <div class="mb-3">
+                        <div class="form-label d-block">お知らせメール {!! $required['notice_mail'] !!}</div>
+                        @foreach (code_table('notice_mail') as $code => $name)
+                            <div class="form-check form-check-inline">
+                                <input id="notice_mail_{{ $code }}" type="radio" name="notice_mail" value="{{ $code }}"
+                                       class="form-check-input"
+                                       @checked((int) ($input['notice_mail'] ?? 1) === $code)>
+                                <label for="notice_mail_{{ $code }}" class="form-check-label">{{ $name }}</label>
+                            </div>
+                        @endforeach
+                        <div class="form-text">サイトからのお知らせを、メールでお届けします。</div>
+                        <div class="invalid-feedback" data-item="notice_mail">{{ $errors->first('notice_mail') }}</div>
+                    </div>
+
                     <div class="mb-3">
                         <label for="password" class="form-label">パスワード {!! $required['password'] !!}</label>
                         <input id="password" type="password" name="password"

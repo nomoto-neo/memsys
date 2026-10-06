@@ -1,6 +1,6 @@
 {{--
     会員情報（お名前・フリガナ・メールアドレス・電話番号・生年月日・
-    都道府県・顔写真・管理メモ・パスワード）の入力欄一式。
+    都道府県・お知らせメール・顔写真・管理メモ・パスワード）の入力欄一式。
 
     admin/staff/_fields.blade.phpと同じ考え方で、edit（編集）・
     confirm（更新の確認画面）・show（詳細表示）の3画面すべてから、
@@ -23,7 +23,8 @@
                      コメント参照）。
     - $readonly     text/email/password/date系inputに付ける文字列
                      （' readonly'または''）。
-    - $disabled     select（都道府県）に付ける文字列（' disabled'または''）。
+    - $disabled     select（都道府県）とradio（お知らせメール）に付ける文字列
+                     （' disabled'または''）。
     - $required     必須マークのHTML配列。閲覧専用画面では[]でよい。
     - $showPassword パスワード欄一式を表示するかどうか。edit/confirmは
                      常にtrue。show（詳細表示）だけfalse（ハッシュ化された
@@ -92,6 +93,21 @@
         @endforeach
     </select>
     <div class="invalid-feedback" data-item="prefecture">{{ $errors->first('prefecture') }}</div>
+</div>
+
+{{-- お知らせメール（管理画面の一斉メール）を受け取るかどうか。$input['notice_mail']は、
+     送信された文字列とモデルのintの2通りがあるので、比べる前に(int)でそろえる --}}
+<div class="mb-3">
+    <div class="form-label d-block">お知らせメール {!! $required['notice_mail'] ?? '' !!}</div>
+    @foreach (code_table('notice_mail') as $code => $name)
+        <div class="form-check form-check-inline">
+            <input id="notice_mail_{{ $code }}" type="radio" name="notice_mail" value="{{ $code }}"
+                   class="form-check-input"
+                   @checked((int) ($input['notice_mail'] ?? 1) === $code){{ $disabled }}>
+            <label for="notice_mail_{{ $code }}" class="form-check-label">{{ $name }}</label>
+        </div>
+    @endforeach
+    <div class="invalid-feedback" data-item="notice_mail">{{ $errors->first('notice_mail') }}</div>
 </div>
 
 <div class="mb-3">

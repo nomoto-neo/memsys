@@ -39,6 +39,9 @@
                     <dt class="col-sm-4">都道府県</dt>
                     <dd class="col-sm-8">{{ code_label('prefectures', $input['prefecture'] ?? null, '（未入力）') }}</dd>
 
+                    <dt class="col-sm-4">お知らせメール</dt>
+                    <dd class="col-sm-8">{{ code_label('notice_mail', $input['notice_mail']) }}</dd>
+
                     <dt class="col-sm-4">パスワード</dt>
                     <dd class="col-sm-8">●●●●●●●●</dd>
                 </dl>

@@ -34,6 +34,9 @@
                     <dt class="col-sm-4">都道府県</dt>
                     <dd class="col-sm-8">{{ code_label('prefectures', $member->prefecture, '（未設定）') }}</dd>
 
+                    <dt class="col-sm-4">お知らせメール</dt>
+                    <dd class="col-sm-8">{{ code_label('notice_mail', $member->notice_mail) }}</dd>
+
                     {{-- 顔写真のURLは、本人とスタッフだけが開けるもの（Member::photo_url） --}}
                     <dt class="col-sm-4">顔写真</dt>
                     <dd class="col-sm-8">

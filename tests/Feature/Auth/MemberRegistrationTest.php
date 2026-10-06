@@ -23,6 +23,7 @@ class MemberRegistrationTest extends TestCase
         'phone' => '090-1234-5678',
         'birthdate' => '1990-01-02',
         'prefecture' => 13,
+        'notice_mail' => 1,
         'password' => 'new-password',
         'password_confirmation' => 'new-password',
     ];
@@ -44,6 +45,7 @@ class MemberRegistrationTest extends TestCase
         $member = Member::where('email', 'new@example.com')->sole();
         $this->assertSame('登録 太郎', $member->name);
         $this->assertTrue(Hash::check('new-password', $member->password));
+        $this->assertTrue($member->receivesNoticeMail());
         $this->assertAuthenticatedAs($member, 'web');
     }
 

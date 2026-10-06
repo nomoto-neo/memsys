@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\NoticeMail;
 use App\Support\HasPasskeys;
 use App\Support\IsMemberAccount;
 use App\Support\MemberAccount;
@@ -67,6 +68,8 @@ class Member extends Authenticatable implements MemberAccount, PasskeyUser
         'phone',
         'birthdate',
         'prefecture',
+        // お知らせメールを受け取るかどうか（App\Enums\NoticeMail）
+        'notice_mail',
         'photo',
         'photo_origin',
         // スタッフが書き残す管理メモ。管理画面でだけ読み書きし、会員には見せない
@@ -87,6 +90,8 @@ class Member extends Authenticatable implements MemberAccount, PasskeyUser
         'birthdate' => 'date',
         // 都道府県はコード表の値と===で比べるので、intにそろえる
         'prefecture' => 'integer',
+        // お知らせメールもコード表の値と===で比べるので、intにそろえる
+        'notice_mail' => 'integer',
         'staff_id' => 'integer',
     ];
 
@@ -100,6 +105,12 @@ class Member extends Authenticatable implements MemberAccount, PasskeyUser
     public function notificationEmail(): ?string
     {
         return $this->email;
+    }
+
+    // お知らせメール（管理画面の一斉メール）を受け取る会員か
+    public function receivesNoticeMail(): bool
+    {
+        return $this->notice_mail === NoticeMail::Receive->value;
     }
 
     // 管理画面から最後にこの会員を更新したスタッフ。

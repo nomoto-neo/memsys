@@ -6,10 +6,12 @@ use App\Enums\BulkMailStatus;
 use App\Enums\OperationLogAction;
 use App\Enums\CsvEncoding;
 use App\Enums\CsvImportMode;
+use App\Enums\NoticeMail;
 use App\Http\Controllers\Controller;
 use App\Jobs\SendBulkMail;
 use App\Models\BulkMail;
 use App\Models\BulkMailTemplate;
+use App\Models\Member;
 use App\Rules\BulkMailPlaceholderRule;
 use App\Support\AjaxFileUpload;
 use App\Support\CsvImportResult;
@@ -44,6 +46,12 @@ use Throwable;
  * 「氏名,メールアドレス」の2列で、見出しの行は無い。会員のデータからではなくCSVから送るのは、
  * 会員でない人にも送れるようにするため。読み込みと検証はCsvReaderを借り、画面と流れはここで持つ。
  * 宛先は保存せず、ジョブの中にだけ置く。
+ *
+ * ■ 配信停止
+ * お知らせメールを「受け取らない」にしている会員のアドレスがCSVにあれば、その行をエラーにして
+ * 送らせない。会員の一覧から抽出した後に停止した人や、古いCSVの使い回しに備えるため。
+ * 会員ではないアドレスは、そのまま送る。本文の末尾には、配信停止のURLが宛先ごとに付く
+ * （App\Jobs\SendBulkMail・App\Support\MailUnsubscribe）。
  *
  * ■ 二重の送信
  * 送信中の一斉メールがあるあいだは、入力画面を開いてもその状況の画面に回し、新しく送らせない。
@@ -86,6 +94,9 @@ class BulkMailController extends Controller
 
     // 送信中の状況の画面を、自動で読み直す間隔の秒数
     private const REFRESH_SECONDS = 5;
+
+    // 「受け取らない」の会員を探すときに、1回の問い合わせで比べるメールアドレスの数
+    private const OPT_OUT_CHECK_CHUNK = 1000;
 
     // ---- 添付ファイルの設定 ----
 
@@ -350,10 +361,12 @@ class BulkMailController extends Controller
         );
     }
 
-    // 全行を確かめた後に、同じメールアドレスが2回以上あればエラーにする。同じ人に2通届かないように
+    // 全行を確かめた後の、行をまたいだ確かめ。同じメールアドレスが2回以上あればエラーにする。
+    // 同じ人に2通届かないように。お知らせメールを受け取らない会員のアドレスも、エラーにする
     private function validateCsvRows(CsvImportResult $result): void
     {
         $firstLines = [];
+        $optedOut = $this->optedOutEmails($result);
 
         foreach ($result->rows as $row) {
             $email = mb_strtolower((string) ($row->validated['email'] ?? ''));
@@ -367,7 +380,45 @@ class BulkMailController extends Controller
             } else {
                 $firstLines[$email] = $row->line;
             }
+
+            if (isset($optedOut[$email])) {
+                $row->addError('お知らせメールを受け取らない会員です。宛先から外してください。', 'メールアドレス');
+            }
         }
+    }
+
+    /**
+     * CSVのメールアドレスのうち、お知らせメールを「受け取らない」にしている会員のもの。
+     * 大文字と小文字は同じアドレスとして比べるので、小文字にしたアドレスをキーにして返す。
+     *
+     * @return array<string, true>
+     */
+    private function optedOutEmails(CsvImportResult $result): array
+    {
+        $emails = [];
+
+        foreach ($result->rows as $row) {
+            $email = mb_strtolower((string) ($row->validated['email'] ?? ''));
+
+            if ($email !== '') {
+                $emails[$email] = true;
+            }
+        }
+
+        $optedOut = [];
+
+        // 宛先が多いと問い合わせが長くなるので、分けて探す
+        foreach (array_chunk(array_keys($emails), self::OPT_OUT_CHECK_CHUNK) as $chunk) {
+            $found = Member::whereIn('email', $chunk)
+                ->where('notice_mail', NoticeMail::Stop->value)
+                ->pluck('email');
+
+            foreach ($found as $email) {
+                $optedOut[mb_strtolower($email)] = true;
+            }
+        }
+
+        return $optedOut;
     }
 
     // 添付ファイルの大きさと種類を確かめる。サイト全体の上限より厳しい、一斉メールだけの上限

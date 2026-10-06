@@ -40,6 +40,7 @@ class MemberMypageTest extends TestCase
             'phone' => $member->phone,
             'birthdate' => $member->birthdate?->format('Y-m-d'),
             'prefecture' => $member->prefecture,
+            'notice_mail' => $member->notice_mail,
         ];
     }
 

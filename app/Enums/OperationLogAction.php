@@ -25,6 +25,7 @@ enum OperationLogAction: string implements CodeTableEnum
     case PasskeyDelete = 'passkey_delete';
     case TwoFactorReset = 'two_factor_reset';
     case BulkMailSend = 'bulk_mail_send';
+    case MailUnsubscribe = 'mail_unsubscribe';
     case InvitationSend = 'invitation_send';
     case InvitationCancel = 'invitation_cancel';
     case Throttled = 'throttled';
@@ -47,6 +48,7 @@ enum OperationLogAction: string implements CodeTableEnum
         self::PasskeyDelete->value => 'パスキーの削除',
         self::TwoFactorReset->value => '2段階認証の登録解除',
         self::BulkMailSend->value => '一斉メールの送信',
+        self::MailUnsubscribe->value => 'お知らせメールの配信停止',
         self::InvitationSend->value => '担当者の招待の送信',
         self::InvitationCancel->value => '担当者の招待の取り消し',
         self::Throttled->value => '回数の制限',

@@ -36,6 +36,11 @@ return Application::configure(basePath: dirname(__DIR__))
         // ルートが見つからないときのエラーの画面にも付けるので、全体のミドルウェアに足す
         $middleware->append(SecurityHeaders::class);
 
+        // お知らせメールの配信停止は、CSRFトークンを確かめない。メールソフトの「登録解除」の
+        // ボタンから、トークンの無いPOSTが届くため。本人のメールから来たことは、URLの署名で
+        // 確かめる（App\Support\MailUnsubscribe）
+        $middleware->preventRequestForgery(except: ['mail/unsubscribe']);
+
         // 入力された文字の、全角と半角の揺らぎをそろえる（App\Support\InputNormalizer）。
         // 画面のルートの全部に掛ける。コントローラーの定数を見て、そろえない項目を決めるので、
         // 全体のミドルウェアではなく、ルートが決まった後に通るwebのグループに足す

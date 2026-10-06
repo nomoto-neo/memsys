@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\NoticeMail;
 use App\Models\Member;
 use App\Rules\KatakanaRule;
 use App\Rules\PhoneNumberRule;
@@ -66,6 +67,12 @@ class AuthRegisteredMemberController extends Controller
                 // コードテーブルとの一致を確認
                 Rule::in(code_keys('prefectures')),
             ],
+            // お知らせメールを受け取るかどうか
+            'notice_mail' => [
+                'required', 'integer',
+                // コードテーブルとの一致を確認
+                Rule::in(code_keys('notice_mail')),
+            ],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ];
     }
@@ -73,8 +80,9 @@ class AuthRegisteredMemberController extends Controller
     // 入力フォームの表示
     public function create(): View
     {
-        // 入力欄の値。画面でold()を直接呼ばず、管理画面と同じくコントローラーで組み立てる
-        $input = old();
+        // 入力欄の値。画面でold()を直接呼ばず、管理画面と同じくコントローラーで組み立てる。
+        // お知らせメールは、「受け取る」を選んだ状態で出す
+        $input = old() + ['notice_mail' => NoticeMail::Receive->value];
 
         return view('auth.regist', [
             'input' => $input,
@@ -205,6 +213,7 @@ class AuthRegisteredMemberController extends Controller
                 'phone' => $pending['phone'] ?? null,
                 'birthdate' => $pending['birthdate'] ?? null,
                 'prefecture' => $pending['prefecture'] ?? null,
+                'notice_mail' => $pending['notice_mail'],
                 'password' => $pending['password_hash'],
             ]);
         } catch (UniqueConstraintViolationException $e) {
