@@ -3,6 +3,7 @@
 use App\Http\Middleware\EnsureCompanyIsApproved;
 use App\Http\Middleware\EnsureStaffIsManager;
 use App\Http\Middleware\NormalizeInput;
+use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -30,6 +31,10 @@ return Application::configure(basePath: dirname(__DIR__))
             $request->routeIs('company.*') => route('company.mypage'),
             default => route('mypage'),
         });
+
+        // ブラウザに守り方を伝えるヘッダーを付ける（App\Http\Middleware\SecurityHeaders）。
+        // ルートが見つからないときのエラーの画面にも付けるので、全体のミドルウェアに足す
+        $middleware->append(SecurityHeaders::class);
 
         // 入力された文字の、全角と半角の揺らぎをそろえる（App\Support\InputNormalizer）。
         // 画面のルートの全部に掛ける。コントローラーの定数を見て、そろえない項目を決めるので、

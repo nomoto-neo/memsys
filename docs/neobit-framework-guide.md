@@ -49,6 +49,7 @@
 | 第2.13版 | 2026-10-05 | 管理画面に、停止した企業会員の削除を追加。企業の側の退会の画面は作らず、運営が停止してから削除する（23章） |
 | 第2.14版 | 2026-10-05 | 入力の全角と半角の揺らぎをそろえる処理（`InputNormalizer`・`NormalizeInput`）を追加。画面の入力と CSV 取り込みに、検証の前に掛かる。そろえない項目は、モデルの `RAW_INPUT_FIELDS` に書く。フリガナの検証ルール（`KatakanaRule`・`HiraganaRule`）を追加（5章・10章） |
 | 第2.15版 | 2026-10-06 | メールアドレスの変更に、確認コードの入力を挟むトレイト（`EmailChange`）を追加。個人会員のマイページと、企業会員の担当者の「自分の情報の変更」で使う。確認コードの使い道に、メールアドレスの変更を足した（14章・22章・23章） |
+| 第2.16版 | 2026-10-07 | ブラウザに守り方を伝えるヘッダーを、全部の応答に付けるミドルウェア（`SecurityHeaders`）を追加。HTTPS だけで開かせる指定は、HTTPS で届いたときだけ付く（0章） |
 
 ## 0. このガイドについて
 
@@ -119,6 +120,26 @@ TRUSTED_PROXIES=10.0.0.5,10.0.0.6
 - **プロキシを置いていないのに書いてはいけません**。このヘッダーは送る側が自由に書けるので、IP アドレスを偽って試行制限を逃れられるようになります。置いていなければ、空のままにします。
 - 訪問者の側がプロキシや VPN を通してきたときは、そのプロキシの IP アドレスが残ります。本当の IP アドレスは、こちらからは分かりません。
 - `.env` を変えたら `php artisan config:cache` をやり直します。
+### セキュリティのヘッダー（SecurityHeaders）
+
+**ファイル**：`app/Http/Middleware/SecurityHeaders.php`（冒頭のコメント）
+
+ブラウザに守り方を伝えるヘッダーを、全部の応答に付けます。`bootstrap/app.php` で全体のミドルウェアに足しているので、コントローラーと画面に書くものはありません。
+
+| ヘッダー | 値 | 働き |
+|---|---|---|
+| `X-Frame-Options` | `SAMEORIGIN` | ほかのサイトの `<iframe>` の中に、このサイトの画面を出させない |
+| `X-Content-Type-Options` | `nosniff` | ファイルの種類を、ブラウザに中身から決めつけさせない |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` | ほかのサイトへ移るときは、開いていた URL のうちドメインまでしか渡さない |
+| `Strict-Transport-Security` | `max-age=31536000` | ブラウザが1年の間、このドメインを HTTPS だけで開く。HTTPS で届いたときだけ付く |
+
+- **環境ごとの切り替えは要りません**。`Strict-Transport-Security` は、HTTPS で届いたリクエストにだけ返します。HTTP で動かす手元の開発環境では出ません。
+- **HTTPS をやめる予定のあるドメインでは、先に外します**。一度受け取ったブラウザは、1年の間そのドメインを HTTP で開けなくなります。外すときは、`max-age=0` を返す期間を置いてから HTTPS をやめます。
+- サブドメインは対象にしていません。同じドメインの下に HTTP で動かしているサイトがあっても、開けなくなることはありません。
+- プロキシを前に置くときは、`TRUSTED_PROXIES` を書きます。書かないと、HTTPS で届いたことが分からず、`Strict-Transport-Security` が付きません。
+- **Apache が直接返すファイルには付きません**。`public/build/` の中と、公開のアップロードファイル（`public/storage/`）は、Laravel を通らないためです。そちらにも付けるときは、Apache の設定に書きます。
+- 読み込んでよい場所を決める `Content-Security-Policy` は、まだ付けていません。
+
 ### まだ無い機能（今後の予定）
 
 自動テストは、認証の流れ（個人会員とスタッフのログイン、パスワードの変更と再設定、会員登録。`tests/Feature/Auth/`）と、企業会員（登録・ログイン・マイページ・招待・初回のログインでの登録と、管理画面の企業会員と担当者。`tests/Feature/Company/`）にあります。パスキーと、ほかの管理画面のコーナーは、まだです。そろってきたら、章を足します。
@@ -153,6 +174,7 @@ GRANT ALL PRIVILEGES ON memsys_testing.* TO 'memsys'@'localhost';
 | `SearchableList` | `app/Support/` | 一覧・検索（検索条件の検証と保存、完全一致・部分一致の自動判定、並び順、ページと検索条件の復元） | 3 |
 | `FormFlow` | `app/Support/` | 入力 → 確認 → 保存、削除（トランザクション込み）、必須マーク | 5・6 |
 | `InputNormalizer`・`NormalizeInput` | `app/Support/`・`app/Http/Middleware/` | 入力の全角と半角の揺らぎをそろえる（画面の入力と CSV 取り込み。検証の前） | 5 |
+| `SecurityHeaders` | `app/Http/Middleware/` | ブラウザに守り方を伝えるヘッダーを、全部の応答に付ける | 0 |
 | `AjaxFileUpload` | `app/Support/` | 画像・添付ファイルの Ajax アップロード、WYSIWYG の画像 | 7 |
 | `UploadFilePath` | `app/Support/` | アップロードしたファイルの保存先と URL の規則（公開・非公開・一時ファイル） | 7 |
 | `UploadedFileController` | `app/Http/Controllers/` | ログインした人だけが見られるファイルと、一時ファイルを返す | 7 |
