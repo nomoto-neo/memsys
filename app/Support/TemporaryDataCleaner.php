@@ -3,13 +3,14 @@
 namespace App\Support;
 
 use App\Models\CompanyInvitation;
+use App\Models\Inquiry;
 use App\Models\OperationLog;
 use App\Models\TrustedDevice;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 /**
- * 一時データの後片付け。使い終わった後も残り続けるものを消す。
+ * 一時データの後片付け。使い終わった後も残り続けるものと、残す日数を過ぎたものを消す。
  *
  * アップロード直後の一時ファイル（storage/app/private/tmp）
  *   消すもの：MAX_AGE_HOURSより古いファイル
@@ -28,6 +29,10 @@ use Illuminate\Support\Facades\Storage;
  *
  * 操作ログ（t_operation_logsテーブル）
  *   消すもの：config('logging.operation_log_days')の日数より古い行
+ *
+ * お問い合わせ（t_inquiriesテーブルと添付ファイル）
+ *   消すもの：config('app.inquiry_keep_days')の日数より古い行と、その添付ファイル。
+ *   日数を決めていなければ消さない
  *
  * ■ 呼ぶところ
  * - スケジューラーから1時間ごとに、app:cleanup-temporary-dataコマンドがall()を呼ぶ。
@@ -48,6 +53,9 @@ final class TemporaryDataCleaner
     // 開いたままにすると、ファイルが無くなってやり直しになる。
     public const MAX_AGE_HOURS = 24;
 
+    // 保存期間を過ぎたお問い合わせを、1回の問い合わせで読む件数
+    private const INQUIRY_CHUNK = 100;
+
     // すべての一時データを片付け、消した件数を名前 => 件数で返す。
     public static function all(): array
     {
@@ -58,6 +66,7 @@ final class TemporaryDataCleaner
             '期限の切れた信頼済み端末' => self::expiredTrustedDevices(),
             '期限の切れた担当者の招待' => self::expiredCompanyInvitations(),
             '保存期間を過ぎた操作ログ' => self::oldOperationLogs(),
+            '保存期間を過ぎたお問い合わせ' => self::oldInquiries(),
         ];
     }
 
@@ -110,6 +119,40 @@ final class TemporaryDataCleaner
         return OperationLog::query()
             ->where('created_at', '<', now()->subDays(config('logging.operation_log_days')))
             ->delete();
+    }
+
+    /**
+     * お問い合わせのうち、残す日数（.envのINQUIRY_KEEP_DAYS）を過ぎた行と、その添付ファイル。
+     * 個人情報を、要らなくなった後も持ち続けないようにするため。日数を決めていなければ、何も消さない。
+     * 1件ずつは操作ログに残さず、消した件数だけを返す。
+     */
+    public static function oldInquiries(): int
+    {
+        $days = config('app.inquiry_keep_days');
+
+        if ($days === null) {
+            return 0;
+        }
+
+        $deleted = 0;
+
+        Inquiry::query()
+            ->where('created_at', '<', now()->subDays($days))
+            ->chunkById(self::INQUIRY_CHUNK, function ($inquiries) use (&$deleted) {
+                foreach ($inquiries as $inquiry) {
+                    // 行を消してから、添付ファイルをレコードのディレクトリごと消す。先にファイルを消すと、
+                    // 行を消せなかったときに、添付ファイルの無いお問い合わせが残るため
+                    $inquiry->delete();
+
+                    $directory = UploadFilePath::directory(Inquiry::class, $inquiry->id);
+                    Storage::disk(UploadFilePath::PUBLIC_DISK)->deleteDirectory($directory);
+                    Storage::disk(UploadFilePath::PRIVATE_DISK)->deleteDirectory($directory);
+
+                    $deleted++;
+                }
+            });
+
+        return $deleted;
     }
 
     // ディスクのディレクトリの直下にある、MAX_AGE_HOURSより古いファイルを消す。

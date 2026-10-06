@@ -147,4 +147,9 @@ return [
     'admin_allowed_ips' => array_values(array_filter(
         array_map('trim', explode(',', (string) env('ADMIN_ALLOWED_IPS', '')))
     )),
+
+    // お問い合わせ（t_inquiries）と添付ファイルを残す日数。これを過ぎたものは、
+    // App\Support\TemporaryDataCleanerが消す。空か0なら、消さずに残し続ける。
+    'inquiry_keep_days' => ((int) env('INQUIRY_KEEP_DAYS', 0)) ?: null,
+
 ];
