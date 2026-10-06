@@ -135,4 +135,16 @@ return [
         array_map('trim', explode(',', (string) env('TRUSTED_PROXIES', '')))
     )),
 
+    // サイト全体を開けるIPアドレス。公開前のデモの運用やメンテナンスの間に、カンマ区切りで書く
+    // （192.168.0.0/24のような範囲も書ける）。ここに無いIPアドレスには、メンテナンス中の画面を出す
+    // （App\Http\Middleware\RestrictSiteAccess）。空なら、制限しない。
+    'site_allowed_ips' => array_values(array_filter(
+        array_map('trim', explode(',', (string) env('SITE_ALLOWED_IPS', '')))
+    )),
+
+    // 管理画面を開けるIPアドレス。書き方はsite_allowed_ipsと同じ。ここに無いIPアドレスには、
+    // ログイン画面も含めて404を返す（App\Http\Middleware\RestrictAdminAccess）。空なら、制限しない。
+    'admin_allowed_ips' => array_values(array_filter(
+        array_map('trim', explode(',', (string) env('ADMIN_ALLOWED_IPS', '')))
+    )),
 ];

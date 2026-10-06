@@ -321,7 +321,9 @@ Route::prefix('company')->name('company.')->group(function () {
 });
 
 // 管理画面：会員用の"web"ガードとは別の"admin"ガードで保護する。
-Route::prefix('admin')->name('admin.')->group(function () {
+// admin.ipは、接続元のIPアドレスの制限（App\Http\Middleware\RestrictAdminAccess）。
+// .envのADMIN_ALLOWED_IPSに無いIPアドレスには、ログイン画面も含めて404を返す。
+Route::prefix('admin')->name('admin.')->middleware('admin.ip')->group(function () {
     Route::middleware('guest:admin')->group(function () {
         // 未ログイン状態はログイン画面（ログイン試行のthrottle制御はコントローラー側で行う）
         Route::get('/login', [AdminSessionController::class, 'create'])->name('login');

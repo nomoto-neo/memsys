@@ -3,7 +3,10 @@
 use App\Http\Middleware\EnsureCompanyIsApproved;
 use App\Http\Middleware\EnsureStaffIsManager;
 use App\Http\Middleware\NormalizeInput;
+use App\Http\Middleware\RestrictAdminAccess;
+use App\Http\Middleware\RestrictSiteAccess;
 use App\Http\Middleware\SecurityHeaders;
+use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -36,6 +39,16 @@ return Application::configure(basePath: dirname(__DIR__))
         // ルートが見つからないときのエラーの画面にも付けるので、全体のミドルウェアに足す
         $middleware->append(SecurityHeaders::class);
 
+        // サイト全体を、.envのSITE_ALLOWED_IPSのIPアドレスからだけ開けるようにする
+        // （App\Http\Middleware\RestrictSiteAccess）。メンテナンス中の画面にもヘッダーが付くよう、
+        // SecurityHeadersの後ろに足す。制限の間も通すのは、死活監視と、お知らせメールの配信停止。
+        // 止めている間に届いたメールからも、停止できるようにするため
+        $middleware->append(RestrictSiteAccess::class);
+        RestrictSiteAccess::except([
+            'up',
+            'mail/unsubscribe',
+        ]);
+
         // お知らせメールの配信停止は、CSRFトークンを確かめない。メールソフトの「登録解除」の
         // ボタンから、トークンの無いPOSTが届くため。本人のメールから来たことは、URLの署名で
         // 確かめる（App\Support\MailUnsubscribe）
@@ -51,9 +64,18 @@ return Application::configure(basePath: dirname(__DIR__))
         // これを見に行く（詳しくはEnsureStaffIsManager::class参照）。
         $middleware->alias([
             'acl.manager' => EnsureStaffIsManager::class,
+            // 管理画面を、.envのADMIN_ALLOWED_IPSのIPアドレスからだけ開けるようにする
+            'admin.ip' => RestrictAdminAccess::class,
             // 企業会員の画面を、承認済みの企業の担当者だけに使わせる
             'company.approved' => EnsureCompanyIsApproved::class,
         ]);
+
+        // 管理画面のIPアドレスの制限は、ログインの確かめより先に通す。後だと、入ってよい
+        // IPアドレスのほかから開いたときに、404ではなくログイン画面へ回してしまうため
+        $middleware->prependToPriorityList(
+            before: AuthenticatesRequests::class,
+            prepend: RestrictAdminAccess::class,
+        );
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // 処理されなかった例外は、処理が止まった障害としてcriticalで記録する。
