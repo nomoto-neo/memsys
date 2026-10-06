@@ -9,7 +9,7 @@
 | # | 課題 | 優先 | 状態 |
 |---|---|---|---|
 | 1 | メールアドレスの変更に、確認を挟む | 高 | 対応済み（2026-10-06） |
-| 2 | 外部から読み込むファイルの改ざん対策（SRI） | 高 | 未対応 |
+| 2 | 外部から読み込むファイルの改ざん対策（SRI） | 高 | 対応済み（2026-10-07） |
 | 3 | セキュリティのヘッダー | 高 | 一部対応（2026-10-07）。`Content-Security-Policy` が残り |
 | 4 | 一斉メールの配信停止 | サイトの使い方による | 未対応 |
 | 5 | お問い合わせの保存期間 | サイトの使い方による | 未対応 |
@@ -35,6 +35,7 @@
 - **今の状態**：Bootstrap と jQuery を CDN（`cdn.jsdelivr.net`）から読んでいます。中身が正しいかを確かめる指定（`integrity` 属性）は付けていません（`layouts/app.blade.php`・`layouts/admin.blade.php`）。
 - **なぜ要るか**：CDN の側のファイルが書き換えられると、全部の画面で他人のプログラムが動きます。近年、実際に起きている攻撃です。
 - **対応の案**：`<link>` と `<script>` のタグに、`integrity` と `crossorigin` の属性を足します。版を上げるときは、値も付け直します。
+- **対応した内容**：CDN から読み込む Bootstrap・jQuery・summernote の `<link>` と `<script>` に、`integrity` と `crossorigin` を付けました（`layouts/` の3つ、`admin/news/create.blade.php`・`edit.blade.php`、`company/users/index.blade.php`）。Cloudflare Turnstile は、Cloudflare が中身を随時更新するので付けていません。
 
 ### 3. セキュリティのヘッダー
 
