@@ -8,6 +8,7 @@ use App\Models\Member;
 use App\Rules\KatakanaRule;
 use App\Rules\PhoneNumberRule;
 use App\Support\AjaxFileUpload;
+use App\Support\EmailChange;
 use App\Support\FormFlow;
 use App\Support\LoginSession;
 use App\Support\MemberActivityLog;
@@ -15,7 +16,6 @@ use App\Support\MemberProfileNotice;
 use App\Support\OperationRecorder;
 use App\Support\PasskeyManagement;
 use App\Support\PdfDownload;
-use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -30,7 +30,8 @@ use Illuminate\View\View;
  * マイページ。ログイン中の会員本人が、プロフィールの表示と編集、履歴書のPDF、退会、
  * パスキーの管理を行う。
  *
- * プロフィールの編集は、確認画面を挟まずに保存する。対象は常にログイン中の本人で、
+ * プロフィールの編集は、確認画面を挟まずに保存する。メールアドレスが変わるときだけ、
+ * 新しいアドレスに送った確認コードの入力を挟む。対象は常にログイン中の本人で、
  * パスワードの変更はAuthPasswordControllerが受け持つ。
  */
 class MypageController extends Controller
@@ -51,6 +52,10 @@ class MypageController extends Controller
     // パスキーの一覧・登録・削除（passkeyIndex()など。App\Support\PasskeyManagement参照）。
     // 使わないサイトでは、このuseとroutes/web.phpのmypage.passkeysのルートを消す。
     use PasskeyManagement;
+
+    // メールアドレスが変わる保存に、確認コードの入力を挟む（emailChangeForm()など。App\Support\EmailChange参照）。
+    // クラス側は EMAIL_CHANGE_ の定数を用意し、update()でholdForEmailChange()を呼ぶ。
+    use EmailChange;
 
     // ---- アップロード（AjaxFileUpload）の設定 ----
 
@@ -73,6 +78,28 @@ class MypageController extends Controller
 
     // 登録の前の本人確認（メールの確認コード）の試行制限（LoginThrottle）のカウンターの名前。
     private const PASSKEY_THROTTLE_SCOPE = 'member-passkey-code';
+
+    // ---- メールアドレスの変更の確認（EmailChange）の設定 ----
+
+    // ログイン中の会員を取るガード。
+    private const EMAIL_CHANGE_GUARD = 'web';
+
+    // 確認コードの入力画面のルート名（照合・再送などのルート名は、この後ろに.confirmなどを付ける）。
+    private const EMAIL_CHANGE_ROUTE = 'mypage.email';
+
+    // 確認コードの入力画面のビュー。
+    private const EMAIL_CHANGE_VIEW = 'mypage.email-verify';
+
+    // 入力画面のルート名。
+    private const EMAIL_CHANGE_EDIT_ROUTE = 'mypage.edit';
+
+    // 保存の後の移動先のルート名と、そこに出すメッセージ。
+    private const EMAIL_CHANGE_DONE_ROUTE = 'mypage';
+
+    private const EMAIL_CHANGE_DONE_MESSAGE = 'プロフィールを更新しました。';
+
+    // 確認コードの試行制限（LoginThrottle）と、送信の回数の制限のカウンターの名前。
+    private const EMAIL_CHANGE_THROTTLE_SCOPE = 'member-email-change-code';
 
     // ---- プロフィールの項目の定義 ----
 
@@ -156,17 +183,17 @@ class MypageController extends Controller
     {
         $member = Auth::user();
 
-        try {
-            $this->saveData($member, $request);
-        } catch (UniqueConstraintViolationException $e) {
-            // 検証（Rule::unique()）から保存までのごく短い間に、同じメールアドレスが別の会員に
-            // 使われたときの最後の砦（会員登録のstore()と同じ考え方）
-            return redirect()->route('mypage.edit')
-                ->withInput()
-                ->with('error', '入力いただいたメールアドレスは、別の方に登録されたようです。');
+        // メールアドレスが変わるときは、保存せずに確認コードの入力画面へ進む。
+        // 保存は、コードが入力できた時点で行う（App\Support\EmailChange）
+        $toVerify = $this->holdForEmailChange($request, $member);
+
+        if ($toVerify !== null) {
+            return $toVerify;
         }
 
-        return redirect()->route('mypage')->with('status', 'プロフィールを更新しました。');
+        $this->saveData($member, $request);
+
+        return redirect()->route('mypage')->with('status', self::EMAIL_CHANGE_DONE_MESSAGE);
     }
 
     // 履歴書のPDFをブラウザの中で開く（GET /mypage/resume）。

@@ -121,17 +121,28 @@ class CompanyMypageTest extends TestCase
 
         $this->actingAs($user, 'company')->get('/company/mypage/profile')->assertOk()->assertSee('old@example.com');
 
+        // メールアドレスが変わるときは、保存せずに確認コードの入力画面へ進む。コードは新しいアドレスに届く
         $this->actingAs($user, 'company')
             ->patch('/company/mypage/profile', ['name' => '山田 次郎', 'email' => 'new@example.com'])
+            ->assertRedirect(route('company.mypage.profile.email'));
+
+        $this->assertSame(['山田 太郎', 'old@example.com'], [$user->fresh()->name, $user->fresh()->email]);
+        $this->assertSame(['new@example.com'], $this->recipientsOf($this->lastMail()));
+        $this->actingAs($user, 'company')->get('/company/mypage/profile/email/verify')->assertOk()->assertSee('new@example.com');
+
+        // コードが合えば、メールアドレスも氏名もまとめて保存される
+        $this->actingAs($user, 'company')
+            ->post('/company/mypage/profile/email/verify', ['code' => $this->lastVerificationCode()])
             ->assertRedirect(route('company.mypage'));
 
         $user->refresh();
         $this->assertSame(['山田 次郎', 'new@example.com', 'yamada'], [$user->name, $user->email, $user->login_id]);
 
-        // 変わる前と後の両方のアドレスに届く。本文に、変わる前のアドレスは載せない
-        $recipients = $this->sentMails()->map(fn ($mail) => $this->recipientsOf($mail)[0])->sort()->values()->all();
+        // お知らせは、変わる前と後の両方のアドレスに届く。本文に、変わる前のアドレスは載せない
+        $notices = $this->sentMails()->slice(1);
+        $recipients = $notices->map(fn ($mail) => $this->recipientsOf($mail)[0])->sort()->values()->all();
         $this->assertSame(['new@example.com', 'old@example.com'], $recipients);
-        $this->assertSame(['担当者情報変更のお知らせ', '担当者情報変更のお知らせ'], $this->sentSubjects());
+        $this->assertSame(['担当者情報変更のお知らせ', '担当者情報変更のお知らせ'], array_slice($this->sentSubjects(), 1));
         $this->assertStringNotContainsString('old@example.com', $this->lastMail()->getTextBody());
         $this->assertStringContainsString('株式会社acme 山田 次郎', $this->lastMail()->getTextBody());
         $this->assertStringContainsString(route('company.password.forgot'), $this->lastMail()->getTextBody());
@@ -151,8 +162,29 @@ class CompanyMypageTest extends TestCase
         $this->actingAs($user, 'company')
             ->patch('/company/mypage/profile', ['name' => '山田 太郎', 'email' => 'info@example.com'])
             ->assertSessionHasNoErrors();
+        $this->actingAs($user, 'company')
+            ->post('/company/mypage/profile/email/verify', ['code' => $this->lastVerificationCode()])
+            ->assertSessionHasNoErrors();
 
         $this->assertSame('info@example.com', $user->fresh()->email);
+    }
+
+    public function test_own_email_is_not_changed_without_the_right_code(): void
+    {
+        $user = $this->user($this->company());
+
+        $this->actingAs($user, 'company')
+            ->patch('/company/mypage/profile', ['name' => '山田 太郎', 'email' => 'new@example.com'])
+            ->assertRedirect(route('company.mypage.profile.email'));
+
+        $wrongCode = $this->lastVerificationCode() === '000000' ? '111111' : '000000';
+
+        $this->actingAs($user, 'company')
+            ->post('/company/mypage/profile/email/verify', ['code' => $wrongCode])
+            ->assertRedirect(route('company.mypage.profile.email'))
+            ->assertSessionHasErrors('code');
+
+        $this->assertSame('old@example.com', $user->fresh()->email);
     }
 
     public function test_saving_without_change_sends_nothing(): void

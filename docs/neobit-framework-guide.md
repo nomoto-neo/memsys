@@ -48,6 +48,7 @@
 | 第2.12版 | 2026-10-05 | 個人会員と企業会員の章（23章）を追加。名前の決まり、モデルとコントローラーに書くもの、企業会員の画面と決まりごと、企業会員を使わないサイトで消すもの、個人会員をログインID でログインさせる手順、会員の種類の足し方。14章の区分の表に企業会員を足し、企業会員の説明を23章へ移した |
 | 第2.13版 | 2026-10-05 | 管理画面に、停止した企業会員の削除を追加。企業の側の退会の画面は作らず、運営が停止してから削除する（23章） |
 | 第2.14版 | 2026-10-05 | 入力の全角と半角の揺らぎをそろえる処理（`InputNormalizer`・`NormalizeInput`）を追加。画面の入力と CSV 取り込みに、検証の前に掛かる。そろえない項目は、モデルの `RAW_INPUT_FIELDS` に書く。フリガナの検証ルール（`KatakanaRule`・`HiraganaRule`）を追加（5章・10章） |
+| 第2.15版 | 2026-10-06 | メールアドレスの変更に、確認コードの入力を挟むトレイト（`EmailChange`）を追加。個人会員のマイページと、企業会員の担当者の「自分の情報の変更」で使う。確認コードの使い道に、メールアドレスの変更を足した（14章・22章・23章） |
 
 ## 0. このガイドについて
 
@@ -171,6 +172,7 @@ GRANT ALL PRIVILEGES ON memsys_testing.* TO 'memsys'@'localhost';
 | `LoginSession` | `app/Support/` | そのガードだけのログアウト（同じブラウザのほかのログインは残す） | 14 |
 | `LoginRedirect` | `app/Support/` | ログインの後の移動先（開こうとしていた画面へ戻す。会員と管理画面で入れ違わない） | 14 |
 | `MemberVerificationCode` | `app/Support/` | メールで送る確認コード | 14 |
+| `EmailChange` | `app/Support/` | 本人がメールアドレスを変えるときに、新しいアドレスへの確認コードの入力を挟む | 14 |
 | `TrustedDeviceManager` | `app/Support/` | 2段階目を省略できる信頼済み端末 | 14 |
 | `TwoFactorAuthenticator`・`BackupCodeGenerator` | `app/Support/` | 管理ログインの TOTP とバックアップコード | 14 |
 | `PasskeyLogin`・`PasskeyManagement` | `app/Support/` | パスキーでのログインと、本人によるパスキーの登録・削除 | 14 |
@@ -1039,7 +1041,50 @@ if ($throttle->isBlocked()) {
 
 会員の種類は、作るときにモデルで渡します（`new MemberVerificationCode(Member::class)`）。メールのテンプレートとセッションのキーは、種類の名前から決まります。
 
-用途（`PURPOSE_LOGIN`・`PURPOSE_PASSWORD_RESET`・`PURPOSE_MYPAGE_PASSWORD`・`PURPOSE_REGISTER`・`PURPOSE_PASSKEY`・`PURPOSE_FIRST_LOGIN`）ごとにセッションで管理します。`issue()` で発行とメール送信、`verify()` で照合します。会員登録のようにまだ会員がいない場合と、初回のログインでの登録のようにメールアドレスがまだ保存されていない場合は、`issueForAddress()`・`verifyForAddress()` です。
+用途（`PURPOSE_LOGIN`・`PURPOSE_PASSWORD_RESET`・`PURPOSE_MYPAGE_PASSWORD`・`PURPOSE_REGISTER`・`PURPOSE_PASSKEY`・`PURPOSE_FIRST_LOGIN`・`PURPOSE_EMAIL_CHANGE`）ごとにセッションで管理します。`issue()` で発行とメール送信、`verify()` で照合します。会員登録のようにまだ会員がいない場合と、初回のログインでの登録やメールアドレスの変更のようにメールアドレスがまだ保存されていない場合は、`issueForAddress()`・`verifyForAddress()` です。
+
+### メールアドレスの変更の確認（EmailChange）
+
+**ファイル**：`app/Support/EmailChange.php`　**実例**：`MypageController`・`Company\ProfileController`、画面は `mypage/email-verify.blade.php`・`company/mypage/profile-email-verify.blade.php`
+
+本人が自分の情報を保存するときに、メールアドレスが変わる場合だけ、確認コードの入力を挟みます。入力内容をセッションに仮置きして、新しいアドレスに確認コードを送り、コードが入力できた時点で、仮置きした内容をまとめて保存します。打ち間違えたアドレスに変えてログインできなくなることと、ログイン中の画面を使った他人が自分のアドレスに書き換えることを防ぎます。メールアドレスが変わらない保存は、今までどおりすぐ保存します。
+
+```php
+// 本人の情報を FormFlow で保存しているコントローラー
+use EmailChange;
+private const EMAIL_CHANGE_GUARD = 'web';                               // ログイン中の本人を取るガード
+private const EMAIL_CHANGE_ROUTE = 'mypage.email';                      // 確認コードの入力画面のルート名
+private const EMAIL_CHANGE_VIEW = 'mypage.email-verify';                // 確認コードの入力画面のビュー
+private const EMAIL_CHANGE_EDIT_ROUTE = 'mypage.edit';                  // 入力画面のルート名
+private const EMAIL_CHANGE_DONE_ROUTE = 'mypage';                       // 保存の後の移動先のルート名
+private const EMAIL_CHANGE_DONE_MESSAGE = 'プロフィールを更新しました。';  // 保存の後に出すメッセージ
+private const EMAIL_CHANGE_THROTTLE_SCOPE = 'member-email-change-code'; // 確認コードの試行制限
+
+public function update(Request $request): RedirectResponse
+{
+    $member = Auth::user();
+
+    // メールアドレスが変わるときは、保存せずに確認コードの入力画面へ進む
+    $toVerify = $this->holdForEmailChange($request, $member);
+
+    if ($toVerify !== null) {
+        return $toVerify;
+    }
+
+    $this->saveData($member, $request);
+    // ...
+}
+```
+
+| アクション | ルート名 |
+|---|---|
+| `emailChangeForm()`（GET）・`emailChangeConfirm()`（POST）・`emailChangeResend()`（POST）・`emailChangeBack()`（POST） | `EMAIL_CHANGE_ROUTE` と、その後ろに `.confirm`・`.resend`・`.back`。`.resend` には `throttle` を付ける |
+
+- 保存は `FormFlow` の `saveValidated()` を通ります。操作ログと `afterSave()`（お知らせのメール）は、確認を挟まない保存と同じです。お知らせは、変わる前と後の両方のアドレスに届きます（22章）。
+- 仮置きした内容は、保存の前にもう一度 `rules()` で検証します。コードの入力を待つ間に、同じアドレスが別の会員に使われたときは、入力画面へ戻します。
+- 確認コードを送れる回数は、1人につき1時間に5回までです（`EmailChange` の定数）。新しいアドレスは自由に入力できるので、他人のアドレスに大量に送りつけられるのを防ぎます。
+- 確認コードの入力画面の「入力内容を修正する」は、仮置きを消して、入力内容を持って入力画面へ戻します。
+- 対象は、本人が自分で変える画面だけです。管理画面からスタッフが変えるときと、企業会員でほかの担当者が変えるとき（`Company\UserController`）は、変える人が新しいアドレスのメールを受け取れないので、確認を挟みません。
 
 ### パスワードを変えるとき
 
@@ -1488,6 +1533,7 @@ private function afterSave(Member $member, array $validated, array $changedField
 - 何も変わっていないときと、パスワードだけが変わったときは送りません。パスワードの変更は、`PasswordChange` が別のメールで知らせます。
 - **管理画面からスタッフが変えたときは送りません**。本人から頼まれて変えることがほとんどで、知らせる必要が無いためです。誰が変えたかは、操作ログに残ります。パスワードをスタッフが変えたときのお知らせ（`PasswordChange`）は、今までどおり送ります。
 - メールアドレスが変わったときは、変わる前と後の両方のアドレスに送ります。他人にアドレスを書き換えられたときに、本人が気付けるのは変わる前のアドレスだけだからです。変わる前のアドレスは、`$changedFields['email']` で受け取ります。
+- 本人がメールアドレスを変えるときは、保存の前に確認コードの入力を挟みます（`EmailChange`。14章）。お知らせは、コードが入力できて保存された後に届きます。
 
 ## 23. 個人会員と企業会員（MemberAccount）
 
@@ -1558,6 +1604,7 @@ return $this->continueAfterPassword($request, $user, $request->boolean('remember
 | ログインの後の移動先 | `LoginRedirect::forMember(CompanyUser::class)` |
 | パスワードを変えた後始末 | `PasswordChange::resetAndNotify($user)` |
 | 情報が変わったお知らせ | `MemberProfileNotice::send($user, $changedFields)` |
+| メールアドレスの変更の確認 | トレイトの `holdForEmailChange($request, $user)`（`EmailChange`） |
 | ログアウト | トレイトの `logoutMember($request)` |
 
 ### ルート
@@ -1584,7 +1631,7 @@ Route::prefix('company')->name('company.')->group(function () {
 | ログイン | `Company\AuthSessionController` | 企業ID・担当者ID・パスワード。「企業ID と担当者ID を記憶する」（`LoginIdMemory`） |
 | 初回のログインでの登録 | `Company\FirstLoginSetupController` | 既存のシステムから移した企業だけ。企業の情報を1つ照合して、氏名・メールアドレス・担当者ID・パスワードを決める |
 | マイページ・企業の情報の変更 | `Company\MypageController` | どの担当者も変えられる。パスキーの管理も持つ |
-| 自分の情報の変更 | `Company\ProfileController` | 氏名とメールアドレス |
+| 自分の情報の変更 | `Company\ProfileController` | 氏名とメールアドレス。メールアドレスが変わるときは、新しいアドレスへの確認コードの入力を挟む（`EmailChange`） |
 | パスワードの変更・再設定 | `Company\AuthPasswordController`・`Company\PasswordResetController` | 再設定は、企業ID・担当者ID・メールアドレスの3つが合う人に確認コードを送る |
 | 担当者の管理 | `Company\UserController` | 一覧・招待・ほかの担当者の編集と削除 |
 | 招待された人の登録 | `Company\InvitationController` | 招待のメールのリンクから、担当者ID・氏名・パスワードを決める |
@@ -1604,7 +1651,7 @@ Route::prefix('company')->name('company.')->group(function () {
 
 | メール | テンプレート | 送るとき |
 |---|---|---|
-| 確認コード | `company_verification_code` | 登録・ログイン・パスワードの変更と再設定・パスキーの登録・初回のログインでの登録 |
+| 確認コード | `company_verification_code` | 登録・ログイン・パスワードの変更と再設定・パスキーの登録・初回のログインでの登録・自分のメールアドレスの変更 |
 | 申請の通知（運営宛） | `company_registration_staff` | 企業の側が登録したとき。宛先は `.env` の `COMPANY_REGISTRATION_STAFF_EMAIL` |
 | 承認・却下 | `company_approved`・`company_rejected` | 運営が承認・却下したとき。停止と再開では送らない |
 | 招待 | `company_invitation` | 担当者か運営が招待したとき、送り直したとき |

@@ -138,6 +138,14 @@ Route::middleware(['auth:web', 'auth.session'])->group(function () {
     // 会員情報の変更
     Route::get('/mypage/edit', [MypageController::class, 'edit'])->name('mypage.edit');
     Route::patch('/mypage/update', [MypageController::class, 'update'])->name('mypage.update');
+    // メールアドレスが変わるときの、確認コードの入力（App\Support\EmailChange）。
+    // コード照合のthrottle制御はコントローラー側で行う
+    Route::get('/mypage/email/verify', [MypageController::class, 'emailChangeForm'])->name('mypage.email');
+    Route::post('/mypage/email/verify', [MypageController::class, 'emailChangeConfirm'])->name('mypage.email.confirm');
+    Route::post('/mypage/email/verify/resend', [MypageController::class, 'emailChangeResend'])
+        ->middleware('throttle:3,1,mypage-email-resend')
+        ->name('mypage.email.resend');
+    Route::post('/mypage/email/verify/back', [MypageController::class, 'emailChangeBack'])->name('mypage.email.back');
     // 顔写真のアップロード先（App\Support\AjaxFileUpload）
     Route::post('/mypage/ajax-upload', [MypageController::class, 'uploadAjaxFile'])
         ->middleware('throttle:20,1,mypage-upload')
@@ -257,6 +265,14 @@ Route::prefix('company')->name('company.')->group(function () {
         // 自分の情報（氏名・メールアドレス）の変更
         Route::get('/mypage/profile', [CompanyProfileController::class, 'edit'])->name('mypage.profile');
         Route::patch('/mypage/profile', [CompanyProfileController::class, 'update'])->name('mypage.profile.update');
+        // メールアドレスが変わるときの、確認コードの入力（App\Support\EmailChange）。
+        // コード照合のthrottle制御はコントローラー側で行う
+        Route::get('/mypage/profile/email/verify', [CompanyProfileController::class, 'emailChangeForm'])->name('mypage.profile.email');
+        Route::post('/mypage/profile/email/verify', [CompanyProfileController::class, 'emailChangeConfirm'])->name('mypage.profile.email.confirm');
+        Route::post('/mypage/profile/email/verify/resend', [CompanyProfileController::class, 'emailChangeResend'])
+            ->middleware('throttle:3,1,company-email-resend')
+            ->name('mypage.profile.email.resend');
+        Route::post('/mypage/profile/email/verify/back', [CompanyProfileController::class, 'emailChangeBack'])->name('mypage.profile.email.back');
 
         // 担当者の管理。同じ企業の担当者の一覧・招待・編集・削除。どの担当者も行える。
         // 招待と送り直しはメールを送るので、回数を制限する

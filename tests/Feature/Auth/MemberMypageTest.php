@@ -47,20 +47,90 @@ class MemberMypageTest extends TestCase
     {
         $member = $this->member();
 
+        // メールアドレスが変わるときは、保存せずに確認コードの入力画面へ進む。コードは新しいアドレスに届く
         $this->actingAs($member, 'web')
             ->patch('/mypage/update', $this->profileOf($member, ['email' => 'new@example.com', 'phone' => '03-3333-4444']))
+            ->assertRedirect(route('mypage.email'));
+
+        $this->assertSame(['old@example.com', '03-1111-2222'], [$member->fresh()->email, $member->fresh()->phone]);
+        $this->assertSame(['new@example.com'], $this->recipientsOf($this->lastMail()));
+        $this->actingAs($member, 'web')->get('/mypage/email/verify')->assertOk()->assertSee('new@example.com');
+
+        // コードが合えば、メールアドレスもほかの項目もまとめて保存される
+        $this->actingAs($member, 'web')
+            ->post('/mypage/email/verify', ['code' => $this->lastVerificationCode()])
             ->assertRedirect(route('mypage'));
 
-        // 変わる前と後の両方のアドレスに届く。本文に、変わる前のアドレスは載せない
-        $recipients = $this->sentMails()->map(fn ($mail) => $this->recipientsOf($mail)[0])->sort()->values()->all();
+        $this->assertSame(['new@example.com', '03-3333-4444'], [$member->fresh()->email, $member->fresh()->phone]);
+
+        // お知らせは、変わる前と後の両方のアドレスに届く。本文に、変わる前のアドレスは載せない
+        $notices = $this->sentMails()->slice(1);
+        $recipients = $notices->map(fn ($mail) => $this->recipientsOf($mail)[0])->sort()->values()->all();
         $this->assertSame(['new@example.com', 'old@example.com'], $recipients);
-        $this->assertSame(['会員情報変更のお知らせ', '会員情報変更のお知らせ'], $this->sentSubjects());
+        $this->assertSame(['会員情報変更のお知らせ', '会員情報変更のお知らせ'], array_slice($this->sentSubjects(), 1));
         $this->assertStringNotContainsString('old@example.com', $this->lastMail()->getTextBody());
         $this->assertStringContainsString('検証 太郎', $this->lastMail()->getTextBody());
 
         // 操作ログには、変わった列の名前だけが残る
         $log = OperationLog::where('action', OperationLogAction::Update)->sole();
         $this->assertSame(['member', $member->id, ['email', 'phone']], [$log->operator_type, $log->operator_id, $log->changed_fields]);
+    }
+
+    public function test_email_is_not_changed_without_the_right_code(): void
+    {
+        $member = $this->member();
+
+        $this->actingAs($member, 'web')
+            ->patch('/mypage/update', $this->profileOf($member, ['email' => 'new@example.com']))
+            ->assertRedirect(route('mypage.email'));
+
+        $wrongCode = $this->lastVerificationCode() === '000000' ? '111111' : '000000';
+
+        $this->actingAs($member, 'web')
+            ->post('/mypage/email/verify', ['code' => $wrongCode])
+            ->assertRedirect(route('mypage.email'))
+            ->assertSessionHasErrors('code');
+
+        $this->assertSame('old@example.com', $member->fresh()->email);
+
+        // 「入力内容を修正する」で、入力内容を持って編集画面へ戻る。その後は、コードの入力画面を開けない
+        $this->actingAs($member, 'web')
+            ->post('/mypage/email/verify/back')
+            ->assertRedirect(route('mypage.edit'))
+            ->assertSessionHasInput('email', 'new@example.com');
+        $this->actingAs($member, 'web')->get('/mypage/email/verify')->assertRedirect(route('mypage.edit'));
+    }
+
+    public function test_email_taken_while_waiting_for_the_code_is_rejected(): void
+    {
+        $member = $this->member();
+
+        $this->actingAs($member, 'web')
+            ->patch('/mypage/update', $this->profileOf($member, ['email' => 'new@example.com']))
+            ->assertRedirect(route('mypage.email'));
+
+        // コードの入力を待つ間に、同じアドレスで別の会員が登録された
+        Member::factory()->create(['email' => 'new@example.com']);
+
+        $this->actingAs($member, 'web')
+            ->post('/mypage/email/verify', ['code' => $this->lastVerificationCode()])
+            ->assertRedirect(route('mypage.edit'))
+            ->assertSessionHasErrors('email');
+
+        $this->assertSame('old@example.com', $member->fresh()->email);
+    }
+
+    public function test_saving_without_email_change_skips_the_code(): void
+    {
+        $member = $this->member();
+
+        // メールアドレスが変わらなければ、確認を挟まずにすぐ保存する。確認コードは送らない
+        $this->actingAs($member, 'web')
+            ->patch('/mypage/update', $this->profileOf($member, ['phone' => '03-3333-4444']))
+            ->assertRedirect(route('mypage'));
+
+        $this->assertSame('03-3333-4444', $member->fresh()->phone);
+        $this->assertSame(['会員情報変更のお知らせ'], $this->sentSubjects());
     }
 
     public function test_saving_without_change_sends_nothing(): void

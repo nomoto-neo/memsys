@@ -13,14 +13,15 @@ use Illuminate\Support\Facades\Mail;
  * 会員向けの、メールで送る確認コードの発行と照合。
  *
  * 使い道はログイン・パスワードの再設定・マイページのパスワード変更・会員登録・
- * パスキーの登録の前の本人確認・初回のログインでの登録の6つ。どれもコードを作ってハッシュ値にしてセッションに仮置きし、
+ * パスキーの登録の前の本人確認・初回のログインでの登録・メールアドレスの変更の7つ。
+ * どれもコードを作ってハッシュ値にしてセッションに仮置きし、
  * メールで送って照合するという同じ処理なので、1つのクラスにまとめている。
  * コードはその場で作って使ったら捨てるので、DBには持たずセッションだけで済ませる。
  *
  * 使い道ごとにセッションのキーを分けているので、ある使い道で発行したコードを
  * 別の画面で使い回すことはできない。
- * 会員登録と初回のログインでの登録は、メールアドレスがまだ保存されていないので、
- * 宛先のメールアドレスに結び付けて発行と照合をする。
+ * 会員登録・初回のログインでの登録・メールアドレスの変更は、メールアドレスがまだ
+ * 保存されていないので、宛先のメールアドレスに結び付けて発行と照合をする。
  *
  * 会員の種類（個人会員か、企業の担当者か）は、作るときにモデルのクラスで渡す。
  *     new MemberVerificationCode(Member::class)
@@ -43,6 +44,8 @@ class MemberVerificationCode
     public const PURPOSE_PASSKEY = 'passkey';
 
     public const PURPOSE_FIRST_LOGIN = 'first_login';
+
+    public const PURPOSE_EMAIL_CHANGE = 'email_change';
 
     // メールのテンプレートの、会員の種類の名前を除いた名前。例：member_verification_code
     private const TEMPLATE = 'verification_code';
@@ -96,8 +99,8 @@ class MemberVerificationCode
     }
 
     /**
-     * まだ会員がいない会員登録のために、宛先のメールアドレスに結び付けてコードを発行して
-     * メールで送る。それ以外はissue()と同じ。
+     * まだ会員がいない会員登録や、これから変える先のアドレスを確かめるメールアドレスの変更の
+     * ために、宛先のメールアドレスに結び付けてコードを発行してメールで送る。それ以外はissue()と同じ。
      *
      * @param  string  $name  メールの宛名に使う
      */
@@ -205,6 +208,7 @@ class MemberVerificationCode
             self::PURPOSE_REGISTER => '会員登録',
             self::PURPOSE_PASSKEY => 'パスキーの登録',
             self::PURPOSE_FIRST_LOGIN => '初回ログインの登録',
+            self::PURPOSE_EMAIL_CHANGE => 'メールアドレスの変更',
             default => 'お手続き',
         };
 
