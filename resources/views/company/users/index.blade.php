@@ -92,7 +92,7 @@
 {{-- 削除確認のモーダルは<table>の外にまとめて置く（<tbody>の直下には<tr>しか置けないため）。
      モーダルを動かすBootstrapのJavaScriptは、この画面でだけ読み込む --}}
 @push('scripts')
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 @endpush
 
 @foreach ($users as $user)
