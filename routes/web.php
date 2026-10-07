@@ -82,7 +82,11 @@ Route::get('/uploads/{type}/{id}/{field}/{filename}', [UploadedFileController::c
 // MailTemplate方式・AjaxFileUpload方式を使わない、普通のLaravelの書き方によるお問い合わせフォーム。
 // 比較用・技術習得のため残置（提携先向けのデモには含めない）
 Route::get('/contact2', [Contact2Controller::class, 'create'])->name('contact2.create');
-Route::post('/contact2', [Contact2Controller::class, 'store'])->name('contact2.store');
+// 送るたびにスタッフへメールが届くので、回数を制限する。スパムの確認（App\Support\SpamGuard）は
+// 付けていないので、公開するサイトでは、この2つのルートを消す
+Route::post('/contact2', [Contact2Controller::class, 'store'])
+    ->middleware('throttle:5,1,contact2-store')
+    ->name('contact2.store');
 
 Route::middleware('guest')->group(function () {
     // 会員登録

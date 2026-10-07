@@ -27,6 +27,12 @@ use Illuminate\Support\Facades\Blade;
  * 改行を<br>にする変換はしない。HTML版で、その項目を囲むタグに
  * style="white-space: pre-wrap;"を付ければ、改行どおりに表示できる。
  *
+ * ■ 見出しの行に入る値
+ * 見出しの行（SUBJECT: など）に入る値からは、改行を除いて空白に置き換える。訪問者の入力に
+ * 改行を書かれて、宛先の行を足されるのを防ぐため。本文に入る値は、改行もそのまま出す。
+ * 宛先の行（TO_MAIL: など）はカンマで複数書けるので、宛先に入れる値は、呼ぶ側で
+ * メールアドレスとして検証しておく。
+ *
  * テンプレートに、渡していない変数を書くと、警告がログに残り、そこは空になる。
  */
 final class MailTemplate
@@ -40,9 +46,11 @@ final class MailTemplate
      */
     public static function render(string $name, array $vars): array
     {
-        // テキスト版を展開し、見出しと本文に分ける
+        // テキスト版を、見出しの行と本文に分けてから展開する。見出しの行には、改行を除いた値を入れる
         $raw = self::readFile(self::mainPath($name));
-        $expanded = Blade::render($raw, $vars);
+        [$headerRaw, $bodyRaw] = self::splitHeaderLines($raw);
+
+        $expanded = Blade::render($headerRaw, self::withoutLineBreaks($vars)).Blade::render($bodyRaw, $vars);
 
         $parsed = MailTemplateParser::parse($expanded);
 
@@ -50,6 +58,42 @@ final class MailTemplate
         $parsed['html'] = self::renderHtmlCompanion($name, $vars);
 
         return $parsed;
+    }
+
+    /**
+     * 展開する前のテンプレートを、先頭の見出しの行（KEY: 値）と、その後ろに分ける。
+     * 見出しの行の決め方は、MailTemplateParserと同じ。先頭から、空行か、見出しの形でない行の
+     * 手前までが見出し。分けた2つをつなげると、元のテンプレートに戻る。
+     *
+     * @return array{0: string, 1: string}
+     */
+    private static function splitHeaderLines(string $raw): array
+    {
+        $offset = 0;
+
+        foreach (preg_split('/(?<=\n)/', $raw) as $line) {
+            if (! preg_match('/^[A-Z_]+:/', $line)) {
+                break;
+            }
+
+            $offset += strlen($line);
+        }
+
+        return [substr($raw, 0, $offset), substr($raw, $offset)];
+    }
+
+    /**
+     * 文字の値から、改行を除いた変数の一覧を返す。見出しの行に入れる値に使う。
+     * 値に改行があると、その後ろが次の見出しの行として読まれる。お問い合わせの氏名のような
+     * 訪問者の入力に「改行＋BCC_MAIL: …」を書かれると、好きな宛先へメールを送らせることが
+     * できてしまう（メールヘッダインジェクション）。検証のルールに頼らず、ここで必ず除く。
+     */
+    private static function withoutLineBreaks(array $vars): array
+    {
+        return array_map(
+            fn (mixed $value) => is_string($value) ? str_replace(["\r\n", "\r", "\n"], ' ', $value) : $value,
+            $vars,
+        );
     }
 
     // HTML版のテンプレートがあれば、展開した中身を返す。無ければnullで、テキストだけのメールになる
