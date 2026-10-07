@@ -106,9 +106,19 @@ trait SearchableList
         // 保存してある検索条件・並び順を$queryに反映
         [$filters, $orderKey] = $this->applyListConditions($query);
 
+        // 画面に渡す検索条件には、指定されなかった項目もnullで入れておく。
+        // 画面で$filters['email']のように、?? ''を付けずに書けるようにするため
+        $emptyFilters = [];
+        foreach (array_keys($this->commonSearchRules() + $this->srchRules()) as $key) {
+            // '.*'は配列の要素のルールなので、項目としては扱わない
+            if (! str_contains($key, '.')) {
+                $emptyFilters[$key] = null;
+            }
+        }
+
         return [
             'paginated' => $query->paginate(self::PER_PAGE)->withQueryString(),
-            'filters' => $filters,
+            'filters' => $filters + $emptyFilters,
             'orderOptions' => self::ORDER_OPTIONS,
             'orderKey' => $orderKey,
         ];

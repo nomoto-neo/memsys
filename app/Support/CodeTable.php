@@ -31,20 +31,36 @@ use Illuminate\Support\Str;
  *   1行が1件という見やすさが崩れるので使わない
  * - ファイルが無いか開けないか、形が正しくないときは例外を投げる。コード表を直した人が
  *   それを使う画面を開いたときに、すぐ気付けるようにするため
+ *
+ * ■ 2階層のCSV
+ * [東北] のように、[ ]で囲んだ見出しの行を書くと、その後ろの行は、次の見出しまで
+ * その見出しの中に入る。地域ごとに分けた都道府県のような、まとまりのある選択肢に使う。
+ *
+ *   [東北]
+ *   2,青森県
+ *   3,岩手県
+ *   [関東]
+ *   13,東京都
+ *
+ * このときget()は、['東北' => [2 => '青森県', 3 => '岩手県'], '関東' => [13 => '東京都']]を返す。
+ * 最初の見出しより前の行は、見出しの外の選択肢になる。
+ * 2階層のまま使えるのは、プルダウンを出すcode_options()だけ。<optgroup>にまとめて出す。
+ * code_keys()・code_label()や検証・CSVの出力は、1階層のコード表のためのものなので、
+ * 2階層のコード表に使うときは、使う側で形を合わせる。
  */
 class CodeTable
 {
     private const DIRECTORY = 'code';
 
     // コード名ごとの読み込み済みのコード表
-    /** @var array<string, array<int|string, string>> */
+    /** @var array<string, array<int|string, string|array<int|string, string>>> */
     private static array $cache = [];
 
     /**
      * そのコード名の値と名称の一覧を返す。
      *
      * @param  string  $codeName  例：'prefectures'はcode/prefectures.csv、'staff_acl'はApp\Enums\StaffAcl
-     * @return array<int|string, string>
+     * @return array<int|string, string|array<int|string, string>>  2階層のCSVなら、見出し => [値 => 名称]
      */
     public static function get(string $codeName): array
     {
@@ -108,6 +124,9 @@ class CodeTable
         $options = [];
         $lineNumber = 0;
 
+        // 今読んでいる行が入る見出し。見出しの行が出るまではnullで、見出しの外に入れる
+        $group = null;
+
         while (($line = fgets($handle)) !== false) {
             $lineNumber++;
 
@@ -123,6 +142,14 @@ class CodeTable
                 continue;
             }
 
+            // [東北] のような見出しの行。この後ろの行は、次の見出しまでこの中に入れる
+            if (preg_match('/^\[(.+)\]$/u', $line, $matches)) {
+                $group = trim($matches[1]);
+                $options[$group] ??= [];
+
+                continue;
+            }
+
             // 最初のカンマで値と名称に分ける
             $parts = explode(',', $line, 2);
 
@@ -135,7 +162,11 @@ class CodeTable
 
             [$rawKey, $label] = $parts;
 
-            $options[self::normalizeKey($rawKey)] = self::normalizeLabel($label);
+            if ($group !== null) {
+                $options[$group][self::normalizeKey($rawKey)] = self::normalizeLabel($label);
+            } else {
+                $options[self::normalizeKey($rawKey)] = self::normalizeLabel($label);
+            }
         }
 
         fclose($handle);

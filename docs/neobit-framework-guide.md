@@ -35,6 +35,7 @@
 | 第1版 | 2026-09-29 | 最初の版（一覧・検索、詳細、登録・更新、削除、アップロード・WYSIWYG、区分表、CSVダウンロード・取り込み、メール、お問い合わせ、権限、ログイン認証） |
 | 第2版 | 2026-10-05 | ネオビットフレームワークの基本機能を実装 |
 | 第3版 | 2026-10-07 | 企業会員の概念の追加とセキュリティ面の強化 |
+| 第3.1版 | 2026-10-07 | 画面を短く書くためのヘルパー（`hit()`・`code_options()`・`code_labels()`）を追加。`code/` の CSV に `[見出し]` の行を書くと、2階層のコード表になる（プルダウンの `<optgroup>` 用）。画面に渡す `$input`・`$filters` に、値の無い項目のキーも入れるようにした。画面で `?? ''` を付けずに書ける（3章・5章・8章） |
 
 ## 0. このガイドについて
 
@@ -552,12 +553,13 @@ Route::patch('/news/{news}/update', ...'update')->name('news.update');
 <div class="mb-3">
     <label for="title" class="form-label">タイトル {!! $required['title'] ?? '' !!}</label>
     <input id="title" type="text" name="title" class="form-control"
-           value="{{ $input['title'] ?? '' }}"{{ $readonly }}>
+           value="{{ $input['title'] }}"{{ $readonly }}>
     <div class="invalid-feedback" data-item="title">{{ $errors->first('title') }}</div>
 </div>
 ```
 
   エラー欄の `<div>` と `{{ }}` の間に改行や空白を入れないでください（中身が空のときだけ隠れる CSS のため）。ラジオボタン・チェックボックス・セレクトには `$disabled` を付けます。
+- **`$input` には、`rules()` にある項目のキーが必ず入っています**。値の無い項目は null です。画面では `{{ $input['title'] }}` のように、`?? ''` を付けずに書けます。チェックの無いチェックボックスのように、送られてこない項目も同じです。一覧の検索条件の `$filters`（3章）も、検索の項目のキーが必ず入っています。`rules()` に無い項目（`password_confirmation` など）と、`FormFlow` を通さずに組み立てた `$input`（会員登録の `old()` など）には、`??` が要ります。
 - **確認画面**：`_fields` を読み取り専用で表示し、「戻る」「登録する」の2つのフォームに `@include('_confirm_hidden', ['input' => $input])` で hidden を入れます。項目が増えても確認画面は直さずに済みます。
 - **パスワード**：確認画面の「戻る」側は `'exclude' => ['password', 'password_confirmation']` で hidden から外します。`rules()` に無い `password_confirmation` は、確認画面の `$input` に足して持ち回ります。入力画面に戻したときは、`Arr::except(old(), [...])` で再表示しません（実例：スタッフ）。
 - **必須マーク**：`requiredFields($record, ['password_confirmation'])` の第2引数で、`rules()` に `required` が無いが必須にしたい項目を足せます（`accepted` の同意チェックなど）。マークの HTML は `config/form.php` の `required_mark`（管理画面と訪問者向けで別）にあります。
@@ -751,6 +753,9 @@ public function viewFiles(Member|Staff|null $user, News $news, string $field): b
 | `code_table('prefectures')` | 選択肢の一覧（値 => 名称）。画面のセレクト、CSV の一覧 |
 | `code_keys('prefectures')` | 値の一覧。検証の `Rule::in(code_keys(...))` |
 | `code_label('prefectures', $value, '（未設定）')` | 名称1つ。画面の表示、メール |
+| `code_labels('prefectures', $values, '/')` | 複数選ばれた値の名称を、つなげて出す。区切りを省くと「、」 |
+| `code_options('prefectures', $selected)` | プルダウンの `<option>` を並べた HTML。選ばれているものに `selected` が付く。2階層の配列を渡すと `<optgroup>` にまとめる |
+| `hit($value, $key)` | 入力値が、選択肢の値に当たっているか。`@checked()`・`@selected()` に渡す |
 
 出どころは3種類で、`CodeTable` がコード名から自動で探します（2つ以上にあればエラー）。
 
@@ -776,6 +781,46 @@ public function label(): string
     return self::SETTINGS[$this->value]['label'];
 }
 ```
+
+### 選択肢を画面に書く
+
+```blade
+{{-- プルダウン。先頭の「選択してください」は画面に書く --}}
+<select id="prefecture" name="prefecture" class="form-select"{{ $disabled }}>
+    <option value="">選択してください</option>
+    {{ code_options('prefectures', $input['prefecture']) }}
+</select>
+
+{{-- チェックボックス・ラジオ。囲むタグとクラスはデザインで変わるので、@foreachで書く --}}
+@foreach (code_table('hobby') as $k => $name)
+    <div class="form-check form-check-inline">
+        <input id="hobby_{{ $k }}" type="checkbox" name="hobby[]" value="{{ $k }}"
+               class="form-check-input" @checked(hit($input['hobby'], $k)){{ $disabled }}>
+        <label for="hobby_{{ $k }}" class="form-check-label">{{ $name }}</label>
+    </div>
+@endforeach
+
+{{-- 一覧や詳細に、選ばれたものの名前を並べる --}}
+{{ code_labels('hobby', $row->hobby) }}
+```
+
+- **`hit($value, $key)`** は、入力値が1つなら同じ値か、配列ならその中にあるかを返します。フォームから届いた文字の `'1'` と、コード表の数値の `1` は、同じ値として扱います。入力値が空なら、当たりません。型をそろえる `(int)` や `in_array()` を、画面に書かなくて済みます。
+- **`code_options()`** は、エスケープの済んだ HTML を返すので、`{{ }}` で出します。複数選べるプルダウンは、選ばれている値を配列で渡します。
+- **2階層の選択肢は、`code/` の CSV に見出しの行を書きます**。`[東北]` のように `[ ]` で囲んだ行が見出しで、その後ろの行は、次の見出しまでその中に入ります。`code_options('pref_area', $input['pref'])` と名前を渡すだけで、見出しごとの `<optgroup>` にまとまります。地域ごとに分けた都道府県のような選択肢に使います。
+
+  ```
+  # code/pref_area.csv
+  [東北]
+  2,青森県
+  3,岩手県
+  [関東]
+  13,東京都
+  ```
+
+- **2階層のまま使えるのは `code_options()` だけです**。`code_table('pref_area')` は `['東北' => [2 => '青森県', 3 => '岩手県'], …]` を返します。`code_keys()`・`code_label()`・`code_labels()` や、検証の `Rule::in()`、CSV の項目の定義は、1階層のコード表のためのものです。2階層のコード表に使うときは、使う側で形を合わせます。列挙型と DB のコード表は、1階層だけです。
+- **`code_options()` には、コード表の名前の代わりに配列も渡せます**。区分表に無い選択肢や、コントローラーで組み立てた2階層の配列を、そのまま渡せます。
+- **ラジオとチェックボックスを並べる部品は、作りません**。1個ずつを囲むタグとクラスが、デザインごとに違うためです。
+- 選択肢ごとに `data-` 属性を付けるなど、`<option>` に手を入れたいときは、`@foreach` と `@selected(hit(...))` で書きます。
 
 Blade には `\App\Enums\...` を書かず、`code_table()` 系で書きます。画面の説明文のような文面は、列挙型に持たせず Blade に書きます。
 

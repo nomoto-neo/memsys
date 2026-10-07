@@ -9,6 +9,7 @@ use App\Support\CodeTable;
 use App\Support\HtmlSanitizer;
 use App\Support\UploadFilePath;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\HtmlString;
 
 if (! function_exists('code_table')) {
     // コード表を、値と名称の配列で返す。プルダウンの選択肢やCSVに使う。
@@ -48,7 +49,120 @@ if (! function_exists('code_label')) {
             return $default;
         }
 
-        return $table[$value];
+        // 2階層のコード表の見出しは、名称ではないので$default
+        return is_string($table[$value]) ? $table[$value] : $default;
+    }
+}
+
+if (! function_exists('code_labels')) {
+    /**
+     * 複数選ばれた値を、コード表の名称に変えてつなげて返す。チェックボックスの項目を、
+     * 一覧や詳細に出すのに使う。コード表に無い値は飛ばす。値が1つでも、空でもよい。
+     *
+     *   {{ code_labels('prefectures', $row->area_prefs) }}       東京都、神奈川県
+     *   {{ code_labels('prefectures', $row->area_prefs, '/') }}  東京都/神奈川県
+     */
+    function code_labels(string $codeName, mixed $values, string $separator = '、'): string
+    {
+        $labels = [];
+
+        foreach ((array) ($values ?? []) as $value) {
+            $label = code_label($codeName, $value);
+
+            if ($label !== '') {
+                $labels[] = $label;
+            }
+        }
+
+        return implode($separator, $labels);
+    }
+}
+
+if (! function_exists('code_options')) {
+    /**
+     * プルダウンの<option>を並べたHTMLを返す。$selectedと同じ値のものにselectedを付ける。
+     * 複数選べるプルダウンなら、$selectedに配列を渡す。
+     * 先頭の「選択してください」は、画面に書く。エスケープは済んでいるので、{{ }}で出す。
+     *
+     *   <select name="prefecture" class="form-select">
+     *       <option value="">選択してください</option>
+     *       {{ code_options('prefectures', $input['prefecture']) }}
+     *   </select>
+     *
+     * $optionsには、コード表の名前か、値 => 名称の配列を渡す。配列の値がさらに配列なら、
+     * そのキーを見出しにした<optgroup>にまとめる。地域ごとに分けた都道府県のような、
+     * 2階層の選択肢に使う。code/のCSVに[東北]のような見出しの行を書いたコード表も、
+     * 名前を渡すだけで同じ形になる（App\Support\CodeTableの「2階層のCSV」）。
+     *
+     *   code_options('pref_area', $input['pref'])
+     *   code_options(['東北' => [2 => '青森県', 3 => '岩手県'], '関東' => [13 => '東京都']], $input['pref'])
+     */
+    function code_options(string|array $options, mixed $selected = null): HtmlString
+    {
+        if (is_string($options)) {
+            $options = CodeTable::get($options);
+        }
+
+        $option = fn (int|string $value, mixed $label): string => '<option value="'.e($value).'"'
+            .(hit($selected, $value) ? ' selected' : '').'>'.e($label).'</option>';
+
+        $lines = [];
+
+        foreach ($options as $value => $label) {
+            // 値 => 名称の、ふつうの選択肢
+            if (! is_array($label)) {
+                $lines[] = $option($value, $label);
+
+                continue;
+            }
+
+            // 見出し => [値 => 名称, …]の、まとまりのある選択肢
+            $lines[] = '<optgroup label="'.e($value).'">';
+            foreach ($label as $childValue => $childLabel) {
+                $lines[] = $option($childValue, $childLabel);
+            }
+            $lines[] = '</optgroup>';
+        }
+
+        return new HtmlString(implode("\n", $lines));
+    }
+}
+
+if (! function_exists('hit')) {
+    /**
+     * 入力値が、選択肢の値に当たっているかを返す。チェックボックス・ラジオ・プルダウンの
+     * 「選ばれているか」を、@checked()・@selected()に渡すのに使う。
+     * 入力値が1つなら同じ値か、配列ならその中にあるかを見る。フォームから届いた文字の'1'と、
+     * コード表の数値の1は、同じ値として扱う。入力値が空なら当たらない。
+     *
+     *   <input type="checkbox" name="hobby[]" value="{{ $k }}" @checked(hit($input['hobby'], $k))>
+     *   <option value="{{ $k }}" @selected(hit($input['prefecture'], $k))>{{ $name }}</option>
+     */
+    function hit(mixed $value, mixed $key): bool
+    {
+        // 列挙型は、その値で比べる
+        $normalize = fn (mixed $v): ?string => match (true) {
+            $v instanceof BackedEnum => (string) $v->value,
+            is_bool($v) => $v ? '1' : '0',
+            is_scalar($v) => (string) $v,
+            default => null,
+        };
+
+        $key = $normalize($key);
+
+        if ($key === null) {
+            return false;
+        }
+
+        // 入力値が配列なら、その中にあるか
+        if (is_array($value)) {
+            return in_array($key, array_map($normalize, $value), true);
+        }
+
+        $value = $normalize($value);
+
+        // 入力値が空なら当たらない。値の無い項目で、値が空の選択肢が選ばれた扱いにならないように
+        return $value !== null && $value !== '' && $value === $key;
     }
 }
 

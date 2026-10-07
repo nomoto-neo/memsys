@@ -77,7 +77,7 @@ trait FormFlow
     {
         $validated = $this->validatedInput($request, $record);
 
-        return $this->uploadInput($record, $validated) + $validated;
+        return $this->uploadInput($record, $validated) + $validated + $this->emptyInput($record);
     }
 
     /**
@@ -90,7 +90,27 @@ trait FormFlow
     {
         $base = $record === null ? $this->defaultInput() : $this->inputFromModel($record);
 
-        return $source + $base + $this->uploadInput($record, $source);
+        return $source + $base + $this->uploadInput($record, $source) + $this->emptyInput($record);
+    }
+
+    /**
+     * rules()にある項目の全部を、値をnullにして返す。$inputの最後に足して、値の無い項目も
+     * キーだけは必ずあるようにする。画面で{{ $input['name'] }}のように、?? ''を付けずに
+     * 書けるようにするため。チェックの無いチェックボックスのように、送られてこない項目もある。
+     * 保存では、送られてこなかった項目とnullの項目を同じに扱うので、保存の結果は変わらない。
+     */
+    private function emptyInput(?Model $record): array
+    {
+        $empty = [];
+
+        foreach (array_keys($this->rules($record)) as $key) {
+            // 'prefecture.*'のような配列の要素のルールは、項目としては扱わない
+            if (! str_contains((string) $key, '.')) {
+                $empty[$key] = null;
+            }
+        }
+
+        return $empty;
     }
 
     // アップロードの項目の$input。AjaxFileUploadを使っていなければ空
