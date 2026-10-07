@@ -47,11 +47,11 @@ class AppServiceProvider extends ServiceProvider
     // 起動のときの設定
     public function boot(): void
     {
-        // ポリモーフィックリレーションでDBに記録する、モデルの短い名前。指定しないとクラス名が
-        // そのままDBに入り、名前空間を変えたときにDBも直すことになるため。載っていないモデルを
-        // 使うと例外になるので、モデルを足したらここにも足す。非公開のアップロードファイルの
-        // URLにもこの名前を使うので、非公開のフィールドを持つモデルもここに載せる。
-        // 操作ログ（App\Support\OperationRecorder）も、操作した人と対象の種類をこの名前で残す
+        // サイトの各所で使う、モデルの短縮名を登録する。ここで決めた名前を、DBの「誰の行か」の列
+        // （authenticatable_type）・操作ログの種類・非公開のアップロードファイルのURL・
+        // セッションやログに残す種類の名前に使う。クラス名のままだと、名前空間を変えたときに
+        // DBの値も直すことになるため。載っていないモデルを使うと例外で止まるので、
+        // モデルを足したら必ずここにも足す。
         Relation::enforceMorphMap([
             'member' => Member::class,
             'staff' => Staff::class,
