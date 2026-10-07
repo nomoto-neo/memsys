@@ -32,7 +32,6 @@ import {
     Italic,
     Link,
     List,
-    MediaEmbed,
     Paragraph,
     PasteFromOffice,
     PictureEditing,
@@ -50,6 +49,8 @@ import { postUploadFile } from './upload_request.js';
  * CKEditorは、使う機能を自分で選んで組む。以前の「できあいの組み合わせ」の
  * パッケージ(@ckeditor/ckeditor5-build-classic)は更新が止まり、既知の脆弱性が
  * 残ったままなので使わない。ここの中身は、そのパッケージと同じ機能と並びにしてある。
+ * ただし、動画の埋め込み(MediaEmbed)は入れていない。CKEditorは埋め込みを<oembed>という
+ * タグで保存するが、App\Support\HtmlSanitizerが許可していないので、保存のときに消えるため。
  * 機能を足すときは、上のimportとPLUGINSに足し、ツールバーに出すならTOOLBARにも足す。
  * 本文に新しいタグや属性が出るようになるので、App\Support\HtmlSanitizerの許可も合わせる。
  */
@@ -69,7 +70,6 @@ const PLUGINS = [
     Indent,
     Link,
     List,
-    MediaEmbed,
     Paragraph,
     PasteFromOffice,
     PictureEditing,
@@ -91,7 +91,6 @@ const TOOLBAR = [
     'uploadImage',
     'insertTable',
     'blockQuote',
-    'mediaEmbed',
     '|',
     'bulletedList',
     'numberedList',

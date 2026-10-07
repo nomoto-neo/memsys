@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\CompanyUserController as AdminCompanyUserControll
 use App\Http\Controllers\Admin\MemberController as AdminMemberController;
 use App\Http\Controllers\Admin\NewsController as AdminNewsController;
 use App\Http\Controllers\Admin\OperationLogController as AdminOperationLogController;
+use App\Http\Controllers\Admin\PageController as AdminPageController;
 use App\Http\Controllers\Admin\StaffController as AdminStaffController;
 use App\Http\Controllers\Admin\CodeController as AdminCodeController;
 use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
@@ -29,9 +30,11 @@ use App\Http\Controllers\Contact2Controller;
 use App\Http\Controllers\MailUnsubscribeController;
 use App\Http\Controllers\MypageController;
 use App\Http\Controllers\NewsController;
+use App\Http\Controllers\PageController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\TopController;
 use App\Http\Controllers\UploadedFileController;
+use App\Models\Page;
 use Illuminate\Support\Facades\Route;
 
 // 静的なページを表示する場合
@@ -514,6 +517,21 @@ Route::prefix('admin')->name('admin.')->middleware('admin.ip')->group(function (
         Route::patch('/categories/{category}', [AdminCategoryController::class, 'update'])->name('categories.update');
         Route::delete('/categories/{category}', [AdminCategoryController::class, 'destroy'])->name('categories.destroy');
 
+        // 固定ページ管理。本文のエディタの画像のAjaxアップロード先も、ここに置く
+        Route::post('/pages/ajax-upload', [AdminPageController::class, 'uploadAjaxFile'])->name('pages.ajaxUpload');
+        Route::get('/pages', [AdminPageController::class, 'index'])->name('pages.index');
+        Route::post('/pages', [AdminPageController::class, 'storeSearchCondition'])->name('pages.search');
+        Route::get('/pages/create', [AdminPageController::class, 'create'])->name('pages.create');
+        Route::post('/pages/confirm', [AdminPageController::class, 'confirmStore'])->name('pages.confirm.create');
+        Route::post('/pages/back', [AdminPageController::class, 'backToCreate'])->name('pages.confirm.create.back');
+        Route::post('/pages/store', [AdminPageController::class, 'store'])->name('pages.store');
+        Route::get('/pages/{page}', [AdminPageController::class, 'show'])->name('pages.show');
+        Route::get('/pages/{page}/edit', [AdminPageController::class, 'edit'])->name('pages.edit');
+        Route::patch('/pages/{page}/confirm', [AdminPageController::class, 'confirmUpdate'])->name('pages.confirm.edit');
+        Route::post('/pages/{page}/back', [AdminPageController::class, 'backToEdit'])->name('pages.confirm.edit.back');
+        Route::patch('/pages/{page}/update', [AdminPageController::class, 'update'])->name('pages.update');
+        Route::delete('/pages/{page}/delete', [AdminPageController::class, 'destroy'])->name('pages.destroy');
+
         // ニュース管理
         // 一覧用画像・添付ファイルのAjaxアップロード先。
         Route::post('/news/ajax-upload', [AdminNewsController::class, 'uploadAjaxFile'])->name('news.ajaxUpload');
@@ -537,3 +555,11 @@ Route::prefix('admin')->name('admin.')->middleware('admin.ip')->group(function (
         Route::delete('/news/{news}/delete', [AdminNewsController::class, 'destroy'])->name('news.destroy');
     });
 });
+
+// 固定ページ：訪問者向け。/aboutus のように、URLの名前（t_pages.slug）がそのままパスになる。
+// 必ず、このファイルのいちばん最後に置く。上のどのルートにも当たらなかった、1区切りのURLだけを
+// ここで受けるため。上に置くと、/login や /news より先に当たってしまう。
+// ほかの画面のURLと同じ名前のページは、管理画面の検証で作れないようにしてある（Page::isReservedSlug()）。
+Route::get('/{slug}', [PageController::class, 'show'])
+    ->where('slug', Page::SLUG_PATTERN)
+    ->name('pages.show');

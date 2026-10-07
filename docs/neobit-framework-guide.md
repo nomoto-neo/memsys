@@ -36,6 +36,7 @@
 | 第2版 | 2026-10-05 | ネオビットフレームワークの基本機能を実装 |
 | 第3版 | 2026-10-07 | 企業会員の概念の追加とセキュリティ面の強化 |
 | 第3.1版 | 2026-10-07 | 画面を短く書くためのヘルパー（`hit()`・`code_options()`・`code_labels()`）を追加。`code/` の CSV に `[見出し]` の行を書くと、2階層のコード表になる（プルダウンの `<optgroup>` 用）。画面に渡す `$input`・`$filters` に、値の無い項目のキーも入れるようにした。画面で `?? ''` を付けずに書ける（3章・5章・8章） |
+| 第3.2版 | 2026-10-07 | 固定ページのコーナーを追加（本文を CKEditor で書く見本。訪問者の側は `/aboutus` のように、URL の名前がそのままパスになる）。CKEditor を `ckeditor5` パッケージ（48版）に入れ替えた（7章） |
 
 ## 0. このガイドについて
 
@@ -692,6 +693,40 @@ private function prepareInput(array $validated): array
 - `$readonly` を渡すだけで、入力画面ではアップロードの UI、確認・詳細画面では表示だけに切り替わります。
 - アップロード欄のある画面（新規登録・編集）は、`@push('head-extra')` で CSRF の `<meta>` と `resources/js/ajax_upload.js` を読み込みます。
 - **WYSIWYG**：`<textarea class="wysiwyg" data-upload-url="...">` を置き、`wysiwyg_ckeditor.js` か `wysiwyg_summernote.js` を読み込みます（どちらでもサーバー側は同じ）。確認・詳細画面では `{!! safe_html($input['body']) !!}` で表示します。
+- **エディタは、1つの画面に1種類だけ読み込みます**。どちらのスクリプトも `textarea.wysiwyg` を探して置き換えるので、両方を読み込むとぶつかります。見本のサイトでは、ニュースの本文を summernote、固定ページの本文を CKEditor にして、両方の動作の見本にしています。
+
+### CKEditor
+
+**ファイル**：`resources/js/wysiwyg_ckeditor.js`・`resources/css/wysiwyg_ckeditor_content.css`　**実例**：固定ページ（`Admin\PageController`・`PageController`、画面は `admin/pages/`・`pages/show.blade.php`）
+
+```blade
+{{-- 入力の画面。エディタの見た目のCSSは、JSが一緒に読み込む --}}
+@push('head-extra')
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    @vite(['resources/js/wysiwyg_ckeditor.js'])
+@endpush
+
+{{-- 表示の画面（確認・詳細・訪問者の側）。本文を class="ck-content" で囲む --}}
+@push('head-extra')
+    @vite(['resources/css/wysiwyg_ckeditor_content.css'])
+@endpush
+
+<div class="wysiwyg-content ck-content">{!! safe_html($page->body) !!}</div>
+```
+
+- **パッケージは `ckeditor5`** です。以前の `@ckeditor/ckeditor5-build-classic` は更新が止まり、既知の脆弱性が残っているので使いません。`ckeditor5` は、使う機能を自分で選んで組みます。入れる機能は `wysiwyg_ckeditor.js` の冒頭の `PLUGINS`、ツールバーの並びは `TOOLBAR` です。
+- **機能を足したら、`HtmlSanitizer` の許可も合わせます**。本文に新しいタグや属性が出るようになるためです。動画の埋め込み（`MediaEmbed`）は、保存の形の `<oembed>` を `HtmlSanitizer` が許可していないので、入れていません。
+- **`licenseKey` が必須です**（44版から）。オープンソースのライセンス（GPL）で使う印の `'GPL'` を入れてあります。CKEditor は、GPL か商用ライセンスのどちらかで使う製品です。案件ごとに、GPL の条件で問題ないかを確かめ、商用ライセンスを買ったサイトでは、そのキーに差し替えます。
+- **表示は日本語です**。同梱の翻訳（`ckeditor5/translations/ja.js`）を読み込んでいます。
+- **表示の画面には、表示用の CSS が要ります**。CKEditor は、画像の回り込みや表の罫線を、クラス（`image-style-side`・`table` など）で保存します。`class="ck-content"` で囲んで `wysiwyg_ckeditor_content.css` を読み込むと、エディタの中と同じ見た目になります。summernote は見た目を `style` 属性で保存するので、この CSS は要りません。
+
+### 固定ページの URL
+
+固定ページは、URL の名前（`t_pages.slug`）がそのままパスになります。`aboutus` なら `/aboutus` です。
+
+- **ルートは、`routes/web.php` のいちばん最後に置きます**。ほかの全部の画面を先に当てて、どれにも当たらなかった1区切りの URL だけを受けるためです。画面を足すときは、このルートより上に書きます。
+- **ほかの画面と同じ名前のページは作れません**。`login`・`news`・`admin` のような、ほかの画面の URL の最初の区切りと同じ名前は、検証で断ります（`Page::isReservedSlug()`）。ルートの一覧から調べるので、画面を足しても、直す所はありません。
+- 後から足した画面の URL が、すでにあるページの名前と重なったときは、画面のほうが先に当たり、ページは開けなくなります。ページの名前を変えます。
 - 表示名（元のファイル名）が空のときは、リンクの文字を「添付ファイル1」のようにします（`_ajax_upload_block` と訪問者向けのニュース詳細で実装済み）。
 
 ### ログインした人だけが見られるファイル（非公開）

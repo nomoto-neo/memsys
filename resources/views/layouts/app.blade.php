@@ -38,6 +38,9 @@
         <a class="navbar-brand" href="/">memsys</a>
         <div class="d-flex align-items-center gap-2">
             <a href="{{ route('news.index') }}" class="nav-link">お知らせ</a>
+            {{-- 固定ページ（管理画面の「固定ページ一覧」で書く）へのリンク。URLの名前を決め打ちで
+                 書いているので、ページの名前を変えたり、ページを消したりしたら、ここも直す --}}
+            <a href="{{ route('pages.show', 'aboutus') }}" class="nav-link">会社概要</a>
             <a href="{{ route('contact.create') }}" class="nav-link">お問い合わせ</a>
         </div>
         <div class="ms-auto d-flex align-items-center gap-2">

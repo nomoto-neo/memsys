@@ -6,6 +6,7 @@ export default defineConfig({
         laravel({
             input: [
                 'resources/css/app.css',
+                'resources/css/wysiwyg_ckeditor_content.css',
                 'resources/js/app.js',
                 'resources/js/sortable.js',
                 'resources/js/ajax_upload.js',

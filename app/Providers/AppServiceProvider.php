@@ -11,6 +11,7 @@ use App\Models\CompanyUser;
 use App\Models\Inquiry;
 use App\Models\Member;
 use App\Models\News;
+use App\Models\Page;
 use App\Models\Passkey;
 use App\Models\Staff;
 use App\Support\AdminRequestLimit;
@@ -57,6 +58,7 @@ class AppServiceProvider extends ServiceProvider
             'staff' => Staff::class,
             'inquiry' => Inquiry::class,
             'news' => News::class,
+            'page' => Page::class,
             'bulk_mail' => BulkMail::class,
             'bulk_mail_template' => BulkMailTemplate::class,
             'category' => Category::class,

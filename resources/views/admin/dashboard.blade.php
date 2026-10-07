@@ -12,6 +12,9 @@
     <a href="{{ route('admin.categories.index') }}" class="list-group-item list-group-item-action">
         ニュースカテゴリー一覧
     </a>
+    <a href="{{ route('admin.pages.index') }}" class="list-group-item list-group-item-action">
+        固定ページ一覧
+    </a>
 
     {{-- pageを付けずに素のURLへ。MemberController::index()側で
          「pageが無いアクセス＝ここでリセットしてよい新規入室」と

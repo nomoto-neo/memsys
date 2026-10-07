@@ -15,6 +15,7 @@ enum OperationLogSubject: string implements CodeTableEnum
     case CompanyUser = 'company_user';
     case Company = 'company';
     case News = 'news';
+    case Page = 'page';
     case Category = 'category';
     case Inquiry = 'inquiry';
     case BulkMail = 'bulk_mail';
@@ -27,6 +28,7 @@ enum OperationLogSubject: string implements CodeTableEnum
         self::CompanyUser->value => '企業の担当者',
         self::Company->value => '企業',
         self::News->value => 'ニュース',
+        self::Page->value => '固定ページ',
         self::Category->value => 'ニュースカテゴリー',
         self::Inquiry->value => 'お問い合わせ',
         self::BulkMail->value => '一斉メール',
