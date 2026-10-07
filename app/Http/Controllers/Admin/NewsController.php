@@ -134,12 +134,12 @@ class NewsController extends Controller
         return [
             'title' => $news->title,
             'body' => $news->body,
-            'article_date' => optional($news->article_date)->format('Y-m-d'),
+            'article_date' => $news->article_date?->format('Y-m-d'),
             'disp_flg' => $news->disp_flg ? '1' : '0',
             'members_only' => $news->members_only ? '1' : '0',
             // 日時の入力欄（type="datetime-local"）の値の形
-            'publish_start_at' => optional($news->publish_start_at)->format('Y-m-d\TH:i'),
-            'publish_end_at' => optional($news->publish_end_at)->format('Y-m-d\TH:i'),
+            'publish_start_at' => $news->publish_start_at?->format('Y-m-d\TH:i'),
+            'publish_end_at' => $news->publish_end_at?->format('Y-m-d\TH:i'),
             'category_ids' => $news->categories()->pluck('t_categories.id')->all(),
         ];
     }

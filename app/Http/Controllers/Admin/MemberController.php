@@ -168,7 +168,7 @@ class MemberController extends Controller
             'kana' => $member->kana,
             'email' => $member->email,
             'phone' => $member->phone,
-            'birthdate' => optional($member->birthdate)->format('Y-m-d'),
+            'birthdate' => $member->birthdate?->format('Y-m-d'),
             'prefecture' => $member->prefecture,
             'notice_mail' => $member->notice_mail,
             'staff_memo' => $member->staff_memo,

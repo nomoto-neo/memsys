@@ -29,7 +29,7 @@
                     <dd class="col-sm-8">{{ $member->phone ?? '（未設定）' }}</dd>
 
                     <dt class="col-sm-4">生年月日</dt>
-                    <dd class="col-sm-8">{{ optional($member->birthdate)->format('Y年n月j日') ?? '（未設定）' }}</dd>
+                    <dd class="col-sm-8">{{ $member->birthdate?->format('Y年n月j日') ?? '（未設定）' }}</dd>
 
                     <dt class="col-sm-4">都道府県</dt>
                     <dd class="col-sm-8">{{ code_label('prefectures', $member->prefecture, '（未設定）') }}</dd>
