@@ -15,8 +15,89 @@
  * して本文に入れる(正式な保存先へ移すのは、登録/更新の確定時。詳しくは
  * App\Support\AjaxFileUploadの「WYSIWYG欄の画像」参照)。
  */
-import ClassicEditor from '@ckeditor/ckeditor5-build-classic';
+import {
+    Autoformat,
+    BlockQuote,
+    Bold,
+    ClassicEditor,
+    Essentials,
+    Heading,
+    Image,
+    ImageCaption,
+    ImageStyle,
+    ImageTextAlternative,
+    ImageToolbar,
+    ImageUpload,
+    Indent,
+    Italic,
+    Link,
+    List,
+    MediaEmbed,
+    Paragraph,
+    PasteFromOffice,
+    PictureEditing,
+    Table,
+    TableToolbar,
+    TextTransformation,
+} from 'ckeditor5';
+import translations from 'ckeditor5/translations/ja.js';
+import 'ckeditor5/ckeditor5.css';
 import { postUploadFile } from './upload_request.js';
+
+/*
+ * エディタに入れる機能と、ツールバーの並び。
+ *
+ * CKEditorは、使う機能を自分で選んで組む。以前の「できあいの組み合わせ」の
+ * パッケージ(@ckeditor/ckeditor5-build-classic)は更新が止まり、既知の脆弱性が
+ * 残ったままなので使わない。ここの中身は、そのパッケージと同じ機能と並びにしてある。
+ * 機能を足すときは、上のimportとPLUGINSに足し、ツールバーに出すならTOOLBARにも足す。
+ * 本文に新しいタグや属性が出るようになるので、App\Support\HtmlSanitizerの許可も合わせる。
+ */
+const PLUGINS = [
+    Essentials,
+    Autoformat,
+    Bold,
+    Italic,
+    BlockQuote,
+    Heading,
+    Image,
+    ImageCaption,
+    ImageStyle,
+    ImageTextAlternative,
+    ImageToolbar,
+    ImageUpload,
+    Indent,
+    Link,
+    List,
+    MediaEmbed,
+    Paragraph,
+    PasteFromOffice,
+    PictureEditing,
+    Table,
+    TableToolbar,
+    TextTransformation,
+];
+
+const TOOLBAR = [
+    'undo',
+    'redo',
+    '|',
+    'heading',
+    '|',
+    'bold',
+    'italic',
+    '|',
+    'link',
+    'uploadImage',
+    'insertTable',
+    'blockQuote',
+    'mediaEmbed',
+    '|',
+    'bulletedList',
+    'numberedList',
+    'outdent',
+    'indent',
+];
 
 /*
  * CKEditorの画像のアップロードは「アップロードアダプター」という部品に
@@ -95,6 +176,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         ClassicEditor.create(textarea, {
+            // CKEditorを、オープンソースのライセンス(GPL)で使う印。44版から必須。
+            // 商用のライセンスを買ったサイトでは、そのキーに差し替える。
+            licenseKey: 'GPL',
+            // ボタンの説明やメニューを日本語にする。ほかの言語にするときは、上のimportの
+            // ファイル(translations/ja.js)を、その言語のものに差し替える。
+            translations: [translations],
+            plugins: PLUGINS,
+            toolbar: TOOLBAR,
             extraPlugins: [uploadAdapterPlugin],
             // エディタで選べる画像の種類。サーバー側の許可
             // (AjaxFileUpload::ALLOW_IMAGE_TYPES)に合わせている。
@@ -104,6 +193,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 upload: {
                     types: ['jpeg', 'png', 'webp'],
                 },
+                // 画像を選んだときに出る小さなツールバー
+                toolbar: [
+                    'imageStyle:inline',
+                    'imageStyle:block',
+                    'imageStyle:side',
+                    '|',
+                    'toggleImageCaption',
+                    'imageTextAlternative',
+                ],
+            },
+            // 表を選んだときに出る小さなツールバー
+            table: {
+                contentToolbar: ['tableColumn', 'tableRow', 'mergeTableCells'],
             },
         }).then((editor) => {
             setAltOnUpload(editor);
