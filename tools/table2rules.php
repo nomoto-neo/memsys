@@ -4,6 +4,7 @@
  * DBのテーブルの定義を読んで、そのテーブルを管理する画面の下書きを書き出すツール。
  * 書き出すのは、コントローラーのrules()・saveFieldNames()・inputFromModel()と、
  * モデルの$fillable・$casts。列の型や桁数を、人が目で見て書き写す手間を減らすためのもの。
+ * 冒頭には、テーブルのCREATE文も参考として書き出す。TODOを直すときに、列の定義を見比べるため。
  *
  *   php tools/table2rules.php t_members              tools/tmp/t_members.rules.txt に書き出す
  *   php tools/table2rules.php t_members t_news       いくつでも並べられる
@@ -31,6 +32,7 @@
 use App\Enums\CodeTableEnum;
 use App\Enums\CodeType;
 use Illuminate\Contracts\Console\Kernel;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
@@ -528,6 +530,8 @@ final class TableDraft
     {
         $parts = [
             $this->renderHeader(),
+            $this->renderCreateTable(),
+            $this->renderUses(),
             $this->renderRules(),
             $this->renderSaveFieldNames(),
             $this->renderInputFromModel(),
@@ -545,7 +549,38 @@ final class TableDraft
             '',
             "モデルは {$this->model}、コントローラーの変数は {$this->variable} として書いています。",
             'このファイルは下書きです。コントローラーとモデルへ貼り付けて、TODOの付いた所を直します。',
-            '',
+        ];
+
+        return implode("\n", $lines)."\n";
+    }
+
+    // テーブルのCREATE文。貼り付けるものではなく、TODOを直すときに列の定義を見比べるための参考
+    private function renderCreateTable(): string
+    {
+        $lines = [
+            '================================================================',
+            '参考：テーブルのCREATE文',
+            '================================================================',
+        ];
+
+        // SHOW CREATE TABLEは、MySQLとMariaDBだけで使える
+        if (! in_array(DB::connection()->getDriverName(), ['mysql', 'mariadb'], true)) {
+            $lines[] = '（このDBでは、CREATE文を取り出せません）';
+
+            return implode("\n", $lines)."\n";
+        }
+
+        $row = (array) DB::selectOne('SHOW CREATE TABLE '.DB::connection()->getQueryGrammar()->wrapTable($this->table));
+
+        // DBが返した文のまま書く。連番の次の値（AUTO_INCREMENT=）も、行の数の目安になるので残す
+        $lines[] = $row['Create Table'].';';
+
+        return implode("\n", $lines)."\n";
+    }
+
+    private function renderUses(): string
+    {
+        $lines = [
             '================================================================',
             'コントローラーの冒頭に要るuse文',
             '================================================================',
