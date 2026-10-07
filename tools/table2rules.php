@@ -25,6 +25,7 @@
  * - 列の名前と同じ名前の区分表（列挙型・code/のCSV・DBのコード表）があれば、Rule::in(code_keys())
  * - 列の名前から推測するルールは、下の「名前から推測するルール」。ここを足していく
  * - 「列」と「列_origin」の組は、アップロードの欄として扱い、rules()には書かない
+ * - 「列_origin」が無くても、photo・imageのような名前の文字の列は、アップロードの欄と推測する
  */
 
 use App\Enums\CodeTableEnum;
@@ -105,6 +106,13 @@ const LONG_TEXT_NAMES = '/(^|_)(body|content|contents|html|text|description|deta
 
 // 上限の文字数を決め打ちにした列に付けるコメント
 const TEXT_NOTE = 'TODO: 上限の文字数は、型からは決まらないので決め打ち。用途に合わせて直す';
+
+/**
+ * アップロードの欄と推測する、列の名前。「列_origin」の無い文字の列に当てはめる。
+ * 単語は「_」で区切って見る。profileをfileと取り違えないようにするため。
+ * 複数形と末尾の数字は同じ単語として扱う。例：photo・main_image・file2・filename1・attachments
+ */
+const UPLOAD_NAMES = '/(^|_)(photo|image|file|filename|attach|attachment|picture)s?\d*(_|$)/';
 
 /**
  * 名前から推測するルール。列の名前に当てはまる正規表現 => 設定。上から順に見て、
@@ -264,6 +272,7 @@ final class TableDraft
      * - rules   rules()に書くルールの並び。nullなら、rules()に書かない列
      * - notes   その列に付けるコメント
      * - upload  アップロードの欄か
+     * - origin  「列_origin」の列があるか
      */
     private array $columns = [];
 
@@ -305,11 +314,18 @@ final class TableDraft
 
     // ---- 列ごとの情報 ----
 
-    private function describe(array $column, bool $unique, bool $upload): array
+    private function describe(array $column, bool $unique, bool $hasOrigin): array
     {
         $name = $column['name'];
         $type = $this->typeOf($column);
         [$length, $scale] = $this->sizeOf($column['type']);
+
+        // アップロードの欄か。「列_origin」があれば確実。無ければ、文字の列の名前から推測する
+        $guessedUpload = ! $hasOrigin
+            && ! isset(NOTE_COLUMNS[$name])
+            && in_array($type, STRING_TYPES, true)
+            && preg_match(UPLOAD_NAMES, $name) === 1;
+        $upload = $hasOrigin || $guessedUpload;
 
         $info = [
             'type' => $type,
@@ -321,10 +337,16 @@ final class TableDraft
             'rules' => null,
             'notes' => $column['comment'] ? [$column['comment']] : [],
             'upload' => $upload,
+            'origin' => $hasOrigin,
         ];
 
         // アップロードの欄は、rules()に書かない
         if ($upload) {
+            // 名前から推測した欄は、元のファイル名の列が無いことも伝える
+            if ($guessedUpload) {
+                $info['notes'][] = "TODO: 名前からアップロードの欄と推測。違うなら、ふつうの欄としてルールを書く。元のファイル名を入れる {$name}_origin の列が無いので、マイグレーションで足す";
+            }
+
             $info['notes'][] = 'アップロードの欄。UPLOAD_FILESに書き、rules()には + $this->ajaxUploadRules() で足す';
 
             return $info;
@@ -662,8 +684,9 @@ final class TableDraft
         foreach ($this->columns as $name => $info) {
             $lines[] = "        '{$name}',";
 
+            // アップロードの欄は、元のファイル名の列も入れる。列がまだ無ければ、TODOを付ける
             if ($info['upload']) {
-                $lines[] = "        '{$name}_origin',";
+                $lines[] = "        '{$name}_origin',".($info['origin'] ? '' : ' // TODO: 列が無い。マイグレーションで足す');
             }
         }
 
