@@ -15,6 +15,12 @@ return [
 
     'name' => env('APP_NAME', 'Laravel'),
 
+    // 画面やメールに出す、サイトの名前。日本語で書いてよい。書いていなければ、APP_NAMEを使う。
+    // APP_NAMEと分けているのは、LaravelがAPP_NAMEから、セッションのCookieやキャッシュの名前を
+    // 英数字だけを残して作るため。APP_NAMEを日本語にすると、名前が「-session」のように空になり、
+    // 同じドメインやDBに置いたほかのサイトとぶつかる。APP_NAMEは半角の英数字で書く
+    'site_name' => env('SITE_NAME', env('APP_NAME', 'Laravel')),
+
     /*
     |--------------------------------------------------------------------------
     | Application Environment

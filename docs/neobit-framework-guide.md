@@ -37,6 +37,7 @@
 | 第3版 | 2026-10-07 | 企業会員の概念の追加とセキュリティ面の強化 |
 | 第3.1版 | 2026-10-07 | 画面を短く書くためのヘルパー（`hit()`・`code_options()`・`code_labels()`）を追加。`code/` の CSV に `[見出し]` の行を書くと、2階層のコード表になる（プルダウンの `<optgroup>` 用）。画面に渡す `$input`・`$filters` に、値の無い項目のキーも入れるようにした。画面で `?? ''` を付けずに書ける（3章・5章・8章） |
 | 第3.2版 | 2026-10-07 | 固定ページのコーナーを追加（本文を CKEditor で書く見本。訪問者の側は `/aboutus` のように、URL の名前がそのままパスになる）。CKEditor を `ckeditor5` パッケージ（48版）に入れ替えた（7章） |
+| 第3.3版 | 2026-10-07 | 画面やメールに出すサイトの名前を、`SITE_NAME` で決めるようにした。`APP_NAME` は半角の英数字で書く（0章） |
 
 ## 0. このガイドについて
 
@@ -92,6 +93,26 @@
 - devapp が `storage/` の下に作ったファイル（artisan を実行したときのログなど）も、既定の ACL（`default:user:apache:rwx`）で apache が書けます。作った後に権限を直す必要はありません。
 - 設定が効いているかは、画面を開いて確かめます。sudo を使えるときは `sudo -u apache php artisan config:show database.default` でも確かめられ、`mariadb` と出れば apache が読めています。devapp で同じコマンドを実行しても、devapp は `.env` を読めるので確かめになりません。
 - 手元の開発環境は `.env` を直接読むので、`config:cache` は要りません。
+
+### サイトの名前（APP_NAME・SITE_NAME）
+
+サイトの名前は、`.env` の2つの項目で決めます。
+
+```
+APP_NAME=memsys
+SITE_NAME="デモサイト"
+MAIL_FROM_NAME="${SITE_NAME}"
+```
+
+| 項目 | 中身 | 使われる所 |
+|---|---|---|
+| `APP_NAME` | 機械の名前。半角の英数字で書く | セッションの Cookie の名前（`memsys-session`）、キャッシュのキーの頭 |
+| `SITE_NAME` | 画面やメールに出す名前。日本語で書いてよい | メニューの左上、ブラウザのタブの題名、メールの差出人名、エラーの通知と操作ログの報告の件名 |
+
+- **`APP_NAME` を日本語にしてはいけません**。Laravel は、`APP_NAME` から英数字だけを残して、Cookie とキャッシュの名前を作ります。日本語だけだと全部が消えて、Cookie の名前が `-session` になります。同じドメインに置いたほかの Laravel のサイトと名前が重なり、片方にログインすると、もう片方がログアウトします。
+- **`SITE_NAME` を書かなければ、`APP_NAME` が出ます**。
+- **画面では `config('app.site_name')` で出します**。レイアウト（`layouts/app.blade.php`・`admin.blade.php`・`company.blade.php`）が、メニューと題名に使っています。メンテナンス中の画面（`maintenance.blade.php`）だけは、設定に頼らない1枚の HTML なので、名前を直接書いてあります。
+- **`.env` を変えたら `php artisan config:cache` をやり直します**。`APP_NAME` を変えると Cookie の名前が変わるので、ログイン中の人は、ログインし直しになります。
 
 ### サーバーの前にプロキシを置くとき（TRUSTED_PROXIES）
 

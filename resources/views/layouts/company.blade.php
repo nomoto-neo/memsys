@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>@yield('title', '企業会員') - memsys</title>
+    <title>@yield('title', '企業会員') - {{ config('app.site_name') }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     @vite(['resources/js/app.js'])
 
@@ -20,7 +20,7 @@
 {{-- 企業会員の画面のヘッダー。個人会員の画面（白）・管理画面（黒）と見分けられるよう、色を変えている --}}
 <nav class="navbar navbar-expand navbar-dark bg-primary mb-4">
     <div class="container">
-        <a class="navbar-brand" href="{{ route('company.mypage') }}">memsys 企業会員</a>
+        <a class="navbar-brand" href="{{ route('company.mypage') }}">{{ config('app.site_name') }} 企業会員</a>
         <div class="ms-auto d-flex align-items-center gap-2">
             {{-- ログイン中の担当者は、企業会員のガードから取る --}}
             @auth('company')

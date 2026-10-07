@@ -53,7 +53,7 @@ class ReportOperationLogs extends Command
                 'from_mail' => config('mail.from.address'),
                 'from_name' => config('mail.from.name'),
                 'to' => implode(', ', $recipients),
-                'app_name' => config('app.name'),
+                'app_name' => config('app.site_name'),
                 'url' => route('admin.operation-logs.index'),
             ]));
         } catch (Throwable $e) {

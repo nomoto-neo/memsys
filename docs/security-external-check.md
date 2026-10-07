@@ -80,7 +80,7 @@ curl -sS -o /dev/null -D - -u $A $B/ | grep -i "^set-cookie" | sed -E 's/=[^;]{2
   - `Strict-Transport-Security: max-age=31536000`
 - **見るところ（Cookie）**：セッションの Cookie に `secure`・`httponly`・`samesite=lax` が付いていること。`XSRF-TOKEN` は、JavaScript が読むものなので `httponly` が無くて正常です。
 - **見るところ（出すぎている情報）**：`Server:` に版の番号が出ていないこと。`X-Powered-By:` が無いこと。
-- **見るところ（Cookie の名前）**：セッションの Cookie の名前が `サイト名-session` の形になっていること。`-session` だけなら、`.env` の `APP_NAME` が空です。
+- **見るところ（Cookie の名前）**：セッションの Cookie の名前が `サイト名-session` の形になっていること。`-session` だけなら、`.env` の `APP_NAME` が、空か、日本語だけです。Laravel は名前から英数字だけを残すので、日本語は消えます（利用ガイド0章「サイトの名前」）。
 
 ### 5. 公開されてはいけないファイルが見えないか
 
@@ -214,7 +214,7 @@ npm audit --omit=dev
 |---|---|---|---|
 | 1 | `TRACE` メソッドが有効 | 低 | Apache の設定 |
 | 2 | サーバーの版が応答に出ている | 低 | Apache の設定 |
-| 3 | `APP_NAME` が空 | 低 | サーバーの `.env` |
+| 3 | `APP_NAME` が日本語で、Cookie の名前が空になっている | 低 | サーバーの `.env` |
 | 4 | `league/commonmark` に既知の脆弱性が2件（重大度：高・中） | 今は実害なし | `composer.lock` |
 | 5 | CKEditor の古いパッケージに既知の脆弱性（貼り付けの XSS など） | CKEditor を使うサイトでは中 | `package.json` |
 
@@ -230,10 +230,10 @@ npm audit --omit=dev
 - **起きていること**：全部の応答に、Apache・OS・OpenSSL の版が出ています。
 - **なぜ直すか**：攻撃する側が、その版の既知の穴を探す手掛かりになります。
 
-**所見3　`APP_NAME` が空**
+**所見3　`APP_NAME` が日本語で、Cookie の名前が空になっている**
 
-- **起きていること**：セッションの Cookie の名前が `-session` です。Laravel は `APP_NAME` から名前を作ります。
-- **なぜ直すか**：安全性への影響は小さいですが、`APP_NAME` はメールの差出人名（`MAIL_FROM_NAME`）などにも使われます。空のままだと、同じドメインに別の Laravel のサイトを置いたときに、Cookie の名前が重なります。
+- **起きていること**：セッションの Cookie の名前が `-session` です。Laravel は、`APP_NAME` から英数字だけを残して、Cookie とキャッシュの名前を作ります。サーバーの `APP_NAME` は日本語のサイト名だったので、全部が消えて、名前の部分が空になっていました。この回の最初の報告では「`APP_NAME` が空」と書きましたが、誤りでした。空の名前と、日本語だけの名前は、外からは同じに見えます。
+- **なぜ直すか**：1つのサイトだけなら、動きに問題はありません。同じドメインに別の Laravel のサイトを置くと、Cookie の名前が重なって、片方にログインするともう片方がログアウトします。DB やキャッシュを共有すると、キャッシュのキーも重なります。
 
 **所見4　`league/commonmark` の既知の脆弱性**
 
@@ -264,7 +264,7 @@ ServerSignature Off
 sudo apachectl configtest && sudo systemctl reload httpd
 ```
 
-所見3は、サーバーの `.env` の `APP_NAME` にサイトの名前を書き、`php artisan config:cache` をやり直します。Cookie の名前が変わるので、ログイン中の人は、ログインし直しになります。
+所見3は、サーバーの `.env` の `APP_NAME` を半角の英数字にし、日本語のサイト名は `SITE_NAME` に書いて、`php artisan config:cache` をやり直します（利用ガイド0章「サイトの名前」）。Cookie の名前が変わるので、ログイン中の人は、ログインし直しになります。
 
 所見4は、手元で `composer update league/commonmark` を実行し、テストを通してから、`composer.lock` をサーバーへ送ります。
 
@@ -282,7 +282,8 @@ Laravel を通る画面には、同じヘッダーが `SecurityHeaders` から�
 
 | 所見 | 対応 |
 |---|---|
-| 1・2・3 | サーバーの側の作業。まだ対応していない |
+| 1・2 | サーバーの側の作業。まだ対応していない |
+| 3 | 表示用のサイト名を `SITE_NAME` に分けた（利用ガイド第3.3版）。サーバーの `.env` の書き換えは、サーバーの側の作業 |
 | 4 | `composer update league/commonmark` で更新した。`composer audit` は報告なし |
 | 5 | `@ckeditor/ckeditor5-build-classic` を外し、`ckeditor5`（48.5.2）に入れ替えた。`npm audit --omit=dev` は `found 0 vulnerabilities` |
 

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>@yield('title', '管理画面 - memsys')</title>
+    <title>@yield('title', '管理画面 - '.config('app.site_name'))</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     @vite(['resources/js/app.js'])
 
@@ -61,7 +61,7 @@
      分かるようにしている。 --}}
 <nav class="navbar navbar-expand navbar-dark bg-dark mb-4">
     <div class="container">
-        <a class="navbar-brand" href="{{ route('admin.dashboard') }}">memsys 管理画面</a>
+        <a class="navbar-brand" href="{{ route('admin.dashboard') }}">{{ config('app.site_name') }} 管理画面</a>
         <div class="ms-auto d-flex align-items-center gap-2">
             @auth('admin')
                 <span class="text-light small">{{ Auth::guard('admin')->user()->name }} さん</span>

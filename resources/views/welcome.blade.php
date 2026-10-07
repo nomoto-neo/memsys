@@ -2,7 +2,7 @@
 
 @section('content')
 <div class="text-center py-5">
-    <h1 class="mb-4">memsys 会員サイト</h1>
+    <h1 class="mb-4">{{ config('app.site_name') }}</h1>
 
     @guest
         <p class="mb-4">会員登録がお済みでない方は、まずは会員登録をお願いします。</p>

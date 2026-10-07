@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>@yield('title', 'memsys')</title>
+    <title>@yield('title', config('app.site_name'))</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     @vite(['resources/js/app.js'])
 
@@ -35,7 +35,7 @@
 <body class="bg-light">
 <nav class="navbar navbar-expand navbar-light bg-white border-bottom mb-4">
     <div class="container">
-        <a class="navbar-brand" href="/">memsys</a>
+        <a class="navbar-brand" href="/">{{ config('app.site_name') }}</a>
         <div class="d-flex align-items-center gap-2">
             <a href="{{ route('news.index') }}" class="nav-link">お知らせ</a>
             {{-- 固定ページ（管理画面の「固定ページ一覧」で書く）へのリンク。URLの名前を決め打ちで

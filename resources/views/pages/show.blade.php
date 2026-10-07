@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', $page->title.' - memsys')
+@section('title', $page->title.' - '.config('app.site_name'))
 
 {{-- 本文を、エディタの中と同じ見た目で表示するためのCSS。layouts/app.blade.phpの@stack('head-extra')に入る --}}
 @push('head-extra')
