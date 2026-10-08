@@ -116,6 +116,27 @@ class PageTest extends TestCase
         $this->assertSame('<p>本文</p>', Page::sole()->body);
     }
 
+    public function test_images_given_by_url_are_left_as_they_are(): void
+    {
+        // URLで指定した画像は、アップロードした画像と違い、保存先へ移しも消しもしない
+        $body = '<p><img src="https://example.com/photos/a.jpg" alt="外のサイト"><img src="/images/logo.png" alt="サーバーに置いた画像"></p>';
+        $staff = $this->staff();
+
+        $this->actingAs($staff, 'admin')
+            ->post(route('admin.pages.store'), ['body' => $body] + self::INPUT)
+            ->assertSessionHasNoErrors();
+
+        $page = Page::sole();
+        $this->assertSame($body, $page->body);
+
+        // 本文から外しても、エラーにならない
+        $this->actingAs($staff, 'admin')
+            ->patch(route('admin.pages.update', $page), ['body' => '<p>本文</p>'] + self::INPUT)
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('<p>本文</p>', $page->refresh()->body);
+    }
+
     public function test_slug_must_be_usable_as_a_url(): void
     {
         $staff = $this->staff();

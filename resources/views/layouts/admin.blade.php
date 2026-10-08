@@ -29,6 +29,10 @@
     max-width: 100%;
     height: auto;
 }
+{{-- 確認・詳細の画面で、本文を枠の中に表示だけするとき。枠線のすぐ内側に、少し余白を取る。 --}}
+.form-control.wysiwyg-content {
+    padding: 10px;
+}
 {{-- エラー欄（.invalid-feedback）は、中身が空でなければ表示する。
      Bootstrapの標準では、直前の入力欄にis-invalidが付いたときだけ表示される。
      JavaScriptが動かない環境でもサーバー側のエラー文言を出すため、ここはCSSで行う。

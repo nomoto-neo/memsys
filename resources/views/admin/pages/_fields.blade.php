@@ -10,7 +10,7 @@
                   表示だけにするかも、これで切り替える
     - $required  必須マークのHTMLの配列。表示だけの画面では[]でよい
 
-    本文は、入力の画面ではCKEditorに置き換わる（画面が読み込むresources/js/wysiwyg_ckeditor.js）。
+    本文は、入力の画面ではSunEditorに置き換わる（画面が読み込むresources/js/wysiwyg_suneditor.js）。
     確認・詳細の画面では、保存されるHTMLを表示するだけにする。
 --}}
 <div class="mb-3">
@@ -55,7 +55,7 @@
 <div class="mb-3">
     <label for="body" class="form-label">本文 {!! $required['body'] ?? '' !!}</label>
     @if (! $disabled)
-        {{-- class="wysiwyg"のtextareaを、画面が読み込んだエディタ用のスクリプトがCKEditorに置き換える。
+        {{-- class="wysiwyg"のtextareaを、画面が読み込んだエディタ用のスクリプトがSunEditorに置き換える。
              data-upload-urlは、エディタに挿入した画像の送り先 --}}
         <textarea id="body" name="body"
                   class="form-control wysiwyg" rows="10"
@@ -65,8 +65,8 @@
     @else
         {{-- 確認・詳細では、保存されるHTMLを表示するだけにする。{!! !!}で出すので、必ずsafe_html()で
              許可していないタグと属性を取り除く（App\Support\HtmlSanitizer）。
-             class="ck-content"は、CKEditorの表示用のCSS（wysiwyg_ckeditor_content.css）が効く印 --}}
-        <div class="form-control wysiwyg-content ck-content" style="height: auto; min-height: 4rem;">
+             class="sun-editor-editable"は、SunEditorの表示用のCSS（wysiwyg_suneditor_content.css）が効く印 --}}
+        <div class="form-control wysiwyg-content sun-editor-editable" style="height: auto; min-height: 4rem;">
             @if (filled($input['body']))
                 {!! safe_html($input['body']) !!}
             @else

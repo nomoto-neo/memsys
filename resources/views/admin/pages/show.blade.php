@@ -2,7 +2,7 @@
 
 {{-- 本文を、エディタの中と同じ見た目で表示するためのCSS --}}
 @push('head-extra')
-    @vite(['resources/css/wysiwyg_ckeditor_content.css'])
+    @vite(['resources/css/wysiwyg_suneditor_content.css'])
 @endpush
 
 @section('content')

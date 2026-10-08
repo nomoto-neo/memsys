@@ -1,14 +1,14 @@
 @extends('layouts.admin')
 
 {{--
-    本文のエディタ（CKEditor）に要るものを、この画面だけで<head>に足す。
+    本文のエディタ（SunEditor）に要るものを、この画面だけで<head>に足す。
     layouts/admin.blade.phpの@stack('head-extra')に入る。
     CSRFトークンの<meta>は、エディタに挿入した画像のアップロードが読む。
-    CKEditorの見た目のCSSは、wysiwyg_ckeditor.jsが読み込むので、ここには書かない。
+    SunEditorの見た目のCSSは、wysiwyg_suneditor.jsが読み込むので、ここには書かない。
 --}}
 @push('head-extra')
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    @vite(['resources/js/wysiwyg_ckeditor.js'])
+    @vite(['resources/js/wysiwyg_suneditor.js'])
 @endpush
 
 @section('content')

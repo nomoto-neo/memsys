@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Route;
  * URLは、URLの名前（slug）がそのままパスになる。aboutusなら /aboutus で開く。
  *
  * 本文はWYSIWYGエディタで書く。見本のサイトでは、ニュースの本文をsummernoteで、
- * 固定ページの本文をCKEditorで書くようにして、2つのエディタの動作の見本にしている。
+ * 固定ページの本文をSunEditorで書くようにして、2つのエディタの動作の見本にしている。
  * 本文に入れた画像は、誰でも見られる公開の場所に置く。固定ページには会員限定の区別が無いため。
  */
 class Page extends Model

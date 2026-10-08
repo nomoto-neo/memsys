@@ -1,0 +1,17 @@
+/* SunEditorで書いた本文を、エディタの外で表示するときの見た目。画像の回り込み・表の罫線・引用などを、
+   エディタの中と同じにする。本文を class="sun-editor-editable" のタグで囲んだ画面で読み込む */
+@import 'suneditor/src/assets/suneditor-contents.css';
+
+/* 書体・文字の大きさ・色・背景は、エディタのものではなく、表示する画面のものに合わせる */
+.wysiwyg-content.sun-editor-editable {
+    font-family: inherit;
+    font-size: inherit;
+    color: inherit;
+    background-color: transparent;
+}
+
+/* 余白も、エディタのものは使わない。管理画面の確認・詳細のように枠（form-control）の中に出すときは、
+   画面の側（layouts/admin.blade.php）の余白をそのまま使う */
+.wysiwyg-content.sun-editor-editable:not(.form-control) {
+    padding: 0;
+}

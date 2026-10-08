@@ -3,7 +3,7 @@
 {{-- create.blade.phpと同じ理由・同じ仕組み。 --}}
 @push('head-extra')
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    @vite(['resources/js/wysiwyg_ckeditor.js'])
+    @vite(['resources/js/wysiwyg_suneditor.js'])
 @endpush
 
 @section('content')

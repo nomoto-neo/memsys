@@ -37,7 +37,7 @@ use HTMLPurifier_Config;
  *   制限で、data:で始まる埋め込み画像も取り除かれる
  * - 表: table, caption, colgroup, col, thead, tbody, tfoot, tr,
  *   th・td（colspan・rowspan）
- * - HTML5のfigure・figcaption。CKEditorが画像や表を包むのに使う
+ * - HTML5のfigure・figcaption。SunEditorが画像や表を包むのに使う
  * - 動画の埋め込み: iframeは、summernoteの「動画」ボタンが出力する
  *   YouTube・Vimeoの埋め込み用URLのものだけ
  * - すべてのタグに付けられる属性: class, style, title。クラス名は制限せず、

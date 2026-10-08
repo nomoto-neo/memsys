@@ -16,7 +16,7 @@ use Illuminate\View\View;
 
 /**
  * 固定ページの管理。会社概要のように、本文を書いて、訪問者の側に決まったURLで出すページ。
- * 本文をCKEditorで書くコーナーの見本でもある。ニュースの本文はsummernoteで書く。
+ * 本文をSunEditorで書くコーナーの見本でもある。ニュースの本文はsummernoteで書く。
  */
 class PageController extends Controller
 {

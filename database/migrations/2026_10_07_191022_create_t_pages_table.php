@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Schema;
  * 決まったURLで出すページ。
  *
  * - slug：URLの名前。aboutusなら /aboutus で開く。ページごとに違う名前にする
- * - body：本文のHTML。WYSIWYGエディタ（CKEditor）で書く。長い文になるので、
+ * - body：本文のHTML。WYSIWYGエディタ（SunEditor）で書く。長い文になるので、
  *   textより大きいmediumtextにしている
  * - disp_flg：訪問者の側に出すかどうか
  */
