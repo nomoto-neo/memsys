@@ -1,7 +1,7 @@
 /*
  * AjaxFileUploadトレイトのuploadAjaxFile()へ、ファイルを1つ送る。
  * 一覧用画像・添付ファイルの欄(ajax_upload.js)と、WYSIWYGエディタの
- * 画像挿入(wysiwyg_ckeditor.jsなど、エディタごとのファイル)の両方から使う。
+ * 画像挿入(wysiwyg_suneditor.jsなど、エディタごとのファイル)の両方から使う。
  *
  * 送るのはファイル(file)と、どの欄宛てか(field)の2つ。CSRFトークンは、
  * 画面の<meta name="csrf-token">から読む。

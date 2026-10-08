@@ -43,7 +43,8 @@ lacks app/Http/Controllers/Admin/StaffController.php     'submitRoute'
 lacks app/Http/Controllers/Admin/MemberController.php    'submitRoute'
 has   resources/js/upload_request.js                     'export function postUploadFile('
 has   resources/js/ajax_upload.js                        'link.download = data.origin_name;'
-has   resources/js/wysiwyg_ckeditor.js                   'function setAltOnUpload('
+has   resources/js/wysiwyg_suneditor.js                  'function createImageUploader('
+gone  resources/js/wysiwyg_ckeditor.js
 has   resources/js/wysiwyg_summernote.js                 "\$image.attr('alt', data.origin_name)"
 lacks resources/js/app.js                                'ClassicEditor'
 has   resources/views/layouts/_form_support.blade.php    '.invalid-feedback:not(:empty)'
@@ -51,8 +52,8 @@ has   resources/views/layouts/admin.blade.php            "@include('layouts._for
 has   resources/views/layouts/app.blade.php              '.wysiwyg-content img'
 lacks resources/views/_confirm_hidden.blade.php          'textareaFields'
 has   resources/views/admin/news/_fields.blade.php       'class="form-control wysiwyg"'
-has   resources/views/admin/news/create.blade.php        'resources/js/wysiwyg_ckeditor.js'
-has   resources/views/admin/news/edit.blade.php          'resources/js/wysiwyg_ckeditor.js'
+has   resources/views/admin/news/create.blade.php        'resources/js/wysiwyg_summernote.js'
+has   resources/views/admin/news/edit.blade.php          'resources/js/wysiwyg_summernote.js'
 has   resources/views/admin/news/confirm.blade.php       "route('admin.news.store')"
 has   resources/views/admin/staff/confirm.blade.php      "route('admin.staff.store')"
 has   resources/views/admin/members/confirm.blade.php    "route('admin.members.update', \$member)"

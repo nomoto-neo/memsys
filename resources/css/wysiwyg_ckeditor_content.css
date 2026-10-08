@@ -1,3 +1,0 @@
-/* CKEditorで書いた本文を、エディタの外で表示するときの見た目。画像の回り込み・表の罫線・引用などを、
-   エディタの中と同じにする。本文を class="ck-content" のタグで囲んだ画面で読み込む */
-@import 'ckeditor5/ckeditor5-content.css';

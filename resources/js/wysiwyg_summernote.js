@@ -1,7 +1,7 @@
 /*
  * WYSIWYG欄(textarea.wysiwyg)を、summernoteに置き換える。
  *
- * wysiwyg_ckeditor.jsと同じ役割の、summernote版。どちらか一方を画面から
+ * wysiwyg_suneditor.jsと同じ役割の、summernote版。どちらか一方を画面から
  * 読み込む。サーバー側(AjaxFileUploadトレイト・HtmlSanitizer)と
  * Blade(textareaのclass="wysiwyg"・data-upload-url)は、どちらのエディタでも
  * 同じまま使える。
@@ -69,8 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 }
 
                                 // altに元のファイル名を入れる(入れないとaltは
-                                // 空になる。wysiwyg_ckeditor.jsのsetAltOnUpload()
-                                // と同じ)。
+                                // 空になる。wysiwyg_suneditor.jsと同じ)。
                                 $note.summernote('insertImage', data.url, ($image) => {
                                     $image.attr('alt', data.origin_name);
                                 });

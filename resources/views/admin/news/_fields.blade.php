@@ -162,7 +162,7 @@
          判断からできているので、これで表示・編集を切り替える。 --}}
     @if (! $disabled)
         {{-- class="wysiwyg"のtextareaは、画面が読み込んだエディタ用の
-             スクリプト（resources/js/wysiwyg_ckeditor.jsなど）がWYSIWYG
+             スクリプト（resources/js/wysiwyg_summernote.jsなど）がWYSIWYG
              エディタに置き換える。data-upload-urlは、エディタに挿入した
              画像の送り先（一覧用画像などと同じAjaxアップロード）。 --}}
         <textarea id="body" name="body"

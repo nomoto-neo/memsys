@@ -39,6 +39,7 @@
 | 第3.2版 | 2026-10-07 | 固定ページのコーナーを追加（本文を CKEditor で書く見本。訪問者の側は `/aboutus` のように、URL の名前がそのままパスになる）。CKEditor を `ckeditor5` パッケージ（48版）に入れ替えた（7章） |
 | 第3.3版 | 2026-10-07 | 画面やメールに出すサイトの名前を、`SITE_NAME` で決めるようにした。`APP_NAME` は半角の英数字で書く（0章） |
 | 第3.4版 | 2026-10-08 | 固定ページの本文のエディタを、SunEditor（MIT ライセンス。jQuery に頼らない）にした（7章） |
+| 第3.5版 | 2026-10-08 | CKEditor を外した。WYSIWYG エディタは SunEditor と summernote の2つ（7章） |
 
 ## 0. このガイドについて
 
@@ -714,8 +715,8 @@ private function prepareInput(array $validated): array
 
 - `$readonly` を渡すだけで、入力画面ではアップロードの UI、確認・詳細画面では表示だけに切り替わります。
 - アップロード欄のある画面（新規登録・編集）は、`@push('head-extra')` で CSRF の `<meta>` と `resources/js/ajax_upload.js` を読み込みます。
-- **WYSIWYG**：`<textarea class="wysiwyg" data-upload-url="...">` を置き、`wysiwyg_suneditor.js`・`wysiwyg_summernote.js`・`wysiwyg_ckeditor.js` のどれか1つを読み込みます（どれでもサーバー側は同じ）。確認・詳細画面では `{!! safe_html($input['body']) !!}` で表示します。
-- **エディタは、1つの画面に1種類だけ読み込みます**。どのスクリプトも `textarea.wysiwyg` を探して置き換えるので、2つ以上を読み込むとぶつかります。見本のサイトでは、ニュースの本文を summernote、固定ページの本文を SunEditor にして、両方の動作の見本にしています。
+- **WYSIWYG**：`<textarea class="wysiwyg" data-upload-url="...">` を置き、`wysiwyg_suneditor.js` か `wysiwyg_summernote.js` を読み込みます（どちらでもサーバー側は同じ）。確認・詳細画面では `{!! safe_html($input['body']) !!}` で表示します。
+- **エディタは、1つの画面に1種類だけ読み込みます**。どちらのスクリプトも `textarea.wysiwyg` を探して置き換えるので、両方を読み込むとぶつかります。見本のサイトでは、ニュースの本文を summernote、固定ページの本文を SunEditor にして、両方の動作の見本にしています。
 
 ### SunEditor
 
@@ -743,31 +744,6 @@ private function prepareInput(array $validated): array
 - **表示は日本語です**。同梱の翻訳（`suneditor/langs/ja`）を読み込んでいます。
 - **表示の画面には、表示用の CSS が要ります**。SunEditor は、画像の回り込みや表の罫線を、クラス（`se-component`・`__se__float-left` など）で保存します。`class="sun-editor-editable"` で囲んで `wysiwyg_suneditor_content.css` を読み込むと、エディタの中と同じ見た目になります。書体・文字の大きさ・色は、表示する画面のものに合わせてあります。summernote は見た目を `style` 属性で保存するので、この CSS は要りません。
 - **保存のときに、`data-se-` で始まる属性は消えます**。SunEditor が画像に付ける管理用の属性で、`HtmlSanitizer` が取り除きます。表示にも、編集し直すときにも影響しません。
-
-### CKEditor
-
-**ファイル**：`resources/js/wysiwyg_ckeditor.js`・`resources/css/wysiwyg_ckeditor_content.css`　**実例**：なし（見本のサイトでは使っていません）
-
-```blade
-{{-- 入力の画面。エディタの見た目のCSSは、JSが一緒に読み込む --}}
-@push('head-extra')
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    @vite(['resources/js/wysiwyg_ckeditor.js'])
-@endpush
-
-{{-- 表示の画面（確認・詳細・訪問者の側）。本文を class="ck-content" で囲む --}}
-@push('head-extra')
-    @vite(['resources/css/wysiwyg_ckeditor_content.css'])
-@endpush
-
-<div class="wysiwyg-content ck-content">{!! safe_html($page->body) !!}</div>
-```
-
-- **パッケージは `ckeditor5`** です。以前の `@ckeditor/ckeditor5-build-classic` は更新が止まり、既知の脆弱性が残っているので使いません。`ckeditor5` は、使う機能を自分で選んで組みます。入れる機能は `wysiwyg_ckeditor.js` の冒頭の `PLUGINS`、ツールバーの並びは `TOOLBAR` です。
-- **機能を足したら、`HtmlSanitizer` の許可も合わせます**。本文に新しいタグや属性が出るようになるためです。動画の埋め込み（`MediaEmbed`）は、保存の形の `<oembed>` を `HtmlSanitizer` が許可していないので、入れていません。
-- **`licenseKey` が必須です**（44版から）。オープンソースのライセンス（GPL）で使う印の `'GPL'` を入れてあります。CKEditor は、GPL か商用ライセンスのどちらかで使う製品です。案件ごとに、GPL の条件で問題ないかを確かめ、商用ライセンスを買ったサイトでは、そのキーに差し替えます。
-- **表示は日本語です**。同梱の翻訳（`ckeditor5/translations/ja.js`）を読み込んでいます。
-- **表示の画面には、表示用の CSS が要ります**。CKEditor は、画像の回り込みや表の罫線を、クラス（`image-style-side`・`table` など）で保存します。`class="ck-content"` で囲んで `wysiwyg_ckeditor_content.css` を読み込むと、エディタの中と同じ見た目になります。summernote は見た目を `style` 属性で保存するので、この CSS は要りません。
 
 ### 固定ページの URL
 

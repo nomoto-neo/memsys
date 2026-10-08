@@ -16,7 +16,7 @@ return new class extends Migration
      * article_dateはdate型（時刻を持たない日付のみ）。訪問者側の
      * 並び順（新しい順）や年度プルダウンの抽出は、すべてこの列を基準にする。
      *
-     * bodyはCKEditor・summernoteいずれかが出力する生のHTMLをそのまま
+     * bodyはWYSIWYGエディタが出力する生のHTMLをそのまま
      * 保存する（HtmlSanitizerで許可リストを通した後の内容）。任意項目
      * なので、本文無し（タイトルと日付だけ）の記事も登録できる。
      *
