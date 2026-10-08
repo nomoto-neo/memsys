@@ -47,8 +47,8 @@ has   resources/js/wysiwyg_suneditor.js                  'function createImageUp
 gone  resources/js/wysiwyg_ckeditor.js
 has   resources/js/wysiwyg_summernote.js                 "\$image.attr('alt', data.origin_name)"
 lacks resources/js/app.js                                'ClassicEditor'
-has   resources/views/layouts/_form_support.blade.php    '.invalid-feedback:not(:empty)'
-has   resources/views/layouts/admin.blade.php            "@include('layouts._form_support')"
+has   resources/views/layouts/admin.blade.php            '.invalid-feedback:not(:empty)'
+gone  resources/views/layouts/_form_support.blade.php
 has   resources/views/layouts/app.blade.php              '.wysiwyg-content img'
 lacks resources/views/_confirm_hidden.blade.php          'textareaFields'
 has   resources/views/admin/news/_fields.blade.php       'class="form-control wysiwyg"'
