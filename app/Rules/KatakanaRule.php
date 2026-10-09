@@ -17,7 +17,7 @@ use Illuminate\Contracts\Validation\ValidationRule;
  */
 class KatakanaRule implements ValidationRule
 {
-    // 検証。合わなければ$fail()を呼ぶ（合っていれば何もしない）
+    /** 検証。合わなければ$fail()を呼ぶ（合っていれば何もしない） */
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
         // ァ-ヾの範囲に、長音（ー）と中点（・）も入っている

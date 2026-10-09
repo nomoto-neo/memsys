@@ -22,7 +22,7 @@ use Illuminate\Support\Facades\Mail;
  */
 final class MemberProfileNotice
 {
-    // 変わっても知らせない列。パスワードは別のメールで知らせる
+    /** 変わっても知らせない列。パスワードは別のメールで知らせる */
     private const SILENT_FIELDS = ['password'];
 
     /**

@@ -28,8 +28,10 @@ use Illuminate\View\View;
  */
 class InvitationController extends Controller
 {
-    // 登録フォームの検証ルール。担当者IDは、その企業の中で重ならないこと。
-    // password_confirmationは、confirmedルールでpasswordと照合するので、ここには書かない。
+    /**
+     * 登録フォームの検証ルール。担当者IDは、その企業の中で重ならないこと。
+     * password_confirmationは、confirmedルールでpasswordと照合するので、ここには書かない。
+     */
     private function rules(CompanyInvitation $invitation): array
     {
         return [
@@ -42,7 +44,7 @@ class InvitationController extends Controller
         ];
     }
 
-    // 登録フォームの表示（GET /company/invitation/{token}）
+    /** 登録フォームの表示（GET /company/invitation/{token}） */
     public function show(string $token): View|Response
     {
         $invitation = $this->usableInvitation($token);
@@ -61,7 +63,7 @@ class InvitationController extends Controller
         ]);
     }
 
-    // 担当者の登録（POST /company/invitation/{token}）
+    /** 担当者の登録（POST /company/invitation/{token}） */
     public function store(Request $request, string $token): RedirectResponse|Response
     {
         $invitation = $this->usableInvitation($token);
@@ -102,8 +104,10 @@ class InvitationController extends Controller
         return redirect()->route(CompanyUser::memberRoute('mypage'))->with('status', '担当者の登録が完了しました。');
     }
 
-    // リンクの値から、使える招待を探す。期限内で、企業が承認済みのものだけ。
-    // 止めた企業や申請中の企業には、担当者を足させない
+    /**
+     * リンクの値から、使える招待を探す。期限内で、企業が承認済みのものだけ。
+     * 止めた企業や申請中の企業には、担当者を足させない
+     */
     private function usableInvitation(string $token): ?CompanyInvitation
     {
         $invitation = CompanyInvitationManager::find($token);
@@ -111,7 +115,7 @@ class InvitationController extends Controller
         return $invitation?->company?->isApproved() ? $invitation : null;
     }
 
-    // 招待が使えないときの画面。期限切れ・取り消し・登録済みのどれかは伝えない
+    /** 招待が使えないときの画面。期限切れ・取り消し・登録済みのどれかは伝えない */
     private function invalid(): Response
     {
         return response()->view('company.auth.invitation-invalid', status: 404);

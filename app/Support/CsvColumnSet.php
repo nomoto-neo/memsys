@@ -77,7 +77,7 @@ final class CsvColumnSet
      */
     private array $specs = [];
 
-    // 連番と組の横展開の列の数。関連の名前 => 最大の件数で、prepareExport()で数える
+    /** 連番と組の横展開の列の数。関連の名前 => 最大の件数で、prepareExport()で数える */
     private array $counts = [];
 
     /**
@@ -195,7 +195,7 @@ final class CsvColumnSet
 
     // ---- 定義の解釈 ----
 
-    // csvColumns()の1項目を読み、$specsの1件にする。書き方が正しくなければ例外にする。
+    /** csvColumns()の1項目を読み、$specsの1件にする。書き方が正しくなければ例外にする。 */
     private function parseDefinition(string $heading, mixed $definition): array
     {
         $expand = str_ends_with($heading, ':*');
@@ -325,7 +325,7 @@ final class CsvColumnSet
         ] + $spec;
     }
 
-    // 「値の場所|変換:引数|…」を、値の場所と変換の一覧に分ける。
+    /** 「値の場所|変換:引数|…」を、値の場所と変換の一覧に分ける。 */
     private function parsePath(string $definition, string $heading): array
     {
         $parts = explode('|', $definition);
@@ -345,7 +345,7 @@ final class CsvColumnSet
         return [$path, $filters];
     }
 
-    // 関連がAjaxFileUploadの複数の項目なら、取り込み先 [項目名, 'filename'|'origin'] を返す。
+    /** 関連がAjaxFileUploadの複数の項目なら、取り込み先 [項目名, 'filename'|'origin'] を返す。 */
     private function uploadTarget(string $relation, string $column): ?array
     {
         if (($this->uploadFields[$relation] ?? null) !== 'repeatable') {
@@ -359,7 +359,7 @@ final class CsvColumnSet
         };
     }
 
-    // 見出しが「:*」で終わる横展開の列があれば、例外にする。見出し無しのCSVでは使えないため。
+    /** 見出しが「:*」で終わる横展開の列があれば、例外にする。見出し無しのCSVでは使えないため。 */
     public function assertNoExpansion(): void
     {
         foreach ($this->specs as $spec) {
@@ -371,8 +371,10 @@ final class CsvColumnSet
 
     // ---- 書き出し ----
 
-    // 書き出しの準備。連番・組の横展開の列の数を、同じ条件のデータの最大件数で決める。
-    // $queryには、一覧の検索条件をかけ終わったものを渡す。
+    /**
+     * 書き出しの準備。連番・組の横展開の列の数を、同じ条件のデータの最大件数で決める。
+     * $queryには、一覧の検索条件をかけ終わったものを渡す。
+     */
     public function prepareExport(Builder $query, bool $header): void
     {
         if (! $header) {
@@ -393,7 +395,7 @@ final class CsvColumnSet
         }
     }
 
-    // 書き出すCSVの見出しの行。横展開は、一覧の件数か連番の数だけ列を並べる。
+    /** 書き出すCSVの見出しの行。横展開は、一覧の件数か連番の数だけ列を並べる。 */
     public function headings(): array
     {
         $headings = [];
@@ -425,7 +427,7 @@ final class CsvColumnSet
         return $headings;
     }
 
-    // 1件分のセルの並び。
+    /** 1件分のセルの並び。 */
     public function exportRow(Model $record): array
     {
         $cells = [];
@@ -480,7 +482,7 @@ final class CsvColumnSet
         return $cells;
     }
 
-    // 値に書式の変換をかける。空の値は変換せず空欄にする。
+    /** 値に書式の変換をかける。空の値は変換せず空欄にする。 */
     private function exportValue(mixed $value, array $filters): mixed
     {
         if ($value === null || $value === '') {
@@ -494,8 +496,10 @@ final class CsvColumnSet
         return $value;
     }
 
-    // 値の場所から値を取り出し、いつも配列で返す。「*」を含む場所は複数、含まなければ1つ。
-    // 一覧のキーと突き合わせられるよう、trueとfalseは1と0にする。
+    /**
+     * 値の場所から値を取り出し、いつも配列で返す。「*」を含む場所は複数、含まなければ1つ。
+     * 一覧のキーと突き合わせられるよう、trueとfalseは1と0にする。
+     */
     private function values(Model $record, string $path): array
     {
         $value = data_get($record, $path);
@@ -506,13 +510,13 @@ final class CsvColumnSet
 
     // ---- 取り込み ----
 
-    // 定義に書いた見出しの一覧。見出し無しのCSVを読むときと、確認画面の見出しに使う。
+    /** 定義に書いた見出しの一覧。見出し無しのCSVを読むときと、確認画面の見出しに使う。 */
     public function definedHeadings(): array
     {
         return array_column($this->specs, 'heading');
     }
 
-    // idなどのキーの列の見出し。定義に無ければnull。
+    /** idなどのキーの列の見出し。定義に無ければnull。 */
     public function keyHeading(string $keyName): ?string
     {
         $index = $this->keySpecIndex($keyName);
@@ -520,7 +524,7 @@ final class CsvColumnSet
         return $index === null ? null : $this->specs[$index]['heading'];
     }
 
-    // キーの列の定義の番号。値の場所がキーのカラムそのものの定義で、無ければnull。
+    /** キーの列の定義の番号。値の場所がキーのカラムそのものの定義で、無ければnull。 */
     private function keySpecIndex(string $keyName): ?int
     {
         foreach ($this->specs as $index => $spec) {
@@ -634,8 +638,10 @@ final class CsvColumnSet
         return ['map' => $map, 'key' => $key, 'refs' => $refs, 'errors' => $errors, 'warnings' => $warnings];
     }
 
-    // 見出し無しのCSVの列と定義の対応。定義に書いた順に全部の列が並んでいる前提。
-    // 取り込めない列は、その位置を読み飛ばす。戻り値の形はmapHeadings()と同じ。
+    /**
+     * 見出し無しのCSVの列と定義の対応。定義に書いた順に全部の列が並んでいる前提。
+     * 取り込めない列は、その位置を読み飛ばす。戻り値の形はmapHeadings()と同じ。
+     */
     public function mapByOrder(array $importable, string $keyName, array $refPaths = []): array
     {
         $this->assertNoExpansion();
@@ -659,8 +665,10 @@ final class CsvColumnSet
         return ['map' => $map, 'key' => $keyIndex, 'refs' => $refs, 'errors' => [], 'warnings' => []];
     }
 
-    // 日時のセルを読む。受け付ける形は、日付の取り込みと同じ。
-    // [「Y-m-d H:i:s」の文字列, 'second'・'minute'・'day'のどこまで書いてあるか]。読めなければnull。
+    /**
+     * 日時のセルを読む。受け付ける形は、日付の取り込みと同じ。
+     * [「Y-m-d H:i:s」の文字列, 'second'・'minute'・'day'のどこまで書いてあるか]。読めなければnull。
+     */
     public function readDateTime(string $value): ?array
     {
         try {
@@ -678,7 +686,7 @@ final class CsvColumnSet
         return [$dateTime, $precision];
     }
 
-    // レコードの値を、その値の場所の列と同じ形で書き出した文字列。更新日時を比べるのに使う。
+    /** レコードの値を、その値の場所の列と同じ形で書き出した文字列。更新日時を比べるのに使う。 */
     public function exportCell(Model $record, string $path): string
     {
         foreach ($this->specs as $spec) {
@@ -690,8 +698,10 @@ final class CsvColumnSet
         return '';
     }
 
-    // 見出しに当たる定義を探す。[定義の番号, 横展開の部分]で、見つからなければnull。
-    // 横展開の部分は、一覧ありなら一覧の値、連番なら番号、組なら[番号, 組の中の見出し]。
+    /**
+     * 見出しに当たる定義を探す。[定義の番号, 横展開の部分]で、見つからなければnull。
+     * 横展開の部分は、一覧ありなら一覧の値、連番なら番号、組なら[番号, 組の中の見出し]。
+     */
     private function findSpec(string $heading): ?array
     {
         // 見出しがそのまま一致する定義を先に探す
@@ -727,7 +737,7 @@ final class CsvColumnSet
         return null;
     }
 
-    // 列を取り込めるか。取り込み先の項目が、全部rules()にあるときだけ取り込める。
+    /** 列を取り込めるか。取り込み先の項目が、全部rules()にあるときだけ取り込める。 */
     private function isImportable(array $spec, mixed $part, array $importable): bool
     {
         // アップロードの欄は、ファイル名と表示名の両方
@@ -744,7 +754,7 @@ final class CsvColumnSet
         return $spec['target'] !== null && in_array($spec['target'], $importable, true);
     }
 
-    // 複数のアップロードの欄への取り込み先。[項目名, 'filename'か'origin']で、そうでなければnull。
+    /** 複数のアップロードの欄への取り込み先。[項目名, 'filename'か'origin']で、そうでなければnull。 */
     private function uploadOf(array $spec, mixed $part): ?array
     {
         return match ($spec['type']) {
@@ -754,7 +764,7 @@ final class CsvColumnSet
         };
     }
 
-    // キーの列のセルを、定義の変換を戻した値にする。例：'000012'は'12'。
+    /** キーの列のセルを、定義の変換を戻した値にする。例：'000012'は'12'。 */
     public function readKey(?string $cell, string $keyName): ?string
     {
         $index = $this->keySpecIndex($keyName);
@@ -940,7 +950,7 @@ final class CsvColumnSet
         return $values;
     }
 
-    // アップロードの欄の値を、番号の組に入れる。同じ組の同じ値に違う内容が来たらエラー。
+    /** アップロードの欄の値を、番号の組に入れる。同じ組の同じ値に違う内容が来たらエラー。 */
     private function putUploadSlot(array &$uploads, array $upload, int $number, string $heading, ?string $value, CsvImportRow $row): void
     {
         [$field, $slot] = $upload;
@@ -954,7 +964,7 @@ final class CsvColumnSet
         $uploads[$field][$number][$slot] = [$heading, $value];
     }
 
-    // その列のCSVの見出し。横展開なら「見出し:表示名」や「見出し:1」の形。
+    /** その列のCSVの見出し。横展開なら「見出し:表示名」や「見出し:1」の形。 */
     private function cellHeading(array $spec, mixed $part): string
     {
         return match ($spec['type']) {
@@ -965,7 +975,7 @@ final class CsvColumnSet
         };
     }
 
-    // 値の列を読んで書式の変換を戻す。複数なら「、」で分ける。
+    /** 値の列を読んで書式の変換を戻す。複数なら「、」で分ける。 */
     private function readValue(?string $cell, array $spec): string|array|null
     {
         if ($spec['multiple']) {
@@ -975,7 +985,7 @@ final class CsvColumnSet
         return $cell === null ? null : $this->importValue($cell, $spec['filters']);
     }
 
-    // 一覧の表示名を、一覧の値に戻す。一覧に無い表示名はエラー。
+    /** 一覧の表示名を、一覧の値に戻す。一覧に無い表示名はエラー。 */
     private function readList(?string $cell, array $spec): string|array|null
     {
         $toKey = function (string $label) use ($spec) {
@@ -995,7 +1005,7 @@ final class CsvColumnSet
         return $cell === null ? null : $toKey($cell);
     }
 
-    // 「、」で区切った1セルを値の一覧にする。空の要素は除く。
+    /** 「、」で区切った1セルを値の一覧にする。空の要素は除く。 */
     private function split(?string $cell): array
     {
         if ($cell === null) {
@@ -1005,7 +1015,7 @@ final class CsvColumnSet
         return array_values(array_filter(array_map('trim', explode('、', $cell)), fn ($v) => $v !== ''));
     }
 
-    // 書式の変換を、書き出しと逆の順に戻す。
+    /** 書式の変換を、書き出しと逆の順に戻す。 */
     private function importValue(string $value, array $filters): string
     {
         foreach (array_reverse($filters) as [$name, $arg]) {
@@ -1046,7 +1056,7 @@ final class CsvColumnSet
         return $columns;
     }
 
-    // 確認画面の変更内容に出す項目の名前。その項目に取り込む最初の列の見出し。
+    /** 確認画面の変更内容に出す項目の名前。その項目に取り込む最初の列の見出し。 */
     public function fieldLabel(string $field): string
     {
         foreach ($this->specs as $spec) {
@@ -1068,7 +1078,7 @@ final class CsvColumnSet
         return $field;
     }
 
-    // 値を表示用の文字列にする。一覧から取り込んだ項目は、値を一覧の表示名に戻す。
+    /** 値を表示用の文字列にする。一覧から取り込んだ項目は、値を一覧の表示名に戻す。 */
     public function displayValue(string $field, mixed $value): string
     {
         $options = null;
@@ -1085,8 +1095,10 @@ final class CsvColumnSet
         return implode('、', array_filter($values, fn ($v) => $v !== ''));
     }
 
-    // 比べるための形にそろえる。nullと空文字は''、真偽値は'1'か'0'、ほかは文字列。
-    // 配列は要素をそろえて並べ替える。並び順も比べるときは、$sortをfalseにする。
+    /**
+     * 比べるための形にそろえる。nullと空文字は''、真偽値は'1'か'0'、ほかは文字列。
+     * 配列は要素をそろえて並べ替える。並び順も比べるときは、$sortをfalseにする。
+     */
     public static function normalize(mixed $value, bool $sort = true): string|array
     {
         if (is_array($value)) {

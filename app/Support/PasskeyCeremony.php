@@ -21,7 +21,7 @@ use Webauthn\PublicKeyCredential;
  */
 class PasskeyCeremony
 {
-    // ブラウザへ返すJSONの形のオプションを作り、セッションに控える。
+    /** ブラウザへ返すJSONの形のオプションを作り、セッションに控える。 */
     public static function putOptions(Request $request, string $sessionKey, object $options): array
     {
         $request->session()->put($sessionKey, WebAuthn::toJson($options));
@@ -50,8 +50,10 @@ class PasskeyCeremony
         return WebAuthn::fromJson($serialized, $class);
     }
 
-    // ブラウザから送られてきた署名の結果のcredentialを、検証用のオブジェクトにする。
-    // 形が壊れていればエラーにする。
+    /**
+     * ブラウザから送られてきた署名の結果のcredentialを、検証用のオブジェクトにする。
+     * 形が壊れていればエラーにする。
+     */
     public static function credential(Request $request): PublicKeyCredential
     {
         $request->validate([

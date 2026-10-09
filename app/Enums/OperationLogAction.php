@@ -30,7 +30,7 @@ enum OperationLogAction: string implements CodeTableEnum
     case InvitationCancel = 'invitation_cancel';
     case Throttled = 'throttled';
 
-    // 値ごとの名前
+    /** 値ごとの名前 */
     private const LABELS = [
         self::Login->value => 'ログイン',
         self::LoginFailed->value => 'ログインの失敗',

@@ -37,8 +37,10 @@ use Illuminate\View\View;
  */
 trait EmailChange
 {
-    // 1人の会員が確認コードを送れる回数の上限と、数える期間。新しいアドレスは自由に入力できるので、
-    // 他人のアドレスに確認コードを大量に送りつけられるのを防ぐ。
+    /**
+     * 1人の会員が確認コードを送れる回数の上限と、数える期間。新しいアドレスは自由に入力できるので、
+     * 他人のアドレスに確認コードを大量に送りつけられるのを防ぐ。
+     */
     private const EMAIL_CHANGE_MAIL_LIMIT = 5;
 
     private const EMAIL_CHANGE_MAIL_DECAY_SECONDS = 3600;
@@ -76,7 +78,7 @@ trait EmailChange
         return redirect()->route(self::EMAIL_CHANGE_ROUTE);
     }
 
-    // 確認コードの入力画面。
+    /** 確認コードの入力画面。 */
     public function emailChangeForm(Request $request): View|RedirectResponse
     {
         $pending = $this->emailChangePending($request, $this->emailChangeMember());
@@ -91,7 +93,7 @@ trait EmailChange
         ]);
     }
 
-    // 確認コードの照合と、仮置きした内容の保存。
+    /** 確認コードの照合と、仮置きした内容の保存。 */
     public function emailChangeConfirm(Request $request): RedirectResponse
     {
         $member = $this->emailChangeMember();
@@ -152,7 +154,7 @@ trait EmailChange
         return redirect()->route(self::EMAIL_CHANGE_DONE_ROUTE)->with('status', self::EMAIL_CHANGE_DONE_MESSAGE);
     }
 
-    // 確認コードの再送信。
+    /** 確認コードの再送信。 */
     public function emailChangeResend(Request $request): RedirectResponse
     {
         $member = $this->emailChangeMember();
@@ -172,8 +174,10 @@ trait EmailChange
         return redirect()->route(self::EMAIL_CHANGE_ROUTE)->with('status', '確認コードを再送しました。');
     }
 
-    // コードの入力画面の「入力内容を修正する」。仮置きした内容を入力画面に戻す。
-    // メールアドレスを打ち間違えていたときのため。
+    /**
+     * コードの入力画面の「入力内容を修正する」。仮置きした内容を入力画面に戻す。
+     * メールアドレスを打ち間違えていたときのため。
+     */
     public function emailChangeBack(Request $request): RedirectResponse
     {
         $member = $this->emailChangeMember();
@@ -185,7 +189,7 @@ trait EmailChange
             ->withInput($pending['input'] ?? []);
     }
 
-    // ログイン中の本人
+    /** ログイン中の本人 */
     private function emailChangeMember(): MemberAccount
     {
         $member = Auth::guard(self::EMAIL_CHANGE_GUARD)->user();
@@ -195,7 +199,7 @@ trait EmailChange
         return $member;
     }
 
-    // 確認コードを新しいアドレスへ送る。送れなかった場合は画面に出すメッセージを、送れた場合はnullを返す。
+    /** 確認コードを新しいアドレスへ送る。送れなかった場合は画面に出すメッセージを、送れた場合はnullを返す。 */
     private function sendEmailChangeCode(Request $request, MemberAccount $member, array $pending): ?string
     {
         // その会員が送った回数を数える
@@ -221,7 +225,7 @@ trait EmailChange
         return null;
     }
 
-    // セッションに仮置きした入力内容。無いときと、ほかの人のものだったときはnull
+    /** セッションに仮置きした入力内容。無いときと、ほかの人のものだったときはnull */
     private function emailChangePending(Request $request, MemberAccount $member): ?array
     {
         $pending = $request->session()->get($this->emailChangeSessionKey($member));
@@ -233,7 +237,7 @@ trait EmailChange
         return $pending;
     }
 
-    // 入力内容を仮置きするセッションキー。会員の種類ごとに分ける
+    /** 入力内容を仮置きするセッションキー。会員の種類ごとに分ける */
     private function emailChangeSessionKey(MemberAccount $member): string
     {
         return $member::memberType().'.email_change.pending';

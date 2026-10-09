@@ -37,30 +37,32 @@ class AuthSessionController extends Controller
 
     // ---- ログイン（MemberLogin）の設定 ----
 
-    // ログインする会員のモデル。ガード・ルート・メールのテンプレートの名前は、ここから決まる。
+    /** ログインする会員のモデル。ガード・ルート・メールのテンプレートの名前は、ここから決まる。 */
     private const MEMBER_CLASS = Member::class;
 
-    // 確認コードの入力画面のビュー。
+    /** 確認コードの入力画面のビュー。 */
     private const LOGIN_VERIFY_VIEW = 'auth.login-verify';
 
-    // ログインの試行制限（LoginThrottle）で、このコントローラーの失敗回数を数えるカウンターの名前。
-    // アカウントはメールアドレスで区別する。
+    /**
+     * ログインの試行制限（LoginThrottle）で、このコントローラーの失敗回数を数えるカウンターの名前。
+     * アカウントはメールアドレスで区別する。
+     */
     private const THROTTLE_SCOPE = 'member-login';
 
     // ---- パスキーでのログイン（PasskeyLogin）の設定 ----
 
-    // パスキーでログインさせるガード（App\Support\PasskeyLogin参照）。
+    /** パスキーでログインさせるガード（App\Support\PasskeyLogin参照）。 */
     private const PASSKEY_GUARD = 'web';
 
     // ---- ログイン・ログアウト ----
 
-    // ログインフォームの表示
+    /** ログインフォームの表示 */
     public function create(): View
     {
         return view('auth.login');
     }
 
-    // ログイン（1段階目：メールアドレス・パスワード）
+    /** ログイン（1段階目：メールアドレス・パスワード） */
     public function store(Request $request): RedirectResponse
     {
         $credentials = $request->validate([
@@ -98,14 +100,16 @@ class AuthSessionController extends Controller
         return $this->continueAfterPassword($request, $guard->getLastAttempted(), $request->boolean('remember'));
     }
 
-    // パスキーでログインした後の移動先。メールアドレス・パスワードでのログインと同じく、
-    // ログインが必要な画面から来た場合はその画面へ戻す（App\Support\LoginRedirect）。
+    /**
+     * パスキーでログインした後の移動先。メールアドレス・パスワードでのログインと同じく、
+     * ログインが必要な画面から来た場合はその画面へ戻す（App\Support\LoginRedirect）。
+     */
     private function passkeyRedirectUrl(): string
     {
         return LoginRedirect::forMember(self::MEMBER_CLASS);
     }
 
-    // ログアウト
+    /** ログアウト */
     public function destroy(Request $request): RedirectResponse
     {
         $this->logoutMember($request);

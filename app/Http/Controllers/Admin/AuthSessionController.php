@@ -30,20 +30,22 @@ class AuthSessionController extends Controller
     // 使わないサイトでは、このuseとroutes/web.phpのadmin.login.passkeyのルートを消す。
     use PasskeyLogin;
 
-    // パスキーでログインさせるガード（App\Support\PasskeyLogin参照）。
+    /** パスキーでログインさせるガード（App\Support\PasskeyLogin参照）。 */
     private const PASSKEY_GUARD = 'admin';
 
-    // ログインの試行制限（LoginThrottle）で、このコントローラーの失敗回数を数えるカウンターの名前。
-    // アカウントはログインIDで区別する。
+    /**
+     * ログインの試行制限（LoginThrottle）で、このコントローラーの失敗回数を数えるカウンターの名前。
+     * アカウントはログインIDで区別する。
+     */
     private const THROTTLE_SCOPE = 'admin-login';
 
-    // ログインフォームの表示
+    /** ログインフォームの表示 */
     public function create(): View
     {
         return view('admin.auth.login');
     }
 
-    // ログイン（1段階目：ログインID・パスワード）
+    /** ログイン（1段階目：ログインID・パスワード） */
     public function store(Request $request): RedirectResponse
     {
         $credentials = $request->validate([
@@ -97,14 +99,16 @@ class AuthSessionController extends Controller
         return redirect()->route('admin.twoFactor.show');
     }
 
-    // パスキーでログインした後の移動先。ログインID・パスワードでのログインと同じく、
-    // ログインが必要な画面から来た場合はその画面へ戻す（App\Support\LoginRedirect）。
+    /**
+     * パスキーでログインした後の移動先。ログインID・パスワードでのログインと同じく、
+     * ログインが必要な画面から来た場合はその画面へ戻す（App\Support\LoginRedirect）。
+     */
     private function passkeyRedirectUrl(): string
     {
         return LoginRedirect::forStaff();
     }
 
-    // ログアウト
+    /** ログアウト */
     public function destroy(Request $request): RedirectResponse
     {
         // 管理画面のログインだけを終わらせる。同じブラウザの会員のログインは残す

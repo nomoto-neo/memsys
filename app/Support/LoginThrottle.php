@@ -34,7 +34,7 @@ class LoginThrottle
 
     private const MAX_ATTEMPTS_PER_ACCOUNT = 5;
 
-    // 最初の失敗から数えて、この秒数が経つとカウンターが消える。
+    /** 最初の失敗から数えて、この秒数が経つとカウンターが消える。 */
     private const DECAY_SECONDS = 60;
 
     private string $ipKey;
@@ -54,7 +54,7 @@ class LoginThrottle
         $this->accountKey = "{$scope}:account:".mb_strtolower((string) $account);
     }
 
-    // IPとアカウントのどちらかが上限に達しているか。回数を読むだけで増やさない
+    /** IPとアカウントのどちらかが上限に達しているか。回数を読むだけで増やさない */
     public function isBlocked(): bool
     {
         return RateLimiter::tooManyAttempts($this->ipKey, self::MAX_ATTEMPTS_PER_IP)
@@ -81,7 +81,7 @@ class LoginThrottle
         return max(1, $seconds);
     }
 
-    // 画面に出す文言。$whatには「ログイン」「確認コード」のような何の試行かを表す言葉を渡す。
+    /** 画面に出す文言。$whatには「ログイン」「確認コード」のような何の試行かを表す言葉を渡す。 */
     public function blockedMessage(string $what): string
     {
         return "{$what}の試行回数が多すぎます。{$this->availableIn()}秒後に再試行してください。";

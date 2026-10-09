@@ -17,7 +17,7 @@ use Illuminate\View\View;
  */
 class Contact2Controller extends Controller
 {
-    // 入力の検証ルール
+    /** 入力の検証ルール */
     private function rules(): array
     {
         return [
@@ -29,7 +29,7 @@ class Contact2Controller extends Controller
         ];
     }
 
-    // フォームの表示
+    /** フォームの表示 */
     public function create(): View
     {
         return view('contact2.create', [
@@ -37,7 +37,7 @@ class Contact2Controller extends Controller
         ]);
     }
 
-    // 送信：検証してメールを送り、フォームへ戻す
+    /** 送信：検証してメールを送り、フォームへ戻す */
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate($this->rules());

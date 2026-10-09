@@ -35,19 +35,19 @@ use Illuminate\View\View;
  */
 trait MemberLogin
 {
-    // パスワード確認済みの会員のidを、2段階目が終わるまで持つセッションのキー
+    /** パスワード確認済みの会員のidを、2段階目が終わるまで持つセッションのキー */
     private function pendingSessionKey(): string
     {
         return self::MEMBER_CLASS::memberType().'.login.pending_member_id';
     }
 
-    // 「ログイン状態を保持する」の値を、2段階目が終わるまで持ち越すセッションのキー
+    /** 「ログイン状態を保持する」の値を、2段階目が終わるまで持ち越すセッションのキー */
     private function rememberSessionKey(): string
     {
         return self::MEMBER_CLASS::memberType().'.login.remember';
     }
 
-    // この種類の会員のルートへのリダイレクト。$nameは頭を付ける前の名前
+    /** この種類の会員のルートへのリダイレクト。$nameは頭を付ける前の名前 */
     private function redirectToMemberRoute(string $name): RedirectResponse
     {
         return redirect()->route(self::MEMBER_CLASS::memberRoute($name));
@@ -83,7 +83,7 @@ trait MemberLogin
         return $this->redirectToMemberRoute('login.verify');
     }
 
-    // 確認コードの入力画面
+    /** 確認コードの入力画面 */
     public function showVerification(Request $request): View|RedirectResponse
     {
         // パスワードの確認を済ませていなければ、ログイン画面へ戻す
@@ -94,7 +94,7 @@ trait MemberLogin
         return view(self::LOGIN_VERIFY_VIEW);
     }
 
-    // 確認コードの照合と、本ログイン
+    /** 確認コードの照合と、本ログイン */
     public function verifyCode(Request $request): RedirectResponse
     {
         $member = $this->pendingMember($request);
@@ -152,8 +152,10 @@ trait MemberLogin
         return redirect(LoginRedirect::forMember($member::class));
     }
 
-    // 確認コードの再送信。メールが届かない・見失った場合の救済。
-    // 連続送信は、routes/web.phpのthrottleで防ぐ。
+    /**
+     * 確認コードの再送信。メールが届かない・見失った場合の救済。
+     * 連続送信は、routes/web.phpのthrottleで防ぐ。
+     */
     public function resendCode(Request $request): RedirectResponse
     {
         $member = $this->pendingMember($request);
@@ -171,14 +173,16 @@ trait MemberLogin
         return $this->redirectToMemberRoute('login.verify')->with('status', '確認コードを再送しました。');
     }
 
-    // ログアウト。この種類のログインだけを終わらせ、同じブラウザのほかのログイン（管理画面など）は
-    // 残す（App\Support\LoginSession）
+    /**
+     * ログアウト。この種類のログインだけを終わらせ、同じブラウザのほかのログイン（管理画面など）は
+     * 残す（App\Support\LoginSession）
+     */
     private function logoutMember(Request $request): void
     {
         LoginSession::logout($request, self::MEMBER_CLASS::memberGuard());
     }
 
-    // パスワード確認済みで、2段階目を待っている会員（いなければnull）
+    /** パスワード確認済みで、2段階目を待っている会員（いなければnull） */
     private function pendingMember(Request $request): ?MemberAccount
     {
         $id = $request->session()->get($this->pendingSessionKey());

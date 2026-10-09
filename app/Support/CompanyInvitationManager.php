@@ -42,16 +42,16 @@ use Illuminate\Support\Str;
  */
 final class CompanyInvitationManager
 {
-    // 招待の有効な日数
+    /** 招待の有効な日数 */
     public const VALID_DAYS = 7;
 
-    // リンクに入れる値の長さ
+    /** リンクに入れる値の長さ */
     private const TOKEN_LENGTH = 64;
 
-    // メールのテンプレートの、会員の種類の名前を除いた名前。例：company_invitation
+    /** メールのテンプレートの、会員の種類の名前を除いた名前。例：company_invitation */
     private const TEMPLATE = 'invitation';
 
-    // 招待を作って、メールを送る。同じ企業の同じ宛先の招待が残っていれば、置き換える
+    /** 招待を作って、メールを送る。同じ企業の同じ宛先の招待が残っていれば、置き換える */
     public static function invite(Company $company, string $email): void
     {
         DB::transaction(function () use ($company, $email) {
@@ -71,7 +71,7 @@ final class CompanyInvitationManager
         });
     }
 
-    // 招待のメールを送り直す。リンクの値と期限を新しくするので、前のリンクは使えなくなる
+    /** 招待のメールを送り直す。リンクの値と期限を新しくするので、前のリンクは使えなくなる */
     public static function resend(CompanyInvitation $invitation): void
     {
         DB::transaction(function () use ($invitation) {
@@ -88,7 +88,7 @@ final class CompanyInvitationManager
         });
     }
 
-    // 招待を取り消す。送ったリンクは使えなくなる
+    /** 招待を取り消す。送ったリンクは使えなくなる */
     public static function cancel(CompanyInvitation $invitation): void
     {
         DB::transaction(function () use ($invitation) {
@@ -98,7 +98,7 @@ final class CompanyInvitationManager
         });
     }
 
-    // リンクの値から、期限内の招待を探す。無ければnull
+    /** リンクの値から、期限内の招待を探す。無ければnull */
     public static function find(string $token): ?CompanyInvitation
     {
         return CompanyInvitation::query()
@@ -120,13 +120,13 @@ final class CompanyInvitationManager
             ->get();
     }
 
-    // リンクの値のハッシュ値。乱数なので、検索できる速いハッシュ値で足りる
+    /** リンクの値のハッシュ値。乱数なので、検索できる速いハッシュ値で足りる */
     private static function hashOf(string $token): string
     {
         return hash('sha256', $token);
     }
 
-    // 招待のメール。登録の画面へのリンクと、期限を載せる
+    /** 招待のメール。登録の画面へのリンクと、期限を載せる */
     private static function sendMail(CompanyInvitation $invitation, string $token): void
     {
         try {

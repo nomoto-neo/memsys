@@ -41,35 +41,37 @@ use Illuminate\Support\Facades\Log;
  */
 final class SpamGuard
 {
-    // ハニーポットの欄の名前。機械が埋めたくなるよう、ありそうな名前にしている。
+    /** ハニーポットの欄の名前。機械が埋めたくなるよう、ありそうな名前にしている。 */
     public const HONEYPOT_FIELD = 'homepage_url';
 
-    // 入力画面を表示した時刻を、暗号化して持たせるhiddenの名前。
+    /** 入力画面を表示した時刻を、暗号化して持たせるhiddenの名前。 */
     public const STARTED_FIELD = 'form_started_token';
 
-    // Turnstileの枠が送ってくるトークンの名前。Cloudflareが決めているもの。
+    /** Turnstileの枠が送ってくるトークンの名前。Cloudflareが決めているもの。 */
     public const TURNSTILE_FIELD = 'cf-turnstile-response';
 
-    // Turnstileの判定を問い合わせる先。
+    /** Turnstileの判定を問い合わせる先。 */
     private const TURNSTILE_VERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
 
-    // Cloudflareへの問い合わせを待つ秒数。これを超えたら障害とみなして通す。
+    /** Cloudflareへの問い合わせを待つ秒数。これを超えたら障害とみなして通す。 */
     private const TURNSTILE_TIMEOUT_SECONDS = 5;
 
-    // Cloudflareの側の問題を表すエラーコード。これが返ってきたときも障害とみなして通す。
+    /** Cloudflareの側の問題を表すエラーコード。これが返ってきたときも障害とみなして通す。 */
     private const TURNSTILE_UNAVAILABLE_ERRORS = ['internal-error'];
 
-    // こちらの鍵の設定の問題を表すエラーコード。送信は止めず、設定を直すようログに残す。
+    /** こちらの鍵の設定の問題を表すエラーコード。送信は止めず、設定を直すようログに残す。 */
     private const TURNSTILE_CONFIG_ERRORS = ['missing-input-secret', 'invalid-input-secret'];
 
-    // 入力画面を表示した時刻を暗号化した値。_spam_guardがhiddenに入れる。
+    /** 入力画面を表示した時刻を暗号化した値。_spam_guardがhiddenに入れる。 */
     public static function startedToken(): string
     {
         return Crypt::encryptString((string) time());
     }
 
-    // 送信がスパムかどうかを判定する。$minSecondsは表示から送信までにかかるはずの
-    // いちばん短い秒数で、これより速ければ機械とみなす。
+    /**
+     * 送信がスパムかどうかを判定する。$minSecondsは表示から送信までにかかるはずの
+     * いちばん短い秒数で、これより速ければ機械とみなす。
+     */
     public static function check(Request $request, int $minSeconds): SpamCheckResult
     {
         // ハニーポットに入力がある
@@ -99,7 +101,7 @@ final class SpamGuard
         return self::verifyTurnstile($request);
     }
 
-    // Turnstileのトークンが本物かを、Cloudflareのsiteverifyに問い合わせる。
+    /** Turnstileのトークンが本物かを、Cloudflareのsiteverifyに問い合わせる。 */
     private static function verifyTurnstile(Request $request): SpamCheckResult
     {
         $secret = config('services.turnstile.secret_key');

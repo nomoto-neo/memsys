@@ -28,13 +28,13 @@ use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
  */
 final class LoginRedirect
 {
-    // 記録を置くセッションのキー。Laravelが決めているもの。
+    /** 記録を置くセッションのキー。Laravelが決めているもの。 */
     private const INTENDED_SESSION_KEY = 'url.intended';
 
-    // 管理画面のスタッフのガード。
+    /** 管理画面のスタッフのガード。 */
     private const STAFF_GUARD = 'admin';
 
-    // 管理画面のスタッフのログイン後の移動先。
+    /** 管理画面のスタッフのログイン後の移動先。 */
     public static function forStaff(): string
     {
         return self::intendedUrl(self::STAFF_GUARD) ?? route('admin.dashboard');
@@ -50,8 +50,10 @@ final class LoginRedirect
         return self::intendedUrl($memberClass::memberGuard()) ?? route($memberClass::memberRoute('mypage'));
     }
 
-    // 記録されたURLが、ログインしたガード（$guard）の画面なら、パスと問い合わせの部分を返して
-    // 記録を消す。そうでなければnullを返して記録は残す。
+    /**
+     * 記録されたURLが、ログインしたガード（$guard）の画面なら、パスと問い合わせの部分を返して
+     * 記録を消す。そうでなければnullを返して記録は残す。
+     */
     private static function intendedUrl(string $guard): ?string
     {
         $url = session(self::INTENDED_SESSION_KEY);

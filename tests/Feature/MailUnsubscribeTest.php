@@ -44,7 +44,7 @@ class MailUnsubscribeTest extends TestCase
         ]);
     }
 
-    // 配信停止の操作ログ。古い順
+    /** 配信停止の操作ログ。古い順 */
     private function unsubscribeLogs(): array
     {
         return OperationLog::where('action', OperationLogAction::MailUnsubscribe)->orderBy('id')->get()->all();

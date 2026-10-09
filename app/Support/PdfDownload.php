@@ -56,11 +56,13 @@ use Symfony\Component\HttpFoundation\HeaderUtils;
  */
 trait PdfDownload
 {
-    // 同梱の日本語フォントの場所。IPAフォントライセンスで配られているもの。
-    // サイト全体で共通にするものなので、コントローラーからは変えない。
+    /**
+     * 同梱の日本語フォントの場所。IPAフォントライセンスで配られているもの。
+     * サイト全体で共通にするものなので、コントローラーからは変えない。
+     */
     private const PDF_FONT_DIR = 'fonts/ipaex';
 
-    // font-familyの名前 => フォントファイル。
+    /** font-familyの名前 => フォントファイル。 */
     private const PDF_FONTS = [
         'ipaexg' => 'ipaexg.ttf',
         'ipaexm' => 'ipaexm.ttf',
@@ -68,14 +70,16 @@ trait PdfDownload
 
     private const PDF_DEFAULT_FONT = 'ipaexg';
 
-    // mPDFがフォントの解析結果などを置く、storage/の下の作業用のディレクトリ。
-    // 既定のvendor/の下はサーバーでは書き込めないことがあるため。
+    /**
+     * mPDFがフォントの解析結果などを置く、storage/の下の作業用のディレクトリ。
+     * 既定のvendor/の下はサーバーでは書き込めないことがあるため。
+     */
     private const PDF_TEMP_DIR = 'framework/mpdf';
 
-    // 切り抜いた画像をJPEGにするときの画質。
+    /** 切り抜いた画像をJPEGにするときの画質。 */
     private const PDF_IMAGE_QUALITY = 90;
 
-    // テンプレートからPDFを作って返す。引数の意味はこのファイルの冒頭にある
+    /** テンプレートからPDFを作って返す。引数の意味はこのファイルの冒頭にある */
     private function downloadPdf(
         string $view,
         array $data,
@@ -136,8 +140,10 @@ trait PdfDownload
         ]);
     }
 
-    // PDFに埋め込む画像のデータ。[横, 縦]の$aspectがあれば、真ん中をその比で切り抜いたJPEGにする。
-    // ファイルが無いか読めないときはnullを返し、その画像は埋め込まない。
+    /**
+     * PDFに埋め込む画像のデータ。[横, 縦]の$aspectがあれば、真ん中をその比で切り抜いたJPEGにする。
+     * ファイルが無いか読めないときはnullを返し、その画像は埋め込まない。
+     */
     private function pdfImageData(?string $path, ?array $aspect): ?string
     {
         if ($path === null || ! is_file($path)) {

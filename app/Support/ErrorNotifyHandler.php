@@ -43,19 +43,19 @@ use Throwable;
  */
 final class ErrorNotifyHandler extends AbstractProcessingHandler
 {
-    // 間引きの記録のキーの頭
+    /** 間引きの記録のキーの頭 */
     private const CACHE_PREFIX = 'error_notify:';
 
-    // 件名に載せる内容の幅（半角で数えた文字数）。これより長ければ切る
+    /** 件名に載せる内容の幅（半角で数えた文字数）。これより長ければ切る */
     private const TITLE_WIDTH = 60;
 
-    // メールに載せるスタックトレースの行数
+    /** メールに載せるスタックトレースの行数 */
     private const TRACE_LINES = 15;
 
-    // 通知を送っている最中か。この通知自体を送れなかったというエラーを、また通知しないための目印
+    /** 通知を送っている最中か。この通知自体を送れなかったというエラーを、また通知しないための目印 */
     private static bool $sending = false;
 
-    // $levelは知らせる最低のレベル、$toはカンマ区切りの宛先、$intervalMinutesは同じ内容を送る間隔
+    /** $levelは知らせる最低のレベル、$toはカンマ区切りの宛先、$intervalMinutesは同じ内容を送る間隔 */
     public function __construct(
         int|string|Level $level,
         private readonly string $to,
@@ -64,7 +64,7 @@ final class ErrorNotifyHandler extends AbstractProcessingHandler
         parent::__construct($level);
     }
 
-    // ログの1件を受け取り、間引きの間隔を過ぎていればメールで知らせる
+    /** ログの1件を受け取り、間引きの間隔を過ぎていればメールで知らせる */
     protected function write(LogRecord $record): void
     {
         $recipients = array_filter(array_map('trim', explode(',', $this->to)));
@@ -128,7 +128,7 @@ final class ErrorNotifyHandler extends AbstractProcessingHandler
         return null;
     }
 
-    // 通知のメールのテンプレートに渡す値。入力値は記載しない
+    /** 通知のメールのテンプレートに渡す値。入力値は記載しない */
     private function mailVariables(LogRecord $record, ?Throwable $exception, array $recipients, int $suppressed): array
     {
         $variables = [
@@ -172,7 +172,7 @@ final class ErrorNotifyHandler extends AbstractProcessingHandler
         return $variables;
     }
 
-    // どこで起きたか。画面ならメソッドとURLとIPとログイン中の人、コマンドならそのコマンド
+    /** どこで起きたか。画面ならメソッドとURLとIPとログイン中の人、コマンドならそのコマンド */
     private function whereItHappened(): string
     {
         if (app()->runningInConsole()) {
@@ -229,7 +229,7 @@ final class ErrorNotifyHandler extends AbstractProcessingHandler
         return $this->relativePath($thrownAt['file']).':'.$thrownAt['line'];
     }
 
-    // サーバーの中の場所を、プロジェクトからの相対パスにする
+    /** サーバーの中の場所を、プロジェクトからの相対パスにする */
     private function relativePath(string $text): string
     {
         return str_replace(base_path().DIRECTORY_SEPARATOR, '', $text);

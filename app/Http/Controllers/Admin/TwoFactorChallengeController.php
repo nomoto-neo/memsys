@@ -27,12 +27,16 @@ use Illuminate\View\View;
  */
 class TwoFactorChallengeController extends Controller
 {
-    // パスワード確認済みのスタッフIDを一時的に持たせるセッションキー。
-    // AuthSessionController::store()から見えるよう、public constにしている。
+    /**
+     * パスワード確認済みのスタッフIDを一時的に持たせるセッションキー。
+     * AuthSessionController::store()から見えるよう、public constにしている。
+     */
     public const PENDING_SESSION_KEY = 'admin.2fa.pending_staff_id';
 
-    // 「ログイン状態を保持する」チェックボックスの値を、2段階目が
-    // 終わるまで一時的に持ち越すためのセッションキー。
+    /**
+     * 「ログイン状態を保持する」チェックボックスの値を、2段階目が
+     * 終わるまで一時的に持ち越すためのセッションキー。
+     */
     public const REMEMBER_SESSION_KEY = 'admin.2fa.remember';
 
     /**
@@ -50,7 +54,7 @@ class TwoFactorChallengeController extends Controller
      */
     public const THROTTLE_SCOPE = 'admin-two-factor';
 
-    // 2段階目の画面（未登録ならQRコードの登録、登録済みならコードの入力）
+    /** 2段階目の画面（未登録ならQRコードの登録、登録済みならコードの入力） */
     public function show(Request $request): View|RedirectResponse
     {
         $staff = $this->pendingStaff($request);
@@ -70,7 +74,7 @@ class TwoFactorChallengeController extends Controller
         ]);
     }
 
-    // まだ登録が済んでいないスタッフに、QRコードを見せる画面。
+    /** まだ登録が済んでいないスタッフに、QRコードを見せる画面。 */
     private function showSetup(Request $request, Staff $staff): View
     {
         // 秘密鍵は、初めて開いたときに作ってセッションに置く（再読み込みしても変わらないように）
@@ -91,7 +95,7 @@ class TwoFactorChallengeController extends Controller
         ]);
     }
 
-    // 2段階目の照合（未登録なら初回登録の確認、登録済みならコードの照合）
+    /** 2段階目の照合（未登録なら初回登録の確認、登録済みならコードの照合） */
     public function verify(Request $request): RedirectResponse
     {
         $staff = $this->pendingStaff($request);
@@ -163,8 +167,10 @@ class TwoFactorChallengeController extends Controller
             ->with('newBackupCodes', $backupCodes);
     }
 
-    // 登録済みのスタッフの、ログインの2段階目。認証アプリのコードか、バックアップコードで
-    // 確かめる。画面には2つのフォームがあり、backup_codeが送られてきたかで見分ける。
+    /**
+     * 登録済みのスタッフの、ログインの2段階目。認証アプリのコードか、バックアップコードで
+     * 確かめる。画面には2つのフォームがあり、backup_codeが送られてきたかで見分ける。
+     */
     private function verifyChallenge(Request $request, Staff $staff): RedirectResponse
     {
         $useBackupCode = $request->filled('backup_code');
@@ -353,8 +359,10 @@ class TwoFactorChallengeController extends Controller
         return new LoginThrottle(self::THROTTLE_SCOPE, $request->ip(), $staff->id);
     }
 
-    // 2段階目まで通った時点で、初めて本ログインにする。セッション固定攻撃への対策の
-    // regenerate()も、このときに行う（パスワードを確かめた時点はまだ本ログインではないため）。
+    /**
+     * 2段階目まで通った時点で、初めて本ログインにする。セッション固定攻撃への対策の
+     * regenerate()も、このときに行う（パスワードを確かめた時点はまだ本ログインではないため）。
+     */
     private function completeLogin(Request $request, Staff $staff): void
     {
         // 1段階目で控えた「ログイン状態を保持する」を取り出して使う
@@ -366,7 +374,7 @@ class TwoFactorChallengeController extends Controller
         $request->session()->regenerate();
     }
 
-    // パスワード確認済みで、2段階目を待っているスタッフ（いなければnull）
+    /** パスワード確認済みで、2段階目を待っているスタッフ（いなければnull） */
     private function pendingStaff(Request $request): ?Staff
     {
         $id = $request->session()->get(self::PENDING_SESSION_KEY);

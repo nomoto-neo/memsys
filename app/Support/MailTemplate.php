@@ -96,7 +96,7 @@ final class MailTemplate
         );
     }
 
-    // HTML版のテンプレートがあれば、展開した中身を返す。無ければnullで、テキストだけのメールになる
+    /** HTML版のテンプレートがあれば、展開した中身を返す。無ければnullで、テキストだけのメールになる */
     private static function renderHtmlCompanion(string $name, array $vars): ?string
     {
         $path = self::htmlPath($name);
@@ -108,19 +108,19 @@ final class MailTemplate
         return Blade::render(self::readFile($path), $vars);
     }
 
-    // テキスト版のテンプレートの場所
+    /** テキスト版のテンプレートの場所 */
     private static function mainPath(string $name): string
     {
         return resource_path(self::DIRECTORY.'/'.$name.'.blade.php');
     }
 
-    // HTML版のテンプレートの場所
+    /** HTML版のテンプレートの場所 */
     private static function htmlPath(string $name): string
     {
         return resource_path(self::DIRECTORY.'/'.$name.'_html.blade.php');
     }
 
-    // テンプレートの中身。読めなければ例外
+    /** テンプレートの中身。読めなければ例外 */
     private static function readFile(string $path): string
     {
         if (! is_readable($path)) {

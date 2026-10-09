@@ -58,21 +58,25 @@ use Illuminate\Support\Facades\DB;
  */
 trait FormFlow
 {
-    // rules()から必須マークの配列を作る。$alsoRequiredの意味はrequired_fields()と同じ。
-    // 例：新規登録のpassword_confirmationは、$this->requiredFields(null, ['password_confirmation'])
+    /**
+     * rules()から必須マークの配列を作る。$alsoRequiredの意味はrequired_fields()と同じ。
+     * 例：新規登録のpassword_confirmationは、$this->requiredFields(null, ['password_confirmation'])
+     */
     private function requiredFields(?Model $record = null, array $alsoRequired = []): array
     {
         return required_fields($this->rules($record), $alsoRequired);
     }
 
-    // 入力値を検証してprepareInput()で整形して返す。確認画面と保存のどちらもここを通るので、
-    // 確認画面に出る値と保存される値は必ず一致する。
+    /**
+     * 入力値を検証してprepareInput()で整形して返す。確認画面と保存のどちらもここを通るので、
+     * 確認画面に出る値と保存される値は必ず一致する。
+     */
     private function validatedInput(Request $request, ?Model $record = null): array
     {
         return $this->prepareInput($request->validate($this->rules($record)));
     }
 
-    // 確認画面に渡す$input。表示にもhiddenにもこれを使う。アップロードの項目は組み立て直した値を使う
+    /** 確認画面に渡す$input。表示にもhiddenにもこれを使う。アップロードの項目は組み立て直した値を使う */
     private function confirmInput(Request $request, ?Model $record = null): array
     {
         $validated = $this->validatedInput($request, $record);
@@ -113,13 +117,13 @@ trait FormFlow
         return $empty;
     }
 
-    // アップロードの項目の$input。AjaxFileUploadを使っていなければ空
+    /** アップロードの項目の$input。AjaxFileUploadを使っていなければ空 */
     private function uploadInput(?Model $record, array $source = []): array
     {
         return method_exists($this, 'ajaxUploadInput') ? $this->ajaxUploadInput($record, $source) : [];
     }
 
-    // 登録・更新の実行。新規登録はnew モデル()を、更新は対象のモデルを渡す
+    /** 登録・更新の実行。新規登録はnew モデル()を、更新は対象のモデルを渡す */
     private function saveData(Model $record, Request $request): void
     {
         // 保存の前にもう一度検証する。新規登録なら確認画面と同じくrules()にnullを渡す
@@ -184,8 +188,10 @@ trait FormFlow
         }
     }
 
-    // 削除の実行。関連データとアップロードを先に消してから本体を消す。
-    // ファイルの実物は、トランザクションが確定した後に消える
+    /**
+     * 削除の実行。関連データとアップロードを先に消してから本体を消す。
+     * ファイルの実物は、トランザクションが確定した後に消える
+     */
     private function deleteData(Model $record): void
     {
         DB::transaction(function () use ($record) {
@@ -203,37 +209,39 @@ trait FormFlow
 
     // ---- 必要なときだけコントローラーで書き換える処理。ここでは何もしない ----
 
-    // 新規登録の初期値
+    /** 新規登録の初期値 */
     private function defaultInput(): array
     {
         return [];
     }
 
-    // 検証の後、確認画面と保存の前の整形
+    /** 検証の後、確認画面と保存の前の整形 */
     private function prepareInput(array $validated): array
     {
         return $validated;
     }
 
-    // 入力値をそのまま使わずに保存する列
+    /** 入力値をそのまま使わずに保存する列 */
     private function additionalFields(array $validated, Model $record): array
     {
         return [];
     }
 
-    // 保存の直後の処理。$changedFieldsは、更新で値が変わった列の、列の名前 => 変わる前の値
-    // （新規登録とCSV取り込みでは空）
+    /**
+     * 保存の直後の処理。$changedFieldsは、更新で値が変わった列の、列の名前 => 変わる前の値
+     * （新規登録とCSV取り込みでは空）
+     */
     private function afterSave(Model $record, array $validated, array $changedFields = []): void
     {
     }
 
-    // 操作ログに残す操作の種類。$createdは新規登録ならtrue
+    /** 操作ログに残す操作の種類。$createdは新規登録ならtrue */
     private function savedLogAction(bool $created): OperationLogAction
     {
         return $created ? OperationLogAction::Create : OperationLogAction::Update;
     }
 
-    // 削除の直前の処理
+    /** 削除の直前の処理 */
     private function beforeDelete(Model $record): void
     {
     }

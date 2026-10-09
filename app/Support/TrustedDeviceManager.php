@@ -31,11 +31,13 @@ use Illuminate\Support\Str;
  */
 class TrustedDeviceManager
 {
-    // 信頼の有効な日数。長すぎると、端末を無くしたときに第三者がいつまでも
-    // 2段階目なしでログインできてしまう
+    /**
+     * 信頼の有効な日数。長すぎると、端末を無くしたときに第三者がいつまでも
+     * 2段階目なしでログインできてしまう
+     */
     public const VALID_DAYS = 30;
 
-    // 会員とスタッフで、記録の値を入れるCookieの名前だけを変える
+    /** 会員とスタッフで、記録の値を入れるCookieの名前だけを変える */
     private function __construct(private readonly string $cookieName)
     {
     }
@@ -50,13 +52,13 @@ class TrustedDeviceManager
         return new self($member::trustedDeviceCookie());
     }
 
-    // スタッフの「この端末を信頼する」
+    /** スタッフの「この端末を信頼する」 */
     public static function forStaff(): self
     {
         return new self('staff_trusted_device');
     }
 
-    // この端末が、その人に信頼されているか
+    /** この端末が、その人に信頼されているか */
     public function isTrusted(MemberAccount|Staff $owner, Request $request): bool
     {
         $token = $request->cookie($this->cookieName);
@@ -105,7 +107,7 @@ class TrustedDeviceManager
         }
     }
 
-    // DBに置く、Cookieの値のハッシュ値。理由は冒頭のコメントの「ハッシュ値」
+    /** DBに置く、Cookieの値のハッシュ値。理由は冒頭のコメントの「ハッシュ値」 */
     private static function hashOf(string $token): string
     {
         return hash('sha256', $token);

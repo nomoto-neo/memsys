@@ -19,7 +19,7 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class RestrictAdminAccess
 {
-    // 入ってよいIPアドレスの一覧のある設定の名前
+    /** 入ってよいIPアドレスの一覧のある設定の名前 */
     private const CONFIG_KEY = 'app.admin_allowed_ips';
 
     public function handle(Request $request, Closure $next): Response

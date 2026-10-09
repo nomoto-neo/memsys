@@ -8,6 +8,6 @@ namespace App\Enums;
  */
 interface CodeTableEnum
 {
-    // 画面などに出す名前。
+    /** 画面などに出す名前。 */
     public function label(): string;
 }

@@ -20,12 +20,12 @@ class SameCountAsRule implements DataAwareRule, ValidationRule
 {
     private array $data = [];
 
-    // $othersは、要素数を比べる相手の項目名
+    /** $othersは、要素数を比べる相手の項目名 */
     public function __construct(private array $others)
     {
     }
 
-    // 検証の前に、Laravelが送信データ全体を渡すために呼ぶ
+    /** 検証の前に、Laravelが送信データ全体を渡すために呼ぶ */
     public function setData(array $data): static
     {
         $this->data = $data;
@@ -33,7 +33,7 @@ class SameCountAsRule implements DataAwareRule, ValidationRule
         return $this;
     }
 
-    // 検証。どれか1つでも要素数が違えば$fail()を呼ぶ
+    /** 検証。どれか1つでも要素数が違えば$fail()を呼ぶ */
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
         $count = is_array($value) ? count($value) : 0;

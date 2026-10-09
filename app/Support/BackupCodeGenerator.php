@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Hash;
  */
 class BackupCodeGenerator
 {
-    // 1回の発行で作るコードの個数。
+    /** 1回の発行で作るコードの個数。 */
     private const CODE_COUNT = 10;
 
     /**

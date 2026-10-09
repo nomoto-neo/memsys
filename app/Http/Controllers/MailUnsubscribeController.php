@@ -14,14 +14,16 @@ use Illuminate\View\View;
  */
 class MailUnsubscribeController extends Controller
 {
-    // 「配信を停止する」のボタンの画面（GET /mail/unsubscribe）。開いただけでは何も変えない
+    /** 「配信を停止する」のボタンの画面（GET /mail/unsubscribe）。開いただけでは何も変えない */
     public function show(): View
     {
         return view('mail_unsubscribe.show');
     }
 
-    // 停止の実行（POST /mail/unsubscribe）。メールソフトの「登録解除」のボタンからも、ここに届く。
-    // メールソフトは移動先を追わないことがあるので、リダイレクトせずに完了の画面をそのまま返す
+    /**
+     * 停止の実行（POST /mail/unsubscribe）。メールソフトの「登録解除」のボタンからも、ここに届く。
+     * メールソフトは移動先を追わないことがあるので、リダイレクトせずに完了の画面をそのまま返す
+     */
     public function store(Request $request): View
     {
         MailUnsubscribe::stop($request);

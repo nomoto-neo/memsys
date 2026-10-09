@@ -14,10 +14,10 @@ use Illuminate\Support\Facades\Auth;
  */
 class TopController extends Controller
 {
-    // TOPページに出すお知らせの件数。
+    /** TOPページに出すお知らせの件数。 */
     private const NEWS_COUNT = 5;
 
-    // TOPページ
+    /** TOPページ */
     public function index(): View
     {
         // その人に見せてよい記事（会員限定の記事はログイン中の会員にだけ）を、

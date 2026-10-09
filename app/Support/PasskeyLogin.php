@@ -37,7 +37,7 @@ use Webauthn\PublicKeyCredentialRequestOptions;
  */
 trait PasskeyLogin
 {
-    // ブラウザへ渡したオプションを署名の結果が届くまで控えておくセッションキー。
+    /** ブラウザへ渡したオプションを署名の結果が届くまで控えておくセッションキー。 */
     private function passkeyLoginSessionKey(): string
     {
         return 'passkey.login_options.'.self::PASSKEY_GUARD;
@@ -121,6 +121,6 @@ trait PasskeyLogin
         return response()->json(['redirect' => $this->passkeyRedirectUrl()]);
     }
 
-    // ログインした後に移動するURL。コントローラー側で用意する。
+    /** ログインした後に移動するURL。コントローラー側で用意する。 */
     abstract private function passkeyRedirectUrl(): string;
 }

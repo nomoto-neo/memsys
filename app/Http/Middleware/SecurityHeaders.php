@@ -18,7 +18,7 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class SecurityHeaders
 {
-    // どの応答にも付けるヘッダー
+    /** どの応答にも付けるヘッダー */
     private const HEADERS = [
         // ほかのサイトの<iframe>の中に、このサイトの画面を出させない
         'X-Frame-Options' => 'SAMEORIGIN',
@@ -28,8 +28,10 @@ class SecurityHeaders
         'Referrer-Policy' => 'strict-origin-when-cross-origin',
     ];
 
-    // HTTPSで届いたときだけ付けるヘッダー。ブラウザはこの秒数（1年）の間、このドメインを
-    // HTTPSだけで開く。サブドメインは、HTTPで動かしているものがあると開けなくなるので含めない
+    /**
+     * HTTPSで届いたときだけ付けるヘッダー。ブラウザはこの秒数（1年）の間、このドメインを
+     * HTTPSだけで開く。サブドメインは、HTTPで動かしているものがあると開けなくなるので含めない
+     */
     private const HSTS = 'max-age=31536000';
 
     public function handle(Request $request, Closure $next): Response

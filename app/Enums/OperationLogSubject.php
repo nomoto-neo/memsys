@@ -21,7 +21,7 @@ enum OperationLogSubject: string implements CodeTableEnum
     case BulkMail = 'bulk_mail';
     case BulkMailTemplate = 'bulk_mail_template';
 
-    // 値ごとの名前
+    /** 値ごとの名前 */
     private const LABELS = [
         self::Staff->value => 'スタッフ',
         self::Member->value => '会員',
@@ -35,7 +35,7 @@ enum OperationLogSubject: string implements CodeTableEnum
         self::BulkMailTemplate->value => '一斉メールの文面',
     ];
 
-    // 操作した人になれる種類。ログインできるモデルだけ
+    /** 操作した人になれる種類。ログインできるモデルだけ */
     public const OPERATORS = [
         self::Staff,
         self::Member,

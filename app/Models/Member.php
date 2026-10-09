@@ -32,32 +32,42 @@ class Member extends Authenticatable implements MemberAccount, PasskeyUser
     // Member::factory()を使えるようにする（database/factories/MemberFactory.php）
     use HasFactory;
 
-    // 種類の名前。メールのテンプレート（member_...）や、信頼済み端末のCookieの名前の頭になる
+    /** 種類の名前。メールのテンプレート（member_...）や、信頼済み端末のCookieの名前の頭になる */
     public const MEMBER_TYPE = 'member';
 
-    // ガードとルートの名前は、今のまま変えない。決まりのとおりなら、ガードはmember、
-    // ルートはmember.loginのようになる（App\Support\IsMemberAccount）
+    /**
+     * ガードとルートの名前は、今のまま変えない。決まりのとおりなら、ガードはmember、
+     * ルートはmember.loginのようになる（App\Support\IsMemberAccount）
+     */
     public const MEMBER_GUARD = 'web';
 
     public const MEMBER_ROUTE_PREFIX = '';
 
-    // 顔写真の横幅(px)。これより大きい画像は、この横幅に縮めて保存する。
-    // どの画面から登録しても同じ、このデータ項目の仕様なので、モデルに持たせている。
+    /**
+     * 顔写真の横幅(px)。これより大きい画像は、この横幅に縮めて保存する。
+     * どの画面から登録しても同じ、このデータ項目の仕様なので、モデルに持たせている。
+     */
     public const PHOTO_WIDTH = 600;
 
-    // 顔写真を履歴書に貼るときの、横と縦の比。履歴書の写真の大きさ（横30mm・縦40mm）に
-    // 合わせ、PDFにするときに真ん中をこの比で切り抜く。
+    /**
+     * 顔写真を履歴書に貼るときの、横と縦の比。履歴書の写真の大きさ（横30mm・縦40mm）に
+     * 合わせ、PDFにするときに真ん中をこの比で切り抜く。
+     */
     public const PHOTO_ASPECT = [3, 4];
 
-    // ログインした人だけが見られる場所に置くアップロードのフィールド。顔写真は、
-    // 本人とスタッフだけが見られる。見てよいかはApp\Policies\MemberPolicyで判断する。
+    /**
+     * ログインした人だけが見られる場所に置くアップロードのフィールド。顔写真は、
+     * 本人とスタッフだけが見られる。見てよいかはApp\Policies\MemberPolicyで判断する。
+     */
     public const PRIVATE_FILE_FIELDS = ['photo'];
 
-    // 操作ログで、変わった列に数えない列。最後に更新したスタッフのidは、入力とは関係なく
-    // 変わるため（App\Support\OperationRecorder::loggableFields()）。
+    /**
+     * 操作ログで、変わった列に数えない列。最後に更新したスタッフのidは、入力とは関係なく
+     * 変わるため（App\Support\OperationRecorder::loggableFields()）。
+     */
     public const OPERATION_LOG_IGNORE = ['staff_id'];
 
-    // 業務のテーブルなので、t_を付けた名前にしている
+    /** 業務のテーブルなので、t_を付けた名前にしている */
     protected $table = 't_members';
 
     protected $fillable = [
@@ -78,7 +88,7 @@ class Member extends Authenticatable implements MemberAccount, PasskeyUser
         'staff_id',
     ];
 
-    // 配列やJSONにしたときに出さない項目。パスワードのハッシュ値などを、うっかり出さないように
+    /** 配列やJSONにしたときに出さない項目。パスワードのハッシュ値などを、うっかり出さないように */
     protected $hidden = [
         'password',
         // 既存のシステムから移した会員の、古い方式のパスワード（App\Support\LegacyPasswordUserProvider）
@@ -95,40 +105,44 @@ class Member extends Authenticatable implements MemberAccount, PasskeyUser
         'staff_id' => 'integer',
     ];
 
-    // 画面やメールに出す名前
+    /** 画面やメールに出す名前 */
     public function displayName(): string
     {
         return (string) $this->name;
     }
 
-    // お知らせや確認コードを送るメールアドレス
+    /** お知らせや確認コードを送るメールアドレス */
     public function notificationEmail(): ?string
     {
         return $this->email;
     }
 
-    // お知らせメール（管理画面の一斉メール）を受け取る会員か
+    /** お知らせメール（管理画面の一斉メール）を受け取る会員か */
     public function receivesNoticeMail(): bool
     {
         return $this->notice_mail === NoticeMail::Receive->value;
     }
 
-    // 管理画面から最後にこの会員を更新したスタッフ。
-    // そのスタッフを削除した後も名前を出せるよう、削除済みのスタッフも含めて探す。
+    /**
+     * 管理画面から最後にこの会員を更新したスタッフ。
+     * そのスタッフを削除した後も名前を出せるよう、削除済みのスタッフも含めて探す。
+     */
     public function editorStaff(): BelongsTo
     {
         return $this->belongsTo(Staff::class, 'staff_id')
             ->withTrashed();
     }
 
-    // 「このデバイスを記憶する」で記憶した端末。判定はApp\Support\TrustedDeviceManagerが行う。
+    /** 「このデバイスを記憶する」で記憶した端末。判定はApp\Support\TrustedDeviceManagerが行う。 */
     public function trustedDevices(): MorphMany
     {
         return $this->morphMany(TrustedDevice::class, 'authenticatable');
     }
 
-    // 顔写真のURL。未登録ならnull。非公開のファイルなので、本人とスタッフだけが開けるURLになる。
-    // マイページのように、フォームの無い画面で使う。
+    /**
+     * 顔写真のURL。未登録ならnull。非公開のファイルなので、本人とスタッフだけが開けるURLになる。
+     * マイページのように、フォームの無い画面で使う。
+     */
     protected function photoUrl(): Attribute
     {
         return Attribute::make(
@@ -136,7 +150,7 @@ class Member extends Authenticatable implements MemberAccount, PasskeyUser
         );
     }
 
-    // 顔写真のサーバー上の場所。未登録ならnull。履歴書のPDFに埋め込むときに使う。
+    /** 顔写真のサーバー上の場所。未登録ならnull。履歴書のPDFに埋め込むときに使う。 */
     protected function photoPath(): Attribute
     {
         return Attribute::make(

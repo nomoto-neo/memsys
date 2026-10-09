@@ -78,8 +78,10 @@ class OperationLog extends Model
         return $names;
     }
 
-    // 操作した人を「スタッフID:3　氏名」の形にした文字。誰もログインしていない操作は「訪問者」。
-    // $namesはsubjectNames()の結果。メールのように、Bladeで組み立てないところで使う
+    /**
+     * 操作した人を「スタッフID:3　氏名」の形にした文字。誰もログインしていない操作は「訪問者」。
+     * $namesはsubjectNames()の結果。メールのように、Bladeで組み立てないところで使う
+     */
     public static function operatorLabel(?string $type, ?int $id, array $names): string
     {
         if ($type === null) {
@@ -181,8 +183,10 @@ class OperationLog extends Model
         return '';
     }
 
-    // CSVのダウンロードと取り込みの、CSVの名前。何に対する操作かなので、画面では対象の欄に出す。
-    // ほかの操作ならnull
+    /**
+     * CSVのダウンロードと取り込みの、CSVの名前。何に対する操作かなので、画面では対象の欄に出す。
+     * ほかの操作ならnull
+     */
     public function csvName(): ?string
     {
         $isCsv = in_array($this->action, [OperationLogAction::CsvDownload, OperationLogAction::CsvImport], true);
@@ -190,8 +194,10 @@ class OperationLog extends Model
         return $isCsv ? ($this->detail['name'] ?? null) : null;
     }
 
-    // 補足のうち、画面に出す文字。CSVの記録のidのように、ほかのテーブルとつなぐための値と、
-    // 対象の欄に出すCSVの名前は出さない
+    /**
+     * 補足のうち、画面に出す文字。CSVの記録のidのように、ほかのテーブルとつなぐための値と、
+     * 対象の欄に出すCSVの名前は出さない
+     */
     public function detailText(): string
     {
         $shown = array_filter(

@@ -32,7 +32,7 @@ enum CodeType: string implements CodeTableEnum
         return self::SETTINGS[$this->value]['label'];
     }
 
-    // コード値を固定するか（SETTINGSのfixed）。
+    /** コード値を固定するか（SETTINGSのfixed）。 */
     public function isFixed(): bool
     {
         return self::SETTINGS[$this->value]['fixed'];

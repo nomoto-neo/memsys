@@ -23,7 +23,7 @@ class LegacyPasswordTest extends TestCase
 
     private const PASSWORD = 'old-system-password';
 
-    // 既存のシステムから移した会員。今の方式のパスワードは持たず、古いハッシュ値を包んだものを持つ
+    /** 既存のシステムから移した会員。今の方式のパスワードは持たず、古いハッシュ値を包んだものを持つ */
     private function migratedMember(string $legacyHash): Member
     {
         $member = Member::factory()->create(['email' => 'taro@example.com']);

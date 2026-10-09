@@ -36,7 +36,7 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
  */
 class UploadedFileController extends Controller
 {
-    // 非公開のフィールドの保存済みファイルの処理（GET /uploads/{type}/{id}/{field}/{filename}）
+    /** 非公開のフィールドの保存済みファイルの処理（GET /uploads/{type}/{id}/{field}/{filename}） */
     public function show(Request $request, string $type, int $id, string $field, string $filename): BinaryFileResponse
     {
         // URLの種類の名前（enforceMorphMap()の名前）から、持ち主のモデルを探す
@@ -76,7 +76,7 @@ class UploadedFileController extends Controller
         return $this->privateFileResponse($disk->path($path));
     }
 
-    // 一時ファイルの処理（GET /uploads/tmp/{filename}）
+    /** 一時ファイルの処理（GET /uploads/tmp/{filename}） */
     public function tmp(Request $request, string $filename): BinaryFileResponse
     {
         // ファイル名の命名規則と、一時保存セッションに記録されているかチェック
@@ -125,8 +125,10 @@ class UploadedFileController extends Controller
         return $response;
     }
 
-    // そのファイルが、今DBでそのフィールドに保存されているものか。Policyをフィールドごとに
-    // 分けたとき、見てよいフィールドのURLに、別のフィールドのファイル名を入れて見られないようにする。
+    /**
+     * そのファイルが、今DBでそのフィールドに保存されているものか。Policyをフィールドごとに
+     * 分けたとき、見てよいフィールドのURLに、別のフィールドのファイル名を入れて見られないようにする。
+     */
     private function fileBelongsToField(Model $owner, string $field, string $filename): bool
     {
         if ($owner->isRelation($field)) {

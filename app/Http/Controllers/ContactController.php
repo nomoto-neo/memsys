@@ -38,34 +38,42 @@ class ContactController extends Controller
 
     // ---- アップロード（AjaxFileUpload）の設定 ----
 
-    // AjaxFileUploadが要求する設定。フィールド名 => 横幅(px)。
-    // attach_fileは1件のみ（複数展開ではない）添付ファイル欄なので".*"は付けない。
-    // 横幅0は「画像ではなく添付ファイル」を意味する。
+    /**
+     * AjaxFileUploadが要求する設定。フィールド名 => 横幅(px)。
+     * attach_fileは1件のみ（複数展開ではない）添付ファイル欄なので".*"は付けない。
+     * 横幅0は「画像ではなく添付ファイル」を意味する。
+     */
     private const UPLOAD_FILES = [
         'attach_file' => 0,
     ];
 
     // ---- 確認画面から送信までの順番の保証（confirm_token）の設定 ----
 
-    // confirm→storeの順番を保証するためのトークンを、セッションのどのキーに入れるか。
-    // 値そのものはissueConfirmToken()・hasValidConfirmToken()参照。
+    /**
+     * confirm→storeの順番を保証するためのトークンを、セッションのどのキーに入れるか。
+     * 値そのものはissueConfirmToken()・hasValidConfirmToken()参照。
+     */
     private const CONFIRM_TOKEN_SESSION_KEY = 'contact.confirm_token';
 
     // ---- スパム対策（SpamGuard）の設定 ----
 
-    // 入力画面を表示してから「確認画面へ進む」までの、いちばん短い秒数。これより速い送信は
-    // 機械からとみなす（名前・メール・本文の入力と同意のチェックに、人ならこれ以上かかる）。
+    /**
+     * 入力画面を表示してから「確認画面へ進む」までの、いちばん短い秒数。これより速い送信は
+     * 機械からとみなす（名前・メール・本文の入力と同意のチェックに、人ならこれ以上かかる）。
+     */
     private const SPAM_GUARD_MIN_SECONDS = 3;
 
     // ---- 入力をそろえる処理（InputNormalizer）の設定 ----
 
-    // 全角と半角をそろえない項目。データの仕様なので、モデルの指定を引く
+    /** 全角と半角をそろえない項目。データの仕様なので、モデルの指定を引く */
     private const RAW_INPUT_FIELDS = Inquiry::RAW_INPUT_FIELDS;
 
     // ---- このコーナーの項目の定義 ----
 
-    // 入力バリデーションルール。添付ファイルのhiddenのルールは、ajaxUploadRules()が
-    // UPLOAD_FILESから作るので、それを足す。
+    /**
+     * 入力バリデーションルール。添付ファイルのhiddenのルールは、ajaxUploadRules()が
+     * UPLOAD_FILESから作るので、それを足す。
+     */
     private function rules(): array
     {
         return [
@@ -86,15 +94,17 @@ class ContactController extends Controller
         ] + $this->ajaxUploadRules();
     }
 
-    // 保存する項目（t_inquiriesのカラム）。ここに書いた項目だけを保存する。
-    // 添付ファイル（attach_file等）はcommitUploads()で保存するので、ここには書かない。
-    // agree（同意のチェック）は確認のためだけの項目なので保存しない。
+    /**
+     * 保存する項目（t_inquiriesのカラム）。ここに書いた項目だけを保存する。
+     * 添付ファイル（attach_file等）はcommitUploads()で保存するので、ここには書かない。
+     * agree（同意のチェック）は確認のためだけの項目なので保存しない。
+     */
     private function saveFieldNames(array $validated, Inquiry $inquiry): array
     {
         return ['name', 'kana', 'email', 'phone', 'zip', 'prefecture', 'city', 'address_other', 'body'];
     }
 
-    // 検証の後、確認画面の表示・保存の前に行う整形。
+    /** 検証の後、確認画面の表示・保存の前に行う整形。 */
     private function prepareInput(array $validated): array
     {
         // 郵便番号を"123-4567"の形にそろえる（ハイフン無しの7桁が来たときだけ差し込む）
@@ -146,7 +156,7 @@ class ContactController extends Controller
 
     // ---- 入力・確認・送信 ----
 
-    // フォームの表示
+    /** フォームの表示 */
     public function create(): View
     {
         return view('contact.create', [
@@ -157,7 +167,7 @@ class ContactController extends Controller
         ]);
     }
 
-    // 入力内容のバリデーションと、確認画面の表示
+    /** 入力内容のバリデーションと、確認画面の表示 */
     public function confirmStore(Request $request): View|RedirectResponse
     {
         // スパム対策（App\Support\SpamGuard）。確認画面から先は、ここを通った人にだけ発行する
@@ -191,7 +201,7 @@ class ContactController extends Controller
         ]);
     }
 
-    // 確認画面の「戻る」
+    /** 確認画面の「戻る」 */
     public function back(Request $request): RedirectResponse
     {
         // confirm_tokenは入力画面では使わない制御用の値なので、old()経由で持ち越さない
@@ -199,7 +209,7 @@ class ContactController extends Controller
             ->withInput($request->except(['_token', 'confirm_token']));
     }
 
-    // 送信の実行：t_inquiriesへの保存と、スタッフへの通知メール送信
+    /** 送信の実行：t_inquiriesへの保存と、スタッフへの通知メール送信 */
     public function store(Request $request): RedirectResponse
     {
         // 確認画面を通っていない送信と、同じ内容の2回目の送信は、中身を検証する前に
@@ -224,7 +234,7 @@ class ContactController extends Controller
         return redirect()->route('contact.thanks');
     }
 
-    // 送信完了画面の表示
+    /** 送信完了画面の表示 */
     public function thanks(): View
     {
         return view('contact.thanks');

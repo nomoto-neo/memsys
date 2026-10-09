@@ -263,7 +263,7 @@ function main(array $argv): int
  */
 final class TableDraft
 {
-    // モデルのクラス名（名前空間なし）と、コントローラーで使う変数の名前
+    /** モデルのクラス名（名前空間なし）と、コントローラーで使う変数の名前 */
     private string $model;
 
     private string $variable;
@@ -278,7 +278,7 @@ final class TableDraft
      */
     private array $columns = [];
 
-    // コントローラーの冒頭に要るuse文
+    /** コントローラーの冒頭に要るuse文 */
     private array $uses = [];
 
     public function __construct(private readonly string $table)
@@ -456,7 +456,7 @@ final class TableDraft
         return $info;
     }
 
-    // 型の名前。tinyint(1)は、真偽値として扱う
+    /** 型の名前。tinyint(1)は、真偽値として扱う */
     private function typeOf(array $column): string
     {
         if (preg_match('/^tinyint\(1\)/', $column['type'])) {
@@ -472,7 +472,7 @@ final class TableDraft
         };
     }
 
-    // varchar(255)の255や、decimal(10,2)の10と2
+    /** varchar(255)の255や、decimal(10,2)の10と2 */
     private function sizeOf(string $type): array
     {
         if (preg_match('/\((\d+)(?:,\s*(\d+))?\)/', $type, $m)) {
@@ -482,7 +482,7 @@ final class TableDraft
         return [null, null];
     }
 
-    // DBの既定値。無ければnull。MariaDBは、既定値なしを'NULL'という文字で返す
+    /** DBの既定値。無ければnull。MariaDBは、既定値なしを'NULL'という文字で返す */
     private function defaultOf(array $column): ?string
     {
         $default = $column['default'];
@@ -494,7 +494,7 @@ final class TableDraft
         return trim((string) $default, "'");
     }
 
-    // {length}・{scale}を、その列の値に置き換える
+    /** {length}・{scale}を、その列の値に置き換える */
     private function fill(string $rule, array $info): string
     {
         return str_replace(['{length}', '{scale}'], [(string) $info['length'], (string) (int) $info['scale']], $rule);
@@ -554,7 +554,7 @@ final class TableDraft
         return implode("\n", $lines)."\n";
     }
 
-    // テーブルのCREATE文。貼り付けるものではなく、TODOを直すときに列の定義を見比べるための参考
+    /** テーブルのCREATE文。貼り付けるものではなく、TODOを直すときに列の定義を見比べるための参考 */
     private function renderCreateTable(): string
     {
         $lines = [
@@ -602,7 +602,7 @@ final class TableDraft
             '================================================================',
             'コントローラー：rules()',
             '================================================================',
-            '    // 入力の検証ルール。'.$this->variable.'は、新規登録ならnull、更新なら対象の行',
+            '    /** 入力の検証ルール。'.$this->variable.'は、新規登録ならnull、更新なら対象の行 */',
             "    private function rules(?{$this->model} {$this->variable}): array",
             '    {',
             '        return [',
@@ -645,7 +645,7 @@ final class TableDraft
         return implode("\n", $lines)."\n";
     }
 
-    // rules()に書いた列の名前。パスワードは、入力値をそのまま保存しないので外す
+    /** rules()に書いた列の名前。パスワードは、入力値をそのまま保存しないので外す */
     private function savedColumns(): array
     {
         return array_keys(array_filter(
@@ -663,7 +663,7 @@ final class TableDraft
             '================================================================',
             'コントローラー：saveFieldNames()',
             '================================================================',
-            '    // 保存する項目。ここに書いた項目だけを保存する',
+            '    /** 保存する項目。ここに書いた項目だけを保存する */',
             "    private function saveFieldNames(array \$validated, {$this->model} {$this->variable}): array",
             '    {',
             "        return [{$names}];",
@@ -677,7 +677,7 @@ final class TableDraft
             '================================================================',
             'コントローラー：inputFromModel()',
             '================================================================',
-            '    // モデルの今の値から、_fields.blade.phpに渡す$inputを組み立てる（詳細・編集で使う）',
+            '    /** モデルの今の値から、_fields.blade.phpに渡す$inputを組み立てる（詳細・編集で使う） */',
             "    private function inputFromModel({$this->model} {$this->variable}): array",
             '    {',
             '        return [',

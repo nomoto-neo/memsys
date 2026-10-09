@@ -22,7 +22,7 @@ class CompanyInvitation extends Model
         'expires_at',
     ];
 
-    // token_hashは照合にしか使わないので、配列やJSONにしたときに出ないよう隠す
+    /** token_hashは照合にしか使わないので、配列やJSONにしたときに出ないよう隠す */
     protected $hidden = [
         'token_hash',
     ];
@@ -32,7 +32,7 @@ class CompanyInvitation extends Model
         'expires_at' => 'datetime',
     ];
 
-    // 招待した先の企業
+    /** 招待した先の企業 */
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);

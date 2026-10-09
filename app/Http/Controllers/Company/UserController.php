@@ -36,8 +36,10 @@ class UserController extends Controller
 
     // ---- 担当者の情報の項目の定義 ----
 
-    // 担当者の情報の検証ルール。メールアドレスは、ほかの担当者と重なっていてもよい
-    // （企業の代表アドレスを、複数の担当者が使っていることがあるため）。
+    /**
+     * 担当者の情報の検証ルール。メールアドレスは、ほかの担当者と重なっていてもよい
+     * （企業の代表アドレスを、複数の担当者が使っていることがあるため）。
+     */
     private function rules(?CompanyUser $user = null): array
     {
         return [
@@ -46,7 +48,7 @@ class UserController extends Controller
         ];
     }
 
-    // 招待のフォームの検証ルール
+    /** 招待のフォームの検証ルール */
     private function inviteRules(): array
     {
         return [
@@ -54,13 +56,13 @@ class UserController extends Controller
         ];
     }
 
-    // 保存する項目（t_company_usersのカラム）。担当者IDとパスワードは、ここでは変えない
+    /** 保存する項目（t_company_usersのカラム）。担当者IDとパスワードは、ここでは変えない */
     private function saveFieldNames(array $validated, CompanyUser $user): array
     {
         return ['name', 'email'];
     }
 
-    // モデルの今の値から、編集画面に渡す$inputを組み立てる。
+    /** モデルの今の値から、編集画面に渡す$inputを組み立てる。 */
     private function inputFromModel(CompanyUser $user): array
     {
         return [
@@ -69,14 +71,16 @@ class UserController extends Controller
         ];
     }
 
-    // 保存の直後の処理。情報が変わったことを、変えられた担当者へメールで知らせる。
-    // 本人が変えたのではないので、本人が気付けるようにする（App\Support\MemberProfileNotice参照）。
+    /**
+     * 保存の直後の処理。情報が変わったことを、変えられた担当者へメールで知らせる。
+     * 本人が変えたのではないので、本人が気付けるようにする（App\Support\MemberProfileNotice参照）。
+     */
     private function afterSave(CompanyUser $user, array $validated, array $changedFields): void
     {
         MemberProfileNotice::send($user, $changedFields);
     }
 
-    // 削除の直前の処理。信頼済み端末とパスキーは、担当者の行と一緒に消す
+    /** 削除の直前の処理。信頼済み端末とパスキーは、担当者の行と一緒に消す */
     private function beforeDelete(CompanyUser $user): void
     {
         TrustedDeviceManager::forMember($user)->forgetAll($user);
@@ -85,7 +89,7 @@ class UserController extends Controller
 
     // ---- 担当者の一覧 ----
 
-    // 担当者の一覧（GET /company/mypage/users）。招待中の人も出す
+    /** 担当者の一覧（GET /company/mypage/users）。招待中の人も出す */
     public function index(): View
     {
         $me = $this->me();
@@ -99,7 +103,7 @@ class UserController extends Controller
 
     // ---- 招待 ----
 
-    // 招待のフォームの表示（GET /company/mypage/users/invite）
+    /** 招待のフォームの表示（GET /company/mypage/users/invite） */
     public function inviteForm(): View
     {
         return view('company.users.invite', [
@@ -110,7 +114,7 @@ class UserController extends Controller
         ]);
     }
 
-    // 招待のメールを送る（POST /company/mypage/users/invite）
+    /** 招待のメールを送る（POST /company/mypage/users/invite） */
     public function invite(Request $request): RedirectResponse
     {
         $validated = $request->validate($this->inviteRules());
@@ -121,8 +125,10 @@ class UserController extends Controller
             ->with('status', '招待のメールを送りました。');
     }
 
-    // 招待のメールを送り直す（POST /company/mypage/users/invitations/{invitation}/resend）。
-    // リンクと期限が新しくなり、前のメールのリンクは使えなくなる
+    /**
+     * 招待のメールを送り直す（POST /company/mypage/users/invitations/{invitation}/resend）。
+     * リンクと期限が新しくなり、前のメールのリンクは使えなくなる
+     */
     public function resendInvitation(CompanyInvitation $invitation): RedirectResponse
     {
         $this->abortUnlessOwnCompany($invitation->company_id);
@@ -133,7 +139,7 @@ class UserController extends Controller
             ->with('status', '招待のメールを送り直しました。');
     }
 
-    // 招待を取り消す（DELETE /company/mypage/users/invitations/{invitation}）
+    /** 招待を取り消す（DELETE /company/mypage/users/invitations/{invitation}） */
     public function cancelInvitation(CompanyInvitation $invitation): RedirectResponse
     {
         $this->abortUnlessOwnCompany($invitation->company_id);
@@ -146,7 +152,7 @@ class UserController extends Controller
 
     // ---- ほかの担当者の編集・削除 ----
 
-    // 編集フォームの表示（GET /company/mypage/users/{user}/edit）
+    /** 編集フォームの表示（GET /company/mypage/users/{user}/edit） */
     public function edit(CompanyUser $user): View|RedirectResponse
     {
         $this->abortUnlessOwnCompany($user->company_id);
@@ -164,8 +170,10 @@ class UserController extends Controller
         ]);
     }
 
-    // 担当者の情報の更新（PATCH /company/mypage/users/{user}）。
-    // 確認画面を挟まないので、saveData()をそのまま呼ぶ。検証に失敗すれば、編集画面へ戻る。
+    /**
+     * 担当者の情報の更新（PATCH /company/mypage/users/{user}）。
+     * 確認画面を挟まないので、saveData()をそのまま呼ぶ。検証に失敗すれば、編集画面へ戻る。
+     */
     public function update(Request $request, CompanyUser $user): RedirectResponse
     {
         $this->abortUnlessOwnCompany($user->company_id);
@@ -180,7 +188,7 @@ class UserController extends Controller
         return redirect()->route('company.users.index')->with('status', '担当者の情報を更新しました。');
     }
 
-    // 担当者の削除（DELETE /company/mypage/users/{user}）。自分自身は削除できない
+    /** 担当者の削除（DELETE /company/mypage/users/{user}）。自分自身は削除できない */
     public function destroy(CompanyUser $user): RedirectResponse
     {
         $this->abortUnlessOwnCompany($user->company_id);
@@ -197,14 +205,16 @@ class UserController extends Controller
 
     // ---- 共通 ----
 
-    // ログイン中の担当者。このコントローラーではいつも企業会員のガードから取る
+    /** ログイン中の担当者。このコントローラーではいつも企業会員のガードから取る */
     private function me(): CompanyUser
     {
         return Auth::guard(CompanyUser::memberGuard())->user();
     }
 
-    // URLで指定された担当者や招待が、ログイン中の担当者と同じ企業のものでなければ404にする。
-    // ほかの企業のものがあるかどうかを、知らせないため
+    /**
+     * URLで指定された担当者や招待が、ログイン中の担当者と同じ企業のものでなければ404にする。
+     * ほかの企業のものがあるかどうかを、知らせないため
+     */
     private function abortUnlessOwnCompany(int $companyId): void
     {
         abort_unless($companyId === $this->me()->company_id, 404);

@@ -22,7 +22,7 @@ use Illuminate\Support\Facades\Auth;
  */
 final class LoginSession
 {
-    // そのガードからログアウトする。$guardはconfig/auth.phpのガードの名前
+    /** そのガードからログアウトする。$guardはconfig/auth.phpのガードの名前 */
     public static function logout(Request $request, string $guard): void
     {
         // ほかのガードのログインの値を控える

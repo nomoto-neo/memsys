@@ -89,7 +89,7 @@ class SetNextId extends Command
         return self::SUCCESS;
     }
 
-    // DBが覚えている、次に振るid。SHOW TABLE STATUSは、テーブルの定義からその時点の値を返す
+    /** DBが覚えている、次に振るid。SHOW TABLE STATUSは、テーブルの定義からその時点の値を返す */
     private function nextId(string $table): int
     {
         $status = DB::selectOne('SHOW TABLE STATUS WHERE Name = ?', [DB::getTablePrefix().$table]);

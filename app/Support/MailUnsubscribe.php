@@ -36,13 +36,13 @@ use Illuminate\Support\Facades\URL;
  */
 final class MailUnsubscribe
 {
-    // 停止の画面のルート名
+    /** 停止の画面のルート名 */
     private const ROUTE = 'mail.unsubscribe';
 
-    // 操作ログに残すメールアドレスの長さの上限。URLに何を書かれても、長い文字を残さない
+    /** 操作ログに残すメールアドレスの長さの上限。URLに何を書かれても、長い文字を残さない */
     private const LOGGED_EMAIL_MAX_LENGTH = 255;
 
-    // その宛先の、配信停止のURL
+    /** その宛先の、配信停止のURL */
     public static function url(string $email): string
     {
         return url(URL::signedRoute(self::ROUTE, ['email' => $email], absolute: false));

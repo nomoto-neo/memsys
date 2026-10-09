@@ -9,16 +9,16 @@ namespace App\Enums;
  */
 enum CompanyStatus: string implements CodeTableEnum
 {
-    // 登録されたが、運営がまだ確かめていない
+    /** 登録されたが、運営がまだ確かめていない */
     case Pending = 'pending';
 
-    // 運営が承認した
+    /** 運営が承認した */
     case Approved = 'approved';
 
-    // 運営が止めた
+    /** 運営が止めた */
     case Suspended = 'suspended';
 
-    // 値ごとの名前
+    /** 値ごとの名前 */
     private const LABELS = [
         self::Pending->value => '申請中',
         self::Approved->value => '承認済み',

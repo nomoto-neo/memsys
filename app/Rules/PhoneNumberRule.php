@@ -11,7 +11,7 @@ use Illuminate\Contracts\Validation\ValidationRule;
  */
 class PhoneNumberRule implements ValidationRule
 {
-    // 検証。合わなければ$fail()を呼ぶ（合っていれば何もしない）
+    /** 検証。合わなければ$fail()を呼ぶ（合っていれば何もしない） */
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
         // ハイフンの有無で、許す長さを変える

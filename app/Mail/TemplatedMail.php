@@ -53,7 +53,7 @@ class TemplatedMail extends Mailable
         $this->parsed = MailTemplate::render($templateName, $vars);
     }
 
-    // 送信元・宛先・件名。テンプレートに送信元が無ければ、config/mail.phpの値を使う
+    /** 送信元・宛先・件名。テンプレートに送信元が無ければ、config/mail.phpの値を使う */
     public function envelope(): Envelope
     {
         return new Envelope(
@@ -69,14 +69,16 @@ class TemplatedMail extends Mailable
         );
     }
 
-    // 呼び出し側が足したヘッダー
+    /** 呼び出し側が足したヘッダー */
     public function headers(): Headers
     {
         return new Headers(text: $this->headerLines);
     }
 
-    // 本文。テンプレートで組み立て済みの本文を、そのまま出すだけの最小限のビューに通す
-    // （エスケープを重ねないため。理由はApp\Support\MailTemplate参照）
+    /**
+     * 本文。テンプレートで組み立て済みの本文を、そのまま出すだけの最小限のビューに通す
+     * （エスケープを重ねないため。理由はApp\Support\MailTemplate参照）
+     */
     public function content(): Content
     {
         // HTML版のテンプレートがあれば、HTMLとテキストの両方を付けたマルチパートにする

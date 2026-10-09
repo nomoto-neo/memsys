@@ -22,20 +22,20 @@ class BulkMailTemplateController extends Controller
 
     // ---- 一覧の設定 ----
 
-    // 一覧画面のルート名。登録・更新・削除の後の戻り先
+    /** 一覧画面のルート名。登録・更新・削除の後の戻り先 */
     private const INDEX_ROUTE = 'admin.bulk-mail-templates.index';
 
     // ---- 入力をそろえる処理（InputNormalizer）の設定 ----
 
-    // 全角と半角をそろえない項目。データの仕様なので、モデルの指定を引く
+    /** 全角と半角をそろえない項目。データの仕様なので、モデルの指定を引く */
     private const RAW_INPUT_FIELDS = BulkMailTemplate::RAW_INPUT_FIELDS;
 
     // ---- このコーナーの項目の定義 ----
 
-    // 本文の初期値。宛先の氏名の差し込みと敬称を1行目に入れておく
+    /** 本文の初期値。宛先の氏名の差し込みと敬称を1行目に入れておく */
     private const DEFAULT_BODY = "{{\$name}} 様\n";
 
-    // 入力の検証ルール。件名に改行があるとメールの見出しとして読まれてしまうので、改行は許さない
+    /** 入力の検証ルール。件名に改行があるとメールの見出しとして読まれてしまうので、改行は許さない */
     private function rules(): array
     {
         return [
@@ -45,19 +45,19 @@ class BulkMailTemplateController extends Controller
         ];
     }
 
-    // 保存する項目
+    /** 保存する項目 */
     private function saveFieldNames(array $validated, BulkMailTemplate $template): array
     {
         return ['title', 'subject', 'body'];
     }
 
-    // 新規登録の初期値
+    /** 新規登録の初期値 */
     private function defaultInput(): array
     {
         return ['body' => self::DEFAULT_BODY];
     }
 
-    // モデルの今の値から、_fields.blade.phpに渡す$inputを組み立てる
+    /** モデルの今の値から、_fields.blade.phpに渡す$inputを組み立てる */
     private function inputFromModel(BulkMailTemplate $template): array
     {
         return [
@@ -69,7 +69,7 @@ class BulkMailTemplateController extends Controller
 
     // ---- 一覧 ----
 
-    // 文面の一覧。数が多くならないので、ページ分けせずに新しく直したものから並べる
+    /** 文面の一覧。数が多くならないので、ページ分けせずに新しく直したものから並べる */
     public function index(): View
     {
         return view('admin.bulk_mail_templates.index', [
@@ -79,7 +79,7 @@ class BulkMailTemplateController extends Controller
 
     // ---- 登録 ----
 
-    // 新規登録フォームの表示
+    /** 新規登録フォームの表示 */
     public function create(): View
     {
         return view('admin.bulk_mail_templates.create', [
@@ -88,7 +88,7 @@ class BulkMailTemplateController extends Controller
         ]);
     }
 
-    // 新規登録の実行
+    /** 新規登録の実行 */
     public function store(Request $request): RedirectResponse
     {
         $this->saveData(new BulkMailTemplate(), $request);
@@ -99,7 +99,7 @@ class BulkMailTemplateController extends Controller
 
     // ---- 編集・削除 ----
 
-    // 編集フォームの表示
+    /** 編集フォームの表示 */
     public function edit(BulkMailTemplate $template): View
     {
         return view('admin.bulk_mail_templates.edit', [
@@ -109,7 +109,7 @@ class BulkMailTemplateController extends Controller
         ]);
     }
 
-    // 更新の実行
+    /** 更新の実行 */
     public function update(Request $request, BulkMailTemplate $template): RedirectResponse
     {
         $this->saveData($template, $request);
@@ -118,7 +118,7 @@ class BulkMailTemplateController extends Controller
             ->with('status', '文面を更新しました。');
     }
 
-    // 削除の実行。送信の記録は件名と本文を写して持っているので、文面を消しても影響しない
+    /** 削除の実行。送信の記録は件名と本文を写して持っているので、文面を消しても影響しない */
     public function destroy(BulkMailTemplate $template): RedirectResponse
     {
         $this->deleteData($template);

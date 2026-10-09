@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Cookie;
  */
 final class LoginIdMemory
 {
-    // 覚えておく日数
+    /** 覚えておく日数 */
     private const VALID_DAYS = 365;
 
     /**

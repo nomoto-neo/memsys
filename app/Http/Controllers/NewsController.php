@@ -27,18 +27,22 @@ class NewsController extends Controller
 {
     use SearchableList;
 
-    // セッションキー名の識別子（SearchableListがpage_session.・
-    // search_session.をこの値から組み立てる）。
+    /**
+     * セッションキー名の識別子（SearchableListがpage_session.・
+     * search_session.をこの値から組み立てる）。
+     */
     private const INDEX_ROUTE = 'news.index';
 
-    // フリーワード検索は訪問者側では使わない。
+    /** フリーワード検索は訪問者側では使わない。 */
     private const FREE_WORD_COLUMNS = [];
 
     private const PER_PAGE = 20;
 
-    // 訪問者側は並び順の選択肢自体を出していない（常に記事日付の
-    // 新しい順）。ORDER_OPTIONSは1件でもSearchableListの仕組みが
-    // そのまま動く（配列の先頭＝デフォルトが常に選ばれる）。
+    /**
+     * 訪問者側は並び順の選択肢自体を出していない（常に記事日付の
+     * 新しい順）。ORDER_OPTIONSは1件でもSearchableListの仕組みが
+     * そのまま動く（配列の先頭＝デフォルトが常に選ばれる）。
+     */
     private const ORDER_OPTIONS = [
         'article_date_desc' => [
             'label' => '記事日付が新しい順',
@@ -49,7 +53,7 @@ class NewsController extends Controller
         ],
     ];
 
-    // 一覧・検索
+    /** 一覧・検索 */
     public function index(Request $request): View|RedirectResponse
     {
         // 一覧データの読み込みとページング
@@ -88,9 +92,11 @@ class NewsController extends Controller
         ];
     }
 
-    // イレギュラーな検索条件の追加処理
-    // category_id（多対多の絞り込み）・year（記事日付の年の一致）を、
-    // この中で個別に処理して、処理済み(true)を返す。
+    /**
+     * イレギュラーな検索条件の追加処理
+     * category_id（多対多の絞り込み）・year（記事日付の年の一致）を、
+     * この中で個別に処理して、処理済み(true)を返す。
+     */
     private function applyCustomSearch(Builder $query, string $key, mixed $value): bool
     {
         if ($key === 'category_id') {
@@ -111,8 +117,10 @@ class NewsController extends Controller
         return false;
     }
 
-    // 年度プルダウンの選択肢。その人に見せてよい記事に実際に
-    // 存在する年だけを、新しい順で返す。
+    /**
+     * 年度プルダウンの選択肢。その人に見せてよい記事に実際に
+     * 存在する年だけを、新しい順で返す。
+     */
     private function availableYears(): array
     {
         return News::visibleTo(Auth::guard('web')->user())
@@ -122,7 +130,7 @@ class NewsController extends Controller
             ->all();
     }
 
-    // 詳細画面の表示
+    /** 詳細画面の表示 */
     public function show(News $news): View
     {
         // 非表示(disp_flg=false)の記事と、ログインしていない人が開いた会員限定の

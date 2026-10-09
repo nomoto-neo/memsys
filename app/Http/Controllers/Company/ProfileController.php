@@ -33,30 +33,32 @@ class ProfileController extends Controller
 
     // ---- メールアドレスの変更の確認（EmailChange）の設定 ----
 
-    // ログイン中の担当者を取るガード。
+    /** ログイン中の担当者を取るガード。 */
     private const EMAIL_CHANGE_GUARD = 'company';
 
-    // 確認コードの入力画面のルート名（照合・再送などのルート名は、この後ろに.confirmなどを付ける）。
+    /** 確認コードの入力画面のルート名（照合・再送などのルート名は、この後ろに.confirmなどを付ける）。 */
     private const EMAIL_CHANGE_ROUTE = 'company.mypage.profile.email';
 
-    // 確認コードの入力画面のビュー。
+    /** 確認コードの入力画面のビュー。 */
     private const EMAIL_CHANGE_VIEW = 'company.mypage.profile-email-verify';
 
-    // 入力画面のルート名。
+    /** 入力画面のルート名。 */
     private const EMAIL_CHANGE_EDIT_ROUTE = 'company.mypage.profile';
 
-    // 保存の後の移動先のルート名と、そこに出すメッセージ。
+    /** 保存の後の移動先のルート名と、そこに出すメッセージ。 */
     private const EMAIL_CHANGE_DONE_ROUTE = 'company.mypage';
 
     private const EMAIL_CHANGE_DONE_MESSAGE = 'あなたの情報を更新しました。';
 
-    // 確認コードの試行制限（LoginThrottle）と、送信の回数の制限のカウンターの名前。
+    /** 確認コードの試行制限（LoginThrottle）と、送信の回数の制限のカウンターの名前。 */
     private const EMAIL_CHANGE_THROTTLE_SCOPE = 'company-email-change-code';
 
     // ---- 担当者の情報の項目の定義 ----
 
-    // 担当者の情報の検証ルール。メールアドレスは、ほかの担当者と重なっていてもよい
-    // （企業の代表アドレスを、複数の担当者が使っていることがあるため）。
+    /**
+     * 担当者の情報の検証ルール。メールアドレスは、ほかの担当者と重なっていてもよい
+     * （企業の代表アドレスを、複数の担当者が使っていることがあるため）。
+     */
     private function rules(?CompanyUser $user = null): array
     {
         return [
@@ -65,14 +67,16 @@ class ProfileController extends Controller
         ];
     }
 
-    // 保存する項目（t_company_usersのカラム）。
-    // パスワードはこのフォームでは扱わない（変更はAuthPasswordControllerの専用フォーム）。
+    /**
+     * 保存する項目（t_company_usersのカラム）。
+     * パスワードはこのフォームでは扱わない（変更はAuthPasswordControllerの専用フォーム）。
+     */
     private function saveFieldNames(array $validated, CompanyUser $user): array
     {
         return ['name', 'email'];
     }
 
-    // モデルの今の値から、編集画面に渡す$inputを組み立てる。
+    /** モデルの今の値から、編集画面に渡す$inputを組み立てる。 */
     private function inputFromModel(CompanyUser $user): array
     {
         return [
@@ -81,8 +85,10 @@ class ProfileController extends Controller
         ];
     }
 
-    // 保存の直後の処理。担当者の情報が変わったことを、本人へメールで知らせる
-    // （App\Support\MemberProfileNotice参照）。
+    /**
+     * 保存の直後の処理。担当者の情報が変わったことを、本人へメールで知らせる
+     * （App\Support\MemberProfileNotice参照）。
+     */
     private function afterSave(CompanyUser $user, array $validated, array $changedFields): void
     {
         MemberProfileNotice::send($user, $changedFields);
@@ -90,8 +96,10 @@ class ProfileController extends Controller
 
     // ---- 自分の情報の編集 ----
 
-    // 編集フォームの表示（GET /company/mypage/profile）。
-    // ログイン中の担当者は、このコントローラーではいつも企業会員のガードから取る。
+    /**
+     * 編集フォームの表示（GET /company/mypage/profile）。
+     * ログイン中の担当者は、このコントローラーではいつも企業会員のガードから取る。
+     */
     public function edit(): View
     {
         $user = Auth::guard(CompanyUser::memberGuard())->user();
@@ -104,8 +112,10 @@ class ProfileController extends Controller
         ]);
     }
 
-    // 担当者の情報の更新（PATCH /company/mypage/profile）。
-    // 確認画面を挟まないので、saveData()をそのまま呼ぶ。検証に失敗すれば、編集画面へ戻る。
+    /**
+     * 担当者の情報の更新（PATCH /company/mypage/profile）。
+     * 確認画面を挟まないので、saveData()をそのまま呼ぶ。検証に失敗すれば、編集画面へ戻る。
+     */
     public function update(Request $request): RedirectResponse
     {
         $user = Auth::guard(CompanyUser::memberGuard())->user();

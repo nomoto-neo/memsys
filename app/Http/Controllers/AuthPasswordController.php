@@ -24,11 +24,13 @@ class AuthPasswordController extends Controller
 {
     private const PURPOSE = MemberVerificationCode::PURPOSE_MYPAGE_PASSWORD;
 
-    // 確認コードの試行制限（LoginThrottle）のカウンターの名前。アカウントは会員idで区別する。
+    /** 確認コードの試行制限（LoginThrottle）のカウンターの名前。アカウントは会員idで区別する。 */
     private const THROTTLE_SCOPE = 'member-password-code';
 
-    // パスワード変更フォームの入力バリデーションルール。
-    // password_confirmationはconfirmedルールでpasswordと照合するので、ここには書かない。
+    /**
+     * パスワード変更フォームの入力バリデーションルール。
+     * password_confirmationはconfirmedルールでpasswordと照合するので、ここには書かない。
+     */
     private function rules(): array
     {
         return [
@@ -61,7 +63,7 @@ class AuthPasswordController extends Controller
         ]);
     }
 
-    // 確認コードの再送信（POST /mypage/password/resend）
+    /** 確認コードの再送信（POST /mypage/password/resend） */
     public function resend(Request $request): RedirectResponse
     {
         $member = Auth::user();
@@ -74,7 +76,7 @@ class AuthPasswordController extends Controller
         return redirect()->route('password.edit')->with('status', '確認コードを再送しました。');
     }
 
-    // パスワードの更新（PATCH /mypage/password/update）
+    /** パスワードの更新（PATCH /mypage/password/update） */
     public function update(Request $request): RedirectResponse
     {
         $validated = $request->validate($this->rules());

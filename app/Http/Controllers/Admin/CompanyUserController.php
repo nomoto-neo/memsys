@@ -36,8 +36,10 @@ class CompanyUserController extends Controller
 
     // ---- このコーナーの項目の定義 ----
 
-    // 入力バリデーションルール。メールアドレスは、ほかの担当者と重なっていてもよい
-    // （企業の代表アドレスを、複数の担当者が使っていることがあるため）。
+    /**
+     * 入力バリデーションルール。メールアドレスは、ほかの担当者と重なっていてもよい
+     * （企業の代表アドレスを、複数の担当者が使っていることがあるため）。
+     */
     private function rules(?CompanyUser $user): array
     {
         return [
@@ -47,14 +49,16 @@ class CompanyUserController extends Controller
         ];
     }
 
-    // 保存する項目（t_company_usersのカラム）。ここに書いた項目だけを保存する。
-    // パスワードは入力値をそのまま保存しないので、additionalFields()で扱う。
+    /**
+     * 保存する項目（t_company_usersのカラム）。ここに書いた項目だけを保存する。
+     * パスワードは入力値をそのまま保存しないので、additionalFields()で扱う。
+     */
     private function saveFieldNames(array $validated, CompanyUser $user): array
     {
         return ['name', 'email'];
     }
 
-    // saveFieldNames()に加えて保存する項目（項目名 => 値）。入力値をそのまま使わないものをここに書く。
+    /** saveFieldNames()に加えて保存する項目（項目名 => 値）。入力値をそのまま使わないものをここに書く。 */
     private function additionalFields(array $validated, CompanyUser $user): array
     {
         // パスワードが空欄なら、今のまま変えない
@@ -66,7 +70,7 @@ class CompanyUserController extends Controller
         return ['password' => Hash::make($validated['password'])];
     }
 
-    // モデルの今の値から、_fields.blade.phpに渡す$inputを組み立てる（詳細・編集で使う）。
+    /** モデルの今の値から、_fields.blade.phpに渡す$inputを組み立てる（詳細・編集で使う）。 */
     private function inputFromModel(CompanyUser $user): array
     {
         return [
@@ -75,7 +79,7 @@ class CompanyUserController extends Controller
         ];
     }
 
-    // 保存の直後の処理。
+    /** 保存の直後の処理。 */
     private function afterSave(CompanyUser $user, array $validated): void
     {
         if ($user->wasChanged('password')) {
@@ -85,7 +89,7 @@ class CompanyUserController extends Controller
         }
     }
 
-    // 削除の直前の処理。信頼済み端末とパスキーは、担当者の行と一緒に消す
+    /** 削除の直前の処理。信頼済み端末とパスキーは、担当者の行と一緒に消す */
     private function beforeDelete(CompanyUser $user): void
     {
         TrustedDeviceManager::forMember($user)->forgetAll($user);
@@ -94,7 +98,7 @@ class CompanyUserController extends Controller
 
     // ---- 詳細・編集・削除 ----
 
-    // 詳細画面の表示
+    /** 詳細画面の表示 */
     public function show(Company $company, CompanyUser $user): View
     {
         // 個人情報を持つコーナーなので、詳細を開いたことを操作ログに残す
@@ -108,7 +112,7 @@ class CompanyUserController extends Controller
         ]);
     }
 
-    // 編集フォームの表示
+    /** 編集フォームの表示 */
     public function edit(Company $company, CompanyUser $user): View
     {
         // old() があればそちらを優先（パスワードは再表示しないので外す）
@@ -122,7 +126,7 @@ class CompanyUserController extends Controller
         ]);
     }
 
-    // 確認画面の表示
+    /** 確認画面の表示 */
     public function confirmUpdate(Request $request, Company $company, CompanyUser $user): View
     {
         // password_confirmationはrules()に無いので、hiddenで持ち回れるように足しておく
@@ -136,14 +140,14 @@ class CompanyUserController extends Controller
         ]);
     }
 
-    // 確認画面からの「戻る」
+    /** 確認画面からの「戻る」 */
     public function backToEdit(Request $request, Company $company, CompanyUser $user): RedirectResponse
     {
         return redirect()->route('admin.companies.users.edit', [$company, $user])
             ->withInput($request->except('_token'));
     }
 
-    // 更新の実行。終わったら、企業の詳細画面（担当者の一覧）へ戻る
+    /** 更新の実行。終わったら、企業の詳細画面（担当者の一覧）へ戻る */
     public function update(Request $request, Company $company, CompanyUser $user): RedirectResponse
     {
         $this->saveData($user, $request);
@@ -152,7 +156,7 @@ class CompanyUserController extends Controller
             ->with('status', '担当者の情報を更新しました。');
     }
 
-    // 削除の実行。担当者の行を消す。ログイン中だった担当者は、次の操作でログアウトになる
+    /** 削除の実行。担当者の行を消す。ログイン中だった担当者は、次の操作でログアウトになる */
     public function destroy(Company $company, CompanyUser $user): RedirectResponse
     {
         $this->deleteData($user);

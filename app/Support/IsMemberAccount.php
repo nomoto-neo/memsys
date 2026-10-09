@@ -45,7 +45,7 @@ trait IsMemberAccount
         return static::MEMBER_TYPE.'_trusted_device';
     }
 
-    // ログインに使う値。ログインに使う列は、メールアドレス
+    /** ログインに使う値。ログインに使う列は、メールアドレス */
     public function loginId(): string
     {
         return (string) $this->getAttribute('email');

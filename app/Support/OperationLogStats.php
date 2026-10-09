@@ -17,7 +17,7 @@ use Illuminate\Support\Collection;
  */
 final class OperationLogStats
 {
-    // 操作の多い人として出す人数。スタッフと会員のそれぞれについて、この人数まで
+    /** 操作の多い人として出す人数。スタッフと会員のそれぞれについて、この人数まで */
     public const TOP_COUNT = 3;
 
     /**
@@ -125,7 +125,7 @@ final class OperationLogStats
             ->all();
     }
 
-    // 棒の高さ。いちばん多い棒を100として、それぞれの割合（%）を足す。全部が0件なら、どれも0
+    /** 棒の高さ。いちばん多い棒を100として、それぞれの割合（%）を足す。全部が0件なら、どれも0 */
     private static function withPercent(array $bars): array
     {
         $max = max(array_column($bars, 'count'));

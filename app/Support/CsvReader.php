@@ -41,11 +41,13 @@ use InvalidArgumentException;
  */
 trait CsvReader
 {
-    // アップロードできるCSVファイルの大きさの上限(KB)。サーバーのupload_max_filesizeと
-    // post_max_sizeもこれ以上にしておく
+    /**
+     * アップロードできるCSVファイルの大きさの上限(KB)。サーバーのupload_max_filesizeと
+     * post_max_sizeもこれ以上にしておく
+     */
     private const CSV_FILE_MAX_KB = 10240;
 
-    // CSVファイルの欄の検証ルール
+    /** CSVファイルの欄の検証ルール */
     private function csvFileRules(): array
     {
         return ['required', 'file', 'extensions:csv,txt', 'max:'.self::CSV_FILE_MAX_KB];
@@ -69,13 +71,13 @@ trait CsvReader
         return $file->storeAs(CsvImportSettings::TMP_DIR, Str::random(40).'.csv', CsvImportSettings::TMP_DISK);
     }
 
-    // 一時ディレクトリに置いたファイルの、サーバー上の絶対パス
+    /** 一時ディレクトリに置いたファイルの、サーバー上の絶対パス */
     private function csvFilePath(string $path): string
     {
         return Storage::disk(CsvImportSettings::TMP_DISK)->path($path);
     }
 
-    // CSVの隣に置く控えのファイルの場所。行の数だけ大きくなる控えは、セッションではなくここに置く
+    /** CSVの隣に置く控えのファイルの場所。行の数だけ大きくなる控えは、セッションではなくここに置く */
     private function csvSidecarPath(string $path): string
     {
         return $path.'.json';
@@ -117,13 +119,13 @@ trait CsvReader
         return $state;
     }
 
-    // 覚えておいた文字コードの名前を、読み直すときの指定に戻す
+    /** 覚えておいた文字コードの名前を、読み直すときの指定に戻す */
     private function csvEncodingOf(?string $name): CsvEncoding
     {
         return $name === 'Shift_JIS' ? CsvEncoding::Sjis : CsvEncoding::Utf8Bom;
     }
 
-    // 一時ディレクトリのCSVと、その控えのファイルを消す
+    /** 一時ディレクトリのCSVと、その控えのファイルを消す */
     private function deleteCsvFiles(string $path): void
     {
         Storage::disk(CsvImportSettings::TMP_DISK)->delete([$path, $this->csvSidecarPath($path)]);
@@ -440,8 +442,10 @@ trait CsvReader
         return [null, null];
     }
 
-    // CSVの文字列を行に分ける。[[何行目, セルの一覧], …]で、全部のセルが空欄の行は飛ばす。
-    // セルの中の改行は行に数えないので、何行目かはExcelの行番号と一致する。
+    /**
+     * CSVの文字列を行に分ける。[[何行目, セルの一覧], …]で、全部のセルが空欄の行は飛ばす。
+     * セルの中の改行は行に数えないので、何行目かはExcelの行番号と一致する。
+     */
     private function parseCsvText(string $text): array
     {
         $stream = fopen('php://temp', 'r+');
@@ -491,7 +495,7 @@ trait CsvReader
         return $cell === '' ? null : $cell;
     }
 
-    // アップロードの欄の今の値。1つだけの欄は{field}と{field}_origin、複数の欄は同じ名前の配列。
+    /** アップロードの欄の今の値。1つだけの欄は{field}と{field}_origin、複数の欄は同じ名前の配列。 */
     private function csvImportCurrentUploads(?Model $record, array $uploadFields): array
     {
         $current = [];
@@ -510,8 +514,10 @@ trait CsvReader
         return $current;
     }
 
-    // アップロードの欄のファイル名を確かめる。今と違うファイル名はこのレコードの保存先に
-    // あるものだけ使える。確かめるのはAjaxFileUpload::checkImportedUploadFilename()。
+    /**
+     * アップロードの欄のファイル名を確かめる。今と違うファイル名はこのレコードの保存先に
+     * あるものだけ使える。確かめるのはAjaxFileUpload::checkImportedUploadFilename()。
+     */
     private function checkCsvImportUploads(CsvImportRow $row, array $uploadFields, array $uploadsNow, array $labels): void
     {
         foreach ($uploadFields as $field => $kind) {
@@ -556,8 +562,10 @@ trait CsvReader
         }
     }
 
-    // 変更の内容を求める。CSVから読んだ項目ごとに今の値と比べる。
-    // 変更の無い更新の行は、実行しても保存しない'unchanged'にする。
+    /**
+     * 変更の内容を求める。CSVから読んだ項目ごとに今の値と比べる。
+     * 変更の無い更新の行は、実行しても保存しない'unchanged'にする。
+     */
     private function csvImportChanges(CsvImportRow $row, CsvColumnSet $columns, array $current, array $uploadFields): void
     {
         foreach (array_keys($row->values) as $field) {

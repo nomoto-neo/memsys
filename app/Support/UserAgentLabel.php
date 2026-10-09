@@ -12,7 +12,7 @@ namespace App\Support;
  */
 class UserAgentLabel
 {
-    // OS。上から順に調べ、最初に当てはまったものを使う。
+    /** OS。上から順に調べ、最初に当てはまったものを使う。 */
     private const OS_PATTERNS = [
         '/iPhone/' => 'iPhone',
         '/iPad/' => 'iPad',
@@ -37,7 +37,7 @@ class UserAgentLabel
         '/Safari\//' => 'Safari',
     ];
 
-    // 端末名。OSもブラウザも分からなければ「不明な端末」
+    /** 端末名。OSもブラウザも分からなければ「不明な端末」 */
     public static function of(?string $userAgent): string
     {
         $userAgent ??= '';
@@ -50,7 +50,7 @@ class UserAgentLabel
         return $parts === [] ? '不明な端末' : implode('・', $parts);
     }
 
-    // パターンを上から順に調べ、最初に当てはまった名前を返す。無ければnull
+    /** パターンを上から順に調べ、最初に当てはまった名前を返す。無ければnull */
     private static function match(array $patterns, string $userAgent): ?string
     {
         foreach ($patterns as $pattern => $label) {

@@ -56,26 +56,28 @@ class Staff extends Authenticatable implements PasskeyUser
         'totp_confirmed_at' => 'datetime',
     ];
 
-    // 管理者かどうか。ミドルウェアとPolicyで同じ判定を使うため、ここに置いている。
+    /** 管理者かどうか。ミドルウェアとPolicyで同じ判定を使うため、ここに置いている。 */
     public function isManager(): bool
     {
         return $this->acl === StaffAcl::Manager;
     }
 
-    // 2段階認証のバックアップコード。
+    /** 2段階認証のバックアップコード。 */
     public function backupCodes(): MorphMany
     {
         return $this->morphMany(TwoFactorBackupCode::class, 'authenticatable');
     }
 
-    // 「この端末を信頼する」で信頼した端末。判定はApp\Support\TrustedDeviceManagerが行う。
+    /** 「この端末を信頼する」で信頼した端末。判定はApp\Support\TrustedDeviceManagerが行う。 */
     public function trustedDevices(): MorphMany
     {
         return $this->morphMany(TrustedDevice::class, 'authenticatable');
     }
 
-    // 2段階認証の登録が済んでいるか。QRコードを読み取り、コードの入力まで済んだら登録済み。
-    // 秘密鍵があるだけでは、まだ登録の途中のことがあるので、totp_confirmed_atで判定する。
+    /**
+     * 2段階認証の登録が済んでいるか。QRコードを読み取り、コードの入力まで済んだら登録済み。
+     * 秘密鍵があるだけでは、まだ登録の途中のことがあるので、totp_confirmed_atで判定する。
+     */
     public function hasTwoFactorConfirmed(): bool
     {
         return $this->totp_confirmed_at !== null;
@@ -91,13 +93,13 @@ class Staff extends Authenticatable implements PasskeyUser
         return '管理画面：'.$this->name;
     }
 
-    // 端末のパスキーの選択画面に出るユーザー名。名前と同じく「管理画面：」を付ける
+    /** 端末のパスキーの選択画面に出るユーザー名。名前と同じく「管理画面：」を付ける */
     public function getPasskeyUsername(): string
     {
         return '管理画面：'.$this->login_id;
     }
 
-    // 使っていないバックアップコードの残りの数。スタッフの詳細画面の案内に使う。
+    /** 使っていないバックアップコードの残りの数。スタッフの詳細画面の案内に使う。 */
     public function unusedBackupCodesCount(): int
     {
         return $this->backupCodes()->whereNull('used_at')->count();

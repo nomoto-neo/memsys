@@ -13,7 +13,7 @@ use Illuminate\View\View;
  */
 class PageController extends Controller
 {
-    // 1件の表示（GET /{slug}）。表示にしていないページと、無い名前は404
+    /** 1件の表示（GET /{slug}）。表示にしていないページと、無い名前は404 */
     public function show(string $slug): View
     {
         return view('pages.show', [

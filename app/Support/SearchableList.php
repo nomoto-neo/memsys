@@ -62,13 +62,13 @@ trait SearchableList
      */
     abstract private function applyCustomSearch(Builder $query, string $key, mixed $value): bool;
 
-    // ページ番号を保存するセッションのキー
+    /** ページ番号を保存するセッションのキー */
     private function pageSessionKey(): string
     {
         return 'page_session.'.self::INDEX_ROUTE;
     }
 
-    // 検索条件を保存するセッションのキー
+    /** 検索条件を保存するセッションのキー */
     private function searchSessionKey(): string
     {
         return 'search_session.'.self::INDEX_ROUTE;
@@ -147,7 +147,7 @@ trait SearchableList
         return [$filters, $orderKey];
     }
 
-    // 並び順のキー。ORDER_OPTIONSにあればそのまま、未指定ならORDER_OPTIONSの先頭
+    /** 並び順のキー。ORDER_OPTIONSにあればそのまま、未指定ならORDER_OPTIONSの先頭 */
     private function resolveOrderKey(array $filters): string
     {
         $orderKey = $filters['orderby'] ?? '';
@@ -251,7 +251,7 @@ trait SearchableList
         return false;
     }
 
-    // 検索条件をクエリに当てる。$filtersは検証を通った後なので、形はルールのとおり
+    /** 検索条件をクエリに当てる。$filtersは検証を通った後なので、形はルールのとおり */
     private function setWhere(Builder $query, array $filters): void
     {
         // フリーワード検索
@@ -302,7 +302,7 @@ trait SearchableList
         }
     }
 
-    // 検索条件の保存
+    /** 検索条件の保存 */
     public function storeSearchCondition(Request $request): RedirectResponse
     {
         // 検証を通った項目だけを保存する。_tokenやpageのような値もここで捨てられる

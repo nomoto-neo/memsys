@@ -12,7 +12,7 @@ use App\Models\Staff;
  */
 class BulkMailPolicy
 {
-    // 非公開の添付ファイルを見てよいか。送ったメールの中身なので、スタッフだけが見られる
+    /** 非公開の添付ファイルを見てよいか。送ったメールの中身なので、スタッフだけが見られる */
     public function viewFiles(Member|Staff $user, BulkMail $bulkMail, string $field): bool
     {
         return $user instanceof Staff;

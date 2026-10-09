@@ -18,7 +18,7 @@ use PragmaRX\Google2FA\Google2FA;
  */
 class TwoFactorAuthenticator
 {
-    // 認証アプリ側で「どのサービスの鍵か」を見分けるために表示される発行者名。
+    /** 認証アプリ側で「どのサービスの鍵か」を見分けるために表示される発行者名。 */
     private const ISSUER = 'memsys管理画面';
 
     /**
@@ -29,7 +29,7 @@ class TwoFactorAuthenticator
 
     private Google2FA $engine;
 
-    // パッケージのTOTPの処理を用意する
+    /** パッケージのTOTPの処理を用意する */
     public function __construct()
     {
         $this->engine = new Google2FA();

@@ -27,13 +27,15 @@ use Illuminate\Database\Eloquent\Builder;
  */
 final class CsvImportSettings
 {
-    // 確認画面から実行までの間、取り込み途中のCSVを置くディスクとディレクトリ。
-    // 古いものはTemporaryDataCleanerが消す。
+    /**
+     * 確認画面から実行までの間、取り込み途中のCSVを置くディスクとディレクトリ。
+     * 古いものはTemporaryDataCleanerが消す。
+     */
     public const TMP_DISK = 'local';
 
     public const TMP_DIR = 'csv_import';
 
-    // 引数の意味はこのクラスの説明にある。どれも省略できない
+    /** 引数の意味はこのクラスの説明にある。どれも省略できない */
     public function __construct(
         public readonly ?Builder $query,
         public readonly string $name,

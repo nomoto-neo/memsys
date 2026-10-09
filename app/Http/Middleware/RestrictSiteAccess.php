@@ -23,10 +23,10 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class RestrictSiteAccess
 {
-    // 入ってよいIPアドレスの一覧のある設定の名前
+    /** 入ってよいIPアドレスの一覧のある設定の名前 */
     private const CONFIG_KEY = 'app.site_allowed_ips';
 
-    // メンテナンス中の画面のビュー
+    /** メンテナンス中の画面のビュー */
     private const VIEW = 'maintenance';
 
     // 制限の間も、IPアドレスに関係なく通すパス。「mail/unsubscribe」「admin/*」の形

@@ -88,10 +88,10 @@ trait CsvImport
 {
     use CsvReader;
 
-    // 確認画面に並べる行の数の上限。エラーや警告の行と、処理だけのモードで読んだ行
+    /** 確認画面に並べる行の数の上限。エラーや警告の行と、処理だけのモードで読んだ行 */
     private const CSV_IMPORT_PREVIEW_ROWS = 30;
 
-    // 確認画面の項目ごとの変更件数で、開いて見られる変更の例の数
+    /** 確認画面の項目ごとの変更件数で、開いて見られる変更の例の数 */
     private const CSV_IMPORT_CHANGE_EXAMPLES = 5;
 
     // 取り込み途中のCSVの置き場所はCsvImportSettings::TMP_DISKとTMP_DIR。置いたままにしてよい
@@ -99,7 +99,7 @@ trait CsvImport
 
     // ---- ルートから呼ばれる入口 ----
 
-    // 取り込み画面。CSVファイルを選ぶ。
+    /** 取り込み画面。CSVファイルを選ぶ。 */
     public function csvImport(): View
     {
         $settings = $this->csvImportSettings();
@@ -117,7 +117,7 @@ trait CsvImport
         ]);
     }
 
-    // 確認画面。アップロードされたCSVを全行検証して結果を出す。
+    /** 確認画面。アップロードされたCSVを全行検証して結果を出す。 */
     public function csvImportConfirm(Request $request): View
     {
         $settings = $this->csvImportSettings();
@@ -174,7 +174,7 @@ trait CsvImport
         ]);
     }
 
-    // 確認画面の「取り込む」から実行する。
+    /** 確認画面の「取り込む」から実行する。 */
     public function csvImportExecute(Request $request): RedirectResponse
     {
         $settings = $this->csvImportSettings();
@@ -264,22 +264,22 @@ trait CsvImport
 
     // ---- 要るときだけコントローラーで書き換える処理。ここでは何もしない ----
 
-    // 全行を1行ずつ検証した後に、行をまたいだ確かめをする
+    /** 全行を1行ずつ検証した後に、行をまたいだ確かめをする */
     private function validateCsvRows(CsvImportResult $result): void
     {
     }
 
-    // 取り込みで1行保存するたびに、トランザクションの中で呼ばれる
+    /** 取り込みで1行保存するたびに、トランザクションの中で呼ばれる */
     private function afterCsvImportRow(CsvImportRow $row): void
     {
     }
 
-    // 全件が確定して記録を残した後に呼ばれる
+    /** 全件が確定して記録を残した後に呼ばれる */
     private function afterCsvImport(CsvImportResult $result): void
     {
     }
 
-    // 処理だけのモードで、検証済みの全行を処理する。このモードでは必ずコントローラーに用意する
+    /** 処理だけのモードで、検証済みの全行を処理する。このモードでは必ずコントローラーに用意する */
     private function processCsvRows(CsvImportResult $result): ?string
     {
         throw new LogicException('処理だけのモード（CsvImportMode::Process）では、コントローラーにprocessCsvRows()を用意してください。');
@@ -287,7 +287,7 @@ trait CsvImport
 
     // ---- 検証 ----
 
-    // コントローラーのcsvColumns()とrules()で、CSVを読んで全行を検証する
+    /** コントローラーのcsvColumns()とrules()で、CSVを読んで全行を検証する */
     private function readImportCsv(CsvImportSettings $settings, string $path, string $filename, ?CsvEncoding $encoding): CsvImportResult
     {
         return $this->readCsv(
@@ -300,8 +300,10 @@ trait CsvImport
         );
     }
 
-    // 確認から実行までの変更を見つけるための控え。CSVにあるidのデータのid => DBの更新日時の文字列。
-    // モデルが更新日時を持たなければid => ''で、削除されたかだけを見る。処理だけのモードでは空。
+    /**
+     * 確認から実行までの変更を見つけるための控え。CSVにあるidのデータのid => DBの更新日時の文字列。
+     * モデルが更新日時を持たなければid => ''で、削除されたかだけを見る。処理だけのモードでは空。
+     */
     private function csvImportSnapshot(CsvImportSettings $settings, CsvImportResult $result): array
     {
         if ($settings->query === null) {
@@ -325,7 +327,7 @@ trait CsvImport
         return $snapshot;
     }
 
-    // 確認のときと今の控えを比べ、更新日時が変わったか削除されたデータの行を返す。
+    /** 確認のときと今の控えを比べ、更新日時が変わったか削除されたデータの行を返す。 */
     private function csvImportChangedRows(CsvImportResult $result, array $before, array $now): array
     {
         $changedIds = [];
@@ -343,7 +345,7 @@ trait CsvImport
 
     // ---- 実行 ----
 
-    // 全行を1つのトランザクションで反映する。完了の画面に出すメッセージを返し、nullなら決まった文言。
+    /** 全行を1つのトランザクションで反映する。完了の画面に出すメッセージを返し、nullなら決まった文言。 */
     private function runCsvImport(CsvImportSettings $settings, CsvImportResult $result): ?string
     {
         return DB::transaction(function () use ($settings, $result) {
@@ -410,7 +412,7 @@ trait CsvImport
         return $summary;
     }
 
-    // 画面の「一覧へ戻る」のURL。コントローラーにINDEX_ROUTEが無ければnullで、ボタンを出さない。
+    /** 画面の「一覧へ戻る」のURL。コントローラーにINDEX_ROUTEが無ければnullで、ボタンを出さない。 */
     private function csvImportBackUrl(): ?string
     {
         return defined('self::INDEX_ROUTE') ? route(self::INDEX_ROUTE, ['back']) : null;
@@ -418,7 +420,7 @@ trait CsvImport
 
     // ---- セッション ----
 
-    // 確認の状態を持つセッションのキー。キーの「.」は階層の区切りになるので、ルート名の「.」は置き換える。
+    /** 確認の状態を持つセッションのキー。キーの「.」は階層の区切りになるので、ルート名の「.」は置き換える。 */
     private function csvImportSessionKey(CsvImportSettings $settings): string
     {
         return 'csv_import_'.str_replace('.', '_', $settings->route);

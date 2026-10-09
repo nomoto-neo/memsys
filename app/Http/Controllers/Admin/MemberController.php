@@ -59,20 +59,22 @@ class MemberController extends Controller
 
     // ---- 一覧・検索（SearchableList）の設定 ----
 
-    // 一覧画面のルート名。セッションキー名の識別子としても使用。
-    // 登録・更新・削除の後の戻り先（?back付きの一覧）にも使う。
+    /**
+     * 一覧画面のルート名。セッションキー名の識別子としても使用。
+     * 登録・更新・削除の後の戻り先（?back付きの一覧）にも使う。
+     */
     private const INDEX_ROUTE = 'admin.members.index';
 
-    // フリーワード検索の検索対象とするカラムの一覧。
+    /** フリーワード検索の検索対象とするカラムの一覧。 */
     private const FREE_WORD_COLUMNS = ['name', 'kana', 'staff_memo'];
 
-    // 管理メモに書ける文字数。
+    /** 管理メモに書ける文字数。 */
     private const STAFF_MEMO_MAX_LENGTH = 2000;
 
-    // 1ページに表示する件数。
+    /** 1ページに表示する件数。 */
     private const PER_PAGE = 20;
 
-    // 一覧の並び順の選択肢。
+    /** 一覧の並び順の選択肢。 */
     private const ORDER_OPTIONS = [
         'updated_desc' => [
             'label' => '更新日が新しい順',
@@ -92,21 +94,25 @@ class MemberController extends Controller
 
     // ---- この会員の操作ログの設定 ----
 
-    // 1ページに表示する件数。
+    /** 1ページに表示する件数。 */
     private const OPERATION_LOGS_PER_PAGE = 50;
 
     // ---- アップロード（AjaxFileUpload）の設定 ----
 
-    // フィールド名 => 横幅(px)。顔写真は非公開のフィールド（Member::PRIVATE_FILE_FIELDS）なので、
-    // ログインした本人とスタッフだけが見られる場所に保存される。
+    /**
+     * フィールド名 => 横幅(px)。顔写真は非公開のフィールド（Member::PRIVATE_FILE_FIELDS）なので、
+     * ログインした本人とスタッフだけが見られる場所に保存される。
+     */
     private const UPLOAD_FILES = [
         'photo' => Member::PHOTO_WIDTH,
     ];
 
     // ---- このコーナーの項目の定義 ----
 
-    // 入力バリデーションルール
-    // $memberは既存会員のインスタンス
+    /**
+     * 入力バリデーションルール
+     * $memberは既存会員のインスタンス
+     */
     private function rules(?Member $member): array
     {
         return [
@@ -136,15 +142,17 @@ class MemberController extends Controller
         ] + $this->ajaxUploadRules();
     }
 
-    // 保存する項目（t_membersのカラム）。ここに書いた項目だけを保存する。
-    // パスワードと最終更新者（staff_id）は入力値をそのまま保存しないので、additionalFields()で扱う。
-    // ここから外した項目は、更新ではDBの今の値がそのまま残る（NULLにするのとは違う）。
+    /**
+     * 保存する項目（t_membersのカラム）。ここに書いた項目だけを保存する。
+     * パスワードと最終更新者（staff_id）は入力値をそのまま保存しないので、additionalFields()で扱う。
+     * ここから外した項目は、更新ではDBの今の値がそのまま残る（NULLにするのとは違う）。
+     */
     private function saveFieldNames(array $validated, Member $member): array
     {
         return ['name', 'kana', 'email', 'phone', 'birthdate', 'prefecture', 'notice_mail', 'staff_memo'];
     }
 
-    // saveFieldNames()に加えて保存する項目（項目名 => 値）。入力値をそのまま使わないものをここに書く。
+    /** saveFieldNames()に加えて保存する項目（項目名 => 値）。入力値をそのまま使わないものをここに書く。 */
     private function additionalFields(array $validated, Member $member): array
     {
         $additional = [
@@ -160,7 +168,7 @@ class MemberController extends Controller
         return $additional;
     }
 
-    // モデルの今の値から、_fields.blade.phpに渡す$inputを組み立てる（詳細・編集で使う）。
+    /** モデルの今の値から、_fields.blade.phpに渡す$inputを組み立てる（詳細・編集で使う）。 */
     private function inputFromModel(Member $member): array
     {
         return [
@@ -175,7 +183,7 @@ class MemberController extends Controller
         ];
     }
 
-    // 保存の直後の処理。
+    /** 保存の直後の処理。 */
     private function afterSave(Member $member, array $validated): void
     {
         if ($member->wasChanged('password')) {
@@ -187,8 +195,10 @@ class MemberController extends Controller
 
     // ---- 一覧・検索 ----
 
-    // 一覧・検索
-    // 検索条件の復元、絞り込み、並び替え、ページネーションは SearchableList::buildListData が行う
+    /**
+     * 一覧・検索
+     * 検索条件の復元、絞り込み、並び替え、ページネーションは SearchableList::buildListData が行う
+     */
     public function index(Request $request): View|RedirectResponse
     {
         // 一覧データの読み込みとページング
@@ -208,8 +218,10 @@ class MemberController extends Controller
         ]);
     }
 
-    // 検索対象項目の検証ルール（SearchableListが要求する）。
-    // integer・boolean・Rule::inのどれかがあれば完全一致、無ければ部分一致、配列ならIN()条件
+    /**
+     * 検索対象項目の検証ルール（SearchableListが要求する）。
+     * integer・boolean・Rule::inのどれかがあれば完全一致、無ければ部分一致、配列ならIN()条件
+     */
     private function srchRules(): array
     {
         return [
@@ -229,8 +241,10 @@ class MemberController extends Controller
         ];
     }
 
-    // イレギュラーな検索条件の追加処理
-    // DB項目と単純に比較できないものは先にここでwhere条件を追加し、処理済み(true)を返す。
+    /**
+     * イレギュラーな検索条件の追加処理
+     * DB項目と単純に比較できないものは先にここでwhere条件を追加し、処理済み(true)を返す。
+     */
     private function applyCustomSearch(Builder $query, string $key, mixed $value): bool
     {
         return false;
@@ -238,7 +252,7 @@ class MemberController extends Controller
 
     // ---- CSVダウンロード ----
 
-    // CSVダウンロード（一覧の今の検索条件・並び順で全件）
+    /** CSVダウンロード（一覧の今の検索条件・並び順で全件） */
     public function csv(): StreamedResponse
     {
         return $this->downloadCsv(
@@ -250,7 +264,7 @@ class MemberController extends Controller
         );
     }
 
-    // CSVに出す項目。見出し => 値の場所（書き方はApp\Support\CsvDownload参照）
+    /** CSVに出す項目。見出し => 値の場所（書き方はApp\Support\CsvDownload参照） */
     private function csvColumns(): array
     {
         $prefectures = code_table('prefectures');
@@ -275,7 +289,7 @@ class MemberController extends Controller
         ];
     }
 
-    // csvColumns()で「@名前」と書いた項目の値
+    /** csvColumns()で「@名前」と書いた項目の値 */
     private function csvCustomColumn(string $key, Member $member): mixed
     {
         return match ($key) {
@@ -286,8 +300,10 @@ class MemberController extends Controller
 
     // ---- CSV取り込み ----
 
-    // CSV取り込みの設定（書き方はApp\Support\CsvImportSettings参照）。
-    // 会員の登録は本人が行うので、取り込みは更新だけ（追加はしない）。
+    /**
+     * CSV取り込みの設定（書き方はApp\Support\CsvImportSettings参照）。
+     * 会員の登録は本人が行うので、取り込みは更新だけ（追加はしない）。
+     */
     private function csvImportSettings(): CsvImportSettings
     {
         return new CsvImportSettings(
@@ -306,7 +322,7 @@ class MemberController extends Controller
 
     // ---- 詳細・編集 ----
 
-    // 詳細画面の表示
+    /** 詳細画面の表示 */
     public function show(Member $member): View
     {
         // 個人情報を持つコーナーなので、詳細を開いたことを操作ログに残す
@@ -319,7 +335,7 @@ class MemberController extends Controller
         ]);
     }
 
-    // 編集フォームの表示
+    /** 編集フォームの表示 */
     public function edit(Member $member): View
     {
         // old() があればそちらを優先（パスワードは再表示しないので外す）
@@ -332,7 +348,7 @@ class MemberController extends Controller
         ]);
     }
 
-    // 確認画面の表示
+    /** 確認画面の表示 */
     public function confirmUpdate(Request $request, Member $member): View
     {
         // password_confirmationはrules()に無いので、hiddenで持ち回れるように足しておく
@@ -345,14 +361,14 @@ class MemberController extends Controller
         ]);
     }
 
-    // 確認画面からの「戻る」
+    /** 確認画面からの「戻る」 */
     public function backToEdit(Request $request, Member $member): RedirectResponse
     {
         return redirect()->route('admin.members.edit', $member)
             ->withInput($request->except('_token'));
     }
 
-    // 更新の実行
+    /** 更新の実行 */
     public function update(Request $request, Member $member): RedirectResponse
     {
         $this->saveData($member, $request);
@@ -363,8 +379,10 @@ class MemberController extends Controller
 
     // ---- この会員の操作ログ ----
 
-    // この会員を対象にした操作と、この会員が行った操作を、新しい順に出す。
-    // 問い合わせに答えるのに使う。操作ログの一覧と同じく、管理者だけが開ける（routes/web.phpのacl.manager）。
+    /**
+     * この会員を対象にした操作と、この会員が行った操作を、新しい順に出す。
+     * 問い合わせに答えるのに使う。操作ログの一覧と同じく、管理者だけが開ける（routes/web.phpのacl.manager）。
+     */
     public function operationLogs(Member $member): View
     {
         $type = $member->getMorphClass();
@@ -386,7 +404,7 @@ class MemberController extends Controller
 
     // ---- 履歴書のPDF ----
 
-    // 履歴書のPDFをブラウザの中で開く（マイページのMypageController::resume()と同じPDF）
+    /** 履歴書のPDFをブラウザの中で開く（マイページのMypageController::resume()と同じPDF） */
     public function resume(Member $member): Response
     {
         OperationRecorder::record(OperationLogAction::Pdf, $member, detail: ['name' => '履歴書']);

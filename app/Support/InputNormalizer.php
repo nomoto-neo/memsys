@@ -36,10 +36,10 @@ use ReflectionClass;
  */
 final class InputNormalizer
 {
-    // そろえない項目を書く、コントローラーの定数の名前
+    /** そろえない項目を書く、コントローラーの定数の名前 */
     private const CONTROLLER_CONSTANT = 'RAW_INPUT_FIELDS';
 
-    // 半角にする記号。全角 => 半角
+    /** 半角にする記号。全角 => 半角 */
     private const SYMBOLS = [
         '＠' => '@',
         '－' => '-',
@@ -48,7 +48,7 @@ final class InputNormalizer
         '／' => '/',
     ];
 
-    // 1つの値をそろえる
+    /** 1つの値をそろえる */
     public static function normalize(string $value): string
     {
         // K：半角カナを全角カナに　V：濁点を前の文字とまとめる　r：全角の英字を半角に　n：全角の数字を半角に

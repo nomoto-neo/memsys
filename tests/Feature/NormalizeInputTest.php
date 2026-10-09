@@ -56,13 +56,13 @@ class NormalizeInputTest extends TestCase
         ]);
     }
 
-    // BOM付きUTF-8のCSVファイル
+    /** BOM付きUTF-8のCSVファイル */
     private function csvFile(string $name, array $lines): UploadedFile
     {
         return UploadedFile::fake()->createWithContent($name, "\xEF\xBB\xBF".implode("\r\n", $lines)."\r\n");
     }
 
-    // CSVを確認画面に通してから、取り込みを実行する
+    /** CSVを確認画面に通してから、取り込みを実行する */
     private function importCsv(Staff $staff, string $url, UploadedFile $file): void
     {
         $confirm = $this->actingAs($staff, 'admin')->post("{$url}/confirm", ['csv_file' => $file])->assertOk();

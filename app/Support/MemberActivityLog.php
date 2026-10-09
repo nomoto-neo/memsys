@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Log;
  */
 class MemberActivityLog
 {
-    // 会員登録
+    /** 会員登録 */
     public static function registered(MemberAccount $member, Request $request): void
     {
         Log::channel('member')->info('会員登録', [
@@ -25,7 +25,7 @@ class MemberActivityLog
         ]);
     }
 
-    // 退会。delete()の後でもidなどは読めるので、行を消した後の$memberを渡してよい
+    /** 退会。delete()の後でもidなどは読めるので、行を消した後の$memberを渡してよい */
     public static function withdrawn(MemberAccount $member, Request $request): void
     {
         Log::channel('member')->info('会員退会', [

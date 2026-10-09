@@ -21,7 +21,7 @@ class TrustedDevice extends Model
         'expires_at',
     ];
 
-    // token_hashは照合にしか使わないので、配列やJSONにしたときに出ないよう隠す
+    /** token_hashは照合にしか使わないので、配列やJSONにしたときに出ないよう隠す */
     protected $hidden = [
         'token_hash',
     ];
@@ -30,7 +30,7 @@ class TrustedDevice extends Model
         'expires_at' => 'datetime',
     ];
 
-    // この端末を信頼したアカウント（MemberまたはStaff）。
+    /** この端末を信頼したアカウント（MemberまたはStaff）。 */
     public function authenticatable(): MorphTo
     {
         return $this->morphTo();

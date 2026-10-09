@@ -41,11 +41,13 @@ use Illuminate\Support\Facades\Auth;
  */
 final class OperationRecorder
 {
-    // 更新の記録で、変わった列に数えない列。どのテーブルでも、保存のたびに変わるもの
+    /** 更新の記録で、変わった列に数えない列。どのテーブルでも、保存のたびに変わるもの */
     private const IGNORED_FIELDS = ['created_at', 'updated_at', 'deleted_at', 'remember_token'];
 
-    // 変わった列に数えない列の、名前の終わり。アップロードの元のファイル名の列は、
-    // ファイルの列と一緒に変わるので数えない（App\Support\AjaxFileUpload）
+    /**
+     * 変わった列に数えない列の、名前の終わり。アップロードの元のファイル名の列は、
+     * ファイルの列と一緒に変わるので数えない（App\Support\AjaxFileUpload）
+     */
     private const IGNORED_SUFFIX = '_origin';
 
     /**

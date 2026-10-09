@@ -29,7 +29,7 @@ class TwoFactorBackupCode extends Model
         'used_at' => 'datetime',
     ];
 
-    // このコードを持つアカウント（今はStaffのみ）。
+    /** このコードを持つアカウント（今はStaffのみ）。 */
     public function authenticatable(): MorphTo
     {
         return $this->morphTo();

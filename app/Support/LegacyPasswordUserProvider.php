@@ -33,8 +33,10 @@ use Illuminate\Support\Facades\Hash;
  */
 final class LegacyPasswordUserProvider extends EloquentUserProvider
 {
-    // 既存のシステムのハッシュ値を、DBに置ける形にする。データを移すときに、1件ずつ呼ぶ。
-    // 今の方式（bcrypt）は、わざと時間がかかる。件数が多いときは、取り込みとは別に進める
+    /**
+     * 既存のシステムのハッシュ値を、DBに置ける形にする。データを移すときに、1件ずつ呼ぶ。
+     * 今の方式（bcrypt）は、わざと時間がかかる。件数が多いときは、取り込みとは別に進める
+     */
     public static function wrap(string $legacyHash): string
     {
         return Hash::make($legacyHash);

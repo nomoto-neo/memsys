@@ -27,8 +27,10 @@ class PasswordResetController extends Controller
 {
     private const PURPOSE = MemberVerificationCode::PURPOSE_PASSWORD_RESET;
 
-    // 再設定フォーム（確認コード＋新しいパスワード）の入力バリデーションルール。
-    // password_confirmationはconfirmedルールでpasswordと照合するので、ここには書かない。
+    /**
+     * 再設定フォーム（確認コード＋新しいパスワード）の入力バリデーションルール。
+     * password_confirmationはconfirmedルールでpasswordと照合するので、ここには書かない。
+     */
     private function rules(): array
     {
         return [
@@ -37,7 +39,7 @@ class PasswordResetController extends Controller
         ];
     }
 
-    // 確認コードの送り先を決める入力（企業ID・担当者ID・メールアドレス）のバリデーションルール。
+    /** 確認コードの送り先を決める入力（企業ID・担当者ID・メールアドレス）のバリデーションルール。 */
     private function forgotRules(): array
     {
         return [
@@ -47,7 +49,7 @@ class PasswordResetController extends Controller
         ];
     }
 
-    // 企業ID・担当者ID・メールアドレスの入力画面
+    /** 企業ID・担当者ID・メールアドレスの入力画面 */
     public function create(): View
     {
         return view('company.auth.password-forgot', [
@@ -55,7 +57,7 @@ class PasswordResetController extends Controller
         ]);
     }
 
-    // 確認コードの送信。担当者がいてもいなくても、同じ案内を返す（クラス冒頭のコメント参照）
+    /** 確認コードの送信。担当者がいてもいなくても、同じ案内を返す（クラス冒頭のコメント参照） */
     public function sendCode(Request $request): RedirectResponse
     {
         $validated = $request->validate($this->forgotRules());
@@ -77,7 +79,7 @@ class PasswordResetController extends Controller
             ->with('status', 'ご入力いただいたメールアドレス宛に確認コードを送信しました（ご登録の内容と一致しない場合は送信されません）。');
     }
 
-    // 確認コード＋新しいパスワードの入力画面
+    /** 確認コード＋新しいパスワードの入力画面 */
     public function edit(): View
     {
         return view('company.auth.password-reset', [
@@ -86,7 +88,7 @@ class PasswordResetController extends Controller
         ]);
     }
 
-    // 確認コードの照合とパスワードの再設定。成功したら、そのままログインさせる
+    /** 確認コードの照合とパスワードの再設定。成功したら、そのままログインさせる */
     public function update(Request $request): RedirectResponse
     {
         $validated = $request->validate($this->rules());

@@ -174,8 +174,10 @@ class CodeTable
         return self::$cache[$codeName] = $options;
     }
 
-    // CSVとDBで共通に、値の形をそろえる。前後の空白を除き、数字だけならintにする。
-    // 前ゼロは除かれるので、'01'と'1'は同じ値1になる
+    /**
+     * CSVとDBで共通に、値の形をそろえる。前後の空白を除き、数字だけならintにする。
+     * 前ゼロは除かれるので、'01'と'1'は同じ値1になる
+     */
     public static function normalizeKey(string $rawKey): int|string
     {
         $rawKey = trim($rawKey);
@@ -183,7 +185,7 @@ class CodeTable
         return ctype_digit($rawKey) ? (int) $rawKey : $rawKey;
     }
 
-    // CSVとDBで共通に、名称の形をそろえる。前後の空白を除き、「\n」の2文字を改行にする。
+    /** CSVとDBで共通に、名称の形をそろえる。前後の空白を除き、「\n」の2文字を改行にする。 */
     private static function normalizeLabel(string $label): string
     {
         return str_replace('\\n', "\n", trim($label));

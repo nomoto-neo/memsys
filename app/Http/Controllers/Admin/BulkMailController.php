@@ -67,68 +67,70 @@ class BulkMailController extends Controller
 
     // ---- 一覧の設定 ----
 
-    // 送信の履歴の一覧のルート名
+    /** 送信の履歴の一覧のルート名 */
     private const INDEX_ROUTE = 'admin.bulk-mails.index';
 
-    // 履歴の1ページの件数
+    /** 履歴の1ページの件数 */
     private const PER_PAGE = 20;
 
     // ---- 送信の設定 ----
 
-    // 本文の初期値。宛先の氏名の差し込みと敬称を1行目に入れておく
+    /** 本文の初期値。宛先の氏名の差し込みと敬称を1行目に入れておく */
     private const DEFAULT_BODY = "{{\$name}} 様\n";
 
-    // 宛先の上限の件数
+    /** 宛先の上限の件数 */
     private const MAX_RECIPIENTS = 5000;
 
-    // 確認画面に並べる宛先とエラーの行の数
+    /** 確認画面に並べる宛先とエラーの行の数 */
     private const PREVIEW_ROWS = 30;
 
-    // 確認画面の見本に差し込む氏名。CSVの1行目が読めなかったときに使う
+    /** 確認画面の見本に差し込む氏名。CSVの1行目が読めなかったときに使う */
     private const SAMPLE_NAME = '山田 太郎';
 
-    // 送信を始めるときのロックの名前と、ロックを持っていてよい秒数
+    /** 送信を始めるときのロックの名前と、ロックを持っていてよい秒数 */
     private const SEND_LOCK = 'bulk_mail:send';
 
     private const SEND_LOCK_SECONDS = 60;
 
-    // 送信中の状況の画面を、自動で読み直す間隔の秒数
+    /** 送信中の状況の画面を、自動で読み直す間隔の秒数 */
     private const REFRESH_SECONDS = 5;
 
-    // 「受け取らない」の会員を探すときに、1回の問い合わせで比べるメールアドレスの数
+    /** 「受け取らない」の会員を探すときに、1回の問い合わせで比べるメールアドレスの数 */
     private const OPT_OUT_CHECK_CHUNK = 1000;
 
     // ---- 添付ファイルの設定 ----
 
-    // アップロードの欄。添付ファイルは1つまで
+    /** アップロードの欄。添付ファイルは1つまで */
     private const UPLOAD_FILES = [
         'attach' => 0,
     ];
 
-    // 添付ファイルの大きさの上限(KB)。宛先の数だけ毎回送られるので、サイト全体の上限より小さくする
+    /** 添付ファイルの大きさの上限(KB)。宛先の数だけ毎回送られるので、サイト全体の上限より小さくする */
     private const ATTACH_MAX_KB = 2048;
 
-    // 添付ファイルに使える拡張子
+    /** 添付ファイルに使える拡張子 */
     private const ATTACH_TYPES = ['pdf'];
 
-    // 送信の直前に読んだ宛先のCSV。additionalFields()で件数を決めるのに使う
+    /** 送信の直前に読んだ宛先のCSV。additionalFields()で件数を決めるのに使う */
     private ?CsvImportResult $sendingCsv = null;
 
     // ---- 入力をそろえる処理（InputNormalizer）の設定 ----
 
-    // 全角と半角をそろえない項目。データの仕様なので、モデルの指定を引く。
-    // 宛先のCSVの氏名とメールアドレスは、そろえる
+    /**
+     * 全角と半角をそろえない項目。データの仕様なので、モデルの指定を引く。
+     * 宛先のCSVの氏名とメールアドレスは、そろえる
+     */
     private const RAW_INPUT_FIELDS = BulkMail::RAW_INPUT_FIELDS;
 
     // ---- 宛先のCSVの定義 ----
 
-    // CSVの列。見出しの行は無く、この順に並んでいる前提
+    /** CSVの列。見出しの行は無く、この順に並んでいる前提 */
     private const RECIPIENT_COLUMNS = [
         '氏名' => 'name',
         'メールアドレス' => 'email',
     ];
 
-    // CSVの1行の検証ルール。氏名は件名に差し込むので、メールの見出しを崩す改行は許さない
+    /** CSVの1行の検証ルール。氏名は件名に差し込むので、メールの見出しを崩す改行は許さない */
     private const RECIPIENT_RULES = [
         'name' => ['required', 'string', 'max:100', 'not_regex:/[\r\n]/'],
         'email' => ['required', 'email:rfc', 'max:255'],
@@ -136,7 +138,7 @@ class BulkMailController extends Controller
 
     // ---- このコーナーの項目の定義 ----
 
-    // 入力の検証ルール。件名に改行があるとメールの見出しとして読まれてしまうので、改行は許さない
+    /** 入力の検証ルール。件名に改行があるとメールの見出しとして読まれてしまうので、改行は許さない */
     private function rules(): array
     {
         return [
@@ -145,13 +147,13 @@ class BulkMailController extends Controller
         ] + $this->ajaxUploadRules();
     }
 
-    // 保存する項目
+    /** 保存する項目 */
     private function saveFieldNames(array $validated, BulkMail $bulkMail): array
     {
         return ['subject', 'body'];
     }
 
-    // 入力値ではない保存する項目。宛先の件数とCSVのファイル名は、送信の直前に読んだCSVから決める
+    /** 入力値ではない保存する項目。宛先の件数とCSVのファイル名は、送信の直前に読んだCSVから決める */
     private function additionalFields(array $validated, BulkMail $bulkMail): array
     {
         return [
@@ -162,13 +164,13 @@ class BulkMailController extends Controller
         ];
     }
 
-    // 新規の入力の初期値
+    /** 新規の入力の初期値 */
     private function defaultInput(): array
     {
         return ['body' => self::DEFAULT_BODY];
     }
 
-    // 宛先のCSVの読み込みの設定
+    /** 宛先のCSVの読み込みの設定 */
     private function recipientCsvSettings(): CsvImportSettings
     {
         return new CsvImportSettings(
@@ -185,8 +187,10 @@ class BulkMailController extends Controller
         );
     }
 
-    // 操作ログに残す操作の種類。送信の記録を1件作るのが、送信の始まりなので、
-    // 「登録」ではなく「一斉メールの送信」として残す。
+    /**
+     * 操作ログに残す操作の種類。送信の記録を1件作るのが、送信の始まりなので、
+     * 「登録」ではなく「一斉メールの送信」として残す。
+     */
     private function savedLogAction(bool $created): OperationLogAction
     {
         return OperationLogAction::BulkMailSend;
@@ -194,7 +198,7 @@ class BulkMailController extends Controller
 
     // ---- 履歴 ----
 
-    // 送信の履歴。新しいものから並べる
+    /** 送信の履歴。新しいものから並べる */
     public function index(): View
     {
         return view('admin.bulk_mails.index', [
@@ -202,7 +206,7 @@ class BulkMailController extends Controller
         ]);
     }
 
-    // 1件の送信の状況。送信中なら自動で読み直す
+    /** 1件の送信の状況。送信中なら自動で読み直す */
     public function show(BulkMail $bulkMail): View
     {
         return view('admin.bulk_mails.show', [
@@ -214,7 +218,7 @@ class BulkMailController extends Controller
 
     // ---- 送信 ----
 
-    // 入力画面。送信中の一斉メールがあれば、その状況の画面に回す
+    /** 入力画面。送信中の一斉メールがあれば、その状況の画面に回す */
     public function create(): View|RedirectResponse
     {
         if ($sending = BulkMail::sending()->first()) {
@@ -231,7 +235,7 @@ class BulkMailController extends Controller
         ]);
     }
 
-    // 確認画面。入力とCSVを確かめ、CSVにエラーが無ければ送信のための合言葉を持たせる
+    /** 確認画面。入力とCSVを確かめ、CSVにエラーが無ければ送信のための合言葉を持たせる */
     public function confirm(Request $request): View|RedirectResponse
     {
         if ($sending = BulkMail::sending()->first()) {
@@ -282,7 +286,7 @@ class BulkMailController extends Controller
         ]);
     }
 
-    // 確認画面からの「戻る」。CSVはファイルの欄に戻せないので、選び直してもらう
+    /** 確認画面からの「戻る」。CSVはファイルの欄に戻せないので、選び直してもらう */
     public function back(Request $request): RedirectResponse
     {
         return redirect()->route('admin.bulk-mails.create')
@@ -348,7 +352,7 @@ class BulkMailController extends Controller
 
     // ---- CSVの検証 ----
 
-    // 宛先のCSVを読んで全行を確かめる
+    /** 宛先のCSVを読んで全行を確かめる */
     private function readRecipients(string $path, string $filename, ?CsvEncoding $encoding): CsvImportResult
     {
         return $this->readCsv(
@@ -361,8 +365,10 @@ class BulkMailController extends Controller
         );
     }
 
-    // 全行を確かめた後の、行をまたいだ確かめ。同じメールアドレスが2回以上あればエラーにする。
-    // 同じ人に2通届かないように。お知らせメールを受け取らない会員のアドレスも、エラーにする
+    /**
+     * 全行を確かめた後の、行をまたいだ確かめ。同じメールアドレスが2回以上あればエラーにする。
+     * 同じ人に2通届かないように。お知らせメールを受け取らない会員のアドレスも、エラーにする
+     */
     private function validateCsvRows(CsvImportResult $result): void
     {
         $firstLines = [];
@@ -421,7 +427,7 @@ class BulkMailController extends Controller
         return $optedOut;
     }
 
-    // 添付ファイルの大きさと種類を確かめる。サイト全体の上限より厳しい、一斉メールだけの上限
+    /** 添付ファイルの大きさと種類を確かめる。サイト全体の上限より厳しい、一斉メールだけの上限 */
     private function checkAttachLimit(?string $tmpName): void
     {
         if (! $tmpName) {
@@ -473,7 +479,7 @@ class BulkMailController extends Controller
             ->dispatch();
     }
 
-    // 送信済み・失敗・残りの件数。送信中はバッチから読み、終わっていれば記録に写した件数を使う
+    /** 送信済み・失敗・残りの件数。送信中はバッチから読み、終わっていれば記録に写した件数を使う */
     private function sendCounts(BulkMail $bulkMail): array
     {
         $batch = $bulkMail->status === BulkMailStatus::Sending ? $bulkMail->batch() : null;
@@ -496,7 +502,7 @@ class BulkMailController extends Controller
 
     // ---- セッション ----
 
-    // 確認から送信までの状態を持つセッションのキー
+    /** 確認から送信までの状態を持つセッションのキー */
     private function sessionKey(): string
     {
         return 'bulk_mail_send';

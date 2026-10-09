@@ -25,13 +25,13 @@ use Illuminate\Database\Eloquent\Builder;
  */
 final class OperationLogReport
 {
-    // 1人が1時間に開いた詳細の件数。これ以上なら気になる点にする
+    /** 1人が1時間に開いた詳細の件数。これ以上なら気になる点にする */
     private const VIEWS_PER_HOUR = 50;
 
-    // 1人が1日にCSVをダウンロードした回数。これ以上なら気になる点にする
+    /** 1人が1日にCSVをダウンロードした回数。これ以上なら気になる点にする */
     private const CSV_DOWNLOADS_PER_DAY = 5;
 
-    // 1日のログインの失敗の件数。これ以上なら気になる点にする
+    /** 1日のログインの失敗の件数。これ以上なら気になる点にする */
     private const LOGIN_FAILURES_PER_DAY = 10;
 
     /**
@@ -132,7 +132,7 @@ final class OperationLogReport
         ];
     }
 
-    // 日時から「時」を取り出すSQL。書き方がDBによって違う
+    /** 日時から「時」を取り出すSQL。書き方がDBによって違う */
     private static function hourExpression(Builder $query): string
     {
         return $query->getConnection()->getDriverName() === 'sqlite'

@@ -47,17 +47,19 @@ class StaffController extends Controller
 
     // ---- 一覧・検索（SearchableList）の設定 ----
 
-    // 一覧画面のルート名。セッションキー名の識別子としても使用。
-    // 登録・更新・削除の後の戻り先（?back付きの一覧）にも使う。
+    /**
+     * 一覧画面のルート名。セッションキー名の識別子としても使用。
+     * 登録・更新・削除の後の戻り先（?back付きの一覧）にも使う。
+     */
     private const INDEX_ROUTE = 'admin.staff.index';
 
-    // フリーワード検索の検索対象とするカラムの一覧。
+    /** フリーワード検索の検索対象とするカラムの一覧。 */
     private const FREE_WORD_COLUMNS = ['name'];
 
-    // 1ページに表示する件数。
+    /** 1ページに表示する件数。 */
     private const PER_PAGE = 20;
 
-    // 一覧の並び順の選択肢。
+    /** 一覧の並び順の選択肢。 */
     private const ORDER_OPTIONS = [
         'updated_desc' => [
             'label' => '更新日が新しい順',
@@ -77,23 +79,27 @@ class StaffController extends Controller
 
     // ---- パスキー（PasskeyManagement）の設定 ----
 
-    // ログイン中のスタッフを取るガード。
+    /** ログイン中のスタッフを取るガード。 */
     private const PASSKEY_GUARD = 'admin';
 
-    // パスキーの一覧画面のルート名（登録・削除などのルート名は、この後ろに.confirmなどを付ける）。
+    /** パスキーの一覧画面のルート名（登録・削除などのルート名は、この後ろに.confirmなどを付ける）。 */
     private const PASSKEY_ROUTE = 'admin.passkeys';
 
-    // パスキーの一覧画面のビュー。
+    /** パスキーの一覧画面のビュー。 */
     private const PASSKEY_VIEW = 'admin.staff.passkeys';
 
-    // 登録の前の本人確認（TOTPコード）の試行制限。ログインの2段階目などと同じ
-    // カウンターで数える（TwoFactorChallengeController::THROTTLE_SCOPE参照）。
+    /**
+     * 登録の前の本人確認（TOTPコード）の試行制限。ログインの2段階目などと同じ
+     * カウンターで数える（TwoFactorChallengeController::THROTTLE_SCOPE参照）。
+     */
     private const PASSKEY_THROTTLE_SCOPE = TwoFactorChallengeController::THROTTLE_SCOPE;
 
     // ---- このコーナーの項目の定義 ----
 
-    // 入力バリデーションルール
-    // $staffは既存スタッフの編集ならそのインスタンス、新規登録ならnull。
+    /**
+     * 入力バリデーションルール
+     * $staffは既存スタッフの編集ならそのインスタンス、新規登録ならnull。
+     */
     private function rules(?Staff $staff): array
     {
         // パスワード：新規登録では必須、編集では空欄なら今のまま変えない
@@ -127,9 +133,11 @@ class StaffController extends Controller
         ];
     }
 
-    // 保存する項目（t_staffsのカラム）。ここに書いた項目だけを保存する。
-    // パスワードは入力値をそのまま保存しないので、additionalFields()で扱う。
-    // ここから外した項目は、更新ではDBの今の値がそのまま残る（NULLにするのとは違う）。
+    /**
+     * 保存する項目（t_staffsのカラム）。ここに書いた項目だけを保存する。
+     * パスワードは入力値をそのまま保存しないので、additionalFields()で扱う。
+     * ここから外した項目は、更新ではDBの今の値がそのまま残る（NULLにするのとは違う）。
+     */
     private function saveFieldNames(array $validated, Staff $staff): array
     {
         $fields = ['name', 'login_id', 'email'];
@@ -143,7 +151,7 @@ class StaffController extends Controller
         return $fields;
     }
 
-    // saveFieldNames()に加えて保存する項目（項目名 => 値）。入力値をそのまま使わないものをここに書く。
+    /** saveFieldNames()に加えて保存する項目（項目名 => 値）。入力値をそのまま使わないものをここに書く。 */
     private function additionalFields(array $validated, Staff $staff): array
     {
         // パスワードが空欄なら、今のまま変えない
@@ -155,7 +163,7 @@ class StaffController extends Controller
         return ['password' => Hash::make($validated['password'])];
     }
 
-    // モデルの今の値から、_fields.blade.phpに渡す$inputを組み立てる（詳細・編集で使う）。
+    /** モデルの今の値から、_fields.blade.phpに渡す$inputを組み立てる（詳細・編集で使う）。 */
     private function inputFromModel(Staff $staff): array
     {
         return [
@@ -166,14 +174,14 @@ class StaffController extends Controller
         ];
     }
 
-    // 新規登録フォームの初期値。
+    /** 新規登録フォームの初期値。 */
     private function defaultInput(): array
     {
         // 新規スタッフは最小権限から
         return ['acl' => StaffAcl::Staff->value];
     }
 
-    // 保存の直後の処理。
+    /** 保存の直後の処理。 */
     private function afterSave(Staff $staff, array $validated): void
     {
         if ($staff->wasChanged('password')) {
@@ -191,7 +199,7 @@ class StaffController extends Controller
         }
     }
 
-    // 削除の直前の処理。
+    /** 削除の直前の処理。 */
     private function beforeDelete(Staff $staff): void
     {
         // 論理削除では行が残るので、信頼済み端末はここで明示的に消しておく
@@ -201,8 +209,10 @@ class StaffController extends Controller
         TrustedDeviceManager::forStaff()->forgetAll($staff);
     }
 
-    // 操作しているスタッフが、権限（acl）を変えてよいか（判断はStaffPolicy::updateAcl()）。
-    // 新規登録（$staffがnull）のときは、対象が無いのでクラス名で問い合わせる。
+    /**
+     * 操作しているスタッフが、権限（acl）を変えてよいか（判断はStaffPolicy::updateAcl()）。
+     * 新規登録（$staffがnull）のときは、対象が無いのでクラス名で問い合わせる。
+     */
     private function canUpdateAcl(?Staff $staff): bool
     {
         return Auth::guard('admin')->user()->can('updateAcl', $staff ?? Staff::class);
@@ -210,8 +220,10 @@ class StaffController extends Controller
 
     // ---- 一覧・検索 ----
 
-    // スタッフ一覧・検索
-    // 検索条件の復元、絞り込み、並び替え、ページネーションは SearchableList::buildListData が行う
+    /**
+     * スタッフ一覧・検索
+     * 検索条件の復元、絞り込み、並び替え、ページネーションは SearchableList::buildListData が行う
+     */
     public function index(Request $request): View|RedirectResponse
     {
         // 一覧データの読み込みとページング
@@ -231,8 +243,10 @@ class StaffController extends Controller
         ]);
     }
 
-    // 検索対象項目の検証ルール（SearchableListが要求する）。
-    // integer・boolean・Rule::inのどれかがあれば完全一致、無ければ部分一致、配列ならIN()条件
+    /**
+     * 検索対象項目の検証ルール（SearchableListが要求する）。
+     * integer・boolean・Rule::inのどれかがあれば完全一致、無ければ部分一致、配列ならIN()条件
+     */
     private function srchRules(): array
     {
         return [
@@ -243,8 +257,10 @@ class StaffController extends Controller
         ];
     }
 
-    // イレギュラーな検索条件の追加処理
-    // DB項目と単純に比較できないものは先にここでwhere条件を追加し、処理済み(true)を返す。
+    /**
+     * イレギュラーな検索条件の追加処理
+     * DB項目と単純に比較できないものは先にここでwhere条件を追加し、処理済み(true)を返す。
+     */
     private function applyCustomSearch(Builder $query, string $key, mixed $value): bool
     {
         if ($key === 'with_trashed') {
@@ -261,7 +277,7 @@ class StaffController extends Controller
 
     // ---- 登録（管理者のみ。routes/web.phpのacl.managerの内側） ----
 
-    // 新規登録フォームの表示
+    /** 新規登録フォームの表示 */
     public function create(): View
     {
         // 初期値はdefaultInput()。old() があればそちらを優先（パスワードは再表示しないので外す）
@@ -274,7 +290,7 @@ class StaffController extends Controller
         ]);
     }
 
-    // 新規登録の確認画面を表示
+    /** 新規登録の確認画面を表示 */
     public function confirmStore(Request $request): View
     {
         // password_confirmationはrules()に無いので、hiddenで持ち回れるように足しておく
@@ -289,14 +305,14 @@ class StaffController extends Controller
         ]);
     }
 
-    // 確認画面からの「戻る」
+    /** 確認画面からの「戻る」 */
     public function backToCreate(Request $request): RedirectResponse
     {
         return redirect()->route('admin.staff.create')
             ->withInput($request->except('_token'));
     }
 
-    // 新規登録の実行
+    /** 新規登録の実行 */
     public function store(Request $request): RedirectResponse
     {
         $this->saveData(new Staff(), $request);
@@ -307,7 +323,7 @@ class StaffController extends Controller
 
     // ---- 詳細・編集（本人または管理者。routes/web.phpのcan:view・can:updateの内側） ----
 
-    // 詳細画面の表示
+    /** 詳細画面の表示 */
     public function show(Staff $staff): View
     {
         // 個人情報を持つコーナーなので、詳細を開いたことを操作ログに残す
@@ -321,7 +337,7 @@ class StaffController extends Controller
         ]);
     }
 
-    // 編集フォームの表示
+    /** 編集フォームの表示 */
     public function edit(Staff $staff): View
     {
         // old() があればそちらを優先（パスワードは再表示しないので外す）
@@ -335,7 +351,7 @@ class StaffController extends Controller
         ]);
     }
 
-    // 編集の確認画面を表示
+    /** 編集の確認画面を表示 */
     public function confirmUpdate(Request $request, Staff $staff): View
     {
         // password_confirmationはrules()に無いので、hiddenで持ち回れるように足しておく
@@ -350,14 +366,14 @@ class StaffController extends Controller
         ]);
     }
 
-    // 確認画面からの「戻る」
+    /** 確認画面からの「戻る」 */
     public function backToEdit(Request $request, Staff $staff): RedirectResponse
     {
         return redirect()->route('admin.staff.edit', $staff)
             ->withInput($request->except('_token'));
     }
 
-    // 更新の実行
+    /** 更新の実行 */
     public function update(Request $request, Staff $staff): RedirectResponse
     {
         $this->saveData($staff, $request);
@@ -375,8 +391,10 @@ class StaffController extends Controller
 
     // ---- 削除・削除の取り消し・2段階認証の登録解除（管理者のみ・自分自身は対象外。routes/web.phpのcanの内側） ----
 
-    // 削除の実行。StaffはSoftDeletesを使っているので、行は消さずにdeleted_atへ削除日時を
-    // 入れる論理削除になる（詳しくはStaffモデル参照）。
+    /**
+     * 削除の実行。StaffはSoftDeletesを使っているので、行は消さずにdeleted_atへ削除日時を
+     * 入れる論理削除になる（詳しくはStaffモデル参照）。
+     */
     public function destroy(Staff $staff): RedirectResponse
     {
         $this->deleteData($staff);
@@ -385,9 +403,11 @@ class StaffController extends Controller
             ->with('status', 'スタッフを削除しました。');
     }
 
-    // 削除の取り消し（PATCH /admin/staff/{staff}/restore）
-    // 論理削除したスタッフのdeleted_atを空に戻す。ログインID・パスワード・2段階認証の設定は
-    // 削除前のまま戻るので、すぐにログインできる（信頼済み端末だけは削除のときに消している）。
+    /**
+     * 削除の取り消し（PATCH /admin/staff/{staff}/restore）
+     * 論理削除したスタッフのdeleted_atを空に戻す。ログインID・パスワード・2段階認証の設定は
+     * 削除前のまま戻るので、すぐにログインできる（信頼済み端末だけは削除のときに消している）。
+     */
     public function restore(Staff $staff): RedirectResponse
     {
         $staff->restore();
@@ -398,11 +418,13 @@ class StaffController extends Controller
             ->with('status', 'スタッフの削除を取り消しました。');
     }
 
-    // 2段階認証（TOTP）の登録解除（DELETE /admin/staff/{staff}/two-factor）。
-    // スマートフォンの紛失・機種変更などで本人がログインできなくなった際に、
-    // 管理者が代わりに実行する。次回そのスタッフがログインすると、QRコードの登録から
-    // やり直しになる（バックアップコード・信頼済み端末・パスキーも合わせて失効させる。
-    // パスキーを消す理由はTwoFactorChallengeController::selfReset()参照）。
+    /**
+     * 2段階認証（TOTP）の登録解除（DELETE /admin/staff/{staff}/two-factor）。
+     * スマートフォンの紛失・機種変更などで本人がログインできなくなった際に、
+     * 管理者が代わりに実行する。次回そのスタッフがログインすると、QRコードの登録から
+     * やり直しになる（バックアップコード・信頼済み端末・パスキーも合わせて失効させる。
+     * パスキーを消す理由はTwoFactorChallengeController::selfReset()参照）。
+     */
     public function resetTwoFactor(Staff $staff): RedirectResponse
     {
         DB::transaction(function () use ($staff) {

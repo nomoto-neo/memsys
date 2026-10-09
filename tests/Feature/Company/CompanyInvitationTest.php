@@ -40,7 +40,7 @@ class CompanyInvitationTest extends TestCase
         ]);
     }
 
-    // 最後に送ったメールの本文にある、招待の登録の画面のURL
+    /** 最後に送ったメールの本文にある、招待の登録の画面のURL */
     private function lastInvitationUrl(): string
     {
         $found = preg_match('#https?://\S+/company/invitation/\S+#', (string) $this->lastMail()->getTextBody(), $matches);

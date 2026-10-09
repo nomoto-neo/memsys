@@ -40,6 +40,7 @@
 | 第3.3版 | 2026-10-07 | 画面やメールに出すサイトの名前を、`SITE_NAME` で決めるようにした。`APP_NAME` は半角の英数字で書く（0章） |
 | 第3.4版 | 2026-10-08 | 固定ページの本文のエディタを、SunEditor（MIT ライセンス。jQuery に頼らない）にした（7章） |
 | 第3.5版 | 2026-10-08 | CKEditor を外した。WYSIWYG エディタは SunEditor と summernote の2つ（7章） |
+| 第3.6版 | 2026-10-09 | 宣言の上の説明を、PHPDoc の形（`/** */`）で書く決まりにした。エディタが説明を表示できるようにするため（1章） |
 
 ## 0. このガイドについて
 
@@ -351,7 +352,9 @@ class NewsController extends Controller
 **形**
 
 - コメントと画面の文言は日本語で書きます。
-- クラスの中の説明で2行以下のものは、行コメント（`//`）にします。ブロックコメント（`/** */`）は、3行以上の説明か、`@param`・`@return` などの型の注記を書くときだけ使います。
+- クラス・関数・メソッド・定数・プロパティ・列挙型の `case` の上の説明は、PHPDoc の形（`/** */`）で書きます。VS Code などのエディタが、使っている側でその説明を表示できるようにするためです。1行で済む説明は `/** 説明 */` と1行で書きます。
+- 処理の中のコメントは、行コメント（`//`）にします。短いコメントで、処理の流れを追いやすくするためです。
+- `@param`・`@return` などの型の注記は、宣言の型で表せないとき（配列の形など）だけ書きます。
 - 補足は括弧書きにせず、別の文にします。読点は、節の切れ目くらいにとどめます。
 - Blade では `{{-- --}}` で書きます（17章）。
 
@@ -389,13 +392,13 @@ class NewsController extends Controller
 ```php
 use SearchableList;
 
-// 一覧画面のルート名。セッションのキーにも、登録・更新・削除の後の戻り先にも使う
+/** 一覧画面のルート名。セッションのキーにも、登録・更新・削除の後の戻り先にも使う */
 private const INDEX_ROUTE = 'admin.members.index';
-// フリーワード（q）検索の対象カラム（使わなければ空配列）
+/** フリーワード（q）検索の対象カラム（使わなければ空配列） */
 private const FREE_WORD_COLUMNS = ['name', 'kana'];
-// 1ページの件数
+/** 1ページの件数 */
 private const PER_PAGE = 20;
-// 並び順の選択肢（先頭が既定）。orderBy は [カラム, 方向] を書いた順に重ねる
+/** 並び順の選択肢（先頭が既定）。orderBy は [カラム, 方向] を書いた順に重ねる */
 private const ORDER_OPTIONS = [
     'updated_desc' => ['label' => '更新日が新しい順', 'orderBy' => [['updated_at', 'desc'], ['id', 'desc']]],
     'updated_asc'  => ['label' => '更新日が古い順',   'orderBy' => [['updated_at', 'asc'],  ['id', 'asc']]],
@@ -416,7 +419,7 @@ public function index(Request $request): View|RedirectResponse
     ]);
 }
 
-// 検索項目の検証ルール。キーはフォームの name で、そのまま検索するカラム名になる
+/** 検索項目の検証ルール。キーはフォームの name で、そのまま検索するカラム名になる */
 private function srchRules(): array
 {
     return [
@@ -426,7 +429,7 @@ private function srchRules(): array
     ];
 }
 
-// カラムと直接比べられない項目（多対多、チェックボックスなど）。処理したら true
+/** カラムと直接比べられない項目（多対多、チェックボックスなど）。処理したら true */
 private function applyCustomSearch(Builder $query, string $key, mixed $value): bool
 {
     return false;
@@ -516,7 +519,7 @@ public function show(News $news): View
 ### 入口（確認画面あり）
 
 ```php
-// 新規登録フォーム
+/** 新規登録フォーム */
 public function create(): View
 {
     return view('admin.news.create', [
@@ -526,7 +529,7 @@ public function create(): View
     ]);
 }
 
-// 確認画面
+/** 確認画面 */
 public function confirmStore(Request $request): View
 {
     return view('admin.news.confirm', [
@@ -536,13 +539,13 @@ public function confirmStore(Request $request): View
     ]);
 }
 
-// 確認画面の「戻る」
+/** 確認画面の「戻る」 */
 public function backToCreate(Request $request): RedirectResponse
 {
     return redirect()->route('admin.news.create')->withInput($request->except('_token'));
 }
 
-// 登録の実行
+/** 登録の実行 */
 public function store(Request $request): RedirectResponse
 {
     $this->saveData(new News(), $request);   // 検証し直し → トランザクションで保存
@@ -611,10 +614,10 @@ Route::patch('/news/{news}/update', ...'update')->name('news.update');
 - **モデルで指定した項目**。本文のように、書いたとおりに残す文章です。
 
 ```php
-// モデル。データの仕様として持つ
+/** モデル。データの仕様として持つ */
 public const RAW_INPUT_FIELDS = ['body'];
 
-// コントローラー。モデルの指定を引く。CSV 取り込みにも効く
+/** コントローラー。モデルの指定を引く。CSV 取り込みにも効く */
 private const RAW_INPUT_FIELDS = News::RAW_INPUT_FIELDS;
 ```
 
@@ -639,7 +642,7 @@ public function destroy(News $news): RedirectResponse
     return redirect()->route(self::INDEX_ROUTE, ['back'])->with('status', 'ニュース記事を削除しました。');
 }
 
-// 削除の直前に、関連テーブルを片付ける
+/** 削除の直前に、関連テーブルを片付ける */
 private function beforeDelete(News $news): void
 {
     $news->categories()->detach();
@@ -664,13 +667,15 @@ private function beforeDelete(News $news): void
 ```php
 use AjaxFileUpload;
 
-// フィールド名 => 横幅(px)。0 は添付ファイル（縮小しない）、0 以外は画像（その横幅に縮小）。
-// 末尾が「.*」なら複数（添付ファイルの行を増やせる）
+/**
+ * フィールド名 => 横幅(px)。0 は添付ファイル（縮小しない）、0 以外は画像（その横幅に縮小）。
+ * 末尾が「.*」なら複数（添付ファイルの行を増やせる）
+ */
 private const UPLOAD_FILES = [
     'list_image' => News::LIST_IMAGE_WIDTH,
     'attach.*' => 0,
 ];
-// 画像を埋め込める WYSIWYG の欄（無ければ書かない）
+/** 画像を埋め込める WYSIWYG の欄（無ければ書かない） */
 private const WYSIWYG_FIELDS = [
     'body' => News::BODY_IMAGE_WIDTH,
 ];
@@ -761,12 +766,12 @@ private function prepareInput(array $validated): array
 個人情報のように、URL を知っているだけで誰でも見られては困るファイルは、持ち主のモデルに、非公開にするフィールドの名前を並べます。公開か非公開かはデータ項目の性質なので、コントローラーではなくモデルが決めます。同じモデルに公開と非公開のフィールドがあってもかまいません。コントローラー・画面の書き方は、公開のファイルと同じです。
 
 ```php
-// モデル。複数のフィールド（attach.*）は末尾の「.*」を除いた名前、WYSIWYG欄は欄の名前
+/** モデル。複数のフィールド（attach.*）は末尾の「.*」を除いた名前、WYSIWYG欄は欄の名前 */
 public const PRIVATE_FILE_FIELDS = ['photo'];
 ```
 
 ```php
-// そのモデルの Policy（例：app/Policies/MemberPolicy.php）。$user はログイン中の会員かスタッフ
+/** そのモデルの Policy（例：app/Policies/MemberPolicy.php）。$user はログイン中の会員かスタッフ */
 public function viewFiles(Member|Staff $user, Member $member, string $field): bool
 {
     return $user instanceof Staff || $user->id === $member->id;
@@ -774,7 +779,7 @@ public function viewFiles(Member|Staff $user, Member $member, string $field): bo
 ```
 
 ```php
-// ログインしていない人にも見せることがあるなら、$user を null 可にする（例：app/Policies/NewsPolicy.php）
+/** ログインしていない人にも見せることがあるなら、$user を null 可にする（例：app/Policies/NewsPolicy.php） */
 public function viewFiles(Member|Staff|null $user, News $news, string $field): bool
 {
     return $user instanceof Staff || $news->isVisibleTo($user);   // 一般公開なら誰でも、会員限定なら会員だけ
@@ -904,7 +909,7 @@ public function csv(): StreamedResponse
     );
 }
 
-// 見出し => 値の場所。書いた順に列が並ぶ
+/** 見出し => 値の場所。書いた順に列が並ぶ */
 private function csvColumns(): array
 {
     $prefectures = code_table('prefectures');
@@ -1039,7 +1044,7 @@ Mail::send(new TemplatedMail('contact_staff', [
 ```
 
 ```php
-// コントローラー。入力画面から送信を受け取るところ（確認画面を表示する処理）で呼ぶ
+/** コントローラー。入力画面から送信を受け取るところ（確認画面を表示する処理）で呼ぶ */
 private const SPAM_GUARD_MIN_SECONDS = 3;   // 表示から送信までの、いちばん短い秒数
 
 $spam = SpamGuard::check($request, minSeconds: self::SPAM_GUARD_MIN_SECONDS);
@@ -1168,7 +1173,7 @@ $member->forceFill([
 ### 試行制限（LoginThrottle）
 
 ```php
-// コントローラーの定数。値はほかのコントローラーと重ならない名前にする
+/** コントローラーの定数。値はほかのコントローラーと重ならない名前にする */
 private const THROTTLE_SCOPE = 'member-login';
 
 $throttle = new LoginThrottle(self::THROTTLE_SCOPE, $request->ip(), $credentials['email']);
@@ -1705,7 +1710,7 @@ OperationRecorder::record(OperationLogAction::Update, $company, ['status'], ['st
 会員がマイページで自分の情報を変えると、本人へメールで知らせます（`resources/mail-templates/member_profile_changed.blade.php`）。本人が変えたのなら記録が本人の手元にも残り、他人がログインして変えたのなら本人が気付けます。
 
 ```php
-// マイページのコントローラー
+/** マイページのコントローラー */
 private function afterSave(Member $member, array $validated, array $changedFields): void
 {
     MemberProfileNotice::send($member, $changedFields);
@@ -1751,13 +1756,13 @@ class CompanyUser extends Authenticatable implements MemberAccount, PasskeyUser
 
     public const MEMBER_TYPE = 'company';
 
-    // 画面やメールに出す名前
+    /** 画面やメールに出す名前 */
     public function displayName(): string { ... }
 
-    // お知らせや確認コードを送るメールアドレス。未登録なら null
+    /** お知らせや確認コードを送るメールアドレス。未登録なら null */
     public function notificationEmail(): ?string { ... }
 
-    // ログインに使う値。メールアドレスでログインする会員は、書かなくてよい
+    /** ログインに使う値。メールアドレスでログインする会員は、書かなくてよい */
     public function loginId(): string { ... }
 
     public function trustedDevices(): MorphMany { ... }

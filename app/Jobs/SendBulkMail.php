@@ -35,10 +35,10 @@ class SendBulkMail implements ShouldQueue
 {
     use Batchable, Queueable;
 
-    // 例外が起きた後に試し直すまでの秒数。1回目の後は1分、2回目からは5分待つ
+    /** 例外が起きた後に試し直すまでの秒数。1回目の後は1分、2回目からは5分待つ */
     public array $backoff = [60, 300];
 
-    // 例外が起きてよい回数。これを超えたら失敗にする
+    /** 例外が起きてよい回数。これを超えたら失敗にする */
     public int $maxExceptions = 3;
 
     public function __construct(
@@ -48,20 +48,22 @@ class SendBulkMail implements ShouldQueue
     ) {
     }
 
-    // 速さの制限で何度戻されても、この期限までは試し続ける
+    /** 速さの制限で何度戻されても、この期限までは試し続ける */
     public function retryUntil(): DateTimeInterface
     {
         return now()->addDay();
     }
 
-    // 送る速さの制限
+    /** 送る速さの制限 */
     public function middleware(): array
     {
         return [new RateLimited('bulk-mail')];
     }
 
-    // 1通を送る。件名と本文の{{$name}}は、この宛先の氏名に置き換える。
-    // 配信停止のURLは、宛先ごとに違う
+    /**
+     * 1通を送る。件名と本文の{{$name}}は、この宛先の氏名に置き換える。
+     * 配信停止のURLは、宛先ごとに違う
+     */
     public function handle(): void
     {
         // 送信が中止されていれば送らない

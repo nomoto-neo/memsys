@@ -19,27 +19,27 @@ namespace App\Support;
  */
 interface MemberAccount
 {
-    // 種類の名前。個人会員は member
+    /** 種類の名前。個人会員は member */
     public static function memberType(): string;
 
-    // この種類がログインするガードの名前
+    /** この種類がログインするガードの名前 */
     public static function memberGuard(): string;
 
-    // この種類のルートの名前。$nameは頭を付ける前の名前。例：'login'・'mypage'・'password.forgot'
+    /** この種類のルートの名前。$nameは頭を付ける前の名前。例：'login'・'mypage'・'password.forgot' */
     public static function memberRoute(string $name): string;
 
-    // この種類のメールのテンプレートの名前。$nameは頭を付ける前の名前。例：'verification_code'
+    /** この種類のメールのテンプレートの名前。$nameは頭を付ける前の名前。例：'verification_code' */
     public static function memberMailTemplate(string $name): string;
 
-    // 信頼済み端末の値を入れるCookieの名前
+    /** 信頼済み端末の値を入れるCookieの名前 */
     public static function trustedDeviceCookie(): string;
 
-    // 画面やメールに出す名前。個人なら氏名
+    /** 画面やメールに出す名前。個人なら氏名 */
     public function displayName(): string;
 
-    // お知らせや確認コードを送るメールアドレス。未登録ならnull
+    /** お知らせや確認コードを送るメールアドレス。未登録ならnull */
     public function notificationEmail(): ?string;
 
-    // ログインに使う値。試行制限やパスキーの表示名に使う
+    /** ログインに使う値。試行制限やパスキーの表示名に使う */
     public function loginId(): string;
 }

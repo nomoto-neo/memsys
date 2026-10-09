@@ -42,10 +42,10 @@ use Webauthn\PublicKeyCredentialCreationOptions;
  */
 trait PasskeyManagement
 {
-    // 本人確認が済んでからパスキーを登録できる分数。
+    /** 本人確認が済んでからパスキーを登録できる分数。 */
     private const PASSKEY_CONFIRM_MINUTES = 10;
 
-    // パスキーの一覧画面。
+    /** パスキーの一覧画面。 */
     public function passkeyIndex(Request $request): View
     {
         $owner = $this->passkeyOwner();
@@ -64,7 +64,7 @@ trait PasskeyManagement
         ]);
     }
 
-    // 本人確認のための確認コードをメールで送る。会員だけで、スタッフは認証アプリで確かめる
+    /** 本人確認のための確認コードをメールで送る。会員だけで、スタッフは認証アプリで確かめる */
     public function passkeySendCode(Request $request): RedirectResponse
     {
         $owner = $this->passkeyOwner();
@@ -80,7 +80,7 @@ trait PasskeyManagement
             ->with('status', '確認コードをメールで送信しました。');
     }
 
-    // 本人確認のコードを照合する。通ったら一覧画面にパスキーを作るボタンが出る
+    /** 本人確認のコードを照合する。通ったら一覧画面にパスキーを作るボタンが出る */
     public function passkeyConfirm(Request $request): RedirectResponse
     {
         $owner = $this->passkeyOwner();
@@ -219,7 +219,7 @@ trait PasskeyManagement
             ->with('status', 'パスキーを削除しました。端末に残っているパスキーは、端末の設定から削除してください。');
     }
 
-    // ログイン中の本人
+    /** ログイン中の本人 */
     private function passkeyOwner(): MemberAccount|Staff
     {
         $owner = Auth::guard(self::PASSKEY_GUARD)->user();
@@ -229,7 +229,7 @@ trait PasskeyManagement
         return $owner;
     }
 
-    // 本人確認のコードを照合する。確かめ方は、その人のログインの2段階目と同じ
+    /** 本人確認のコードを照合する。確かめ方は、その人のログインの2段階目と同じ */
     private function passkeyVerifyIdentity(Request $request, MemberAccount|Staff $owner, string $code): bool
     {
         if ($owner instanceof Staff) {
@@ -263,7 +263,7 @@ trait PasskeyManagement
             && ($confirmed['until'] ?? 0) > now()->timestamp;
     }
 
-    // 本人確認が済んでいなければエラーにする
+    /** 本人確認が済んでいなければエラーにする */
     private function ensurePasskeyIdentityConfirmed(Request $request): void
     {
         if (! $this->passkeyIdentityConfirmed($request)) {
@@ -273,13 +273,13 @@ trait PasskeyManagement
         }
     }
 
-    // 本人確認をした人と、登録できる期限のUNIX時刻を持つセッションキー。
+    /** 本人確認をした人と、登録できる期限のUNIX時刻を持つセッションキー。 */
     private function passkeyConfirmedSessionKey(): string
     {
         return 'passkey.confirmed_until.'.self::PASSKEY_GUARD;
     }
 
-    // 登録用のオプションを署名の結果が届くまで控えておくセッションキー。
+    /** 登録用のオプションを署名の結果が届くまで控えておくセッションキー。 */
     private function passkeyRegistrationSessionKey(): string
     {
         return 'passkey.registration_options.'.self::PASSKEY_GUARD;

@@ -12,7 +12,7 @@ use Illuminate\Contracts\Validation\ValidationRule;
  */
 class BulkMailPlaceholderRule implements ValidationRule
 {
-    // 検証。合わなければ$fail()を呼ぶ
+    /** 検証。合わなければ$fail()を呼ぶ */
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
         // 氏名の印を消して、まだ{{…}}が残っていれば書き間違い

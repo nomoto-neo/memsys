@@ -45,17 +45,19 @@ class NewsController extends Controller
 
     // ---- 一覧・検索（SearchableList）の設定 ----
 
-    // 一覧画面のルート名。セッションキー名の識別子としても使用。
-    // 登録・更新・削除の後の戻り先（?back付きの一覧）にも使う。
+    /**
+     * 一覧画面のルート名。セッションキー名の識別子としても使用。
+     * 登録・更新・削除の後の戻り先（?back付きの一覧）にも使う。
+     */
     private const INDEX_ROUTE = 'admin.news.index';
 
-    // フリーワード検索の検索対象とするカラムの一覧。
+    /** フリーワード検索の検索対象とするカラムの一覧。 */
     private const FREE_WORD_COLUMNS = ['title'];
 
-    // 1ページに表示する件数。
+    /** 1ページに表示する件数。 */
     private const PER_PAGE = 20;
 
-    // 一覧の並び順の選択肢。
+    /** 一覧の並び順の選択肢。 */
     private const ORDER_OPTIONS = [
         'article_date_desc' => [
             'label' => '記事日付が新しい順',
@@ -69,27 +71,29 @@ class NewsController extends Controller
 
     // ---- アップロード（AjaxFileUpload）の設定 ----
 
-    // AjaxFileUploadが要求する設定。フィールド名 => 横幅(px)。
-    // 横幅ゼロは添付ファイルで非ゼロは画像ファイル。
-    // キーの末尾が".*"の場合は複数展開されるフィールド。
+    /**
+     * AjaxFileUploadが要求する設定。フィールド名 => 横幅(px)。
+     * 横幅ゼロは添付ファイルで非ゼロは画像ファイル。
+     * キーの末尾が".*"の場合は複数展開されるフィールド。
+     */
     private const UPLOAD_FILES = [
         'list_image' => News::LIST_IMAGE_WIDTH,
         'attach.*' => 0,
     ];
 
-    // WYSIWYGからアップロードされる画像の設定。フィールド名 => 横幅(px)。
+    /** WYSIWYGからアップロードされる画像の設定。フィールド名 => 横幅(px)。 */
     private const WYSIWYG_FIELDS = [
         'body' => News::BODY_IMAGE_WIDTH,
     ];
 
     // ---- 入力をそろえる処理（InputNormalizer）の設定 ----
 
-    // 全角と半角をそろえない項目。データの仕様なので、モデルの指定を引く。CSV取り込みにも効く
+    /** 全角と半角をそろえない項目。データの仕様なので、モデルの指定を引く。CSV取り込みにも効く */
     private const RAW_INPUT_FIELDS = News::RAW_INPUT_FIELDS;
 
     // ---- このコーナーの項目の定義 ----
 
-    // 入力バリデーションルール
+    /** 入力バリデーションルール */
     private function rules(): array
     {
         return [
@@ -109,11 +113,13 @@ class NewsController extends Controller
         ] + $this->ajaxUploadRules();
     }
 
-    // 保存する項目（t_newsのカラム）。登録・更新ともここに書いた項目だけを保存する。
-    // アップロード項目（list_image等）はcommitUploads()、カテゴリーはafterSave()で
-    // 別に保存するので、ここには書かない。
-    // $validatedは整形後の入力値、$newsは保存先（$news->existsがfalseなら新規登録）。
-    // ここから外した項目は、更新ではDBの今の値がそのまま残る（NULLにするのとは違う）。
+    /**
+     * 保存する項目（t_newsのカラム）。登録・更新ともここに書いた項目だけを保存する。
+     * アップロード項目（list_image等）はcommitUploads()、カテゴリーはafterSave()で
+     * 別に保存するので、ここには書かない。
+     * $validatedは整形後の入力値、$newsは保存先（$news->existsがfalseなら新規登録）。
+     * ここから外した項目は、更新ではDBの今の値がそのまま残る（NULLにするのとは違う）。
+     */
     private function saveFieldNames(array $validated, News $news): array
     {
         return [
@@ -127,8 +133,10 @@ class NewsController extends Controller
         ];
     }
 
-    // モデルの今の値から、_fields.blade.phpに渡す$inputを組み立てる（詳細・編集で使う）。
-    // アップロード項目はFormFlowが足すので、ここには書かない。
+    /**
+     * モデルの今の値から、_fields.blade.phpに渡す$inputを組み立てる（詳細・編集で使う）。
+     * アップロード項目はFormFlowが足すので、ここには書かない。
+     */
     private function inputFromModel(News $news): array
     {
         return [
@@ -144,7 +152,7 @@ class NewsController extends Controller
         ];
     }
 
-    // 新規登録フォームの初期値。
+    /** 新規登録フォームの初期値。 */
     private function defaultInput(): array
     {
         return [
@@ -154,7 +162,7 @@ class NewsController extends Controller
         ];
     }
 
-    // 検証の後、確認画面の表示・保存の前に行う整形。
+    /** 検証の後、確認画面の表示・保存の前に行う整形。 */
     private function prepareInput(array $validated): array
     {
         // 許可していないHTMLタグや属性を取り除く
@@ -163,20 +171,20 @@ class NewsController extends Controller
         return $validated;
     }
 
-    // 保存の直後に行う、関連テーブルの更新。
+    /** 保存の直後に行う、関連テーブルの更新。 */
     private function afterSave(News $news, array $validated): void
     {
         // 掲載カテゴリーを、選ばれたものだけにそろえる
         $news->categories()->sync($validated['category_ids']);
     }
 
-    // 削除の直前に行う、関連テーブルの削除。
+    /** 削除の直前に行う、関連テーブルの削除。 */
     private function beforeDelete(News $news): void
     {
         $news->categories()->detach();
     }
 
-    // すべてのカテゴリーを表示順で取得（プルダウンやチェックボックスの選択肢の表示に使う）。
+    /** すべてのカテゴリーを表示順で取得（プルダウンやチェックボックスの選択肢の表示に使う）。 */
     private function allCategories()
     {
         return Category::orderBy('display_order')->get();
@@ -184,8 +192,10 @@ class NewsController extends Controller
 
     // ---- 一覧・検索 ----
 
-    // 一覧・検索
-    // 検索条件の復元、絞り込み、並び替え、ページネーションは SearchableList::buildListData が行う
+    /**
+     * 一覧・検索
+     * 検索条件の復元、絞り込み、並び替え、ページネーションは SearchableList::buildListData が行う
+     */
     public function index(Request $request): View|RedirectResponse
     {
         // 一覧データの読み込みとページング
@@ -206,8 +216,10 @@ class NewsController extends Controller
         ]);
     }
 
-    // 検索対象項目の検証ルール（SearchableListが要求する）。
-    // integer・boolean・Rule::inのどれかがあれば完全一致、無ければ部分一致、配列ならIN()条件
+    /**
+     * 検索対象項目の検証ルール（SearchableListが要求する）。
+     * integer・boolean・Rule::inのどれかがあれば完全一致、無ければ部分一致、配列ならIN()条件
+     */
     private function srchRules(): array
     {
         return [
@@ -216,8 +228,10 @@ class NewsController extends Controller
         ];
     }
 
-    // イレギュラーな検索条件の追加処理
-    // DB項目と単純に比較できないものは先にここでwhere条件を追加し、処理済み(true)を返す。
+    /**
+     * イレギュラーな検索条件の追加処理
+     * DB項目と単純に比較できないものは先にここでwhere条件を追加し、処理済み(true)を返す。
+     */
     private function applyCustomSearch(Builder $query, string $key, mixed $value): bool
     {
         if ($key === 'category_id') {
@@ -233,7 +247,7 @@ class NewsController extends Controller
 
     // ---- CSVダウンロード ----
 
-    // CSVダウンロード（一覧の今の検索条件・並び順で全件）
+    /** CSVダウンロード（一覧の今の検索条件・並び順で全件） */
     public function csv(): StreamedResponse
     {
         return $this->downloadCsv(
@@ -245,8 +259,10 @@ class NewsController extends Controller
         );
     }
 
-    // CSVに出す項目。見出し => 値の場所（書き方はApp\Support\CsvColumnSet参照）。
-    // CSV取り込みも同じ定義を使う。
+    /**
+     * CSVに出す項目。見出し => 値の場所（書き方はApp\Support\CsvColumnSet参照）。
+     * CSV取り込みも同じ定義を使う。
+     */
     private function csvColumns(): array
     {
         $categories = Category::orderBy('display_order')->pluck('name', 'id')->all();
@@ -278,8 +294,10 @@ class NewsController extends Controller
 
     // ---- CSV取り込み ----
 
-    // CSV取り込みの設定（書き方はApp\Support\CsvImportSettings参照）。
-    // 記事IDが空欄の行は、新しい記事として追加する。
+    /**
+     * CSV取り込みの設定（書き方はApp\Support\CsvImportSettings参照）。
+     * 記事IDが空欄の行は、新しい記事として追加する。
+     */
     private function csvImportSettings(): CsvImportSettings
     {
         return new CsvImportSettings(
@@ -298,7 +316,7 @@ class NewsController extends Controller
 
     // ---- 登録 ----
 
-    // 新規登録フォームの表示
+    /** 新規登録フォームの表示 */
     public function create(): View
     {
         return view('admin.news.create', [
@@ -309,7 +327,7 @@ class NewsController extends Controller
         ]);
     }
 
-    // 新規登録の確認画面を表示
+    /** 新規登録の確認画面を表示 */
     public function confirmStore(Request $request): View
     {
         return view('admin.news.confirm', [
@@ -320,14 +338,14 @@ class NewsController extends Controller
         ]);
     }
 
-    // 確認画面からの「戻る」
+    /** 確認画面からの「戻る」 */
     public function backToCreate(Request $request): RedirectResponse
     {
         return redirect()->route('admin.news.create')
             ->withInput($request->except('_token'));
     }
 
-    // 新規登録の実行
+    /** 新規登録の実行 */
     public function store(Request $request): RedirectResponse
     {
         $this->saveData(new News(), $request);
@@ -338,7 +356,7 @@ class NewsController extends Controller
 
     // ---- 詳細・編集・削除 ----
 
-    // 詳細画面の表示
+    /** 詳細画面の表示 */
     public function show(News $news): View
     {
         $news->load('categories', 'attach');
@@ -351,7 +369,7 @@ class NewsController extends Controller
         ]);
     }
 
-    // 編集フォームの表示
+    /** 編集フォームの表示 */
     public function edit(News $news): View
     {
         return view('admin.news.edit', [
@@ -363,7 +381,7 @@ class NewsController extends Controller
         ]);
     }
 
-    // 編集の確認画面を表示
+    /** 編集の確認画面を表示 */
     public function confirmUpdate(Request $request, News $news): View
     {
         return view('admin.news.confirm', [
@@ -374,14 +392,14 @@ class NewsController extends Controller
         ]);
     }
 
-    // 確認画面からの「戻る」
+    /** 確認画面からの「戻る」 */
     public function backToEdit(Request $request, News $news): RedirectResponse
     {
         return redirect()->route('admin.news.edit', $news)
             ->withInput($request->except('_token'));
     }
 
-    // 更新の実行
+    /** 更新の実行 */
     public function update(Request $request, News $news): RedirectResponse
     {
         $this->saveData($news, $request);
@@ -390,7 +408,7 @@ class NewsController extends Controller
             ->with('status', 'ニュース記事を更新しました。');
     }
 
-    // 削除の実行
+    /** 削除の実行 */
     public function destroy(News $news): RedirectResponse
     {
         $this->deleteData($news);

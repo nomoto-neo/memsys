@@ -27,7 +27,7 @@ class CompanyFirstLoginSetupTest extends TestCase
 
     private const OLD_PASSWORD = 'shared-password';
 
-    // 移した企業と、氏名とメールアドレスが空の最初の担当者
+    /** 移した企業と、氏名とメールアドレスが空の最初の担当者 */
     private function migratedUser(?string $tel = '03-1234-5678', CompanyStatus $status = CompanyStatus::Approved): CompanyUser
     {
         $company = Company::create(['code' => 'ABC001', 'name' => '株式会社移行', 'tel' => (string) $tel, 'status' => $status]);

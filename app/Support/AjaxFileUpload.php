@@ -84,25 +84,31 @@ trait AjaxFileUpload
 
     private const ALLOW_ATTACH_TYPES = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'csv', 'zip'];
 
-    // 1ファイルの大きさの上限(KB)
+    /** 1ファイルの大きさの上限(KB) */
     private const MAX_UPLOAD_KB = 10240;
 
-    // 画像1枚の画素数の上限。4000万画素は8000×5000くらいで、スマートフォンの写真は十分に収まる。
-    // サーバーのメモリに余裕があってもこれを超える画像は受け付けない
+    /**
+     * 画像1枚の画素数の上限。4000万画素は8000×5000くらいで、スマートフォンの写真は十分に収まる。
+     * サーバーのメモリに余裕があってもこれを超える画像は受け付けない
+     */
     private const MAX_IMAGE_PIXELS = 40_000_000;
 
-    // GDが画像を展開したときに1画素あたりに使うバイト数。フルカラーは1画素を4バイトで持つ
+    /** GDが画像を展開したときに1画素あたりに使うバイト数。フルカラーは1画素を4バイトで持つ */
     private const GD_BYTES_PER_PIXEL = 4;
 
-    // HtmlSanitizerを通した本文から、<img>のsrcを探すパターン。1はsrcの値の前まで、2はsrcの値、3は閉じの"。
-    // srcの前に空白を求めるのは、data-srcのような別の属性に一致させないため
+    /**
+     * HtmlSanitizerを通した本文から、<img>のsrcを探すパターン。1はsrcの値の前まで、2はsrcの値、3は閉じの"。
+     * srcの前に空白を求めるのは、data-srcのような別の属性に一致させないため
+     */
     private const IMG_SRC_PATTERN = '/(<img\b[^>]*?\ssrc=")([^"]*)(")/i';
 
     // 一時ディレクトリの名前とhiddenで持ち回るファイル名の形は、プレビューのURLを作るときにも
     // 使うのでUploadFilePathが持っている。
 
-    // Ajaxでアップロードを受け取る。1回に1ファイルで、どのフィールドの分かはfieldで受け取る。
-    // fieldは末尾の「.*」や「[]」を付けない名前。
+    /**
+     * Ajaxでアップロードを受け取る。1回に1ファイルで、どのフィールドの分かはfieldで受け取る。
+     * fieldは末尾の「.*」や「[]」を付けない名前。
+     */
     public function uploadAjaxFile(Request $request): JsonResponse
     {
         $field = (string) $request->input('field');
@@ -264,7 +270,7 @@ trait AjaxFileUpload
         return null;
     }
 
-    // フィールドの横幅と使える拡張子。$fieldは「.*」を付けない名前で、定義に無ければnull。
+    /** フィールドの横幅と使える拡張子。$fieldは「.*」を付けない名前で、定義に無ければnull。 */
     private function resolveUploadFieldConfig(string $field): ?array
     {
         foreach ($this->uploadFieldDefinitions() as $def) {
@@ -319,15 +325,19 @@ trait AjaxFileUpload
         return $fields;
     }
 
-    // 一時ディレクトリの古いファイルを消す。本来はスケジューラーが1時間ごとに消すが、
-    // cronが動いていなくても溜まり続けないようアップロードのたびにも消す。
+    /**
+     * 一時ディレクトリの古いファイルを消す。本来はスケジューラーが1時間ごとに消すが、
+     * cronが動いていなくても溜まり続けないようアップロードのたびにも消す。
+     */
     private function cleanupTmpDirectory(): void
     {
         TemporaryDataCleaner::uploadTmpFiles();
     }
 
-    // 指定の横幅を超える画像だけを縮小する。拡大はしない。
-    // 縦向きに撮った写真が横に倒れないよう、EXIFの向きを読んで回転も直す。
+    /**
+     * 指定の横幅を超える画像だけを縮小する。拡大はしない。
+     * 縦向きに撮った写真が横に倒れないよう、EXIFの向きを読んで回転も直す。
+     */
     private function resizeIfNeeded(string $absolutePath, int $maxWidth): void
     {
         $imageInfo = @getimagesize($absolutePath);
@@ -390,7 +400,7 @@ trait AjaxFileUpload
         imagedestroy($resized);
     }
 
-    // EXIFの向きに合わせて画像を回す。3は180度、6は右へ90度、8は左へ90度回す。
+    /** EXIFの向きに合わせて画像を回す。3は180度、6は右へ90度、8は左へ90度回す。 */
     private function applyExifOrientation($image, int $orientation)
     {
         return match ($orientation) {
@@ -401,7 +411,7 @@ trait AjaxFileUpload
         };
     }
 
-    // 画像を元と同じ種類で保存し直す。JPEGとWebPの画質は85。
+    /** 画像を元と同じ種類で保存し直す。JPEGとWebPの画質は85。 */
     private function saveImage($image, string $path, int $type): void
     {
         match ($type) {
@@ -412,7 +422,7 @@ trait AjaxFileUpload
         };
     }
 
-    // アップロードの欄のhiddenを確かめるルール。コントローラーのrules()に+で足して使う。
+    /** アップロードの欄のhiddenを確かめるルール。コントローラーのrules()に+で足して使う。 */
     public function ajaxUploadRules(): array
     {
         $rules = [];
@@ -837,14 +847,16 @@ trait AjaxFileUpload
         return null;
     }
 
-    // レコードの保存先のディレクトリ。例：news/000/000012。規則はUploadFilePathが持つ。
-    // 1件分のファイルはフィールドに関係なく同じディレクトリに置く。
+    /**
+     * レコードの保存先のディレクトリ。例：news/000/000012。規則はUploadFilePathが持つ。
+     * 1件分のファイルはフィールドに関係なく同じディレクトリに置く。
+     */
     private function uploadDirectory(Model $model): string
     {
         return UploadFilePath::directory($model::class, $model->getKey());
     }
 
-    // ファイルを消す。ディスクが公開か非公開かはフィールドで決まる。
+    /** ファイルを消す。ディスクが公開か非公開かはフィールドで決まる。 */
     private function deleteUploadedFile(Model $model, string $field, string $filename): void
     {
         Storage::disk(UploadFilePath::disk($model::class, $field))->delete($this->uploadDirectory($model).'/'.$filename);
@@ -992,8 +1004,10 @@ trait AjaxFileUpload
         return $result;
     }
 
-    // ajaxUploadInput()の複数の欄1つ分。4本の配列を必ず同じ要素数にそろえて返す。
-    // $sourceにこの欄のキーが無ければ、$modelのリレーションの今の行を使う。
+    /**
+     * ajaxUploadInput()の複数の欄1つ分。4本の配列を必ず同じ要素数にそろえて返す。
+     * $sourceにこの欄のキーが無ければ、$modelのリレーションの今の行を使う。
+     */
     private function repeatableUploadInput(?Model $model, string $field, array $source): array
     {
         if (! array_key_exists($field, $source)) {

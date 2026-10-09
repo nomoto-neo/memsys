@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class Company extends Model
 {
-    // 操作ログで、変わった列に数えない列。最後に更新したスタッフのidは、入力とは関係なく変わるため
+    /** 操作ログで、変わった列に数えない列。最後に更新したスタッフのidは、入力とは関係なく変わるため */
     public const OPERATION_LOG_IGNORE = ['staff_id'];
 
     protected $table = 't_companies';
@@ -43,9 +43,11 @@ class Company extends Model
         'staff_id' => 'integer',
     ];
 
-    // 企業IDを書かずに作った企業には、idと同じ番号を企業IDとして入れる。新しく登録した企業が当たる。
-    // idは保存してから決まるので、作った直後に入れる。既存のシステムから移す企業は、
-    // 今までのログインIDを企業IDとして書いて作るので、そのまま残る
+    /**
+     * 企業IDを書かずに作った企業には、idと同じ番号を企業IDとして入れる。新しく登録した企業が当たる。
+     * idは保存してから決まるので、作った直後に入れる。既存のシステムから移す企業は、
+     * 今までのログインIDを企業IDとして書いて作るので、そのまま残る
+     */
     protected static function booted(): void
     {
         static::created(function (self $company) {
@@ -55,39 +57,41 @@ class Company extends Model
         });
     }
 
-    // この企業の担当者
+    /** この企業の担当者 */
     public function users(): HasMany
     {
         return $this->hasMany(CompanyUser::class);
     }
 
-    // この企業の担当者の招待。期限の切れたものも含む（App\Support\CompanyInvitationManager）
+    /** この企業の担当者の招待。期限の切れたものも含む（App\Support\CompanyInvitationManager） */
     public function invitations(): HasMany
     {
         return $this->hasMany(CompanyInvitation::class);
     }
 
-    // 管理画面から最後にこの企業を更新したスタッフ。
-    // そのスタッフを削除した後も名前を出せるよう、削除済みのスタッフも含めて探す。
+    /**
+     * 管理画面から最後にこの企業を更新したスタッフ。
+     * そのスタッフを削除した後も名前を出せるよう、削除済みのスタッフも含めて探す。
+     */
     public function editorStaff(): BelongsTo
     {
         return $this->belongsTo(Staff::class, 'staff_id')
             ->withTrashed();
     }
 
-    // 担当者がログインできる状態か。承認済みのときだけ
+    /** 担当者がログインできる状態か。承認済みのときだけ */
     public function isApproved(): bool
     {
         return $this->status === CompanyStatus::Approved;
     }
 
-    // 運営の承認を待っている状態か
+    /** 運営の承認を待っている状態か */
     public function isPending(): bool
     {
         return $this->status === CompanyStatus::Pending;
     }
 
-    // 運営が利用を止めている状態か
+    /** 運営が利用を止めている状態か */
     public function isSuspended(): bool
     {
         return $this->status === CompanyStatus::Suspended;

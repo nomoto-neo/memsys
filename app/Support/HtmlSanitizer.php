@@ -54,9 +54,11 @@ use HTMLPurifier_Config;
  */
 final class HtmlSanitizer
 {
-    // HTML Purifierが知らないfigure・figcaptionを足した、タグの定義の名前と版数。
-    // この許可リストはキャッシュされるため、古い定義が使われ続けないように許可リストを
-    // 変えたらDEFINITION_REVを1つ上げる。
+    /**
+     * HTML Purifierが知らないfigure・figcaptionを足した、タグの定義の名前と版数。
+     * この許可リストはキャッシュされるため、古い定義が使われ続けないように許可リストを
+     * 変えたらDEFINITION_REVを1つ上げる。
+     */
     private const DEFINITION_ID = 'memsys-wysiwyg';
 
     private const DEFINITION_REV = 2;
@@ -73,7 +75,7 @@ final class HtmlSanitizer
         'iframe',
     ];
 
-    // "*."で始まるものは、すべてのタグに付けられる属性。
+    /** "*."で始まるものは、すべてのタグに付けられる属性。 */
     private const ALLOWED_ATTRIBUTES = [
         '*.class', '*.style', '*.title',
         'a.href', 'a.target',
@@ -84,9 +86,11 @@ final class HtmlSanitizer
         'iframe.src', 'iframe.width', 'iframe.height', 'iframe.frameborder',
     ];
 
-    // style属性で使ってよいCSSのプロパティ。文字・段落・表・画像の見た目に関わるものだけで、
-    // positionやbackground-imageなどは入れない。HTML Purifierが知らないプロパティを書くと
-    // 例外になるので、増やすときは対応しているかを確かめる
+    /**
+     * style属性で使ってよいCSSのプロパティ。文字・段落・表・画像の見た目に関わるものだけで、
+     * positionやbackground-imageなどは入れない。HTML Purifierが知らないプロパティを書くと
+     * 例外になるので、増やすときは対応しているかを確かめる
+     */
     private const ALLOWED_CSS = [
         'color', 'background-color',
         'font-family', 'font-size', 'font-weight', 'font-style', 'font-variant',
@@ -103,13 +107,15 @@ final class HtmlSanitizer
 
     private const ALLOWED_SCHEMES = ['http' => true, 'https' => true, 'mailto' => true, 'tel' => true];
 
-    // 埋め込みを許可するiframeのsrc。プライバシー強化モードを含むYouTubeと、
-    // Vimeoの埋め込み用URLだけ。
+    /**
+     * 埋め込みを許可するiframeのsrc。プライバシー強化モードを含むYouTubeと、
+     * Vimeoの埋め込み用URLだけ。
+     */
     private const SAFE_IFRAME_REGEXP = '%^(https?:)?//(www\.youtube(?:-nocookie)?\.com/embed/|player\.vimeo\.com/video/)%';
 
     private static ?HTMLPurifier $purifier = null;
 
-    // サニタイズしたHTMLを返す。nullならnull、空文字なら空文字をそのまま返す。
+    /** サニタイズしたHTMLを返す。nullならnull、空文字なら空文字をそのまま返す。 */
     public static function clean(?string $html): ?string
     {
         if ($html === null || $html === '') {
@@ -119,7 +125,7 @@ final class HtmlSanitizer
         return self::purifier()->purify($html);
     }
 
-    // HTML Purifierの設定の組み立ては重いので、1回のリクエストの中では1度だけ作って使い回す
+    /** HTML Purifierの設定の組み立ては重いので、1回のリクエストの中では1度だけ作って使い回す */
     private static function purifier(): HTMLPurifier
     {
         if (self::$purifier !== null) {

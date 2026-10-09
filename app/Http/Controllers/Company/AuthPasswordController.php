@@ -26,11 +26,13 @@ class AuthPasswordController extends Controller
 {
     private const PURPOSE = MemberVerificationCode::PURPOSE_MYPAGE_PASSWORD;
 
-    // 確認コードの試行制限（LoginThrottle）のカウンターの名前。アカウントは担当者のidで区別する。
+    /** 確認コードの試行制限（LoginThrottle）のカウンターの名前。アカウントは担当者のidで区別する。 */
     private const THROTTLE_SCOPE = 'company-password-code';
 
-    // パスワード変更フォームの入力バリデーションルール。
-    // password_confirmationはconfirmedルールでpasswordと照合するので、ここには書かない。
+    /**
+     * パスワード変更フォームの入力バリデーションルール。
+     * password_confirmationはconfirmedルールでpasswordと照合するので、ここには書かない。
+     */
     private function rules(): array
     {
         return [
@@ -63,7 +65,7 @@ class AuthPasswordController extends Controller
         ]);
     }
 
-    // 確認コードの再送信（POST /company/mypage/password/resend）
+    /** 確認コードの再送信（POST /company/mypage/password/resend） */
     public function resend(Request $request): RedirectResponse
     {
         $user = Auth::guard(CompanyUser::memberGuard())->user();
@@ -76,7 +78,7 @@ class AuthPasswordController extends Controller
         return redirect()->route('company.password.edit')->with('status', '確認コードを再送しました。');
     }
 
-    // パスワードの更新（PATCH /company/mypage/password/update）
+    /** パスワードの更新（PATCH /company/mypage/password/update） */
     public function update(Request $request): RedirectResponse
     {
         $validated = $request->validate($this->rules());

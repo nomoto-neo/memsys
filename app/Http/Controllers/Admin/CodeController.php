@@ -36,13 +36,15 @@ class CodeController extends Controller
 {
     // ---- 一覧の設定 ----
 
-    // 一覧画面のルート名。更新の後の戻り先。
+    /** 一覧画面のルート名。更新の後の戻り先。 */
     private const INDEX_ROUTE = 'admin.codes.index';
 
     // ---- このコーナーの項目の定義 ----
 
-    // 入力バリデーションルール。codesは画面の行の並び順どおりの配列。
-    // TrimStrings・ConvertEmptyStringsToNullにより、空欄はnullで届く。
+    /**
+     * 入力バリデーションルール。codesは画面の行の並び順どおりの配列。
+     * TrimStrings・ConvertEmptyStringsToNullにより、空欄はnullで届く。
+     */
     private function rules(): array
     {
         return [
@@ -55,7 +57,7 @@ class CodeController extends Controller
 
     // ---- 一覧・更新 ----
 
-    // 項目見出し一覧。
+    /** 項目見出し一覧。 */
     public function index(Request $request): View
     {
         // コード表の指定が無い・不正なときは、プルダウンの1番目を表示する。

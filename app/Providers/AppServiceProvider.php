@@ -33,7 +33,7 @@ use Laravel\Passkeys\Passkeys;
  */
 class AppServiceProvider extends ServiceProvider
 {
-    // サービスの登録（ほかのサービスプロバイダのboot()より前に動く）
+    /** サービスの登録（ほかのサービスプロバイダのboot()より前に動く） */
     public function register(): void
     {
         // パスキーのパッケージ（laravel/passkeys）の設定。パッケージのルートは、1つのガードだけを
@@ -45,7 +45,7 @@ class AppServiceProvider extends ServiceProvider
         Passkeys::usePasskeyModel(Passkey::class);
     }
 
-    // 起動のときの設定
+    /** 起動のときの設定 */
     public function boot(): void
     {
         // サイトの各所で使う、モデルの短縮名を登録する。ここで決めた名前を、DBの「誰の行か」の列

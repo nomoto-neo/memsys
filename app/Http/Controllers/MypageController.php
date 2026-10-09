@@ -59,52 +59,56 @@ class MypageController extends Controller
 
     // ---- アップロード（AjaxFileUpload）の設定 ----
 
-    // フィールド名 => 横幅(px)。管理画面（Admin\MemberController）と同じ。顔写真は非公開の
-    // フィールド（Member::PRIVATE_FILE_FIELDS）なので、本人とスタッフだけが見られる場所に保存される。
+    /**
+     * フィールド名 => 横幅(px)。管理画面（Admin\MemberController）と同じ。顔写真は非公開の
+     * フィールド（Member::PRIVATE_FILE_FIELDS）なので、本人とスタッフだけが見られる場所に保存される。
+     */
     private const UPLOAD_FILES = [
         'photo' => Member::PHOTO_WIDTH,
     ];
 
     // ---- パスキー（PasskeyManagement）の設定 ----
 
-    // ログイン中の会員を取るガード。
+    /** ログイン中の会員を取るガード。 */
     private const PASSKEY_GUARD = 'web';
 
-    // パスキーの一覧画面のルート名（登録・削除などのルート名は、この後ろに.confirmなどを付ける）。
+    /** パスキーの一覧画面のルート名（登録・削除などのルート名は、この後ろに.confirmなどを付ける）。 */
     private const PASSKEY_ROUTE = 'mypage.passkeys';
 
-    // パスキーの一覧画面のビュー。
+    /** パスキーの一覧画面のビュー。 */
     private const PASSKEY_VIEW = 'mypage.passkeys';
 
-    // 登録の前の本人確認（メールの確認コード）の試行制限（LoginThrottle）のカウンターの名前。
+    /** 登録の前の本人確認（メールの確認コード）の試行制限（LoginThrottle）のカウンターの名前。 */
     private const PASSKEY_THROTTLE_SCOPE = 'member-passkey-code';
 
     // ---- メールアドレスの変更の確認（EmailChange）の設定 ----
 
-    // ログイン中の会員を取るガード。
+    /** ログイン中の会員を取るガード。 */
     private const EMAIL_CHANGE_GUARD = 'web';
 
-    // 確認コードの入力画面のルート名（照合・再送などのルート名は、この後ろに.confirmなどを付ける）。
+    /** 確認コードの入力画面のルート名（照合・再送などのルート名は、この後ろに.confirmなどを付ける）。 */
     private const EMAIL_CHANGE_ROUTE = 'mypage.email';
 
-    // 確認コードの入力画面のビュー。
+    /** 確認コードの入力画面のビュー。 */
     private const EMAIL_CHANGE_VIEW = 'mypage.email-verify';
 
-    // 入力画面のルート名。
+    /** 入力画面のルート名。 */
     private const EMAIL_CHANGE_EDIT_ROUTE = 'mypage.edit';
 
-    // 保存の後の移動先のルート名と、そこに出すメッセージ。
+    /** 保存の後の移動先のルート名と、そこに出すメッセージ。 */
     private const EMAIL_CHANGE_DONE_ROUTE = 'mypage';
 
     private const EMAIL_CHANGE_DONE_MESSAGE = 'プロフィールを更新しました。';
 
-    // 確認コードの試行制限（LoginThrottle）と、送信の回数の制限のカウンターの名前。
+    /** 確認コードの試行制限（LoginThrottle）と、送信の回数の制限のカウンターの名前。 */
     private const EMAIL_CHANGE_THROTTLE_SCOPE = 'member-email-change-code';
 
     // ---- プロフィールの項目の定義 ----
 
-    // プロフィール編集の検証ルール。$memberはログイン中の会員
-    // （メールアドレスの重複チェックで、自分自身を除くのに使う）。
+    /**
+     * プロフィール編集の検証ルール。$memberはログイン中の会員
+     * （メールアドレスの重複チェックで、自分自身を除くのに使う）。
+     */
     private function rules(Member $member): array
     {
         return [
@@ -131,14 +135,16 @@ class MypageController extends Controller
         ] + $this->ajaxUploadRules();
     }
 
-    // 保存する項目（t_membersのカラム）。顔写真はcommitUploads()が保存するので書かない。
-    // パスワードはこのフォームでは扱わない（変更はAuthPasswordControllerの専用フォーム）。
+    /**
+     * 保存する項目（t_membersのカラム）。顔写真はcommitUploads()が保存するので書かない。
+     * パスワードはこのフォームでは扱わない（変更はAuthPasswordControllerの専用フォーム）。
+     */
     private function saveFieldNames(array $validated, Member $member): array
     {
         return ['name', 'kana', 'email', 'phone', 'birthdate', 'prefecture', 'notice_mail'];
     }
 
-    // モデルの今の値から、編集画面に渡す$inputを組み立てる。
+    /** モデルの今の値から、編集画面に渡す$inputを組み立てる。 */
     private function inputFromModel(Member $member): array
     {
         return [
@@ -152,8 +158,10 @@ class MypageController extends Controller
         ];
     }
 
-    // 保存の直後の処理。会員情報が変わったことを、本人へメールで知らせる
-    // （App\Support\MemberProfileNotice参照）。
+    /**
+     * 保存の直後の処理。会員情報が変わったことを、本人へメールで知らせる
+     * （App\Support\MemberProfileNotice参照）。
+     */
     private function afterSave(Member $member, array $validated, array $changedFields): void
     {
         MemberProfileNotice::send($member, $changedFields);
@@ -161,8 +169,10 @@ class MypageController extends Controller
 
     // ---- マイページ・プロフィール編集 ----
 
-    // マイページの表示（GET /mypage）。
-    // ログイン中の会員は、このコントローラーではいつもAuth::user()で取る。
+    /**
+     * マイページの表示（GET /mypage）。
+     * ログイン中の会員は、このコントローラーではいつもAuth::user()で取る。
+     */
     public function index(): View
     {
         return view('mypage.index', [
@@ -170,7 +180,7 @@ class MypageController extends Controller
         ]);
     }
 
-    // プロフィール編集フォームの表示（GET /mypage/edit）
+    /** プロフィール編集フォームの表示（GET /mypage/edit） */
     public function edit(): View
     {
         $member = Auth::user();
@@ -184,8 +194,10 @@ class MypageController extends Controller
         ]);
     }
 
-    // プロフィールの更新（PATCH /mypage）。
-    // 確認画面を挟まないので、saveData()をそのまま呼ぶ。検証に失敗すれば、編集画面へ戻る。
+    /**
+     * プロフィールの更新（PATCH /mypage）。
+     * 確認画面を挟まないので、saveData()をそのまま呼ぶ。検証に失敗すれば、編集画面へ戻る。
+     */
     public function update(Request $request): RedirectResponse
     {
         $member = Auth::user();
@@ -203,8 +215,10 @@ class MypageController extends Controller
         return redirect()->route('mypage')->with('status', self::EMAIL_CHANGE_DONE_MESSAGE);
     }
 
-    // 履歴書のPDFをブラウザの中で開く（GET /mypage/resume）。
-    // 管理画面のAdmin\MemberController::resume()と同じPDF。
+    /**
+     * 履歴書のPDFをブラウザの中で開く（GET /mypage/resume）。
+     * 管理画面のAdmin\MemberController::resume()と同じPDF。
+     */
     public function resume(): Response
     {
         $member = Auth::user();
@@ -230,7 +244,7 @@ class MypageController extends Controller
 
     // ---- 退会 ----
 
-    // 退会の確認画面（GET /mypage/withdraw）。
+    /** 退会の確認画面（GET /mypage/withdraw）。 */
     public function withdraw(): View
     {
         return view('mypage.withdraw');
@@ -301,8 +315,10 @@ class MypageController extends Controller
             ->delete();
     }
 
-    // 退会完了のお知らせメール。本人以外が退会させた場合に、本人が気付けるようにするため。
-    // 退会はもう済んでいるので、送れなくても画面の結果は変えず、ログにだけ残す。
+    /**
+     * 退会完了のお知らせメール。本人以外が退会させた場合に、本人が気付けるようにするため。
+     * 退会はもう済んでいるので、送れなくても画面の結果は変えず、ログにだけ残す。
+     */
     private function sendWithdrawnMail(string $email, string $name): void
     {
         try {

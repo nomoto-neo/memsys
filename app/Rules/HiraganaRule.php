@@ -15,7 +15,7 @@ use Illuminate\Contracts\Validation\ValidationRule;
  */
 class HiraganaRule implements ValidationRule
 {
-    // 検証。合わなければ$fail()を呼ぶ（合っていれば何もしない）
+    /** 検証。合わなければ$fail()を呼ぶ（合っていれば何もしない） */
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
         if (! is_string($value) || ! preg_match('/^[ぁ-んゔー・　 ]+$/u', $value)) {

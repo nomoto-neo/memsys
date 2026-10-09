@@ -145,30 +145,30 @@ function main(array $argv): int
  */
 final class Tpl2Blade
 {
-    // テンプレートの中で作られた変数の名前。foreach・for・assignで作ったもの。$input['…']にしない
+    /** テンプレートの中で作られた変数の名前。foreach・for・assignで作ったもの。$input['…']にしない */
     private array $locals = [];
 
-    // 式を書き換えている間に出た、人に任せること。タグを書き終えたところで印にする
+    /** 式を書き換えている間に出た、人に任せること。タグを書き終えたところで印にする */
     private array $pending = [];
 
-    // 書き換えたタグの数と、印を付けた数
+    /** 書き換えたタグの数と、印を付けた数 */
     private int $tagCount = 0;
 
     private int $todoCount = 0;
 
-    // 今のタグのすぐ前が、半角の英数字か。Bladeが命令と読めるよう、空白を空けるかを決める
+    /** 今のタグのすぐ前が、半角の英数字か。Bladeが命令と読めるよう、空白を空けるかを決める */
     private bool $afterWord = false;
 
-    // 命令の前後に空白を足した数
+    /** 命令の前後に空白を足した数 */
     private int $spaced = 0;
 
-    // assignで値を入れる変数の名前。値を入れない場合に備えて、冒頭で空のまま用意する
+    /** assignで値を入れる変数の名前。値を入れない場合に備えて、冒頭で空のまま用意する */
     private array $assigned = [];
 
-    // foreachの入れ子。foreachelseが出たら、対応する@foreachを@forelseに直すのに使う
+    /** foreachの入れ子。foreachelseが出たら、対応する@foreachを@forelseに直すのに使う */
     private array $foreachStack = [];
 
-    // 出力のかけら。最後につなげる
+    /** 出力のかけら。最後につなげる */
     private array $out = [];
 
     // ---- 全体 ----
@@ -234,7 +234,7 @@ final class Tpl2Blade
             .'@php '.implode(' ', $names).' @endphp'.$newline;
     }
 
-    // 書き換えの結果の報告。印を付けた行の一覧も出す
+    /** 書き換えの結果の報告。印を付けた行の一覧も出す */
     public function report(string $source, string $target): string
     {
         $lines = ["{$source} → {$target}", "  タグ {$this->tagCount}個を書き換え、印（TODO）は{$this->todoCount}個"];
@@ -256,13 +256,13 @@ final class Tpl2Blade
         return implode("\n", $lines)."\n";
     }
 
-    // Bladeが命令の名前の続きと読む文字（半角の英数字と_）か
+    /** Bladeが命令の名前の続きと読む文字（半角の英数字と_）か */
     private function isWordChar(string $char): bool
     {
         return (bool) preg_match('/^\w$/', $char);
     }
 
-    // Smartyのタグの終わり（}-->）の位置。値の中に入れ子のタグがあるので、対応を数える
+    /** Smartyのタグの終わり（}-->）の位置。値の中に入れ子のタグがあるので、対応を数える */
     private function findTagEnd(string $source, int $start): int
     {
         // コメント <!--{* … *}--> は、中に何が書いてあっても *}--> まで
@@ -299,7 +299,7 @@ final class Tpl2Blade
         }
     }
 
-    // HTMLのコメントの終わり（-->の次）の位置。中にSmartyのタグがあれば、その}-->は飛ばす
+    /** HTMLのコメントの終わり（-->の次）の位置。中にSmartyのタグがあれば、その}-->は飛ばす */
     private function findHtmlCommentEnd(string $source, int $start): int
     {
         $pos = $start + 4;
@@ -322,8 +322,10 @@ final class Tpl2Blade
         }
     }
 
-    // HTMLのコメントを、Bladeのコメントにする。訪問者にソースで見えないようにするため。
-    // 中に書かれた古いタグは、コメントの中なのでそのまま残す
+    /**
+     * HTMLのコメントを、Bladeのコメントにする。訪問者にソースで見えないようにするため。
+     * 中に書かれた古いタグは、コメントの中なのでそのまま残す
+     */
     private function convertHtmlComment(string $comment): string
     {
         // <!--[if IE]> のような、ブラウザが読むコメントは変えない
@@ -336,13 +338,13 @@ final class Tpl2Blade
         return '{{-- '.$this->commentSafe($inner).' --}}';
     }
 
-    // Bladeのコメントの中に入れても、コメントが途中で終わらない文字にする
+    /** Bladeのコメントの中に入れても、コメントが途中で終わらない文字にする */
     private function commentSafe(string $text): string
     {
         return str_replace('--}}', '--}_}', $text);
     }
 
-    // 素の文の中の、Bladeが命令と読んでしまう書き方を、文字のまま出るようにする
+    /** 素の文の中の、Bladeが命令と読んでしまう書き方を、文字のまま出るようにする */
     private function escapeText(string $text): string
     {
         if ($text === '') {
@@ -354,7 +356,7 @@ final class Tpl2Blade
         return preg_replace('/(?<![\w@])@(?=(?:'.BLADE_DIRECTIVES.')\b)/', '@@', $text);
     }
 
-    // method="post"の<form>の開始タグの後ろに、@csrfを足す。Laravelでは、無いと送信が419で止まる
+    /** method="post"の<form>の開始タグの後ろに、@csrfを足す。Laravelでは、無いと送信が419で止まる */
     private function addCsrf(string $blade): string
     {
         return preg_replace_callback(
@@ -372,7 +374,7 @@ final class Tpl2Blade
 
     // ---- タグ ----
 
-    // 1つのタグ（区切りの内側）を、Bladeに書き換える
+    /** 1つのタグ（区切りの内側）を、Bladeに書き換える */
     private function convertTag(string $inner): string
     {
         $this->tagCount++;
@@ -483,7 +485,7 @@ final class Tpl2Blade
         }
     }
 
-    // 変数や式を出すタグ
+    /** 変数や式を出すタグ */
     private function convertOutput(string $body, string $inner): string
     {
         // エラーの文：<!--{$err.name}--> は、新しいフレームワークのエラー欄にする
@@ -506,7 +508,7 @@ final class Tpl2Blade
         };
     }
 
-    // foreach。Smarty3の「foreach $a as $k=>$v」と、Smarty2の「foreach from=$a item=v key=k」
+    /** foreach。Smarty3の「foreach $a as $k=>$v」と、Smarty2の「foreach from=$a item=v key=k」 */
     private function convertForeach(string $rest, string $inner): string
     {
         $key = null;
@@ -554,7 +556,7 @@ final class Tpl2Blade
         return " ({$source} as {$as})";
     }
 
-    // foreachelse。対応する@foreachを@forelseに直して、@emptyを出す
+    /** foreachelse。対応する@foreachを@forelseに直して、@emptyを出す */
     private function convertForeachElse(string $inner): string
     {
         if ($this->foreachStack === []) {
@@ -568,7 +570,7 @@ final class Tpl2Blade
         return '@empty';
     }
 
-    // for $i=0 to 5 step 1
+    /** for $i=0 to 5 step 1 */
     private function convertFor(string $rest, string $inner): string
     {
         if (! preg_match('/^\$(\w+)\s*=\s*(.+?)\s+to\s+(.+?)(?:\s+step\s+(.+))?$/s', $rest, $m)) {
@@ -582,7 +584,7 @@ final class Tpl2Blade
         return "@for ({$var} = ".$this->expr($m[2])."; {$var} <= ".$this->expr($m[3])."; {$step})";
     }
 
-    // assign var=name value=…
+    /** assign var=name value=… */
     private function convertAssign(string $rest, string $inner): string
     {
         $attrs = $this->attributes($rest);
@@ -599,7 +601,7 @@ final class Tpl2Blade
         return "@php \${$name} = {$value}; @endphp";
     }
 
-    // include file="…" 名前=値 …
+    /** include file="…" 名前=値 … */
     private function convertInclude(string $rest, string $inner): string
     {
         $attrs = $this->attributes($rest);
@@ -636,7 +638,7 @@ final class Tpl2Blade
         return $blade;
     }
 
-    // html_options options=$xxx_ary selected=$v → code_options('xxx', …)
+    /** html_options options=$xxx_ary selected=$v → code_options('xxx', …) */
     private function convertHtmlOptions(string $rest, string $inner): string
     {
         $attrs = $this->attributes($rest);
@@ -652,7 +654,7 @@ final class Tpl2Blade
         return "{{ code_options('{$codeName}'{$selected}) }}";
     }
 
-    // html_values options=$xxx_ary selected=$v separator="/" → code_labels('xxx', …, '/')
+    /** html_values options=$xxx_ary selected=$v separator="/" → code_labels('xxx', …, '/') */
     private function convertHtmlValues(string $rest, string $inner): string
     {
         $attrs = $this->attributes($rest);
@@ -667,8 +669,10 @@ final class Tpl2Blade
         return "{{ code_labels('{$codeName}', ".$this->expr($attrs['selected'])."{$separator}) }}";
     }
 
-    // html_radios・html_checkboxes。新しいフレームワークに部品は無いので、@foreachに広げる。
-    // 1個ずつを囲むタグとクラスはデザインで変わるので、印を付けて直してもらう
+    /**
+     * html_radios・html_checkboxes。新しいフレームワークに部品は無いので、@foreachに広げる。
+     * 1個ずつを囲むタグとクラスはデザインで変わるので、印を付けて直してもらう
+     */
     private function convertHtmlChoices(string $tag, string $rest, string $inner): string
     {
         $attrs = $this->attributes($rest);
@@ -689,7 +693,7 @@ final class Tpl2Blade
             .$this->todo('囲むタグとクラスを、デザインに合わせて直します', $inner);
     }
 
-    // 「$xxx_ary」だけが書かれていれば、code_table()に渡す名前を返す。違えばnull
+    /** 「$xxx_ary」だけが書かれていれば、code_table()に渡す名前を返す。違えばnull */
     private function codeNameOf(string $value): ?string
     {
         if (! preg_match('/^\$(\w+)$/', trim($value), $m) || isset($this->locals[$m[1]])) {
@@ -699,7 +703,7 @@ final class Tpl2Blade
         return $this->codeName($m[1]);
     }
 
-    // 変数の名前が区分表（…_ary）なら、code_table()に渡す名前を返す。違えばnull
+    /** 変数の名前が区分表（…_ary）なら、code_table()に渡す名前を返す。違えばnull */
     private function codeName(string $variable): ?string
     {
         if (! str_ends_with($variable, CODE_TABLE_SUFFIX)) {
@@ -711,7 +715,7 @@ final class Tpl2Blade
         return CODE_TABLE_NAMES[$base] ?? $base;
     }
 
-    // タグの「名前=値」の並びを、名前 => 値（書かれたままの文字）にする
+    /** タグの「名前=値」の並びを、名前 => 値（書かれたままの文字）にする */
     private function attributes(string $rest): array
     {
         $tokens = $this->tokenize($rest);
@@ -739,7 +743,7 @@ final class Tpl2Blade
         return $attrs;
     }
 
-    // トークンの$from番目から$toの手前までの、元の文字
+    /** トークンの$from番目から$toの手前までの、元の文字 */
     private function sourceOf(string $source, array $tokens, int $from, int $to): string
     {
         if ($from >= $to) {
@@ -752,7 +756,7 @@ final class Tpl2Blade
         return trim(substr($source, $begin, $end - $begin));
     }
 
-    // 人に任せるところに付ける印。元の書き方を残す
+    /** 人に任せるところに付ける印。元の書き方を残す */
     private function todo(string $message, string $inner): string
     {
         $this->todoCount++;
@@ -763,13 +767,13 @@ final class Tpl2Blade
 
     // ---- 式 ----
 
-    // Smartyの式を、PHPの式にする
+    /** Smartyの式を、PHPの式にする */
     private function expr(string $source): string
     {
         return $this->exprPiece($source)['code'];
     }
 
-    // Smartyの式を、PHPの式と、その種類（expr・directive・html）にする
+    /** Smartyの式を、PHPの式と、その種類（expr・directive・html）にする */
     private function exprPiece(string $source): array
     {
         $tokens = $this->tokenize($source);
@@ -784,7 +788,7 @@ final class Tpl2Blade
         return ['code' => $this->join($pieces), 'kind' => 'expr', 'operand' => true, 'wrap' => true];
     }
 
-    // 式のかけらをつなげる。? : のような、ほかと並べると優先順位が変わるものは括弧で囲む
+    /** 式のかけらをつなげる。? : のような、ほかと並べると優先順位が変わるものは括弧で囲む */
     private function join(array $pieces): string
     {
         $code = '';
@@ -864,7 +868,7 @@ final class Tpl2Blade
         return $this->mergeCalls($pieces);
     }
 
-    // 「関数の名前」と「その括弧」を、1つの値にまとめる。後ろの修飾子が、呼び出し全体に掛かるように
+    /** 「関数の名前」と「その括弧」を、1つの値にまとめる。後ろの修飾子が、呼び出し全体に掛かるように */
     private function mergeCalls(array $pieces): array
     {
         $merged = [];
@@ -888,7 +892,7 @@ final class Tpl2Blade
         return ['code' => $code, 'kind' => $kind, 'operand' => true, 'wrap' => $wrap];
     }
 
-    // 英字の演算子と、true・falseなどの語
+    /** 英字の演算子と、true・falseなどの語 */
     private function word(string $word): array
     {
         $operators = [
@@ -909,7 +913,7 @@ final class Tpl2Blade
         return ['code' => $word, 'kind' => 'expr', 'operand' => true, 'function' => true];
     }
 
-    // 変数を、PHPの書き方にする
+    /** 変数を、PHPの書き方にする */
     private function variable(array $token): string
     {
         $name = $token['name'];
@@ -978,7 +982,7 @@ final class Tpl2Blade
         return "\$input['{$name}']".$this->accessors($accessors, false);
     }
 
-    // .name・[式] の並びを、PHPの書き方にする。$asObjectなら、.name を ->name にする
+    /** .name・[式] の並びを、PHPの書き方にする。$asObjectなら、.name を ->name にする */
     private function accessors(array $accessors, bool $asObject): string
     {
         $code = '';
@@ -995,7 +999,7 @@ final class Tpl2Blade
         return $code;
     }
 
-    // 文字列。中に入れ子のタグがあれば、文字と式をつなげた形にする
+    /** 文字列。中に入れ子のタグがあれば、文字と式をつなげた形にする */
     private function string(string $literal): string
     {
         $quote = $literal[0];
@@ -1030,7 +1034,7 @@ final class Tpl2Blade
         return implode('.', $parts);
     }
 
-    // PHPの'…'の文字列にする
+    /** PHPの'…'の文字列にする */
     private function quote(string $text): string
     {
         return "'".str_replace(['\\', "'"], ['\\\\', "\\'"], $text)."'";
@@ -1038,7 +1042,7 @@ final class Tpl2Blade
 
     // ---- 修飾子 ----
 
-    // 直前の値に、修飾子を1つ掛ける
+    /** 直前の値に、修飾子を1つ掛ける */
     private function applyModifier(array $pieces, string $name, array $tokens, int &$pos): array
     {
         // :引数 を読む。引数は1つの値
@@ -1062,7 +1066,7 @@ final class Tpl2Blade
         return $pieces;
     }
 
-    // 修飾子の引数を1つ読む
+    /** 修飾子の引数を1つ読む */
     private function argument(array $tokens, int &$pos): string
     {
         $token = $tokens[$pos] ?? null;
@@ -1093,7 +1097,7 @@ final class Tpl2Blade
         };
     }
 
-    // 修飾子ごとの書き換え
+    /** 修飾子ごとの書き換え */
     private function modifier(string $name, string $value, array $args, array $target): array
     {
         $rest = $args !== [] ? ', '.implode(', ', $args) : '';
@@ -1284,7 +1288,7 @@ final class Tpl2Blade
         return $tokens;
     }
 
-    // 変数の後ろに続く .name・.$var・[式]・->name・@first を読む
+    /** 変数の後ろに続く .name・.$var・[式]・->name・@first を読む */
     private function readAccessors(string $source, int &$pos): array
     {
         $accessors = [];

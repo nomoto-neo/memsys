@@ -40,16 +40,16 @@ class OperationLogController extends Controller
 
     // ---- 一覧・検索（SearchableList）の設定 ----
 
-    // 一覧画面のルート名。セッションキー名の識別子としても使用。
+    /** 一覧画面のルート名。セッションキー名の識別子としても使用。 */
     private const INDEX_ROUTE = 'admin.operation-logs.index';
 
-    // フリーワード検索は使わない。
+    /** フリーワード検索は使わない。 */
     private const FREE_WORD_COLUMNS = [];
 
-    // 1ページに表示する件数。前後の操作のつながりを見るので、ほかの一覧より多くしている。
+    /** 1ページに表示する件数。前後の操作のつながりを見るので、ほかの一覧より多くしている。 */
     private const PER_PAGE = 50;
 
-    // 一覧の並び順の選択肢。
+    /** 一覧の並び順の選択肢。 */
     private const ORDER_OPTIONS = [
         'created_desc' => [
             'label' => '新しい順',
@@ -67,16 +67,18 @@ class OperationLogController extends Controller
         ],
     ];
 
-    // 一覧の上に出す、1日ごとの棒の日数。
+    /** 一覧の上に出す、1日ごとの棒の日数。 */
     private const STATS_DAYS = 30;
 
-    // 検索の「操作した人」で、誰もログインしていない訪問者の操作を選ぶときの値。
-    // 訪問者の操作は、操作した人の種類が空で残っている。
+    /**
+     * 検索の「操作した人」で、誰もログインしていない訪問者の操作を選ぶときの値。
+     * 訪問者の操作は、操作した人の種類が空で残っている。
+     */
     private const GUEST = 'guest';
 
     // ---- 一覧・検索 ----
 
-    // 一覧・検索
+    /** 一覧・検索 */
     public function index(Request $request): View|RedirectResponse
     {
         $result = $this->buildListData($request, OperationLog::query());
@@ -139,8 +141,10 @@ class OperationLogController extends Controller
         ];
     }
 
-    // 検索で1日だけに絞っていれば、その日の0時。日付の「ここから」と「ここまで」が同じ日のとき。
-    // 絞っていないか、2日以上の範囲ならnull
+    /**
+     * 検索で1日だけに絞っていれば、その日の0時。日付の「ここから」と「ここまで」が同じ日のとき。
+     * 絞っていないか、2日以上の範囲ならnull
+     */
     private function selectedDay(array $filters): ?Carbon
     {
         if (empty($filters['date_from']) || empty($filters['date_to'])) {
@@ -152,8 +156,10 @@ class OperationLogController extends Controller
         return $from->equalTo(Carbon::parse($filters['date_to'])->startOfDay()) ? $from : null;
     }
 
-    // 1日ごとの棒を押したとき。今の検索条件はそのままで、日付だけをその1日に絞る。
-    // 画面は、今の検索条件をhiddenで一緒に送ってくる
+    /**
+     * 1日ごとの棒を押したとき。今の検索条件はそのままで、日付だけをその1日に絞る。
+     * 画面は、今の検索条件をhiddenで一緒に送ってくる
+     */
     public function searchDay(Request $request): RedirectResponse
     {
         $day = $request->validate(['day' => ['required', 'date']])['day'];
@@ -163,8 +169,10 @@ class OperationLogController extends Controller
         return $this->storeSearchCondition($request);
     }
 
-    // 検索の「操作した人」の選択肢。値 => 名前。ログインできるスタッフと会員に、訪問者を足す。
-    // ニュースなどの対象の種類は、操作した人にはならないので入れない
+    /**
+     * 検索の「操作した人」の選択肢。値 => 名前。ログインできるスタッフと会員に、訪問者を足す。
+     * ニュースなどの対象の種類は、操作した人にはならないので入れない
+     */
     private function operatorOptions(): array
     {
         $options = [];
@@ -175,8 +183,10 @@ class OperationLogController extends Controller
         return $options + [self::GUEST => '訪問者'];
     }
 
-    // 検索対象項目の検証ルール（SearchableListが要求する）。
-    // integer・boolean・Rule::in・Rule::enumのどれかがあれば完全一致、無ければ部分一致
+    /**
+     * 検索対象項目の検証ルール（SearchableListが要求する）。
+     * integer・boolean・Rule::in・Rule::enumのどれかがあれば完全一致、無ければ部分一致
+     */
     private function srchRules(): array
     {
         return [
@@ -193,7 +203,7 @@ class OperationLogController extends Controller
         ];
     }
 
-    // イレギュラーな検索条件の追加処理。
+    /** イレギュラーな検索条件の追加処理。 */
     private function applyCustomSearch(Builder $query, string $key, mixed $value): bool
     {
         // 訪問者の操作は、操作した人の種類が空の行
@@ -221,7 +231,7 @@ class OperationLogController extends Controller
 
     // ---- CSVダウンロード ----
 
-    // CSVダウンロード（一覧の今の検索条件・並び順で全件）
+    /** CSVダウンロード（一覧の今の検索条件・並び順で全件） */
     public function csv(): StreamedResponse
     {
         // 出すのは、このダウンロードより前の操作まで。downloadCsv()は書き出しの前に、
@@ -238,7 +248,7 @@ class OperationLogController extends Controller
         );
     }
 
-    // CSVに出す項目。氏名は操作ログに持たせていないので、種類とidで出す
+    /** CSVに出す項目。氏名は操作ログに持たせていないので、種類とidで出す */
     private function csvColumns(): array
     {
         $subjects = code_table('operation_log_subject');
@@ -258,7 +268,7 @@ class OperationLogController extends Controller
         ];
     }
 
-    // csvColumns()で「@名前」と書いた項目の値
+    /** csvColumns()で「@名前」と書いた項目の値 */
     private function csvCustomColumn(string $key, OperationLog $log): mixed
     {
         return match ($key) {
@@ -270,7 +280,7 @@ class OperationLogController extends Controller
         };
     }
 
-    // 1行の操作ログの、件数を持っている別の記録。CSVに1行ずつ書き出すときに使う。無ければnull
+    /** 1行の操作ログの、件数を持っている別の記録。CSVに1行ずつ書き出すときに使う。無ければnull */
     private function relatedRecordOf(OperationLog $log): ?Model
     {
         [$class, $id] = $log->relatedKey();

@@ -49,14 +49,16 @@ use Illuminate\Support\Facades\Storage;
  */
 final class TemporaryDataCleaner
 {
-    // 一時ファイルを置いたままにしてよい時間。確認画面やCSV取り込みの確認をこれより長く
-    // 開いたままにすると、ファイルが無くなってやり直しになる。
+    /**
+     * 一時ファイルを置いたままにしてよい時間。確認画面やCSV取り込みの確認をこれより長く
+     * 開いたままにすると、ファイルが無くなってやり直しになる。
+     */
     public const MAX_AGE_HOURS = 24;
 
-    // 保存期間を過ぎたお問い合わせを、1回の問い合わせで読む件数
+    /** 保存期間を過ぎたお問い合わせを、1回の問い合わせで読む件数 */
     private const INQUIRY_CHUNK = 100;
 
-    // すべての一時データを片付け、消した件数を名前 => 件数で返す。
+    /** すべての一時データを片付け、消した件数を名前 => 件数で返す。 */
     public static function all(): array
     {
         return [
@@ -70,19 +72,19 @@ final class TemporaryDataCleaner
         ];
     }
 
-    // UploadFilePath::TMP_DIRに置いた、アップロード直後の一時ファイルのうち古いもの。
+    /** UploadFilePath::TMP_DIRに置いた、アップロード直後の一時ファイルのうち古いもの。 */
     public static function uploadTmpFiles(): int
     {
         return self::deleteOldFiles(UploadFilePath::TMP_DISK, UploadFilePath::TMP_DIR);
     }
 
-    // CsvImportSettings::TMP_DIRに置いた、CSV取り込みの作業用ファイルのうち古いもの。
+    /** CsvImportSettings::TMP_DIRに置いた、CSV取り込みの作業用ファイルのうち古いもの。 */
     public static function csvImportFiles(): int
     {
         return self::deleteOldFiles(CsvImportSettings::TMP_DISK, CsvImportSettings::TMP_DIR);
     }
 
-    // 試行制限の回数などを入れたdatabaseのキャッシュのうち、期限の切れた行。
+    /** 試行制限の回数などを入れたdatabaseのキャッシュのうち、期限の切れた行。 */
     public static function expiredCache(): int
     {
         $store = config('cache.stores.'.config('cache.default'));
@@ -100,20 +102,22 @@ final class TemporaryDataCleaner
         return $deleted;
     }
 
-    // TrustedDeviceManagerの「このデバイスを記憶する」「この端末を信頼する」の記録のうち、
-    // 期限の切れた行。会員とスタッフの両方の分。
+    /**
+     * TrustedDeviceManagerの「このデバイスを記憶する」「この端末を信頼する」の記録のうち、
+     * 期限の切れた行。会員とスタッフの両方の分。
+     */
     public static function expiredTrustedDevices(): int
     {
         return TrustedDevice::query()->where('expires_at', '<=', now())->delete();
     }
 
-    // 企業会員の担当者の招待（App\Support\CompanyInvitationManager）のうち、期限の切れた行。
+    /** 企業会員の担当者の招待（App\Support\CompanyInvitationManager）のうち、期限の切れた行。 */
     public static function expiredCompanyInvitations(): int
     {
         return CompanyInvitation::query()->where('expires_at', '<=', now())->delete();
     }
 
-    // 操作ログ（App\Support\OperationRecorder）のうち、残す日数を過ぎた行。
+    /** 操作ログ（App\Support\OperationRecorder）のうち、残す日数を過ぎた行。 */
     public static function oldOperationLogs(): int
     {
         return OperationLog::query()
@@ -155,7 +159,7 @@ final class TemporaryDataCleaner
         return $deleted;
     }
 
-    // ディスクのディレクトリの直下にある、MAX_AGE_HOURSより古いファイルを消す。
+    /** ディスクのディレクトリの直下にある、MAX_AGE_HOURSより古いファイルを消す。 */
     private static function deleteOldFiles(string $diskName, string $directory): int
     {
         $disk = Storage::disk($diskName);

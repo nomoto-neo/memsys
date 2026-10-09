@@ -62,17 +62,19 @@ class CompanyController extends Controller
 
     // ---- 一覧・検索（SearchableList）の設定 ----
 
-    // 一覧画面のルート名。セッションキー名の識別子としても使用。
-    // 更新・却下の後の戻り先（?back付きの一覧）にも使う。
+    /**
+     * 一覧画面のルート名。セッションキー名の識別子としても使用。
+     * 更新・却下の後の戻り先（?back付きの一覧）にも使う。
+     */
     private const INDEX_ROUTE = 'admin.companies.index';
 
-    // フリーワード検索の検索対象とするカラムの一覧。
+    /** フリーワード検索の検索対象とするカラムの一覧。 */
     private const FREE_WORD_COLUMNS = ['name', 'kana', 'representative', 'staff_memo'];
 
-    // 1ページに表示する件数。
+    /** 1ページに表示する件数。 */
     private const PER_PAGE = 20;
 
-    // 一覧の並び順の選択肢。
+    /** 一覧の並び順の選択肢。 */
     private const ORDER_OPTIONS = [
         'created_desc' => [
             'label' => '登録日が新しい順',
@@ -99,16 +101,18 @@ class CompanyController extends Controller
 
     // ---- 項目の文字数 ----
 
-    // 管理メモに書ける文字数。
+    /** 管理メモに書ける文字数。 */
     private const STAFF_MEMO_MAX_LENGTH = 2000;
 
-    // 却下の理由に書ける文字数。お知らせのメールに載せる
+    /** 却下の理由に書ける文字数。お知らせのメールに載せる */
     private const REJECT_REASON_MAX_LENGTH = 1000;
 
     // ---- このコーナーの項目の定義 ----
 
-    // 入力バリデーションルール。企業IDと状態は、登録・編集の画面では変えないので書かない。
-    // $companyは既存の企業の編集ならそのインスタンス、新規登録ならnull。
+    /**
+     * 入力バリデーションルール。企業IDと状態は、登録・編集の画面では変えないので書かない。
+     * $companyは既存の企業の編集ならそのインスタンス、新規登録ならnull。
+     */
     private function rules(?Company $company): array
     {
         // 最初の担当者に招待を送るメールアドレス。新規登録のときだけ入力する。
@@ -139,7 +143,7 @@ class CompanyController extends Controller
         ];
     }
 
-    // 却下の理由の検証ルール。詳細画面の却下のフォームで使う
+    /** 却下の理由の検証ルール。詳細画面の却下のフォームで使う */
     private function rejectRules(): array
     {
         return [
@@ -147,7 +151,7 @@ class CompanyController extends Controller
         ];
     }
 
-    // 招待の宛先の検証ルール。詳細画面の招待のフォームで使う
+    /** 招待の宛先の検証ルール。詳細画面の招待のフォームで使う */
     private function invitationRules(): array
     {
         return [
@@ -155,15 +159,17 @@ class CompanyController extends Controller
         ];
     }
 
-    // 保存する項目（t_companiesのカラム）。ここに書いた項目だけを保存する。
-    // 最終更新者（staff_id）は入力値をそのまま保存しないので、additionalFields()で扱う。
-    // 招待の宛先（invite_email）は企業の列ではないので、ここには書かない。afterSave()で使う。
+    /**
+     * 保存する項目（t_companiesのカラム）。ここに書いた項目だけを保存する。
+     * 最終更新者（staff_id）は入力値をそのまま保存しないので、additionalFields()で扱う。
+     * 招待の宛先（invite_email）は企業の列ではないので、ここには書かない。afterSave()で使う。
+     */
     private function saveFieldNames(array $validated, Company $company): array
     {
         return ['name', 'kana', 'representative', 'zip', 'prefecture', 'address', 'tel', 'url', 'staff_memo'];
     }
 
-    // saveFieldNames()に加えて保存する項目（項目名 => 値）。入力値をそのまま使わないものをここに書く。
+    /** saveFieldNames()に加えて保存する項目（項目名 => 値）。入力値をそのまま使わないものをここに書く。 */
     private function additionalFields(array $validated, Company $company): array
     {
         $additional = [
@@ -179,7 +185,7 @@ class CompanyController extends Controller
         return $additional;
     }
 
-    // 保存の直後の処理。
+    /** 保存の直後の処理。 */
     private function afterSave(Company $company, array $validated): void
     {
         if ($company->wasRecentlyCreated) {
@@ -189,8 +195,10 @@ class CompanyController extends Controller
         }
     }
 
-    // 削除の直前の処理。却下と削除の両方で働く。外部キー制約を付けていないので、
-    // 企業に属する招待と担当者、担当者の信頼済みの端末とパスキーを、ここで消す
+    /**
+     * 削除の直前の処理。却下と削除の両方で働く。外部キー制約を付けていないので、
+     * 企業に属する招待と担当者、担当者の信頼済みの端末とパスキーを、ここで消す
+     */
     private function beforeDelete(Company $company): void
     {
         $company->invitations()->delete();
@@ -202,7 +210,7 @@ class CompanyController extends Controller
         }
     }
 
-    // モデルの今の値から、_fields.blade.phpに渡す$inputを組み立てる（詳細・編集で使う）。
+    /** モデルの今の値から、_fields.blade.phpに渡す$inputを組み立てる（詳細・編集で使う）。 */
     private function inputFromModel(Company $company): array
     {
         return [
@@ -220,8 +228,10 @@ class CompanyController extends Controller
 
     // ---- 一覧・検索 ----
 
-    // 一覧・検索
-    // 検索条件の復元、絞り込み、並び替え、ページネーションは SearchableList::buildListData が行う
+    /**
+     * 一覧・検索
+     * 検索条件の復元、絞り込み、並び替え、ページネーションは SearchableList::buildListData が行う
+     */
     public function index(Request $request): View|RedirectResponse
     {
         // 一覧データの読み込みとページング。担当者の人数も一緒に数える
@@ -241,8 +251,10 @@ class CompanyController extends Controller
         ]);
     }
 
-    // 検索対象項目の検証ルール（SearchableListが要求する）。
-    // integer・boolean・Rule::inのどれかがあれば完全一致、無ければ部分一致、配列ならIN()条件
+    /**
+     * 検索対象項目の検証ルール（SearchableListが要求する）。
+     * integer・boolean・Rule::inのどれかがあれば完全一致、無ければ部分一致、配列ならIN()条件
+     */
     private function srchRules(): array
     {
         return [
@@ -256,8 +268,10 @@ class CompanyController extends Controller
         ];
     }
 
-    // イレギュラーな検索条件の追加処理
-    // DB項目と単純に比較できないものは先にここでwhere条件を追加し、処理済み(true)を返す。
+    /**
+     * イレギュラーな検索条件の追加処理
+     * DB項目と単純に比較できないものは先にここでwhere条件を追加し、処理済み(true)を返す。
+     */
     private function applyCustomSearch(Builder $query, string $key, mixed $value): bool
     {
         return false;
@@ -265,7 +279,7 @@ class CompanyController extends Controller
 
     // ---- CSVダウンロード ----
 
-    // CSVダウンロード（一覧の今の検索条件・並び順で全件）
+    /** CSVダウンロード（一覧の今の検索条件・並び順で全件） */
     public function csv(): StreamedResponse
     {
         return $this->downloadCsv(
@@ -277,7 +291,7 @@ class CompanyController extends Controller
         );
     }
 
-    // CSVに出す項目。見出し => 値の場所（書き方はApp\Support\CsvDownload参照）
+    /** CSVに出す項目。見出し => 値の場所（書き方はApp\Support\CsvDownload参照） */
     private function csvColumns(): array
     {
         return [
@@ -299,7 +313,7 @@ class CompanyController extends Controller
         ];
     }
 
-    // csvColumns()で「@名前」と書いた項目の値
+    /** csvColumns()で「@名前」と書いた項目の値 */
     private function csvCustomColumn(string $key, Company $company): mixed
     {
         return match ($key) {
@@ -310,7 +324,7 @@ class CompanyController extends Controller
 
     // ---- 登録 ----
 
-    // 新規登録フォームの表示
+    /** 新規登録フォームの表示 */
     public function create(): View
     {
         return view('admin.companies.create', [
@@ -319,7 +333,7 @@ class CompanyController extends Controller
         ]);
     }
 
-    // 新規登録の確認画面を表示
+    /** 新規登録の確認画面を表示 */
     public function confirmStore(Request $request): View
     {
         return view('admin.companies.confirm', [
@@ -329,15 +343,17 @@ class CompanyController extends Controller
         ]);
     }
 
-    // 確認画面からの「戻る」
+    /** 確認画面からの「戻る」 */
     public function backToCreate(Request $request): RedirectResponse
     {
         return redirect()->route('admin.companies.create')
             ->withInput($request->except('_token'));
     }
 
-    // 新規登録の実行。企業を承認済みで作り、最初の担当者へ招待のメールを送る（afterSave()）。
-    // 終わったら、登録した企業の詳細画面へ移る。企業IDと、招待中の一覧を確かめられる
+    /**
+     * 新規登録の実行。企業を承認済みで作り、最初の担当者へ招待のメールを送る（afterSave()）。
+     * 終わったら、登録した企業の詳細画面へ移る。企業IDと、招待中の一覧を確かめられる
+     */
     public function store(Request $request): RedirectResponse
     {
         $company = new Company();
@@ -350,7 +366,7 @@ class CompanyController extends Controller
 
     // ---- 詳細・編集 ----
 
-    // 詳細画面の表示。その企業の担当者と、招待中の人の一覧も出す
+    /** 詳細画面の表示。その企業の担当者と、招待中の人の一覧も出す */
     public function show(Company $company): View
     {
         // 担当者の個人情報を出す画面なので、詳細を開いたことを操作ログに残す
@@ -367,7 +383,7 @@ class CompanyController extends Controller
         ]);
     }
 
-    // 編集フォームの表示
+    /** 編集フォームの表示 */
     public function edit(Company $company): View
     {
         return view('admin.companies.edit', [
@@ -377,7 +393,7 @@ class CompanyController extends Controller
         ]);
     }
 
-    // 確認画面の表示
+    /** 確認画面の表示 */
     public function confirmUpdate(Request $request, Company $company): View
     {
         return view('admin.companies.confirm', [
@@ -387,14 +403,14 @@ class CompanyController extends Controller
         ]);
     }
 
-    // 確認画面からの「戻る」
+    /** 確認画面からの「戻る」 */
     public function backToEdit(Request $request, Company $company): RedirectResponse
     {
         return redirect()->route('admin.companies.edit', $company)
             ->withInput($request->except('_token'));
     }
 
-    // 更新の実行
+    /** 更新の実行 */
     public function update(Request $request, Company $company): RedirectResponse
     {
         $this->saveData($company, $request);
@@ -405,8 +421,10 @@ class CompanyController extends Controller
 
     // ---- 承認・却下・停止・再開 ----
 
-    // 申請中の企業を承認する（PATCH /admin/companies/{company}/approve）。
-    // 担当者がログインできるようになる。承認したことと企業IDを、担当者へメールで知らせる
+    /**
+     * 申請中の企業を承認する（PATCH /admin/companies/{company}/approve）。
+     * 担当者がログインできるようになる。承認したことと企業IDを、担当者へメールで知らせる
+     */
     public function approve(Company $company): RedirectResponse
     {
         if (! $this->changeStatus($company, from: CompanyStatus::Pending, to: CompanyStatus::Approved)) {
@@ -459,8 +477,10 @@ class CompanyController extends Controller
             ->with('status', '申請を却下しました。担当者へ、お知らせを送りました。');
     }
 
-    // 承認済みの企業を止める（PATCH /admin/companies/{company}/suspend）。担当者はログインできなくなり、
-    // ログイン中の担当者も次の操作から使えなくなる（App\Http\Middleware\EnsureCompanyIsApproved）
+    /**
+     * 承認済みの企業を止める（PATCH /admin/companies/{company}/suspend）。担当者はログインできなくなり、
+     * ログイン中の担当者も次の操作から使えなくなる（App\Http\Middleware\EnsureCompanyIsApproved）
+     */
     public function suspend(Company $company): RedirectResponse
     {
         if (! $this->changeStatus($company, from: CompanyStatus::Approved, to: CompanyStatus::Suspended)) {
@@ -471,7 +491,7 @@ class CompanyController extends Controller
             ->with('status', '企業の利用を停止しました。');
     }
 
-    // 止めた企業を、承認済みに戻す（PATCH /admin/companies/{company}/resume）
+    /** 止めた企業を、承認済みに戻す（PATCH /admin/companies/{company}/resume） */
     public function resume(Company $company): RedirectResponse
     {
         if (! $this->changeStatus($company, from: CompanyStatus::Suspended, to: CompanyStatus::Approved)) {
@@ -502,8 +522,10 @@ class CompanyController extends Controller
 
     // ---- 担当者の招待 ----
 
-    // 招待のメールを送る（POST /admin/companies/{company}/invitations）。
-    // 申請中の企業には送れない。担当者を足せるのは、承認した後
+    /**
+     * 招待のメールを送る（POST /admin/companies/{company}/invitations）。
+     * 申請中の企業には送れない。担当者を足せるのは、承認した後
+     */
     public function storeInvitation(Request $request, Company $company): RedirectResponse
     {
         // 招待のフォームは詳細画面の下の方にあるので、エラーは名前を分けて持つ
@@ -519,7 +541,7 @@ class CompanyController extends Controller
             ->with('status', '招待のメールを送りました。');
     }
 
-    // 招待のメールを送り直す。リンクと期限が新しくなり、前のメールのリンクは使えなくなる
+    /** 招待のメールを送り直す。リンクと期限が新しくなり、前のメールのリンクは使えなくなる */
     public function resendInvitation(Company $company, CompanyInvitation $invitation): RedirectResponse
     {
         CompanyInvitationManager::resend($invitation);
@@ -528,7 +550,7 @@ class CompanyController extends Controller
             ->with('status', '招待のメールを送り直しました。');
     }
 
-    // 招待を取り消す
+    /** 招待を取り消す */
     public function cancelInvitation(Company $company, CompanyInvitation $invitation): RedirectResponse
     {
         CompanyInvitationManager::cancel($invitation);
@@ -562,15 +584,17 @@ class CompanyController extends Controller
         return true;
     }
 
-    // 状態が、押したボタンの前提と違っていたとき。詳細画面へ戻して、今の状態を見てもらう
+    /** 状態が、押したボタンの前提と違っていたとき。詳細画面へ戻して、今の状態を見てもらう */
     private function statusAlreadyChanged(Company $company): RedirectResponse
     {
         return redirect()->route('admin.companies.show', $company)
             ->with('error', 'この企業の状態は、すでに変わっています。今の状態を確かめてください。');
     }
 
-    // 担当者へ、承認・却下のお知らせのメールを送る。メールアドレスが無ければ送らない。
-    // 送れなかったときは、ログにだけ残す
+    /**
+     * 担当者へ、承認・却下のお知らせのメールを送る。メールアドレスが無ければ送らない。
+     * 送れなかったときは、ログにだけ残す
+     */
     private function sendMail(string $template, CompanyUser $user, array $variables): void
     {
         if (empty($user->notificationEmail())) {

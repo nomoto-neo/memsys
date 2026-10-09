@@ -26,7 +26,7 @@ class Passkey extends PackagePasskey
         return $this->morphTo(name: 'authenticatable');
     }
 
-    // $ownerのパスキーかどうか。
+    /** $ownerのパスキーかどうか。 */
     public function belongsToOwner(Member|Staff $owner): bool
     {
         return $this->authenticatable_type === $owner->getMorphClass()

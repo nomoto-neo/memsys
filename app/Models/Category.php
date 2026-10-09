@@ -21,8 +21,10 @@ class Category extends Model
         'display_order' => 'integer',
     ];
 
-    // このカテゴリーが付いているニュース記事。中間テーブルの列名は、省略しても
-    // 同じになるが、どの列を見ているかがコードだけで分かるように書いている。
+    /**
+     * このカテゴリーが付いているニュース記事。中間テーブルの列名は、省略しても
+     * 同じになるが、どの列を見ているかがコードだけで分かるように書いている。
+     */
     public function news(): BelongsToMany
     {
         return $this->belongsToMany(News::class, 't_news_category', 'category_id', 'news_id');

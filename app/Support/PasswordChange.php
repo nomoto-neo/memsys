@@ -56,7 +56,7 @@ class PasswordChange
         return $deletedPasskeys;
     }
 
-    // パスワードが変わったことのお知らせのメール
+    /** パスワードが変わったことのお知らせのメール */
     private static function sendMail(MemberAccount|Staff $owner, ?Staff $changedBy, bool $passkeysDeleted): void
     {
         // 宛先と宛名。会員は、共通の型のメソッドから取る

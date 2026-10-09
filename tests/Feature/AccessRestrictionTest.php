@@ -15,7 +15,7 @@ class AccessRestrictionTest extends TestCase
 {
     use RefreshDatabase;
 
-    // 入ってよいIPアドレスと、そのほかのIPアドレス
+    /** 入ってよいIPアドレスと、そのほかのIPアドレス */
     private const OFFICE_IP = '203.0.113.10';
 
     private const OTHER_IP = '198.51.100.20';

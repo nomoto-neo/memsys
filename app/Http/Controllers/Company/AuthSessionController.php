@@ -41,27 +41,29 @@ class AuthSessionController extends Controller
 
     // ---- ログイン（MemberLogin）の設定 ----
 
-    // ログインする会員のモデル。ガード・ルート・メールのテンプレートの名前は、ここから決まる。
+    /** ログインする会員のモデル。ガード・ルート・メールのテンプレートの名前は、ここから決まる。 */
     private const MEMBER_CLASS = CompanyUser::class;
 
-    // 確認コードの入力画面のビュー。
+    /** 確認コードの入力画面のビュー。 */
     private const LOGIN_VERIFY_VIEW = 'company.auth.login-verify';
 
-    // ログインの試行制限（LoginThrottle）で、このコントローラーの失敗回数を数えるカウンターの名前。
-    // アカウントは、企業IDと担当者IDの組で区別する。
+    /**
+     * ログインの試行制限（LoginThrottle）で、このコントローラーの失敗回数を数えるカウンターの名前。
+     * アカウントは、企業IDと担当者IDの組で区別する。
+     */
     private const THROTTLE_SCOPE = 'company-login';
 
-    // 「企業IDと担当者IDを記憶する」の値を入れるCookieの名前（App\Support\LoginIdMemory）。
+    /** 「企業IDと担当者IDを記憶する」の値を入れるCookieの名前（App\Support\LoginIdMemory）。 */
     private const LOGIN_ID_COOKIE = 'company_login_ids';
 
     // ---- パスキーでのログイン（PasskeyLogin）の設定 ----
 
-    // パスキーでログインさせるガード（App\Support\PasskeyLogin参照）。
+    /** パスキーでログインさせるガード（App\Support\PasskeyLogin参照）。 */
     private const PASSKEY_GUARD = 'company';
 
     // ---- ログイン・ログアウト ----
 
-    // ログインフォームの表示
+    /** ログインフォームの表示 */
     public function create(Request $request): View
     {
         // 「企業IDと担当者IDを記憶する」で覚えた値があれば、入力済みで出す。
@@ -77,7 +79,7 @@ class AuthSessionController extends Controller
         ]);
     }
 
-    // ログイン（1段階目：企業ID・担当者ID・パスワード）
+    /** ログイン（1段階目：企業ID・担当者ID・パスワード） */
     public function store(Request $request): RedirectResponse
     {
         $credentials = $request->validate([
@@ -151,14 +153,16 @@ class AuthSessionController extends Controller
         return $this->continueAfterPassword($request, $user, $request->boolean('remember'));
     }
 
-    // パスキーでログインした後の移動先。ログインが必要な画面から来た場合はその画面へ戻す
-    // （App\Support\LoginRedirect）。
+    /**
+     * パスキーでログインした後の移動先。ログインが必要な画面から来た場合はその画面へ戻す
+     * （App\Support\LoginRedirect）。
+     */
     private function passkeyRedirectUrl(): string
     {
         return LoginRedirect::forMember(self::MEMBER_CLASS);
     }
 
-    // ログアウト
+    /** ログアウト */
     public function destroy(Request $request): RedirectResponse
     {
         $this->logoutMember($request);

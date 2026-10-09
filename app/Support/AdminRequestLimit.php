@@ -28,14 +28,16 @@ use Symfony\Component\HttpFoundation\Response;
  */
 final class AdminRequestLimit
 {
-    // 設定が無いときの、1分に送れる回数。設定のキャッシュが古くて項目がまだ無いときにも使う
+    /** 設定が無いときの、1分に送れる回数。設定のキャッシュが古くて項目がまだ無いときにも使う */
     private const DEFAULT_PER_MINUTE = 120;
 
-    // 超えたことを、操作ログとログに残す間隔（秒）。この間に何度超えても、残すのは1回
+    /** 超えたことを、操作ログとログに残す間隔（秒）。この間に何度超えても、残すのは1回 */
     private const NOTIFY_INTERVAL_SECONDS = 60;
 
-    // この回の、回数の制限。操作しているスタッフのidで数えるので、同じ事務所から複数の人が
-    // 使っても、互いに影響しない。
+    /**
+     * この回の、回数の制限。操作しているスタッフのidで数えるので、同じ事務所から複数の人が
+     * 使っても、互いに影響しない。
+     */
     public static function limit(Request $request): Limit
     {
         // 設定が無いか0のときは、既定の回数にする。0のまま使うと、全部の操作が止まる
@@ -47,7 +49,7 @@ final class AdminRequestLimit
             ->response(fn (Request $request) => self::exceeded($request, $perMinute, $staffId));
     }
 
-    // 回数を超えたときの記録と、返す画面
+    /** 回数を超えたときの記録と、返す画面 */
     private static function exceeded(Request $request, int $perMinute, mixed $staffId): Response
     {
         // 記録を残すのは、スタッフごとに間隔の中で1回だけ。add()は、まだ無いときだけ置けてtrueを返す

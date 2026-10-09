@@ -60,8 +60,10 @@ class SharedBrowserTest extends TestCase
         $this->post('/admin/2fa/verify', ['code' => (new Google2FA())->getCurrentOtp($this->secret)]);
     }
 
-    // 次のリクエストで、ログイン中の人をセッションから読み直させる。テストでは、リクエストを
-    // またいでも同じアプリが使われ、前のリクエストで読んだ人を覚えたままになるため
+    /**
+     * 次のリクエストで、ログイン中の人をセッションから読み直させる。テストでは、リクエストを
+     * またいでも同じアプリが使われ、前のリクエストで読んだ人を覚えたままになるため
+     */
     private function forgetLoadedUsers(): void
     {
         $this->app['auth']->forgetGuards();

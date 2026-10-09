@@ -17,7 +17,7 @@ enum NoticeMail: int implements CodeTableEnum
     case Receive = 1;
     case Stop = 0;
 
-    // 値ごとの名前
+    /** 値ごとの名前 */
     private const LABELS = [
         self::Receive->value => '受け取る',
         self::Stop->value => '受け取らない',

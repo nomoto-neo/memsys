@@ -24,7 +24,7 @@ class StaffLoginTest extends TestCase
 
     private string $secret;
 
-    // 2段階認証を登録済みのスタッフ
+    /** 2段階認証を登録済みのスタッフ */
     private function staff(StaffAcl $acl = StaffAcl::Manager): Staff
     {
         $this->secret = (new Google2FA())->generateSecretKey();
@@ -41,7 +41,7 @@ class StaffLoginTest extends TestCase
         return $staff;
     }
 
-    // 認証アプリが今出しているコード
+    /** 認証アプリが今出しているコード */
     private function currentCode(): string
     {
         return (new Google2FA())->getCurrentOtp($this->secret);

@@ -23,7 +23,7 @@ trait ReadsSentMail
             ->values();
     }
 
-    // 最後に送ったメール。1通も送っていなければテストを失敗させる
+    /** 最後に送ったメール。1通も送っていなければテストを失敗させる */
     protected function lastMail(): Email
     {
         $mail = $this->sentMails()->last();
@@ -33,7 +33,7 @@ trait ReadsSentMail
         return $mail;
     }
 
-    // 最後に送ったメールの本文にある、6桁の確認コード
+    /** 最後に送ったメールの本文にある、6桁の確認コード */
     protected function lastVerificationCode(): string
     {
         $found = preg_match('/(?<!\d)(\d{6})(?!\d)/', (string) $this->lastMail()->getTextBody(), $matches);
@@ -43,13 +43,13 @@ trait ReadsSentMail
         return $matches[1];
     }
 
-    // 送ったメールの件名の一覧。古い順
+    /** 送ったメールの件名の一覧。古い順 */
     protected function sentSubjects(): array
     {
         return $this->sentMails()->map(fn (Email $mail) => $mail->getSubject())->all();
     }
 
-    // メールの宛先のアドレス
+    /** メールの宛先のアドレス */
     protected function recipientsOf(Email $mail): array
     {
         return array_map(fn ($address) => $address->getAddress(), $mail->getTo());

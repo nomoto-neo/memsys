@@ -8,13 +8,13 @@ namespace App\Enums;
  */
 enum BulkMailStatus: string implements CodeTableEnum
 {
-    // キューに積んで、裏で送っている
+    /** キューに積んで、裏で送っている */
     case Sending = 'sending';
 
-    // 全部のジョブが終わった。失敗した宛先があっても、試し直しが済めば完了にする
+    /** 全部のジョブが終わった。失敗した宛先があっても、試し直しが済めば完了にする */
     case Finished = 'finished';
 
-    // 値ごとの名前
+    /** 値ごとの名前 */
     private const LABELS = [
         self::Sending->value => '送信中',
         self::Finished->value => '完了',

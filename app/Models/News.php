@@ -15,11 +15,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class News extends Model
 {
-    // 一覧用画像の横幅(px)。これより大きい画像は、この横幅に縮めて保存する。
-    // どの画面から登録しても同じ、このデータ項目の仕様なので、モデルに持たせている。
+    /**
+     * 一覧用画像の横幅(px)。これより大きい画像は、この横幅に縮めて保存する。
+     * どの画面から登録しても同じ、このデータ項目の仕様なので、モデルに持たせている。
+     */
     public const LIST_IMAGE_WIDTH = 1000;
 
-    // 本文のエディタで挿入する画像の横幅(px)。これより大きい画像は、この横幅に縮めて保存する。
+    /** 本文のエディタで挿入する画像の横幅(px)。これより大きい画像は、この横幅に縮めて保存する。 */
     public const BODY_IMAGE_WIDTH = 1000;
 
     /**
@@ -30,8 +32,10 @@ class News extends Model
      */
     public const PRIVATE_FILE_FIELDS = ['list_image', 'attach', 'body'];
 
-    // 入力の全角と半角をそろえない項目（App\Support\InputNormalizer）。
-    // 本文は、書いたとおりに残す。件名はそろえる
+    /**
+     * 入力の全角と半角をそろえない項目（App\Support\InputNormalizer）。
+     * 本文は、書いたとおりに残す。件名はそろえる
+     */
     public const RAW_INPUT_FIELDS = ['body'];
 
     protected $table = 't_news';
@@ -86,7 +90,7 @@ class News extends Model
         }
     }
 
-    // この記事を、訪問者側でその人に見せてよいか（条件はvisibleTo()と同じ）。
+    /** この記事を、訪問者側でその人に見せてよいか（条件はvisibleTo()と同じ）。 */
     public function isVisibleTo(?Member $member): bool
     {
         return $this->disp_flg
@@ -94,33 +98,37 @@ class News extends Model
             && (! $this->members_only || $member !== null);
     }
 
-    // 今が掲載期間の中か。掲載開始日時・掲載終了日時の空の側は、制限しない。
+    /** 今が掲載期間の中か。掲載開始日時・掲載終了日時の空の側は、制限しない。 */
     public function isWithinPublishPeriod(): bool
     {
         return ! $this->isBeforePublishStart() && ! $this->isAfterPublishEnd();
     }
 
-    // 掲載開始日時が来ていないか。管理画面の一覧の「掲載前」の表示にも使う。
+    /** 掲載開始日時が来ていないか。管理画面の一覧の「掲載前」の表示にも使う。 */
     public function isBeforePublishStart(): bool
     {
         return $this->publish_start_at !== null && $this->publish_start_at->isFuture();
     }
 
-    // 掲載終了日時の分を過ぎたか。19:30終了なら、19:31:00からtrueになる。
-    // 管理画面の一覧の「掲載終了」の表示にも使う。
+    /**
+     * 掲載終了日時の分を過ぎたか。19:30終了なら、19:31:00からtrueになる。
+     * 管理画面の一覧の「掲載終了」の表示にも使う。
+     */
     public function isAfterPublishEnd(): bool
     {
         return $this->publish_end_at !== null && $this->publish_end_at->lt(now()->startOfMinute());
     }
 
-    // この記事が属しているカテゴリー（複数）。
+    /** この記事が属しているカテゴリー（複数）。 */
     public function categories(): BelongsToMany
     {
         return $this->belongsToMany(Category::class, 't_news_category', 'news_id', 'category_id');
     }
 
-    // この記事に付いている添付ファイル。アップロードの処理（App\Support\AjaxFileUpload）は、
-    // 複数のフィールド'attach.*'と同じ名前のこのリレーションを通して、保存・削除を行う。
+    /**
+     * この記事に付いている添付ファイル。アップロードの処理（App\Support\AjaxFileUpload）は、
+     * 複数のフィールド'attach.*'と同じ名前のこのリレーションを通して、保存・削除を行う。
+     */
     public function attach(): HasMany
     {
         return $this->hasMany(NewsAttachment::class, 'news_id');

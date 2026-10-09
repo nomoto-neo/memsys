@@ -14,6 +14,6 @@ namespace App\Support;
  */
 interface LegacyPassword
 {
-    // 入力されたパスワードの、古い方式でのハッシュ値。既存のシステムのDBにあった値と同じ形で返す
+    /** 入力されたパスワードの、古い方式でのハッシュ値。既存のシステムのDBにあった値と同じ形で返す */
     public function hash(string $password, MemberAccount $member): string;
 }

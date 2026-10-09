@@ -80,7 +80,7 @@ final class MailTemplateParser
         ];
     }
 
-    // カンマで区切ったアドレスを前後の空白を除いて配列にする。空の要素は除く
+    /** カンマで区切ったアドレスを前後の空白を除いて配列にする。空の要素は除く */
     private static function splitAddresses(string $value): array
     {
         if (trim($value) === '') {

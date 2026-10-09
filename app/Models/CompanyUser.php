@@ -26,11 +26,13 @@ class CompanyUser extends Authenticatable implements MemberAccount, PasskeyUser
     // ルート（company.login など）、メールのテンプレート（company_...）の名前を作る
     use IsMemberAccount;
 
-    // 種類の名前
+    /** 種類の名前 */
     public const MEMBER_TYPE = 'company';
 
-    // 担当者IDに使える文字。半角の英数字と、記号の「_」「.」「-」。
-    // 企業IDと「/」でつないで1人を決めるので、「/」は使わせない
+    /**
+     * 担当者IDに使える文字。半角の英数字と、記号の「_」「.」「-」。
+     * 企業IDと「/」でつないで1人を決めるので、「/」は使わせない
+     */
     public const LOGIN_ID_PATTERN = '/^[A-Za-z0-9_.\-]+$/';
 
     protected $table = 't_company_users';
@@ -44,7 +46,7 @@ class CompanyUser extends Authenticatable implements MemberAccount, PasskeyUser
         'password',
     ];
 
-    // 配列やJSONにしたときに出さない項目
+    /** 配列やJSONにしたときに出さない項目 */
     protected $hidden = [
         'password',
         // 既存のシステムから移した担当者の、古い方式のパスワード（App\Support\LegacyPasswordUserProvider）
@@ -56,38 +58,40 @@ class CompanyUser extends Authenticatable implements MemberAccount, PasskeyUser
         'company_id' => 'integer',
     ];
 
-    // この担当者が属する企業
+    /** この担当者が属する企業 */
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
     }
 
-    // 「このデバイスを記憶する」で記憶した端末。判定はApp\Support\TrustedDeviceManagerが行う。
+    /** 「このデバイスを記憶する」で記憶した端末。判定はApp\Support\TrustedDeviceManagerが行う。 */
     public function trustedDevices(): MorphMany
     {
         return $this->morphMany(TrustedDevice::class, 'authenticatable');
     }
 
-    // 初回のログインでの登録が要るか。既存のシステムから移した企業の最初の担当者は、
-    // メールアドレスが空で、2段階目の確認コードを送れない（Company\FirstLoginSetupController）
+    /**
+     * 初回のログインでの登録が要るか。既存のシステムから移した企業の最初の担当者は、
+     * メールアドレスが空で、2段階目の確認コードを送れない（Company\FirstLoginSetupController）
+     */
     public function needsFirstLoginSetup(): bool
     {
         return empty($this->email);
     }
 
-    // 画面やメールに出す名前。どの企業の人かが分かるよう、企業名を前に付ける
+    /** 画面やメールに出す名前。どの企業の人かが分かるよう、企業名を前に付ける */
     public function displayName(): string
     {
         return trim($this->company->name.' '.$this->name);
     }
 
-    // お知らせや確認コードを送るメールアドレス。未登録ならnull
+    /** お知らせや確認コードを送るメールアドレス。未登録ならnull */
     public function notificationEmail(): ?string
     {
         return $this->email;
     }
 
-    // ログインに使う値。企業IDと担当者IDの組で、1人に決まる
+    /** ログインに使う値。企業IDと担当者IDの組で、1人に決まる */
     public function loginId(): string
     {
         return $this->company->code.'/'.$this->login_id;

@@ -36,21 +36,21 @@ class MypageController extends Controller
 
     // ---- パスキー（PasskeyManagement）の設定 ----
 
-    // ログイン中の担当者を取るガード。
+    /** ログイン中の担当者を取るガード。 */
     private const PASSKEY_GUARD = 'company';
 
-    // パスキーの一覧画面のルート名（登録・削除などのルート名は、この後ろに.confirmなどを付ける）。
+    /** パスキーの一覧画面のルート名（登録・削除などのルート名は、この後ろに.confirmなどを付ける）。 */
     private const PASSKEY_ROUTE = 'company.mypage.passkeys';
 
-    // パスキーの一覧画面のビュー。
+    /** パスキーの一覧画面のビュー。 */
     private const PASSKEY_VIEW = 'company.mypage.passkeys';
 
-    // 登録の前の本人確認（メールの確認コード）の試行制限（LoginThrottle）のカウンターの名前。
+    /** 登録の前の本人確認（メールの確認コード）の試行制限（LoginThrottle）のカウンターの名前。 */
     private const PASSKEY_THROTTLE_SCOPE = 'company-passkey-code';
 
     // ---- 企業の情報の項目の定義 ----
 
-    // 企業の情報の検証ルール。企業IDと状態は、企業の側からは変えられないので書かない。
+    /** 企業の情報の検証ルール。企業IDと状態は、企業の側からは変えられないので書かない。 */
     private function rules(?Company $company = null): array
     {
         return [
@@ -70,13 +70,13 @@ class MypageController extends Controller
         ];
     }
 
-    // 保存する項目（t_companiesのカラム）。
+    /** 保存する項目（t_companiesのカラム）。 */
     private function saveFieldNames(array $validated, Company $company): array
     {
         return ['name', 'kana', 'representative', 'zip', 'prefecture', 'address', 'tel', 'url'];
     }
 
-    // モデルの今の値から、編集画面に渡す$inputを組み立てる。
+    /** モデルの今の値から、編集画面に渡す$inputを組み立てる。 */
     private function inputFromModel(Company $company): array
     {
         return [
@@ -93,8 +93,10 @@ class MypageController extends Controller
 
     // ---- マイページ・企業の情報の編集 ----
 
-    // マイページの表示（GET /company/mypage）。
-    // ログイン中の担当者は、このコントローラーではいつも企業会員のガードから取る。
+    /**
+     * マイページの表示（GET /company/mypage）。
+     * ログイン中の担当者は、このコントローラーではいつも企業会員のガードから取る。
+     */
     public function index(): View
     {
         $user = Auth::guard(CompanyUser::memberGuard())->user();
@@ -105,7 +107,7 @@ class MypageController extends Controller
         ]);
     }
 
-    // 企業の情報の編集フォームの表示（GET /company/mypage/edit）
+    /** 企業の情報の編集フォームの表示（GET /company/mypage/edit） */
     public function edit(): View
     {
         $company = Auth::guard(CompanyUser::memberGuard())->user()->company;
@@ -118,8 +120,10 @@ class MypageController extends Controller
         ]);
     }
 
-    // 企業の情報の更新（PATCH /company/mypage/update）。
-    // 確認画面を挟まないので、saveData()をそのまま呼ぶ。検証に失敗すれば、編集画面へ戻る。
+    /**
+     * 企業の情報の更新（PATCH /company/mypage/update）。
+     * 確認画面を挟まないので、saveData()をそのまま呼ぶ。検証に失敗すれば、編集画面へ戻る。
+     */
     public function update(Request $request): RedirectResponse
     {
         $company = Auth::guard(CompanyUser::memberGuard())->user()->company;

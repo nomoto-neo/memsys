@@ -17,15 +17,19 @@ use Illuminate\Support\Facades\Route;
  */
 class Page extends Model
 {
-    // 本文のエディタで挿入する画像の横幅(px)。これより大きい画像は、この横幅に縮めて保存する。
+    /** 本文のエディタで挿入する画像の横幅(px)。これより大きい画像は、この横幅に縮めて保存する。 */
     public const BODY_IMAGE_WIDTH = 1000;
 
-    // 入力の全角と半角をそろえない項目（App\Support\InputNormalizer）。
-    // 本文は、書いたとおりに残す。タイトルとURLの名前はそろえる
+    /**
+     * 入力の全角と半角をそろえない項目（App\Support\InputNormalizer）。
+     * 本文は、書いたとおりに残す。タイトルとURLの名前はそろえる
+     */
     public const RAW_INPUT_FIELDS = ['body'];
 
-    // URLの名前に使える文字。半角の英小文字・数字・ハイフンで、先頭は英小文字か数字。
-    // 検証のルールと、訪問者の側のルートの両方で使う。食い違うと、登録できるのに開けないページができる
+    /**
+     * URLの名前に使える文字。半角の英小文字・数字・ハイフンで、先頭は英小文字か数字。
+     * 検証のルールと、訪問者の側のルートの両方で使う。食い違うと、登録できるのに開けないページができる
+     */
     public const SLUG_PATTERN = '[a-z0-9][a-z0-9-]*';
 
     protected $table = 't_pages';
@@ -42,7 +46,7 @@ class Page extends Model
         'disp_flg' => 'boolean',
     ];
 
-    // 訪問者の側に出してよいページだけに絞る。Page::visible()のように使う
+    /** 訪問者の側に出してよいページだけに絞る。Page::visible()のように使う */
     #[Scope]
     protected function visible(Builder $query): void
     {

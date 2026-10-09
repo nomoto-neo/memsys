@@ -22,14 +22,14 @@ use Illuminate\Support\Facades\Config;
  */
 trait HasPasskeys
 {
-    // このアカウントのパスキー。持ち主の種類とidで結び付ける
+    /** このアカウントのパスキー。持ち主の種類とidで結び付ける */
     public function passkeys(): HasMany
     {
         return $this->hasMany(Passkey::class, 'authenticatable_id')
             ->withAttributes(['authenticatable_type' => $this->getMorphClass()]);
     }
 
-    // パスキーを1つでも登録しているか
+    /** パスキーを1つでも登録しているか */
     public function hasPasskeysEnabled(): bool
     {
         return $this->passkeys()->exists();
@@ -50,13 +50,13 @@ trait HasPasskeys
         );
     }
 
-    // 端末のパスキー選択画面などに出る表示名。
+    /** 端末のパスキー選択画面などに出る表示名。 */
     public function getPasskeyDisplayName(): string
     {
         return (string) $this->getAttribute('name');
     }
 
-    // 端末のパスキー選択画面などに出るアカウント名。会員は、ログインに使う値
+    /** 端末のパスキー選択画面などに出るアカウント名。会員は、ログインに使う値 */
     public function getPasskeyUsername(): string
     {
         if ($this instanceof MemberAccount) {

@@ -47,14 +47,16 @@ class MemberVerificationCode
 
     public const PURPOSE_EMAIL_CHANGE = 'email_change';
 
-    // メールのテンプレートの、会員の種類の名前を除いた名前。例：member_verification_code
+    /** メールのテンプレートの、会員の種類の名前を除いた名前。例：member_verification_code */
     private const TEMPLATE = 'verification_code';
 
-    // コードの桁数。認証アプリのコードと同じ6桁にそろえ、利用者が迷わないようにする
+    /** コードの桁数。認証アプリのコードと同じ6桁にそろえ、利用者が迷わないようにする */
     private const CODE_LENGTH = 6;
 
-    // コードの有効な分数。長すぎると総当たりの時間を与え、短すぎるとメールが遅れたときに
-    // 間に合わない。よくある確認コードのメールに合わせた長さ
+    /**
+     * コードの有効な分数。長すぎると総当たりの時間を与え、短すぎるとメールが遅れたときに
+     * 間に合わない。よくある確認コードのメールに合わせた長さ
+     */
     private const VALID_MINUTES = 10;
 
     /**
@@ -64,7 +66,7 @@ class MemberVerificationCode
     {
     }
 
-    // 会員の種類と使い道ごとのセッションのキー
+    /** 会員の種類と使い道ごとのセッションのキー */
     private function sessionKey(string $purpose): string
     {
         return $this->memberClass::memberType().".verification_code.$purpose";
@@ -160,7 +162,7 @@ class MemberVerificationCode
         return is_string($state['email'] ?? null) ? $state['email'] : null;
     }
 
-    // 前ゼロを含む6桁の数字
+    /** 前ゼロを含む6桁の数字 */
     private function generateCode(): string
     {
         return str_pad((string) random_int(0, 999999), self::CODE_LENGTH, '0', STR_PAD_LEFT);

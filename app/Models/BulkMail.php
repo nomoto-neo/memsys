@@ -22,17 +22,19 @@ use Illuminate\Support\Facades\Bus;
  */
 class BulkMail extends Model
 {
-    // ログインしたスタッフだけが見られる場所に置くアップロードのフィールド。見てよいかはBulkMailPolicyが決める
+    /** ログインしたスタッフだけが見られる場所に置くアップロードのフィールド。見てよいかはBulkMailPolicyが決める */
     public const PRIVATE_FILE_FIELDS = ['attach'];
 
-    // 入力の全角と半角をそろえない項目（App\Support\InputNormalizer）。
-    // メールの件名と本文は、書いたとおりに送る
+    /**
+     * 入力の全角と半角をそろえない項目（App\Support\InputNormalizer）。
+     * メールの件名と本文は、書いたとおりに送る
+     */
     public const RAW_INPUT_FIELDS = ['subject', 'body'];
 
-    // 氏名の差し込みの印
+    /** 氏名の差し込みの印 */
     public const NAME_PLACEHOLDER = '/\{\{\s*\$name\s*\}\}/';
 
-    // 差し込みの印に見えるものすべて。氏名の印のほかが残っていれば書き間違い
+    /** 差し込みの印に見えるものすべて。氏名の印のほかが残っていれば書き間違い */
     public const ANY_PLACEHOLDER = '/\{\{.*?\}\}/s';
 
     protected $table = 't_bulk_mails';
@@ -61,26 +63,26 @@ class BulkMail extends Model
         'finished_at' => 'datetime',
     ];
 
-    // 件名や本文の{{$name}}を、宛先の氏名に置き換える
+    /** 件名や本文の{{$name}}を、宛先の氏名に置き換える */
     public static function fillName(string $text, string $name): string
     {
         return preg_replace_callback(self::NAME_PLACEHOLDER, fn () => $name, $text);
     }
 
-    // 送信中の記録だけに絞る
+    /** 送信中の記録だけに絞る */
     #[Scope]
     protected function sending(Builder $query): void
     {
         $query->where('status', BulkMailStatus::Sending);
     }
 
-    // 送信の進み具合を持つジョブのバッチ。まだ積んでいないか、片付けで消えていればnull
+    /** 送信の進み具合を持つジョブのバッチ。まだ積んでいないか、片付けで消えていればnull */
     public function batch(): ?Batch
     {
         return $this->batch_id !== null ? Bus::findBatch($this->batch_id) : null;
     }
 
-    // 添付ファイルのURL。添付が無ければnull
+    /** 添付ファイルのURL。添付が無ければnull */
     protected function attachUrl(): Attribute
     {
         return Attribute::make(
@@ -88,7 +90,7 @@ class BulkMail extends Model
         );
     }
 
-    // 添付ファイルのサーバー上の場所。メールに付けるときに使う。添付が無ければnull
+    /** 添付ファイルのサーバー上の場所。メールに付けるときに使う。添付が無ければnull */
     protected function attachPath(): Attribute
     {
         return Attribute::make(

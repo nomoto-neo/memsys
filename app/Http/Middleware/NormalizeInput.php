@@ -20,15 +20,17 @@ use Illuminate\Support\Str;
  */
 class NormalizeInput extends TransformsRequest
 {
-    // どの画面でも、そろえない項目。パスワードは、入力されたままを照合する。
-    // そろえる中身を後で変えたときに、それまでのパスワードが通らなくなることを防ぐため
+    /**
+     * どの画面でも、そろえない項目。パスワードは、入力されたままを照合する。
+     * そろえる中身を後で変えたときに、それまでのパスワードが通らなくなることを防ぐため
+     */
     private const EXCEPT = [
         'current_password',
         'password',
         'password_confirmation',
     ];
 
-    // このリクエストで、そろえない項目の名前
+    /** このリクエストで、そろえない項目の名前 */
     private array $rawFields = [];
 
     public function handle($request, Closure $next)

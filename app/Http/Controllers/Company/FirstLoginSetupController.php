@@ -47,30 +47,36 @@ use Illuminate\View\View;
  */
 class FirstLoginSetupController extends Controller
 {
-    // 1段階目が通って、登録を待っている担当者のidを置くセッションキー。
-    // Company\AuthSessionController::store()が置く
+    /**
+     * 1段階目が通って、登録を待っている担当者のidを置くセッションキー。
+     * Company\AuthSessionController::store()が置く
+     */
     public const USER_SESSION_KEY = 'company.login.setup.user_id';
 
-    // コード入力待ちの入力内容（パスワードはハッシュ化済み）を仮置きするセッションキー。
+    /** コード入力待ちの入力内容（パスワードはハッシュ化済み）を仮置きするセッションキー。 */
     private const PENDING_SESSION_KEY = 'company.login.setup.pending';
 
     private const PURPOSE = MemberVerificationCode::PURPOSE_FIRST_LOGIN;
 
-    // 企業の情報の照合の試行制限（LoginThrottle）のカウンターの名前。アカウントは担当者のidで区別する。
+    /** 企業の情報の照合の試行制限（LoginThrottle）のカウンターの名前。アカウントは担当者のidで区別する。 */
     private const IDENTITY_THROTTLE_SCOPE = 'company-setup-identity';
 
-    // 確認コードの試行制限（LoginThrottle）のカウンターの名前。
+    /** 確認コードの試行制限（LoginThrottle）のカウンターの名前。 */
     private const CODE_THROTTLE_SCOPE = 'company-setup-code';
 
-    // 1つのメールアドレスへ確認コードを送れる回数の上限と、数える期間。メールアドレスを
-    // 自由に入力できる画面なので、他人のアドレスに確認コードを大量に送りつけられるのを防ぐ。
+    /**
+     * 1つのメールアドレスへ確認コードを送れる回数の上限と、数える期間。メールアドレスを
+     * 自由に入力できる画面なので、他人のアドレスに確認コードを大量に送りつけられるのを防ぐ。
+     */
     private const MAIL_LIMIT_PER_ADDRESS = 5;
 
     private const MAIL_LIMIT_DECAY_SECONDS = 3600;
 
-    // 登録フォームの検証ルール。担当者IDは、その企業の中で重ならないこと。今の担当者IDのままでもよい。
-    // identityは、企業の情報と照合する値。password_confirmationは、confirmedルールで
-    // passwordと照合するので、ここには書かない。
+    /**
+     * 登録フォームの検証ルール。担当者IDは、その企業の中で重ならないこと。今の担当者IDのままでもよい。
+     * identityは、企業の情報と照合する値。password_confirmationは、confirmedルールで
+     * passwordと照合するので、ここには書かない。
+     */
     private function rules(CompanyUser $user): array
     {
         return [
@@ -85,7 +91,7 @@ class FirstLoginSetupController extends Controller
         ];
     }
 
-    // 登録フォームの表示（GET /company/login/setup）
+    /** 登録フォームの表示（GET /company/login/setup） */
     public function create(Request $request): View|RedirectResponse
     {
         $user = $this->pendingUser($request);
@@ -163,7 +169,7 @@ class FirstLoginSetupController extends Controller
         return redirect()->route('company.login.setup.verify');
     }
 
-    // 確認コードの入力画面（GET /company/login/setup/verify）
+    /** 確認コードの入力画面（GET /company/login/setup/verify） */
     public function verifyForm(Request $request): View|RedirectResponse
     {
         $pending = $this->pending($request);
@@ -178,7 +184,7 @@ class FirstLoginSetupController extends Controller
         ]);
     }
 
-    // 確認コードの照合と、担当者の情報の保存、本ログイン（POST /company/login/setup/verify）
+    /** 確認コードの照合と、担当者の情報の保存、本ログイン（POST /company/login/setup/verify） */
     public function verify(Request $request): RedirectResponse
     {
         $user = $this->pendingUser($request);
@@ -251,7 +257,7 @@ class FirstLoginSetupController extends Controller
             ->with('status', '登録が完了しました。次回からは、新しい担当者IDとパスワードでログインしてください。');
     }
 
-    // 確認コードの再送信（POST /company/login/setup/verify/resend）
+    /** 確認コードの再送信（POST /company/login/setup/verify/resend） */
     public function resend(Request $request): RedirectResponse
     {
         $user = $this->pendingUser($request);
@@ -284,7 +290,7 @@ class FirstLoginSetupController extends Controller
             ->withInput(Arr::except($pending, ['password_hash']));
     }
 
-    // 確認コードを送る。送れなかった場合は画面に出すメッセージを、送れた場合はnullを返す。
+    /** 確認コードを送る。送れなかった場合は画面に出すメッセージを、送れた場合はnullを返す。 */
     private function sendCode(Request $request, CompanyUser $user, array $pending): ?string
     {
         // 1つのメールアドレスへ送った回数を数える（大文字・小文字は同じアドレスとして数える）
@@ -306,7 +312,7 @@ class FirstLoginSetupController extends Controller
         return null;
     }
 
-    // 入力エラーで登録フォームへ戻す。パスワードと照合の値は、入力し直してもらう
+    /** 入力エラーで登録フォームへ戻す。パスワードと照合の値は、入力し直してもらう */
     private function backToForm(Request $request, array $errors): RedirectResponse
     {
         return redirect()->route('company.login.setup')
@@ -314,7 +320,7 @@ class FirstLoginSetupController extends Controller
             ->withErrors($errors);
     }
 
-    // 企業のデータにある、照合する値。比べられる形にそろえたもの。値が無ければ空の文字
+    /** 企業のデータにある、照合する値。比べられる形にそろえたもの。値が無ければ空の文字 */
     private function identityOf(CompanyUser $user): string
     {
         $column = config('members.company.identity_check_column');
@@ -322,8 +328,10 @@ class FirstLoginSetupController extends Controller
         return $this->normalizeIdentity((string) $user->company->getAttribute($column));
     }
 
-    // 照合する値を、比べられる形にそろえる。全角の英数字を半角にし、空白とハイフンを除き、
-    // 英字は小文字にする。電話番号や郵便番号を、書き方の違いで落とさないため
+    /**
+     * 照合する値を、比べられる形にそろえる。全角の英数字を半角にし、空白とハイフンを除き、
+     * 英字は小文字にする。電話番号や郵便番号を、書き方の違いで落とさないため
+     */
     private function normalizeIdentity(string $value): string
     {
         $value = mb_convert_kana($value, 'as');
@@ -331,8 +339,10 @@ class FirstLoginSetupController extends Controller
         return mb_strtolower((string) preg_replace('/[\s\-‐－ー―]/u', '', $value));
     }
 
-    // 1段階目が通って、登録を待っている担当者（いなければnull）。
-    // 登録が済んでいる担当者と、承認済みでない企業の担当者は、ここでは扱わない
+    /**
+     * 1段階目が通って、登録を待っている担当者（いなければnull）。
+     * 登録が済んでいる担当者と、承認済みでない企業の担当者は、ここでは扱わない
+     */
     private function pendingUser(Request $request): ?CompanyUser
     {
         $id = $request->session()->get(self::USER_SESSION_KEY);
@@ -345,7 +355,7 @@ class FirstLoginSetupController extends Controller
         return $user;
     }
 
-    // セッションに仮置きした入力内容（無ければnull）
+    /** セッションに仮置きした入力内容（無ければnull） */
     private function pending(Request $request): ?array
     {
         $pending = $request->session()->get(self::PENDING_SESSION_KEY);

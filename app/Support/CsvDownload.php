@@ -62,10 +62,10 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  */
 trait CsvDownload
 {
-    // CSVに出す項目。見出し => 値の場所
+    /** CSVに出す項目。見出し => 値の場所 */
     abstract private function csvColumns(): array;
 
-    // CSVをダウンロードさせる。引数の意味はこのファイルの冒頭にある
+    /** CSVをダウンロードさせる。引数の意味はこのファイルの冒頭にある */
     private function downloadCsv(
         Builder $query,
         string $name,
@@ -137,7 +137,7 @@ trait CsvDownload
         }, $filename, ['Content-Type' => "text/csv; charset={$charset}"]);
     }
 
-    // 1行を書き出す。数式の無害化と文字コードの変換は1セルずつ行う。
+    /** 1行を書き出す。数式の無害化と文字コードの変換は1セルずつ行う。 */
     private function writeCsvRow($out, array $fields, CsvEncoding $encoding, bool $escapeFormula): void
     {
         foreach ($fields as $i => $field) {
