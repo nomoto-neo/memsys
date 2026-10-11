@@ -2,15 +2,37 @@
 
 @section('title', 'マイページ')
 
-{{-- 企業会員のマイページ。$companyはログイン中の担当者の企業、$userはログイン中の担当者 --}}
+{{--
+    企業会員のマイページ。$companyはログイン中の担当者の企業、$userはログイン中の担当者。
+    左にメニュー、右に企業の情報と担当者自身の情報を並べる。画面への入口はメニューにまとめ、
+    入口が増えても1行足すだけで済むようにしている。幅の狭い画面では、メニューが上に並ぶ。
+--}}
 @section('content')
-<div class="row justify-content-center">
-    <div class="col-md-8">
-        <div class="card mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                企業の情報
-                <a href="{{ route('company.mypage.edit') }}" class="btn btn-sm btn-outline-primary">編集する</a>
+<div class="row justify-content-center g-4">
+    <div class="col-md-4 col-lg-3">
+        <div class="card">
+            <div class="card-header">メニュー</div>
+            <div class="list-group list-group-flush">
+                <a href="{{ route('company.mypage.edit') }}" class="list-group-item list-group-item-action">企業の情報を編集する</a>
+                {{-- 担当者の管理への入口。どの担当者も、招待と、ほかの担当者の編集・削除ができる --}}
+                <a href="{{ route('company.users.index') }}" class="list-group-item list-group-item-action">担当者を管理する</a>
+                <a href="{{ route('company.mypage.profile') }}" class="list-group-item list-group-item-action">あなたの情報を編集する</a>
+                <a href="{{ route('company.password.edit') }}" class="list-group-item list-group-item-action">パスワードを変更する</a>
+                {{-- パスキーの画面への入口。routes/web.phpにcompany.mypage.passkeysのルートがあるときだけ出す --}}
+                @if (Route::has('company.mypage.passkeys'))
+                    <a href="{{ route('company.mypage.passkeys') }}" class="list-group-item list-group-item-action">パスキー</a>
+                @endif
+                {{-- 2段階認証の画面への入口。認証アプリの方式か、バックアップコードを使うときに出す --}}
+                @if ($user::usesTotp() || $user::usesBackupCodes())
+                    <a href="{{ route('company.mypage.twoFactor') }}" class="list-group-item list-group-item-action">2段階認証</a>
+                @endif
             </div>
+        </div>
+    </div>
+
+    <div class="col-md-8 col-lg-7">
+        <div class="card mb-4">
+            <div class="card-header">企業の情報</div>
             <div class="card-body">
                 <dl class="row mb-0">
                     <dt class="col-sm-4">企業ID</dt>
@@ -49,33 +71,8 @@
             </div>
         </div>
 
-        {{-- 担当者の管理への入口。どの担当者も、招待と、ほかの担当者の編集・削除ができる --}}
-        <div class="card mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                担当者
-                <a href="{{ route('company.users.index') }}" class="btn btn-sm btn-outline-primary">担当者を管理する</a>
-            </div>
-            <div class="card-body">
-                この企業の担当者の確認と、招待・編集・削除ができます。
-            </div>
-        </div>
-
         <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                あなたの情報
-                <span class="d-flex gap-2">
-                    <a href="{{ route('company.password.edit') }}" class="btn btn-sm btn-outline-primary">パスワードを変更する</a>
-                    {{-- パスキーの画面への入口。routes/web.phpにcompany.mypage.passkeysのルートがあるときだけ出す --}}
-                    @if (Route::has('company.mypage.passkeys'))
-                        <a href="{{ route('company.mypage.passkeys') }}" class="btn btn-sm btn-outline-primary">パスキー</a>
-                    @endif
-                    {{-- 2段階認証の画面への入口。認証アプリの方式か、バックアップコードを使うときに出す --}}
-                    @if ($user::usesTotp() || $user::usesBackupCodes())
-                        <a href="{{ route('company.mypage.twoFactor') }}" class="btn btn-sm btn-outline-primary">2段階認証</a>
-                    @endif
-                    <a href="{{ route('company.mypage.profile') }}" class="btn btn-sm btn-outline-primary">編集する</a>
-                </span>
-            </div>
+            <div class="card-header">あなたの情報</div>
             <div class="card-body">
                 <dl class="row mb-0">
                     <dt class="col-sm-4">担当者ID</dt>
