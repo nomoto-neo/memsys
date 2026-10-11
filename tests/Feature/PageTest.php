@@ -60,6 +60,9 @@ class PageTest extends TestCase
     {
         // 親に当たる /service のページが無くても開ける
         $this->page(['slug' => 'service/price/2026', 'title' => '料金表']);
+        $this->page(['slug' => 'company_profile/top-message', 'title' => '代表挨拶']);
+
+        $this->get('/company_profile/top-message')->assertOk()->assertSee('代表挨拶');
 
         $this->get('/service/price/2026')->assertOk()->assertSee('料金表');
         $this->get('/service')->assertNotFound();
@@ -153,7 +156,7 @@ class PageTest extends TestCase
         $this->page(['slug' => 'taken']);
 
         // ほかの画面で使っている名前、使えない文字、ほかのページと同じ名前は断る
-        foreach (['login', 'admin', 'news', 'About', 'about us', '-about', 'taken', '/about', 'about/', 'a//b', 'a/-b', 'admin/help', 'news/archive'] as $slug) {
+        foreach (['login', 'admin', 'news', 'About', 'about us', '-about', '_about', 'a/_b', 'taken', '/about', 'about/', 'a//b', 'a/-b', 'admin/help', 'news/archive'] as $slug) {
             $this->actingAs($staff, 'admin')
                 ->post(route('admin.pages.store'), ['slug' => $slug] + self::INPUT)
                 ->assertSessionHasErrors('slug');
@@ -167,13 +170,13 @@ class PageTest extends TestCase
         $staff = $this->staff();
 
         $this->actingAs($staff, 'admin')
-            ->post(route('admin.pages.store'), ['slug' => 'service/price'] + self::INPUT)
+            ->post(route('admin.pages.store'), ['slug' => 'service/price_list'] + self::INPUT)
             ->assertSessionHasNoErrors();
-        $this->assertSame('service/price', Page::sole()->slug);
+        $this->assertSame('service/price_list', Page::sole()->slug);
 
         // 一覧のリンクも、/ をそのまま含むURLになる
         $this->actingAs($staff, 'admin')->get(route('admin.pages.index'))
-            ->assertOk()->assertSee(url('/service/price'));
+            ->assertOk()->assertSee(url('/service/price_list'));
     }
 
     public function test_staff_updates_and_deletes_a_page(): void

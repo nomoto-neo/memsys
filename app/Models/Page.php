@@ -29,11 +29,11 @@ class Page extends Model
     public const RAW_INPUT_FIELDS = ['body'];
 
     /**
-     * URLの名前に使える文字。半角の英小文字・数字・ハイフンで、先頭は英小文字か数字。
+     * URLの名前に使える文字。半角の英小文字・数字・ハイフン・アンダーバーで、先頭は英小文字か数字。
      * / で区切って、いくつでもつなげられる。先頭と末尾の / と、// は通さない。
      * 検証のルールと、訪問者の側のルートの両方で使う。食い違うと、登録できるのに開けないページができる
      */
-    public const SLUG_PATTERN = '[a-z0-9][a-z0-9-]*(?:/[a-z0-9][a-z0-9-]*)*';
+    public const SLUG_PATTERN = '[a-z0-9][a-z0-9_-]*(?:/[a-z0-9][a-z0-9_-]*)*';
 
     protected $table = 't_pages';
 

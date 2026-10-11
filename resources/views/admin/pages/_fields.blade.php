@@ -30,7 +30,7 @@
                class="form-control"
                value="{{ $input['slug'] }}" placeholder="例: aboutus"{{ $readonly }}>
     </div>
-    <div class="form-text">半角の英小文字・数字・ハイフンで入力します。/ を含めることもできます（例：service/price）。ログイン（login）のように、ほかの画面で使っている名前は使えません。</div>
+    <div class="form-text">半角の英小文字・数字・ハイフン・アンダーバーで入力します。/ を含めることもできます（例：service/price）。ログイン（login）のように、ほかの画面で使っている名前は使えません。</div>
     <div class="invalid-feedback" data-item="slug">{{ $errors->first('slug') }}</div>
 </div>
 
