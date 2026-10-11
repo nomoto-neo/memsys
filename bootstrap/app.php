@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\AjaxFormResponse;
 use App\Http\Middleware\EnsureCompanyIsApproved;
 use App\Http\Middleware\EnsureStaffIsManager;
 use App\Http\Middleware\NormalizeInput;
@@ -34,6 +35,10 @@ return Application::configure(basePath: dirname(__DIR__))
             $request->routeIs('company.*') => route('company.mypage'),
             default => route('mypage'),
         });
+
+        // 画面を読み直さずに送るフォーム（ajax_submit）への返事を、JSONに読み替える
+        // （App\Http\Middleware\AjaxFormResponse）。セッションを使うので、画面のルートのグループに足す
+        $middleware->web(append: [AjaxFormResponse::class]);
 
         // ブラウザに守り方を伝えるヘッダーを付ける（App\Http\Middleware\SecurityHeaders）。
         // ルートが見つからないときのエラーの画面にも付けるので、全体のミドルウェアに足す

@@ -2,6 +2,14 @@
 
 @section('title', '2段階認証')
 
+{{--
+    再発行と解除の確認の画面（モーダル）に、BootstrapのJavaScriptが要る。訪問者向けのレイアウトは
+    読み込んでいないので、この画面でだけ<head>に足す。
+--}}
+@push('head-extra')
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+@endpush
+
 @section('content')
 {{--
     本人による、2段階認証（認証アプリ）の管理。入口はApp\Support\TwoFactorManagementトレイト。

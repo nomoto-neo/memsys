@@ -212,7 +212,9 @@
     <div class="modal fade" id="rejectCompanyModal" tabindex="-1" aria-labelledby="rejectCompanyModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
-                <form method="POST" action="{{ route('admin.companies.reject', $company) }}">
+                {{-- 画面を読み直さずに送る（クラス名ajax_submit。resources/js/app.js）。理由が空のときも、
+                     確認の画面を開いたまま、エラーを出せるようにするため --}}
+                <form method="POST" action="{{ route('admin.companies.reject', $company) }}" class="ajax_submit">
                     @csrf
                     @method('DELETE')
                     <div class="modal-header">

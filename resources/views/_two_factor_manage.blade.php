@@ -7,6 +7,9 @@
     確かめる。端末を無くした人も、バックアップコードで自分で解除できる。本人が見ていて、
     登録が済んでいるときだけ@includeする。
 
+    2つのフォームは、画面を読み直さずに送る（クラス名ajax_submit。resources/js/app.js）。コードを間違えても、
+    確認の画面を開いたまま、エラーを出せるようにするため。
+
     渡す変数：
     - $twoFactorRoutes  ルートの名前。regenerate＝再発行、reset＝解除、passkeys＝パスキーの一覧。
                          パスキーのルートがあるサイトでは、解除の説明にパスキーも消えることを書く
@@ -23,7 +26,7 @@
 <div class="modal fade" id="regenerateBackupCodesModal" tabindex="-1" aria-labelledby="regenerateBackupCodesModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form method="POST" action="{{ route($twoFactorRoutes['regenerate']) }}">
+            <form method="POST" action="{{ route($twoFactorRoutes['regenerate']) }}" class="ajax_submit">
                 @csrf
                 <div class="modal-header">
                     <h5 class="modal-title" id="regenerateBackupCodesModalLabel">バックアップコードの再発行</h5>
@@ -53,7 +56,7 @@
 <div class="modal fade" id="selfResetTwoFactorModal" tabindex="-1" aria-labelledby="selfResetTwoFactorModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form method="POST" action="{{ route($twoFactorRoutes['reset']) }}">
+            <form method="POST" action="{{ route($twoFactorRoutes['reset']) }}" class="ajax_submit">
                 @csrf
                 @method('DELETE')
                 <div class="modal-header">
@@ -73,9 +76,6 @@
                                class="form-control" inputmode="numeric" autocomplete="one-time-code">
                         <div class="invalid-feedback" data-item="code">{{ $errors->selfResetTwoFactor->first('code') }}</div>
                     </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">キャンセル</button>
 
                     {{-- 認証アプリの入った端末を無くした人のための入力欄。どちらか片方を入れれば通る。
                          両方入っていたら、バックアップコードで確かめる --}}
@@ -88,6 +88,9 @@
                                class="form-control" placeholder="0000-0000">
                         <div class="invalid-feedback" data-item="backup_code">{{ $errors->selfResetTwoFactor->first('backup_code') }}</div>
                     </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">キャンセル</button>
                     <button type="submit" class="btn btn-warning">解除する</button>
                 </div>
             </form>
