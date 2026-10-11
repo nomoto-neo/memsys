@@ -69,4 +69,10 @@
         </div>
     </div>
 </div>
+
+{{-- 2段階認証（認証アプリ）の登録の解除。端末を無くした人の代わりに行う。登録が済んでいるときだけ出る --}}
+@include('_two_factor_reset', [
+    'twoFactorAccount' => $user,
+    'twoFactorResetUrl' => route('admin.companies.users.twoFactor.reset', [$company, $user]),
+])
 @endsection

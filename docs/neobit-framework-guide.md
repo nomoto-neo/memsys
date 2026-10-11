@@ -232,6 +232,7 @@ GRANT ALL PRIVILEGES ON memsys_testing.* TO 'memsys'@'localhost';
 | `LoginAccount`・`HasTwoFactor` | `app/Support/` | ログインするモデル（会員・スタッフ）の共通の型と、2段階認証にかかわるモデルの中身 | 14 |
 | `TwoFactorLogin` | `app/Support/` | ログインの、パスワードが合った後の流れ（2段階目・信頼済みの端末・ログインの確定）と、ログアウト | 14 |
 | `TwoFactorChallenge` | `app/Support/` | その人の2段階目の方式で、本人かどうかを確かめる | 14 |
+| `TwoFactorManagement` | `app/Support/` | ログイン中の本人による、認証アプリのバックアップコードの作り直しと、登録の解除 | 14 |
 | `LegacyPasswordUserProvider`・`LegacyPassword` | `app/Support/` | 既存のシステムから移した会員の、古い方式のパスワードの照合と、今の方式への置き換え | 14 |
 | `LoginIdMemory` | `app/Support/` | ログイン画面の入力（企業ID と担当者ID）を、ブラウザに覚えさせる | 14 |
 | `CompanyInvitationManager` | `app/Support/` | 企業会員の担当者の招待（リンクの発行・送り直し・取り消し・照合） | 14 |
@@ -1125,7 +1126,7 @@ if ($spam === SpamCheckResult::Failed) {
 
 ### 2段階認証（TwoFactorLogin・TwoFactorChallenge）
 
-**ファイル**：`app/Enums/TwoFactorMethod.php`、`app/Support/LoginAccount.php`・`HasTwoFactor.php`・`TwoFactorLogin.php`・`TwoFactorChallenge.php`・`TwoFactorAuthenticator.php`・`BackupCodeGenerator.php`・`TrustedDeviceManager.php`、`resources/views/_two_factor.blade.php`、設計の詳細は「2段階認証の設計」（`docs/two-factor-spec.md`）　**実例**：`AuthSessionController`・`Company\AuthSessionController`・`Admin\AuthSessionController`
+**ファイル**：`app/Enums/TwoFactorMethod.php`、`app/Support/LoginAccount.php`・`HasTwoFactor.php`・`TwoFactorLogin.php`・`TwoFactorChallenge.php`・`TwoFactorManagement.php`・`TwoFactorAuthenticator.php`・`BackupCodeGenerator.php`・`TrustedDeviceManager.php`、`resources/views/_two_factor.blade.php`・`_two_factor_manage.blade.php`・`_two_factor_backup_codes.blade.php`・`_two_factor_reset.blade.php`、設計の詳細は「2段階認証の設計」（`docs/two-factor-spec.md`）　**実例**：ログインは `AuthSessionController`・`Company\AuthSessionController`・`Admin\AuthSessionController`、本人による管理は `MypageController`・`Company\MypageController`・`Admin\StaffController`、運営による解除は `Admin\MemberController`・`Admin\CompanyUserController`・`Admin\StaffController`
 
 ログインの2段階目の方式は、ログインするモデルの定数で選びます。部品は、相手が会員かスタッフかを知りません。
 
@@ -1170,6 +1171,48 @@ return $this->continueAfterPassword($request, $staff, $request->boolean('remembe
 - **本人をもう一度確かめるときは `TwoFactorChallenge` を使います**。`send()` で準備（メールの方式なら確認コードを送る）、`verify()` で照合、`throttle()` で試行制限です。方式での場合分けは、部品の中にあります。
 - **メールの方式のモデルは、メールアドレスを必須にします**。スタッフのメールアドレスは任意なので、スタッフを `Email` にするときは、検証のルールを必須に変えます。
 - **稼働中のサイトで方式を変えたら、その種類の信頼済み端末の記録を消します**（`trusted_devices` の、`authenticatable_type` がその種類の行）。
+- **スタッフ向けの確認コードのメールは `staff_verification_code` です**。スタッフを `Email` にしたときに使います。スタッフの登録・編集の画面では、方式が `Email` の間、メールアドレスが必須になります。
+
+#### 認証アプリの管理（TwoFactorManagement）
+
+方式が `Totp` のときに使う、ログイン中の本人の画面です。ほかの方式では入口が出ないので、ルートを書いたままでかまいません。
+
+```php
+// 本人の情報を扱うコントローラー
+use TwoFactorManagement;
+private const TWO_FACTOR_GUARD = 'web';                                         // ログイン中の本人を取るガード
+private const TWO_FACTOR_MANAGE_VIEW = 'mypage.two-factor';                     // 管理の画面。_two_factor_manage を @include する
+private const TWO_FACTOR_BACKUP_CODES_VIEW = 'mypage.two-factor-backup-codes';  // バックアップコードを1回だけ見せる画面
+private function twoFactorManageUrl(LoginAccount $owner): string                // 操作の後の戻り先
+{
+    return route('mypage.twoFactor');
+}
+private function twoFactorHomeUrl(): string                                     // バックアップコードを見た後の移動先
+{
+    return route('mypage');
+}
+```
+
+| アクション | ルート名（管理は `admin.`、企業会員は `company.` が付く） |
+|---|---|
+| `twoFactorIndex()`（GET。会員だけ。スタッフは自分の詳細の画面に出している） | `mypage.twoFactor` |
+| `showNewBackupCodes()`（GET） | `twoFactor.backupCodes` |
+| `regenerateBackupCodes()`（POST） | `twoFactor.regenerateBackupCodes` |
+| `selfReset()`（DELETE） | `twoFactor.selfReset` |
+
+- **作り直しと解除の前に、今の認証アプリのコードを求めます**。ログイン中の画面を他人に使われたときに、被害を広げないためです。
+- **解除すると、バックアップコード・信頼済み端末・パスキーも消えます**（`$account->resetTwoFactor()`）。パスキーでのログインは2段階目を求めないので、残すと登録し直さないまま使えてしまうためです。
+- **端末を無くした人は、運営が解除します**。管理画面の詳細に `@include('_two_factor_reset', ['twoFactorAccount' => $member, 'twoFactorResetUrl' => route(...)])` を置き、コントローラーで `$member->resetTwoFactor()` を呼びます。ボタンは、方式が `Totp` で登録が済んでいるときだけ出ます。
+
+#### テストで方式を差し替える
+
+方式はモデルの定数なので、実行中には変えられません。テストでは、トレイト `Tests\Support\FakesTwoFactorMethod` を使って差し替えます。テストが終わると、元に戻ります。
+
+```php
+use FakesTwoFactorMethod;
+
+$this->useTwoFactorMethod(Staff::class, TwoFactorMethod::Email);
+```
 
 ### 会員の共通の型（MemberAccount）
 

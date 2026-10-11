@@ -14,7 +14,9 @@ use App\Support\LoginSession;
 use App\Support\MemberActivityLog;
 use App\Support\MemberProfileNotice;
 use App\Support\OperationRecorder;
+use App\Support\LoginAccount;
 use App\Support\PasskeyManagement;
+use App\Support\TwoFactorManagement;
 use App\Support\PdfDownload;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -53,6 +55,10 @@ class MypageController extends Controller
     // 使わないサイトでは、このuseとroutes/web.phpのmypage.passkeysのルートを消す。
     use PasskeyManagement;
 
+    // ログイン中の本人による、2段階認証（認証アプリ）の管理（twoFactorIndex()など。
+    // App\Support\TwoFactorManagement参照）。方式が認証アプリのときだけ、入口を出す。
+    use TwoFactorManagement;
+
     // メールアドレスが変わる保存に、確認コードの入力を挟む（emailChangeForm()など。App\Support\EmailChange参照）。
     // クラス側は EMAIL_CHANGE_ の定数を用意し、update()でholdForEmailChange()を呼ぶ。
     use EmailChange;
@@ -66,6 +72,17 @@ class MypageController extends Controller
     private const UPLOAD_FILES = [
         'photo' => Member::PHOTO_WIDTH,
     ];
+
+    // ---- 2段階認証の管理（TwoFactorManagement）の設定 ----
+
+    /** ログイン中の本人を取るガード。 */
+    private const TWO_FACTOR_GUARD = 'web';
+
+    /** 管理の画面のビュー。 */
+    private const TWO_FACTOR_MANAGE_VIEW = 'mypage.two-factor';
+
+    /** バックアップコードを1回だけ見せる画面のビュー。 */
+    private const TWO_FACTOR_BACKUP_CODES_VIEW = 'mypage.two-factor-backup-codes';
 
     // ---- パスキー（PasskeyManagement）の設定 ----
 
@@ -334,5 +351,19 @@ class MypageController extends Controller
                 'message' => $e->getMessage(),
             ]);
         }
+    }
+
+    // ---- 2段階認証の管理（TwoFactorManagement） ----
+
+    /** 管理の画面のURL。操作の後の戻り先 */
+    private function twoFactorManageUrl(LoginAccount $owner): string
+    {
+        return route('mypage.twoFactor');
+    }
+
+    /** バックアップコードを見た後の移動先 */
+    private function twoFactorHomeUrl(): string
+    {
+        return route('mypage');
     }
 }

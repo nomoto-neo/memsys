@@ -8,7 +8,9 @@ use App\Models\CompanyUser;
 use App\Rules\KatakanaRule;
 use App\Rules\PhoneNumberRule;
 use App\Support\FormFlow;
+use App\Support\LoginAccount;
 use App\Support\PasskeyManagement;
+use App\Support\TwoFactorManagement;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -33,6 +35,21 @@ class MypageController extends Controller
     // パスキーの一覧・登録・削除（passkeyIndex()など。App\Support\PasskeyManagement参照）。
     // 使わないサイトでは、このuseとroutes/web.phpのcompany.mypage.passkeysのルートを消す。
     use PasskeyManagement;
+
+    // ログイン中の本人による、2段階認証（認証アプリ）の管理（twoFactorIndex()など。
+    // App\Support\TwoFactorManagement参照）。方式が認証アプリのときだけ、入口を出す。
+    use TwoFactorManagement;
+
+    // ---- 2段階認証の管理（TwoFactorManagement）の設定 ----
+
+    /** ログイン中の本人を取るガード。 */
+    private const TWO_FACTOR_GUARD = 'company';
+
+    /** 管理の画面のビュー。 */
+    private const TWO_FACTOR_MANAGE_VIEW = 'company.mypage.two-factor';
+
+    /** バックアップコードを1回だけ見せる画面のビュー。 */
+    private const TWO_FACTOR_BACKUP_CODES_VIEW = 'company.mypage.two-factor-backup-codes';
 
     // ---- パスキー（PasskeyManagement）の設定 ----
 
@@ -131,5 +148,19 @@ class MypageController extends Controller
         $this->saveData($company, $request);
 
         return redirect()->route('company.mypage')->with('status', '企業の情報を更新しました。');
+    }
+
+    // ---- 2段階認証の管理（TwoFactorManagement） ----
+
+    /** 管理の画面のURL。操作の後の戻り先 */
+    private function twoFactorManageUrl(LoginAccount $owner): string
+    {
+        return route('company.mypage.twoFactor');
+    }
+
+    /** バックアップコードを見た後の移動先 */
+    private function twoFactorHomeUrl(): string
+    {
+        return route('company.mypage');
     }
 }

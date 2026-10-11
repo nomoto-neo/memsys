@@ -40,10 +40,31 @@ trait HasTwoFactor
         $this->makeHidden('totp_secret');
     }
 
+    /**
+     * テストで方式を差し替えるための入れ物。モデルの定数は実行中に変えられないので、
+     * テストだけがここに入れる。ふだんはnullで、定数が使われる
+     */
+    private static ?TwoFactorMethod $fakeTwoFactorMethod = null;
+
     /** ログインの2段階目の方式 */
     public static function twoFactorMethod(): TwoFactorMethod
     {
-        return static::TWO_FACTOR_METHOD;
+        return self::$fakeTwoFactorMethod ?? static::TWO_FACTOR_METHOD;
+    }
+
+    /** 方式が認証アプリ（TOTP）か。画面の入口の出し分けに使う */
+    public static function usesTotp(): bool
+    {
+        return static::twoFactorMethod() === TwoFactorMethod::Totp;
+    }
+
+    /**
+     * テストの間だけ、このモデルの方式を差し替える。nullを渡すと元に戻る。
+     * テストの後始末で、必ずnullに戻す（tests/Support/FakesTwoFactorMethod）。
+     */
+    public static function fakeTwoFactorMethod(?TwoFactorMethod $method): void
+    {
+        self::$fakeTwoFactorMethod = $method;
     }
 
     /** 2段階認証のバックアップコード */

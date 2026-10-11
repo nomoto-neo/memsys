@@ -4,14 +4,17 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\OperationLogAction;
 use App\Enums\StaffAcl;
+use App\Enums\TwoFactorMethod;
 use App\Http\Controllers\Controller;
 use App\Models\Staff;
 use App\Support\FormFlow;
 use App\Support\OperationRecorder;
+use App\Support\LoginAccount;
 use App\Support\PasskeyManagement;
 use App\Support\PasswordChange;
 use App\Support\SearchableList;
 use App\Support\TrustedDeviceManager;
+use App\Support\TwoFactorManagement;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -44,6 +47,10 @@ class StaffController extends Controller
     // App\Support\PasskeyManagement参照。使わないサイトでは、このuseと
     // routes/web.phpのadmin.passkeysのルートを消す。
     use PasskeyManagement;
+
+    // ログイン中の本人による、バックアップコードの作り直しと、認証アプリの登録の解除
+    // （regenerateBackupCodes()など。App\Support\TwoFactorManagement参照）。
+    use TwoFactorManagement;
 
     // ---- 一覧・検索（SearchableList）の設定 ----
 
@@ -90,9 +97,17 @@ class StaffController extends Controller
 
     /**
      * 登録の前の本人確認（TOTPコード）の試行制限。ログインの2段階目などと同じ
-     * カウンターで数える（TwoFactorChallengeController::THROTTLE_SCOPE参照）。
+     * カウンターで数える。App\Support\TwoFactorChallenge::throttle()が作る名前と同じにしておく。
      */
-    private const PASSKEY_THROTTLE_SCOPE = TwoFactorChallengeController::THROTTLE_SCOPE;
+    private const PASSKEY_THROTTLE_SCOPE = 'staff-two-factor';
+
+    // ---- 2段階認証の管理（TwoFactorManagement）の設定 ----
+
+    /** ログイン中のスタッフを取るガード。 */
+    private const TWO_FACTOR_GUARD = 'admin';
+
+    /** バックアップコードを1回だけ見せる画面のビュー。 */
+    private const TWO_FACTOR_BACKUP_CODES_VIEW = 'admin.auth.two-factor-backup-codes';
 
     // ---- このコーナーの項目の定義 ----
 
@@ -127,7 +142,8 @@ class StaffController extends Controller
                 Rule::unique(Staff::class, 'login_id')->ignore($staff?->id),
             ],
             // emailはログインには使わない連絡先なので、重複を許す（役職用の共有アドレスなど）
-            'email' => ['nullable', 'string', 'email', 'max:255'],
+            // ログインの2段階目がメールの方式なら、確認コードの宛先になるので必須にする
+            'email' => [Staff::twoFactorMethod() === TwoFactorMethod::Email ? 'required' : 'nullable', 'string', 'email', 'max:255'],
             'password' => $passwordRules,
             'acl' => $aclRules,
         ];
@@ -423,7 +439,7 @@ class StaffController extends Controller
      * スマートフォンの紛失・機種変更などで本人がログインできなくなった際に、
      * 管理者が代わりに実行する。次回そのスタッフがログインすると、QRコードの登録から
      * やり直しになる（バックアップコード・信頼済み端末・パスキーも合わせて失効させる。
-     * パスキーを消す理由はTwoFactorChallengeController::selfReset()参照）。
+     * パスキーを消す理由はApp\Support\HasTwoFactor::resetTwoFactor()参照）。
      */
     public function resetTwoFactor(Staff $staff): RedirectResponse
     {
@@ -436,5 +452,19 @@ class StaffController extends Controller
 
         return redirect()->route('admin.staff.show', $staff)
             ->with('status', '2段階認証の登録を解除しました。次回ログイン時にQRコードから登録し直せます。');
+    }
+
+    // ---- 2段階認証の管理（TwoFactorManagement） ----
+
+    /** 管理の画面のURL。スタッフは、自分の詳細の画面に出している */
+    private function twoFactorManageUrl(LoginAccount $owner): string
+    {
+        return route('admin.staff.show', $owner);
+    }
+
+    /** バックアップコードを見た後の移動先 */
+    private function twoFactorHomeUrl(): string
+    {
+        return route('admin.dashboard');
     }
 }

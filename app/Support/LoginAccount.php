@@ -44,6 +44,9 @@ interface LoginAccount
     /** ログインの2段階目の方式 */
     public static function twoFactorMethod(): TwoFactorMethod;
 
+    /** 方式が認証アプリ（TOTP）か */
+    public static function usesTotp(): bool;
+
     /** 認証アプリ（TOTP）の登録が済んでいるか */
     public function hasTwoFactorConfirmed(): bool;
 

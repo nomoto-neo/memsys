@@ -156,6 +156,26 @@ ID とパスワードを確かめる所は、入力する項目が種類ごと�
 
 URL は、どの種類も `…/login/verify` にそろえる。管理画面は `/admin/login/verify`。
 
+### 3.3 本人による管理（TwoFactorManagement）
+
+方式が `Totp` のときに使う。ログイン中の本人が、バックアップコードを作り直し、認証アプリの登録を解除する。どちらも、今の認証アプリのコードを入力してから行う。
+
+| 種類 | 画面 | コントローラー |
+|---|---|---|
+| 個人会員 | マイページの「2段階認証」（`/mypage/two-factor`） | `MypageController` |
+| 企業会員 | マイページの「2段階認証」（`/company/mypage/two-factor`） | `Company\MypageController` |
+| スタッフ | 自分の詳細の画面 | `Admin\StaffController` |
+
+入口は、方式が `Totp` のときだけ出す。画面の中身は、共通の部分ビュー `_two_factor_manage`・`_two_factor_backup_codes` にある。
+
+### 3.4 運営による解除
+
+管理画面の、個人会員・企業の担当者・スタッフの詳細に「2段階認証の登録を解除する」を出す。方式が `Totp` で、登録が済んでいる人にだけ出る。会員と担当者のボタンは、共通の部分ビュー `_two_factor_reset` にある。スタッフは、管理者だけが、自分以外のスタッフを解除できる。
+
+### 3.5 テスト
+
+方式はモデルの定数で、実行中には変えられない。テストでは、モデルに用意した差し替えの口（`fakeTwoFactorMethod()`）を、トレイト `Tests\Support\FakesTwoFactorMethod` を通して使う。方式の組み合わせごとの流れは、`tests/Feature/Auth/TwoFactorMethodTest.php` で確かめている。
+
 ---
 
 ## 4. 進め方

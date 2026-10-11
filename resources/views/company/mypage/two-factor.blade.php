@@ -1,0 +1,38 @@
+@extends('layouts.company')
+
+@section('title', '2段階認証')
+
+@section('content')
+{{--
+    本人による、2段階認証（認証アプリ）の管理。入口はApp\Support\TwoFactorManagementトレイト。
+    ログインの2段階目の方式が認証アプリのサイトでだけ使う。
+--}}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                2段階認証
+                <a href="{{ route('company.mypage') }}" class="btn btn-sm btn-outline-secondary">マイページへ戻る</a>
+            </div>
+            <div class="card-body">
+                @if ($twoFactorAccount->hasTwoFactorConfirmed())
+                    <p>
+                        認証アプリを登録済みです。使っていないバックアップコードは、
+                        残り {{ $twoFactorAccount->unusedBackupCodesCount() }} 個です。
+                    </p>
+
+                    @include('_two_factor_manage', [
+                        'twoFactorRoutes' => [
+                            'regenerate' => 'company.twoFactor.regenerateBackupCodes',
+                            'reset' => 'company.twoFactor.selfReset',
+                            'passkeys' => 'company.mypage.passkeys',
+                        ],
+                    ])
+                @else
+                    <p class="mb-0">認証アプリは、まだ登録されていません。次回のログインのときに、QRコードから登録します。</p>
+                @endif
+            </div>
+        </div>
+    </div>
+</div>
+@endsection

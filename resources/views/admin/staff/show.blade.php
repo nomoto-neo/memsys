@@ -98,86 +98,18 @@
 </div>
 
 {{--
-    本人による、バックアップコードの再発行・2段階認証の登録解除。
-    どちらも「今の認証アプリでもう一度コードを入力できる」ことが前提の
-    自己サービス機能なので、本人が自分自身の画面を見ていて、かつ
-    2段階認証が登録済みのときだけ出す。管理者による代理リセット
-    （このすぐ下のブロック）とは別の入口で、対象読者が重ならない
-    （自分の画面には管理者用ブロックが出ず、他人の画面にはこのブロックが
-    出ない）ので、両方のボタンが同時に並ぶことは無い。
+    本人による、バックアップコードの再発行・2段階認証の登録解除（_two_factor_manage）。
+    本人が自分自身の画面を見ていて、かつ2段階認証が登録済みのときだけ出す。管理者による
+    代理の解除（このすぐ下のブロック）とは対象が重ならないので、両方のボタンが同時に並ぶことは無い。
 --}}
 @if ($actor->id === $staff->id && $staff->hasTwoFactorConfirmed())
-    <div class="mt-3 d-flex gap-2">
-        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#regenerateBackupCodesModal">
-            バックアップコードを再発行する
-        </button>
-        <button type="button" class="btn btn-outline-warning btn-sm" data-bs-toggle="modal" data-bs-target="#selfResetTwoFactorModal">
-            2段階認証の登録を解除する
-        </button>
-    </div>
-
-    <div class="modal fade" id="regenerateBackupCodesModal" tabindex="-1" aria-labelledby="regenerateBackupCodesModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <form method="POST" action="{{ route('admin.twoFactor.regenerateBackupCodes') }}">
-                    @csrf
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="regenerateBackupCodesModalLabel">バックアップコードの再発行</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="閉じる"></button>
-                    </div>
-                    <div class="modal-body">
-                        <p>
-                            今のバックアップコード10個は全て無効になり、新しい10個に置き換わります。
-                            よろしければ、認証アプリに表示されている6桁の数字を入力してください。
-                        </p>
-                        <div class="mb-3">
-                            <label for="regenerate_code" class="form-label">確認コード</label>
-                            <input id="regenerate_code" type="text" name="code"
-                                   class="form-control" inputmode="numeric" autocomplete="one-time-code">
-                            <div class="invalid-feedback" data-item="code">{{ $errors->regenerateBackupCodes->first('code') }}</div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">キャンセル</button>
-                        <button type="submit" class="btn btn-primary">再発行する</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal fade" id="selfResetTwoFactorModal" tabindex="-1" aria-labelledby="selfResetTwoFactorModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <form method="POST" action="{{ route('admin.twoFactor.selfReset') }}">
-                    @csrf
-                    @method('DELETE')
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="selfResetTwoFactorModalLabel">2段階認証の登録解除</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="閉じる"></button>
-                    </div>
-                    <div class="modal-body">
-                        <p>
-                            2段階認証の登録を解除します。バックアップコード{{ Route::has('admin.passkeys') ? '・パスキー' : '' }}も全て無効になり、
-                            次回ログイン時にQRコードから登録し直すことになります
-                            （スマートフォンの機種変更前に、古い端末側の紐づけを外しておきたい場合などにお使いください）。
-                            よろしければ、認証アプリに表示されている6桁の数字を入力してください。
-                        </p>
-                        <div class="mb-3">
-                            <label for="self_reset_code" class="form-label">確認コード</label>
-                            <input id="self_reset_code" type="text" name="code"
-                                   class="form-control" inputmode="numeric" autocomplete="one-time-code">
-                            <div class="invalid-feedback" data-item="code">{{ $errors->selfResetTwoFactor->first('code') }}</div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">キャンセル</button>
-                        <button type="submit" class="btn btn-warning">解除する</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
+    @include('_two_factor_manage', [
+        'twoFactorRoutes' => [
+            'regenerate' => 'admin.twoFactor.regenerateBackupCodes',
+            'reset' => 'admin.twoFactor.selfReset',
+            'passkeys' => 'admin.passkeys',
+        ],
+    ])
 @endif
 
 {{-- 削除・2段階認証の代理解除は、管理者だけ、かつ自分自身は対象外。

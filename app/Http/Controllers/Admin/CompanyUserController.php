@@ -11,6 +11,7 @@ use App\Support\OperationRecorder;
 use App\Support\PasswordChange;
 use App\Support\TrustedDeviceManager;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
@@ -163,5 +164,22 @@ class CompanyUserController extends Controller
 
         return redirect()->route('admin.companies.show', $company)
             ->with('status', '担当者を削除しました。');
+    }
+
+    /**
+     * 2段階認証（認証アプリ）の登録解除。スマートフォンの紛失などで本人がログインできなく
+     * なったときに、スタッフが代わりに行う。次のログインで、QRコードの登録からやり直しになる。
+     * バックアップコード・信頼済み端末・パスキーも無効になる（App\Support\HasTwoFactor）。
+     */
+    public function resetTwoFactor(Company $company, CompanyUser $user): RedirectResponse
+    {
+        DB::transaction(function () use ($user) {
+            $user->resetTwoFactor();
+
+            OperationRecorder::record(OperationLogAction::TwoFactorReset, $user);
+        });
+
+        return redirect()->route('admin.companies.users.show', [$company, $user])
+            ->with('status', '2段階認証の登録を解除しました。次回ログイン時にQRコードから登録し直せます。');
     }
 }

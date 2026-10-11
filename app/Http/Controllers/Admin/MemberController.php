@@ -21,6 +21,7 @@ use App\Support\PdfDownload;
 use App\Support\SearchableList;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Arr;
@@ -403,6 +404,23 @@ class MemberController extends Controller
     }
 
     // ---- 履歴書のPDF ----
+
+    /**
+     * 2段階認証（認証アプリ）の登録解除。スマートフォンの紛失などで本人がログインできなく
+     * なったときに、スタッフが代わりに行う。次のログインで、QRコードの登録からやり直しになる。
+     * バックアップコード・信頼済み端末・パスキーも無効になる（App\Support\HasTwoFactor）。
+     */
+    public function resetTwoFactor(Member $member): RedirectResponse
+    {
+        DB::transaction(function () use ($member) {
+            $member->resetTwoFactor();
+
+            OperationRecorder::record(OperationLogAction::TwoFactorReset, $member);
+        });
+
+        return redirect()->route('admin.members.show', $member)
+            ->with('status', '2段階認証の登録を解除しました。次回ログイン時にQRコードから登録し直せます。');
+    }
 
     /** 履歴書のPDFをブラウザの中で開く（マイページのMypageController::resume()と同じPDF） */
     public function resume(Member $member): Response

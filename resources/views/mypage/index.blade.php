@@ -11,6 +11,10 @@
                 @if (Route::has('mypage.passkeys'))
                     <a href="{{ route('mypage.passkeys') }}" class="btn btn-sm btn-outline-primary">パスキー</a>
                 @endif
+                {{-- 2段階認証（認証アプリ）の画面への入口。ログインの2段階目の方式が認証アプリのときだけ出す --}}
+                @if ($member::usesTotp())
+                    <a href="{{ route('mypage.twoFactor') }}" class="btn btn-sm btn-outline-primary">2段階認証</a>
+                @endif
                 <a href="{{ route('mypage.resume') }}" class="btn btn-sm btn-outline-primary" target="_blank">履歴書PDF</a>
                 <a href="{{ route('mypage.edit') }}" class="btn btn-sm btn-outline-primary">編集する</a>
             </div>
