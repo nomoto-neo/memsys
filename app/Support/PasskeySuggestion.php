@@ -29,7 +29,7 @@ use Illuminate\Support\Facades\Route;
  * ■ 案内の出し方
  * 次に開く画面で1回だけ出すよう、一覧画面のルート名をセッションに仮置きする。出すのは
  * レイアウトのメッセージ欄（resources/views/_passkey_suggest.blade.php）。仮置きした時点で
- * 「見せた」と数える。バックアップコードの画面では出さず、その次の画面へ持ち越す（hold()）。
+ * 「見せた」と数える。
  */
 final class PasskeySuggestion
 {
@@ -61,18 +61,6 @@ final class PasskeySuggestion
 
         // 有効期間は「分」単位。引数に名前を付けて渡さないこと（App\Support\TrustedDeviceManager::remember()参照）
         Cookie::queue($cookieName, $fingerprint, self::COOKIE_DAYS * 24 * 60);
-    }
-
-    /**
-     * 案内を、この画面では出さずに、次の画面へ持ち越す。バックアップコードを1回だけ見せる画面で呼ぶ。
-     * 控えてもらうことに集中してほしい画面なので、案内はその次に出す。
-     * 画面には、戻り値をholdPasskeySuggestとして渡す。レイアウトが、それを見て案内を出さない。
-     */
-    public static function hold(Request $request): bool
-    {
-        $request->session()->keep([self::SESSION_KEY]);
-
-        return true;
     }
 
     /**

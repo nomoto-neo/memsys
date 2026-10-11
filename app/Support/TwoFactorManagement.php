@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Enums\OperationLogAction;
+use App\Enums\TwoFactorMethod;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -10,11 +11,14 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 /**
- * ログイン中の本人による、2段階認証（認証アプリ）の管理。バックアップコードの表示と作り直し、
- * 登録の解除。コントローラーにuseして使う。設計は docs/two-factor-spec.md。
+ * ログイン中の本人による、2段階認証の管理。バックアップコードの発行と、認証アプリの登録の解除。
+ * コントローラーにuseして使う。設計は docs/two-factor-spec.md。
  *
- * 方式が認証アプリ（TwoFactorMethod::Totp）のときだけ意味がある。ほかの方式のサイトでは、
- * ルートを書かなくてよい。画面の入口は、方式が認証アプリのときだけ出す。
+ * ■ できること
+ * - バックアップコードの発行と再発行。バックアップコードを使うモデルの人ができる（モデルの定数
+ *   BACKUP_CODES）。自動では発行せず、希望する人がここで発行する
+ * - 認証アプリの登録の解除。方式が認証アプリ（TwoFactorMethod::Totp）の人ができる
+ * 画面の入口は、どちらかができるときに出す。
  * ログインの2段階目（コードの入力と、未登録のときのQRコードの登録）は、TwoFactorLoginにある。
  *
  * ■ コントローラーに書くもの
@@ -29,7 +33,8 @@ use Illuminate\View\View;
  * ■ このトレイトが受け持つルート
  * - twoFactorIndex()          管理の画面。会員はこれを使う。スタッフは詳細の画面に出すので使わない
  * - showNewBackupCodes()      発行した直後のバックアップコードを、1回だけ見せる（twoFactor.backupCodes）
- * - regenerateBackupCodes()   バックアップコードの作り直し（twoFactor.regenerateBackupCodes）
+ * - sendBackupCodesCode()     発行の前の本人確認の、確認コードの送信。メールの方式だけ（twoFactor.backupCodes.code）
+ * - regenerateBackupCodes()   バックアップコードの発行と再発行（twoFactor.regenerateBackupCodes）
  * - selfReset()               登録の解除。バックアップコードでも確かめられる（twoFactor.selfReset）
  * どれもログインが要る画面なので、authのグループの中に書く。
  */
@@ -60,28 +65,47 @@ trait TwoFactorManagement
         return view(self::TWO_FACTOR_BACKUP_CODES_VIEW, [
             'codes' => $codes,
             'twoFactorNextUrl' => $this->twoFactorHomeUrl(),
-            // パスキーの登録の案内は、この画面では出さずに、次の画面へ持ち越す
-            'holdPasskeySuggest' => PasskeySuggestion::hold($request),
         ]);
     }
 
     /**
-     * 本人による、バックアップコードの再発行。控えを無くした・使い切ったときのためのもの。
+     * バックアップコードの発行の前の本人確認のために、確認コードをメールで送る。
+     * メールの方式の人だけが使う。連続送信は、routes/web.phpのthrottleで防ぐ。
+     */
+    public function sendBackupCodesCode(Request $request): RedirectResponse
+    {
+        $owner = $this->backupCodesOwner();
+
+        abort_unless($owner::twoFactorMethod() === TwoFactorMethod::Email, 404);
+
+        if (! (new TwoFactorChallenge($owner))->send($request, TwoFactorChallenge::PURPOSE_BACKUP_CODES)) {
+            return redirect($this->twoFactorManageUrl($owner))
+                ->with('error', '確認コードの送信に失敗しました。時間をおいて再度お試しください。');
+        }
+
+        return redirect($this->twoFactorManageUrl($owner))
+            ->with('status', '確認コードをメールで送信しました。');
+    }
+
+    /**
+     * 本人による、バックアップコードの発行と再発行。初めて発行するときと、控えを無くした・
+     * 使い切ったときのためのもの。
      *
-     * ログイン中でも、今の認証アプリのコードをもう一度入力してもらってから行う。
+     * ログイン中でも、その人の2段階目の方式でもう一度確かめてから行う。認証アプリの方式なら
+     * 今のコード、メールの方式ならsendBackupCodesCode()で送った確認コード。
      * ログイン中のセッションを乗っ取られていたときに、被害を広げないため。
-     * 古いコードはすべて無効にし、作り直したコードを1回だけ表示する。
+     * 古いコードはすべて無効にし、発行したコードを1回だけ表示する。
      */
     public function regenerateBackupCodes(Request $request): RedirectResponse
     {
-        $owner = $this->twoFactorOwner();
+        $owner = $this->backupCodesOwner();
 
-        // 作り直しは、今の認証アプリのコードだけで確かめる
+        // 発行は、2段階目の方式だけで確かめる。今のバックアップコードでは確かめない
         if ($failed = $this->confirmTwoFactorCode($request, $owner, 'regenerateBackupCodes', allowBackupCode: false)) {
             return $failed;
         }
 
-        // 作り直して、1回だけ見せる画面へ
+        // 発行して、1回だけ見せる画面へ
         $codes = (new BackupCodeGenerator())->generateFor($owner);
 
         return redirect()->route($owner::loginRoute('twoFactor.backupCodes'))
@@ -93,7 +117,8 @@ trait TwoFactorManagement
      *
      * 実行の前に、今の認証アプリのコードか、バックアップコードで本人確認する。
      * バックアップコードも受け付けるのは、認証アプリの入った端末を無くした人が、バックアップコードで
-     * ログインした後に自分で解除できるようにするため。ログイン中というだけでは解除させない。
+     * ログインした後に自分で解除できるようにするため。バックアップコードを使うモデルで、発行して
+     * ある人だけが使える。ログイン中というだけでは解除させない。
      * パスワードを知っている人が、信頼済みの端末から自分の認証アプリに付け替えるのを防ぐため。
      *
      * バックアップコード・信頼済みの端末・パスキーも、すべて無効になる（App\Support\HasTwoFactor）。
@@ -103,7 +128,10 @@ trait TwoFactorManagement
     {
         $owner = $this->twoFactorOwner();
 
-        if ($failed = $this->confirmTwoFactorCode($request, $owner, 'selfResetTwoFactor', allowBackupCode: true)) {
+        // 認証アプリの方式で、登録が済んでいる人だけが解除できる
+        abort_unless($owner::usesTotp() && $owner->hasTwoFactorConfirmed(), 404);
+
+        if ($failed = $this->confirmTwoFactorCode($request, $owner, 'selfResetTwoFactor', allowBackupCode: $owner::usesBackupCodes())) {
             return $failed;
         }
 
@@ -118,24 +146,35 @@ trait TwoFactorManagement
             ->with('status', '2段階認証の登録を解除しました。次回ログイン時にQRコードから登録し直せます。');
     }
 
-    /**
-     * 作り直しと解除に共通の前提の確認。ログイン中の本人で、認証アプリの登録が済んでいること。
-     * 未登録の人には意味の無い操作なので、無いものとして扱う。
-     */
+    /** ログイン中の本人 */
     private function twoFactorOwner(): LoginAccount
     {
         $owner = Auth::guard(self::TWO_FACTOR_GUARD)->user();
 
-        abort_unless($owner instanceof LoginAccount && $owner::usesTotp() && $owner->hasTwoFactorConfirmed(), 404);
+        abort_unless($owner instanceof LoginAccount, 404);
 
         return $owner;
     }
 
     /**
-     * 今の認証アプリのコードで、本人かどうかを確かめる。通らなければ、管理の画面へ戻す
+     * バックアップコードを発行できる本人。バックアップコードを使うモデルの人で、認証アプリの方式なら
+     * 登録が済んでいること。未登録の間は、本人を確かめる手段が無いため。
+     */
+    private function backupCodesOwner(): LoginAccount
+    {
+        $owner = $this->twoFactorOwner();
+
+        abort_unless($owner::usesBackupCodes(), 404);
+        abort_if($owner::usesTotp() && ! $owner->hasTwoFactorConfirmed(), 404);
+
+        return $owner;
+    }
+
+    /**
+     * その人の2段階目の方式で、本人かどうかを確かめる。通らなければ、管理の画面へ戻す
      * リダイレクトを返す。通ったらnullを返す。
      * 失敗は、ログインの2段階目と同じカウンターで数える（App\Support\TwoFactorChallenge::throttle()）。
-     * 認証アプリのコードとバックアップコードも、同じカウンターで数える。
+     * 確認コードとバックアップコードも、同じカウンターで数える。
      *
      * @param  string  $errorBag  エラーを入れる入れ物の名前。管理の画面にフォームが2つあるので分けている
      * @param  bool  $allowBackupCode  バックアップコードでも確かめてよいか
@@ -163,8 +202,15 @@ trait TwoFactorManagement
             $ok = $challenge->verifyBackupCode($validated[$field]);
             $failedMessage = 'バックアップコードが正しくないか、既に使用済みです。';
         } else {
-            $ok = $challenge->verify($request, TwoFactorChallenge::PURPOSE_LOGIN, $validated[$field]);
-            $failedMessage = '確認コードが正しくありません。';
+            // メールの確認コードは、この画面のために送ったものだけが通る。認証アプリは使い道を見ない
+            $ok = $challenge->verify($request, TwoFactorChallenge::PURPOSE_BACKUP_CODES, $validated[$field]);
+
+            // メールの確認コードには期限があるので、文言を分ける
+            if ($challenge->method() === TwoFactorMethod::Email) {
+                $failedMessage = '確認コードが正しくないか、有効期限が切れています。';
+            } else {
+                $failedMessage = '確認コードが正しくありません。';
+            }
         }
 
         if (! $ok) {

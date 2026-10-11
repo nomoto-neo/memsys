@@ -62,21 +62,23 @@
         @endif
 
         {{--
-            2段階認証（TOTP）の登録状況。本人だけでなく管理者が代理で
-            見られるようにするため、詳細画面（本人・管理者どちらも通る画面）に
-            出している。バックアップコードの残数は、無くなりかけていることに
-            気づく手がかりとして表示するだけで、ここから直接は再発行できない
-            （本人が自分の画面から再発行する入口は、この下の
-            「バックアップコードを再発行する」ボタン）。
+            2段階認証の状況。本人だけでなく管理者が代理で見られるようにするため、詳細画面
+            （本人・管理者どちらも通る画面）に出している。認証アプリの方式なら登録の状況を出す。
+            バックアップコードの残りは、バックアップコードを使うときだけ出す。発行と再発行は、
+            本人がこの下のボタンから行う。
         --}}
         <div class="row mt-2">
             <div class="col-sm-3 text-muted">2段階認証</div>
             <div class="col-sm-9">
-                @if ($staff->hasTwoFactorConfirmed())
+                @if (! $staff::usesTotp())
+                    {{ $staff::twoFactorMethod() === \App\Enums\TwoFactorMethod::Email ? 'メールの確認コード' : 'なし' }}
+                @elseif ($staff->hasTwoFactorConfirmed())
                     登録済み（{{ $staff->twoFactorConfirmedAt()->format('Y年n月j日 H:i') }}確認）
-                    <span class="text-muted">／バックアップコード残り{{ $staff->unusedBackupCodesCount() }}件</span>
                 @else
                     未登録
+                @endif
+                @if ($staff::usesBackupCodes())
+                    <span class="text-muted">／バックアップコード残り{{ $staff->unusedBackupCodesCount() }}件</span>
                 @endif
             </div>
         </div>
@@ -98,14 +100,16 @@
 </div>
 
 {{--
-    本人による、バックアップコードの再発行・2段階認証の登録解除（_two_factor_manage）。
-    本人が自分自身の画面を見ていて、かつ2段階認証が登録済みのときだけ出す。管理者による
-    代理の解除（このすぐ下のブロック）とは対象が重ならないので、両方のボタンが同時に並ぶことは無い。
+    本人による、バックアップコードの発行・2段階認証の登録解除（_two_factor_manage）。
+    本人が自分自身の画面を見ているときだけ出す。管理者による代理の解除（このすぐ下のブロック）とは
+    対象が重ならないので、両方のボタンが同時に並ぶことは無い。
 --}}
-@if ($actor->id === $staff->id && $staff->hasTwoFactorConfirmed())
+@if ($actor->id === $staff->id)
     @include('_two_factor_manage', [
+        'twoFactorAccount' => $staff,
         'twoFactorRoutes' => [
             'regenerate' => 'admin.twoFactor.regenerateBackupCodes',
+            'code' => 'admin.twoFactor.backupCodes.code',
             'reset' => 'admin.twoFactor.selfReset',
             'passkeys' => 'admin.passkeys',
         ],

@@ -69,8 +69,8 @@
                     @if (Route::has('company.mypage.passkeys'))
                         <a href="{{ route('company.mypage.passkeys') }}" class="btn btn-sm btn-outline-primary">パスキー</a>
                     @endif
-                    {{-- 2段階認証（認証アプリ）の画面への入口。ログインの2段階目の方式が認証アプリのときだけ出す --}}
-                    @if ($user::usesTotp())
+                    {{-- 2段階認証の画面への入口。認証アプリの方式か、バックアップコードを使うときに出す --}}
+                    @if ($user::usesTotp() || $user::usesBackupCodes())
                         <a href="{{ route('company.mypage.twoFactor') }}" class="btn btn-sm btn-outline-primary">2段階認証</a>
                     @endif
                     <a href="{{ route('company.mypage.profile') }}" class="btn btn-sm btn-outline-primary">編集する</a>

@@ -39,6 +39,9 @@ class CompanyUser extends Authenticatable implements MemberAccount, PasskeyUser
      */
     public const TWO_FACTOR_METHOD = TwoFactorMethod::Email;
 
+    /** バックアップコードを使うか。使うなら、希望する人が自分の画面で発行する */
+    public const BACKUP_CODES = true;
+
     /**
      * 担当者IDに使える文字。半角の英数字と、記号の「_」「.」「-」。
      * 企業IDと「/」でつないで1人を決めるので、「/」は使わせない

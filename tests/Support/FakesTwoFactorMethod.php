@@ -8,7 +8,7 @@ use App\Models\Member;
 use App\Models\Staff;
 
 /**
- * テストの間だけ、ログインの2段階目の方式を差し替える。方式はモデルの定数で決まり、
+ * テストの間だけ、ログインの2段階目の方式と、バックアップコードを使うかを差し替える。どちらもモデルの定数で決まり、
  * 実行中には変えられないので、モデルの側に用意した差し替えの口を使う（App\Support\HasTwoFactor）。
  *
  * 差し替えはモデルのクラスに残るので、テストが終わったら必ず元に戻す。戻し忘れると、
@@ -25,11 +25,18 @@ trait FakesTwoFactorMethod
         $model::fakeTwoFactorMethod($method);
     }
 
+    /** そのモデルがバックアップコードを使うかを、このテストの間だけ差し替える */
+    protected function useBackupCodes(string $model, bool $use): void
+    {
+        $model::fakeBackupCodes($use);
+    }
+
     /** テストの後始末。PHPUnitが、テストごとに呼ぶ */
     protected function tearDown(): void
     {
         foreach (self::TWO_FACTOR_MODELS as $model) {
             $model::fakeTwoFactorMethod(null);
+            $model::fakeBackupCodes(null);
         }
 
         parent::tearDown();

@@ -3,7 +3,7 @@
 @section('title', '2段階認証')
 
 {{--
-    再発行と解除の確認の画面（モーダル）に、BootstrapのJavaScriptが要る。訪問者向けのレイアウトは
+    発行と解除の確認の画面（モーダル）に、BootstrapのJavaScriptが要る。訪問者向けのレイアウトは
     読み込んでいないので、この画面でだけ<head>に足す。
 --}}
 @push('head-extra')
@@ -12,8 +12,8 @@
 
 @section('content')
 {{--
-    本人による、2段階認証（認証アプリ）の管理。入口はApp\Support\TwoFactorManagementトレイト。
-    ログインの2段階目の方式が認証アプリのサイトでだけ使う。
+    本人による、2段階認証の管理。バックアップコードの発行と、認証アプリの登録の解除。
+    入口はApp\Support\TwoFactorManagementトレイト。
 --}}
 <div class="row justify-content-center">
     <div class="col-md-8">
@@ -23,22 +23,31 @@
                 <a href="{{ route('company.mypage') }}" class="btn btn-sm btn-outline-secondary">マイページへ戻る</a>
             </div>
             <div class="card-body">
-                @if ($twoFactorAccount->hasTwoFactorConfirmed())
-                    <p>
-                        認証アプリを登録済みです。使っていないバックアップコードは、
-                        残り {{ $twoFactorAccount->unusedBackupCodesCount() }} 個です。
-                    </p>
-
-                    @include('_two_factor_manage', [
-                        'twoFactorRoutes' => [
-                            'regenerate' => 'company.twoFactor.regenerateBackupCodes',
-                            'reset' => 'company.twoFactor.selfReset',
-                            'passkeys' => 'company.mypage.passkeys',
-                        ],
-                    ])
-                @else
-                    <p class="mb-0">認証アプリは、まだ登録されていません。次回のログインのときに、QRコードから登録します。</p>
+                {{-- 認証アプリの登録の状況。認証アプリの方式のときだけ --}}
+                @if ($twoFactorAccount::usesTotp())
+                    @if ($twoFactorAccount->hasTwoFactorConfirmed())
+                        <p>認証アプリを登録済みです。</p>
+                    @else
+                        <p>認証アプリは、まだ登録されていません。次回のログインのときに、QRコードから登録します。</p>
+                    @endif
                 @endif
+
+                {{-- バックアップコードの残り。バックアップコードを使うモデルのときだけ --}}
+                @if ($twoFactorAccount::usesBackupCodes())
+                    <p>
+                        バックアップコードは、2段階認証を通れないときに、1回ずつ使える緊急用のコードです。
+                        使っていないコードは、残り {{ $twoFactorAccount->unusedBackupCodesCount() }} 個です。
+                    </p>
+                @endif
+
+                @include('_two_factor_manage', [
+                    'twoFactorRoutes' => [
+                        'regenerate' => 'company.twoFactor.regenerateBackupCodes',
+                        'code' => 'company.twoFactor.backupCodes.code',
+                        'reset' => 'company.twoFactor.selfReset',
+                        'passkeys' => 'company.mypage.passkeys',
+                    ],
+                ])
             </div>
         </div>
     </div>

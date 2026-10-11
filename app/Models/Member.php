@@ -53,6 +53,9 @@ class Member extends Authenticatable implements MemberAccount, PasskeyUser
      */
     public const TWO_FACTOR_METHOD = TwoFactorMethod::Email;
 
+    /** バックアップコードを使うか。使うなら、希望する人が自分の画面で発行する */
+    public const BACKUP_CODES = true;
+
     /**
      * 顔写真の横幅(px)。これより大きい画像は、この横幅に縮めて保存する。
      * どの画面から登録しても同じ、このデータ項目の仕様なので、モデルに持たせている。

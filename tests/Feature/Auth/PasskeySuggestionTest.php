@@ -108,7 +108,7 @@ class PasskeySuggestionTest extends TestCase
             ->assertCookieMissing(self::COOKIE);
     }
 
-    public function test_suggestion_waits_until_the_backup_codes_have_been_shown(): void
+    public function test_suggestion_is_shown_right_after_registering_the_authenticator(): void
     {
         // 認証アプリをまだ登録していないスタッフ。ログインの途中で登録する
         Staff::create([
@@ -122,12 +122,9 @@ class PasskeySuggestionTest extends TestCase
         $this->post('/admin/login', ['login_id' => 'hanako', 'password' => self::PASSWORD]);
         $this->get('/admin/login/verify');
         $this->post('/admin/login/verify', ['code' => (new Google2FA())->getCurrentOtp(session('staff.login.pending_secret'))])
-            ->assertRedirect(route('admin.twoFactor.backupCodes'));
+            ->assertRedirect(route('admin.dashboard'));
 
-        // バックアップコードの画面では出さない。控えてもらうことに集中してほしいため
-        $this->get('/admin/2fa/backup-codes')->assertOk()->assertSee('バックアップコード')->assertDontSee(self::HEADLINE);
-
-        // その次の画面で出る
+        // 登録が済んで最初に開く画面で出る
         $this->get('/admin')->assertOk()->assertSee(self::HEADLINE)->assertSee(route('admin.passkeys'));
         $this->get('/admin')->assertOk()->assertDontSee(self::HEADLINE);
     }

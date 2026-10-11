@@ -42,6 +42,7 @@
 | 第3.5版 | 2026-10-08 | CKEditor を外した。WYSIWYG エディタは SunEditor と summernote の2つ（7章） |
 | 第3.6版 | 2026-10-09 | 宣言の上の説明を、PHPDoc の形（`/** */`）で書く決まりにした。エディタが説明を表示できるようにするため（1章） |
 | 第3.7版 | 2026-10-11 | ログインの2段階目を、独立した部品にした。方式（メールの確認コード・認証アプリ・なし）を、モデルの定数で選ぶ。管理画面の2段階目の URL は `/admin/login/verify` に変わった（14章・23章） |
+| 第3.8版 | 2026-10-11 | バックアップコードを、使うかどうかをモデルの定数 `BACKUP_CODES` で選び、希望する人が自分の画面で発行する形にした。メールの方式でも使える。2段階認証の登録を解除するコマンド `app:reset-two-factor` を追加（14章） |
 
 ## 0. このガイドについて
 
@@ -232,7 +233,7 @@ GRANT ALL PRIVILEGES ON memsys_testing.* TO 'memsys'@'localhost';
 | `LoginAccount`・`HasTwoFactor` | `app/Support/` | ログインするモデル（会員・スタッフ）の共通の型と、2段階認証にかかわるモデルの中身 | 14 |
 | `TwoFactorLogin` | `app/Support/` | ログインの、パスワードが合った後の流れ（2段階目・信頼済みの端末・ログインの確定）と、ログアウト | 14 |
 | `TwoFactorChallenge` | `app/Support/` | その人の2段階目の方式で、本人かどうかを確かめる | 14 |
-| `TwoFactorManagement` | `app/Support/` | ログイン中の本人による、認証アプリのバックアップコードの作り直しと、登録の解除 | 14 |
+| `TwoFactorManagement` | `app/Support/` | ログイン中の本人による、バックアップコードの発行と、認証アプリの登録の解除 | 14 |
 | `PasskeySuggestion` | `app/Support/` | パスワードでログインした人に、パスキーの登録を1回だけ勧める | 14 |
 | `LegacyPasswordUserProvider`・`LegacyPassword` | `app/Support/` | 既存のシステムから移した会員の、古い方式のパスワードの照合と、今の方式への置き換え | 14 |
 | `LoginIdMemory` | `app/Support/` | ログイン画面の入力（企業ID と担当者ID）を、ブラウザに覚えさせる | 14 |
@@ -242,7 +243,7 @@ GRANT ALL PRIVILEGES ON memsys_testing.* TO 'memsys'@'localhost';
 | `MemberVerificationCode` | `app/Support/` | メールで送る確認コード | 14 |
 | `EmailChange` | `app/Support/` | 本人がメールアドレスを変えるときに、新しいアドレスへの確認コードの入力を挟む | 14 |
 | `TrustedDeviceManager` | `app/Support/` | 2段階目を省略できる信頼済み端末 | 14 |
-| `TwoFactorAuthenticator`・`BackupCodeGenerator` | `app/Support/` | 管理ログインの TOTP とバックアップコード | 14 |
+| `TwoFactorAuthenticator`・`BackupCodeGenerator` | `app/Support/` | 認証アプリ（TOTP）のコードと、バックアップコード | 14 |
 | `PasskeyLogin`・`PasskeyManagement` | `app/Support/` | パスキーでのログインと、本人によるパスキーの登録・削除 | 14 |
 | `PasswordChange` | `app/Support/` | パスワードを変えたときの後始末（信頼済み端末・パスキーの無効化、お知らせのメール） | 14 |
 | `_confirm_hidden` | `resources/views/` | 確認画面の hidden を `$input` から組み立てる | 5 |
@@ -251,6 +252,7 @@ GRANT ALL PRIVILEGES ON memsys_testing.* TO 'memsys'@'localhost';
 | `_passkeys` | `resources/views/` | パスキーの一覧・本人確認・登録の画面の中身 | 14 |
 | `TemporaryDataCleaner` | `app/Support/` | 一時データの後片付け（一時ファイル・期限の切れたキャッシュと信頼済み端末・古い操作ログ） | 19 |
 | `app:cleanup-temporary-data` | `app/Console/Commands/` | 一時データの後片付けのコマンド（スケジューラーから1時間ごと） | 19 |
+| `app:reset-two-factor` | `app/Console/Commands/` | 2段階認証の登録を解除するコマンド（画面から解除できる人がいないときに使う） | 14 |
 | `app:set-next-id` | `app/Console/Commands/` | 新しく登録する行の id の始まりを決めるコマンド（サイトを開ける前に使う） | 16 |
 | `ErrorNotifyHandler` | `app/Support/` | ログに書いたエラーを開発者にメールで知らせる（レベル・宛先・間隔は .env） | 20 |
 | `SendBulkMail` | `app/Jobs/` | 一斉メールを1通送るキューのジョブ（送る速さの制限・試し直し・バッチ） | 21 |
@@ -1101,7 +1103,8 @@ if ($spam === SpamCheckResult::Failed) {
 | ログインに使う値 | メールアドレス | 企業ID・担当者ID | ログインID |
 | ログインが要る画面 | `Route::middleware(['auth:web', 'auth.session'])` | `Route::middleware(['auth:company', 'auth.session', 'company.approved'])` | `Route::middleware(['auth:admin', 'auth.session'])` |
 | ログイン前だけの画面 | `guest` | `guest:company` | `guest:admin` |
-| 2段階目の方式 | メールの確認コード | 同じ | 認証アプリ（TOTP）＋バックアップコード |
+| 2段階目の方式 | メールの確認コード | 同じ | 認証アプリ（TOTP） |
+| バックアップコード | 希望する人が発行 | 同じ | 同じ |
 | 2段階目の省略 | 「このデバイスを記憶する」 | 同じ | 「この端末を信頼する」 |
 
 2段階目の方式は、モデルの定数で選びます（下の「2段階認証」）。表は、見本のサイトでの値です。省略の仕組み（`TrustedDeviceManager::for()`）は、どのログインでも同じです。
@@ -1134,7 +1137,7 @@ if ($spam === SpamCheckResult::Failed) {
 | 方式（`TwoFactorMethod`） | 2段階目 |
 |---|---|
 | `Email` | メールで送る確認コード（6桁、10分有効） |
-| `Totp` | 認証アプリのコード。未登録の人は、パスワードの後の画面で QR コードを読み取って登録する。予備にバックアップコード |
+| `Totp` | 認証アプリのコード。未登録の人は、パスワードの後の画面で QR コードを読み取って登録する |
 | `None` | 求めない。パスワードが合ったら、そのままログインを確定する |
 
 ```php
@@ -1145,6 +1148,9 @@ class Staff extends Authenticatable implements LoginAccount, PasskeyUser
 
     /** ログインの2段階目の方式 */
     public const TWO_FACTOR_METHOD = TwoFactorMethod::Totp;
+
+    /** バックアップコードを使うか。使うなら、希望する人が自分の画面で発行する */
+    public const BACKUP_CODES = true;
 }
 
 // ログインのコントローラー
@@ -1166,7 +1172,7 @@ return $this->continueAfterPassword($request, $staff, $request->boolean('remembe
 | `verifyCode()`（POST） | `login.verify.confirm` |
 | `resendCode()`（POST。メールの方式だけ。`throttle` を付ける） | `login.verify.resend` |
 
-- **定数に既定の値はありません**。`TWO_FACTOR_METHOD` を書いていないモデルでログインすると、エラーになります。書き忘れで「なし」になるのを防ぐためです。
+- **定数に既定の値はありません**。`TWO_FACTOR_METHOD` と `BACKUP_CODES` を書いていないモデルでログインすると、エラーになります。書き忘れで「なし」になるのを防ぐためです。
 - **2段階目の画面のビューは、`@include('_two_factor', ['rememberLabel' => '…'])` するだけにします**。中身は方式と状態（コードの入力か、QR コードの登録か）で出し分けます。
 - **認証アプリの登録は、共通のテーブル `two_factor_secrets` に持ちます**。バックアップコード（`two_factor_backup_codes`）・信頼済み端末（`trusted_devices`）と同じ扱いで、業務のテーブルには列を足しません。読み書きは、モデルの `hasTwoFactorConfirmed()`・`twoFactorConfirmedAt()`・`registerTwoFactor($secret)`・`resetTwoFactor()` で行います。
 - **本人をもう一度確かめるときは `TwoFactorChallenge` を使います**。`send()` で準備（メールの方式なら確認コードを送る）、`verify()` で照合、`throttle()` で試行制限です。方式での場合分けは、部品の中にあります。
@@ -1174,9 +1180,19 @@ return $this->continueAfterPassword($request, $staff, $request->boolean('remembe
 - **稼働中のサイトで方式を変えたら、その種類の信頼済み端末の記録を消します**（`trusted_devices` の、`authenticatable_type` がその種類の行）。
 - **スタッフ向けの確認コードのメールは `staff_verification_code` です**。スタッフを `Email` にしたときに使います。スタッフの登録・編集の画面では、方式が `Email` の間、メールアドレスが必須になります。
 
-#### 認証アプリの管理（TwoFactorManagement）
+#### バックアップコード
 
-方式が `Totp` のときに使う、ログイン中の本人の画面です。ほかの方式では入口が出ないので、ルートを書いたままでかまいません。
+バックアップコードは、2段階目を通れないときに、その代わりに1回ずつ使える緊急用のコードです。認証アプリの入った端末が手元に無いときと、確認コードのメールが届かないときに使います。
+
+- **使うかどうかは、モデルの定数 `BACKUP_CODES` で選びます**。2段階目を通る手段が1つ増えるので、種類ごとに選べるようにしています。方式が `None` のモデルでは、値に関係なく使いません。
+- **自動では発行しません**。希望する人が、ログイン後の自分の画面（下の「本人による管理」）で発行します。
+- **発行の前に、その人の方式で本人を確かめます**。`Totp` は今の認証アプリのコード、`Email` はメールで送る確認コードです。
+- **入力欄は、発行してある人にだけ出ます**。ログインの2段階目と、解除の確認の画面です。
+- **`false` にしたモデルでは、2段階目を通れなくなった人は運営が解除します**。画面から解除できる人がいないときは、コマンドを使います（下の「サーバーからの解除」）。
+
+#### 本人による管理（TwoFactorManagement）
+
+ログイン中の本人が、バックアップコードを発行し、認証アプリの登録を解除する画面です。入口は、方式が `Totp` のときと、バックアップコードを使うときに出ます。
 
 ```php
 // 本人の情報を扱うコントローラー
@@ -1198,13 +1214,24 @@ private function twoFactorHomeUrl(): string                                     
 |---|---|
 | `twoFactorIndex()`（GET。会員だけ。スタッフは自分の詳細の画面に出している） | `mypage.twoFactor` |
 | `showNewBackupCodes()`（GET） | `twoFactor.backupCodes` |
+| `sendBackupCodesCode()`（POST。メールの方式だけ。`throttle` を付ける） | `twoFactor.backupCodes.code` |
 | `regenerateBackupCodes()`（POST） | `twoFactor.regenerateBackupCodes` |
 | `selfReset()`（DELETE） | `twoFactor.selfReset` |
 
-- **作り直しと解除の前に、今の認証アプリのコードを求めます**。ログイン中の画面を他人に使われたときに、被害を広げないためです。
-- **解除は、バックアップコードでもできます**。端末を無くした人が、バックアップコードでログインした後に、別のバックアップコードで自分で解除できるようにするためです。管理者が1人だけのサイトでも、画面から解除できます。解除は操作ログに残ります。
+- **発行と解除の前に、本人をもう一度確かめます**。ログイン中の画面を他人に使われたときに、被害を広げないためです。
+- **解除は、バックアップコードでもできます**。端末を無くした人が、発行してあったバックアップコードでログインした後に、別のバックアップコードで自分で解除できるようにするためです。解除は操作ログに残ります。
 - **解除すると、バックアップコード・信頼済み端末・パスキーも消えます**（`$account->resetTwoFactor()`）。パスキーでのログインは2段階目を求めないので、残すと登録し直さないまま使えてしまうためです。
-- **端末を無くした人は、運営が解除します**。管理画面の詳細に `@include('_two_factor_reset', ['twoFactorAccount' => $member, 'twoFactorResetUrl' => route(...)])` を置き、コントローラーで `$member->resetTwoFactor()` を呼びます。ボタンは、方式が `Totp` で登録が済んでいるときだけ出ます。
+- **端末を無くし、バックアップコードも無い人は、運営が解除します**。管理画面の詳細に `@include('_two_factor_reset', ['twoFactorAccount' => $member, 'twoFactorResetUrl' => route(...)])` を置き、コントローラーで `$member->resetTwoFactor()` を呼びます。ボタンは、方式が `Totp` で登録が済んでいるときだけ出ます。
+
+#### サーバーからの解除（app:reset-two-factor）
+
+画面から解除できる人がいないときに、サーバーで実行します。スタッフが1人だけのサイトで、その人が端末を無くしたときなどです。
+
+```
+php artisan app:reset-two-factor staff yamada
+```
+
+1つ目は種類の名前（`staff`・`member`・`company`）、2つ目はログインに使う値です。企業の担当者は `企業ID/ログインID` と書きます。対象の人を出して、確かめてから解除します。消えるものは、画面からの解除と同じです。
 
 #### テストで方式を差し替える
 
@@ -1214,6 +1241,7 @@ private function twoFactorHomeUrl(): string                                     
 use FakesTwoFactorMethod;
 
 $this->useTwoFactorMethod(Staff::class, TwoFactorMethod::Email);
+$this->useBackupCodes(Staff::class, false);    // バックアップコードを使うかも、同じように差し替える
 ```
 
 ### 会員の共通の型（MemberAccount）

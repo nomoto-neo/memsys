@@ -8,13 +8,14 @@ use Illuminate\Support\Facades\Hash;
 
 /**
  * その人の2段階目の方式で、本人かどうかを確かめる。ログインの2段階目と、ログイン中に本人を
- * もう一度確かめる操作（パスキーの登録の前、バックアップコードの作り直し、認証アプリの解除）で使う。
+ * もう一度確かめる操作（パスキーの登録の前、バックアップコードの発行、認証アプリの解除）で使う。
  * 設計は docs/two-factor-spec.md。
  *
  * 確かめ方は、モデルの定数 TWO_FACTOR_METHOD で決まる。
  * - Email  メールで送った確認コード。先にsend()で送っておく
- * - Totp   認証アプリのコード。バックアップコードはverifyBackupCode()
+ * - Totp   認証アプリのコード
  * - None   パスワードの再入力。ログインの2段階目には使わない（2段階目そのものを求めないため）
+ * バックアップコードを使うモデルでは、verifyBackupCode()でも確かめられる。
  *
  * 呼ぶ側は方式で場合分けをしなくてよい。画面の出し分けだけ、method()を見る。
  *
@@ -32,6 +33,8 @@ final class TwoFactorChallenge
 
     public const PURPOSE_PASSKEY = MemberVerificationCode::PURPOSE_PASSKEY;
 
+    public const PURPOSE_BACKUP_CODES = MemberVerificationCode::PURPOSE_BACKUP_CODES;
+
     public function __construct(private readonly LoginAccount $account)
     {
     }
@@ -44,7 +47,7 @@ final class TwoFactorChallenge
 
     /**
      * 照合の失敗を数える試行制限。種類と人ごとに1本で、どの画面から入力しても同じカウンターになる。
-     * 当てようとしている秘密が同じだから。認証アプリのコードとバックアップコードも分けない。
+     * 当てようとしている秘密が同じだから。確認コードとバックアップコードも分けない。
      * 片方ずつ上限まで試せる、ということが無いようにするため。
      */
     public function throttle(Request $request): LoginThrottle
@@ -94,12 +97,11 @@ final class TwoFactorChallenge
 
     /**
      * バックアップコードを照合する。通ったコードは使用済みになる。
-     * 認証アプリの方式で、登録が済んでいる人だけが使える。
+     * バックアップコードを使うモデルの人だけが使える（モデルの定数 BACKUP_CODES）。
      */
     public function verifyBackupCode(string $code): bool
     {
-        return $this->method() === TwoFactorMethod::Totp
-            && $this->account->hasTwoFactorConfirmed()
+        return $this->account::usesBackupCodes()
             && (new BackupCodeGenerator())->verifyAndConsume($this->account, $code);
     }
 }

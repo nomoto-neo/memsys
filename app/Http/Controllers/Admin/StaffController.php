@@ -48,7 +48,7 @@ class StaffController extends Controller
     // routes/web.phpのadmin.passkeysのルートを消す。
     use PasskeyManagement;
 
-    // ログイン中の本人による、バックアップコードの作り直しと、認証アプリの登録の解除
+    // ログイン中の本人による、バックアップコードの発行と、認証アプリの登録の解除
     // （regenerateBackupCodes()など。App\Support\TwoFactorManagement参照）。
     use TwoFactorManagement;
 

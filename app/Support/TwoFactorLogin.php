@@ -7,7 +7,6 @@ use App\Enums\TwoFactorMethod;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 /**
@@ -123,6 +122,8 @@ trait TwoFactorLogin
         $data = [
             'twoFactorState' => $account::twoFactorMethod()->value,
             'twoFactorLoginId' => $account->loginId(),
+            // バックアップコードの入力欄は、発行してある人にだけ出す
+            'twoFactorBackupCodes' => $account::usesBackupCodes() && $account->unusedBackupCodesCount() > 0,
             'twoFactorRoutes' => [
                 'login' => $account::loginRoute('login'),
                 'confirm' => $account::loginRoute('login.verify.confirm'),
@@ -169,9 +170,9 @@ trait TwoFactorLogin
         $challenge = new TwoFactorChallenge($account);
         $isTotp = $challenge->method() === TwoFactorMethod::Totp;
 
-        // 認証アプリの画面には、コードとバックアップコードの2つのフォームがある。
+        // バックアップコードを使うモデルでは、画面に確認コードとバックアップコードの2つのフォームがある。
         // backup_codeが送られてきたかで見分け、エラーは送られてきたほうの入力欄の下に出す
-        $useBackupCode = $isTotp && $request->filled('backup_code');
+        $useBackupCode = $account::usesBackupCodes() && $request->filled('backup_code');
         $errorField = $useBackupCode ? 'backup_code' : 'code';
 
         if (! $useBackupCode) {
@@ -227,8 +228,7 @@ trait TwoFactorLogin
 
     /**
      * 認証アプリの登録の確認。QRコードを読み取った認証アプリが正しいコードを出せているかを、
-     * 1回入力してもらって確かめる。通ったら秘密鍵を本登録し、バックアップコードを発行して、
-     * 本ログインにする。
+     * 1回入力してもらって確かめる。通ったら秘密鍵を本登録して、本ログインにする。
      */
     private function verifyTotpSetup(Request $request, LoginAccount $account): RedirectResponse
     {
@@ -260,21 +260,13 @@ trait TwoFactorLogin
 
         $throttle->clear();
 
-        // 登録の確定とバックアップコードの発行は、どちらかだけが残らないようにまとめて行う
-        $backupCodes = DB::transaction(function () use ($account, $secret) {
-            $account->registerTwoFactor($secret);
-
-            return (new BackupCodeGenerator())->generateFor($account);
-        });
+        $account->registerTwoFactor($secret);
 
         $request->session()->forget($this->pendingSecretSessionKey());
 
         $this->establishLogin($request, $account, (bool) $request->session()->pull($this->rememberSessionKey(), false));
 
-        // バックアップコードは、この直後の1回だけ見せる。DBには元の文字列を残していないので、
-        // 後からは見せられない。次のリクエストへセッションで渡す
-        return $this->redirectToLoginRoute('twoFactor.backupCodes')
-            ->with('newBackupCodes', $backupCodes);
+        return redirect($this->loginRedirectUrl());
     }
 
     /**

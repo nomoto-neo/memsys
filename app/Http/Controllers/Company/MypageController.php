@@ -36,8 +36,8 @@ class MypageController extends Controller
     // 使わないサイトでは、このuseとroutes/web.phpのcompany.mypage.passkeysのルートを消す。
     use PasskeyManagement;
 
-    // ログイン中の本人による、2段階認証（認証アプリ）の管理（twoFactorIndex()など。
-    // App\Support\TwoFactorManagement参照）。方式が認証アプリのときだけ、入口を出す。
+    // ログイン中の本人による、バックアップコードの発行と、認証アプリの登録の解除（twoFactorIndex()など。
+    // App\Support\TwoFactorManagement参照）。
     use TwoFactorManagement;
 
     // ---- 2段階認証の管理（TwoFactorManagement）の設定 ----

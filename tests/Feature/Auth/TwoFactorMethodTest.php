@@ -161,15 +161,12 @@ class TwoFactorMethodTest extends TestCase
         $this->assertCount(0, $this->sentMails());
         $this->assertGuest('web');
 
-        // 認証アプリのコードで登録が済むと、本ログインになり、バックアップコードを1回だけ見せる
+        // 認証アプリのコードで登録が済むと、本ログインになる。バックアップコードは、自動では発行しない
         $this->post('/login/verify', ['code' => $this->codeForPendingSecret('member')])
-            ->assertRedirect(route('twoFactor.backupCodes'));
+            ->assertRedirect(route('mypage'));
         $this->assertAuthenticatedAs($member, 'web');
         $this->assertTrue($member->refresh()->hasTwoFactorConfirmed());
-        $this->assertSame(10, $member->backupCodes()->count());
-
-        $this->get('/mypage/two-factor/backup-codes')->assertOk()->assertSee('バックアップコード');
-        $this->get('/mypage/two-factor/backup-codes')->assertRedirect(route('mypage'));
+        $this->assertSame(0, $member->backupCodes()->count());
     }
 
     public function test_unregistered_member_is_not_let_through_even_on_a_trusted_device(): void
@@ -192,20 +189,34 @@ class TwoFactorMethodTest extends TestCase
         $this->useTwoFactorMethod(Member::class, TwoFactorMethod::Totp);
         $member = $this->member();
 
-        // 1回目のログインで登録し、バックアップコードを受け取る。秘密鍵は、登録の画面を開いたときに作られる
+        // 1回目のログインで登録する。秘密鍵は、登録の画面を開いたときに作られる
         $this->loginAsMember();
         $this->get('/login/verify');
         $secret = session('member.login.pending_secret');
-        $backupCodes = $this->post('/login/verify', ['code' => (new Google2FA())->getCurrentOtp($secret)])
-            ->getSession()->get('newBackupCodes');
+        $this->post('/login/verify', ['code' => (new Google2FA())->getCurrentOtp($secret)]);
         $this->post('/logout');
 
-        // 2回目からは、認証アプリのコードの入力になる
+        // 2回目からは、認証アプリのコードの入力になる。バックアップコードの入力欄は、発行するまで出ない
         $this->loginAsMember();
-        $this->get('/login/verify')->assertOk()->assertSee('バックアップコード')->assertDontSee('QR');
+        $this->get('/login/verify')->assertOk()->assertDontSee('バックアップコード')->assertDontSee('QR');
         $this->post('/login/verify', ['code' => (new Google2FA())->getCurrentOtp($secret)])
             ->assertRedirect(route('mypage'));
         $this->assertAuthenticatedAs($member, 'web');
+
+        // 自分の画面で、認証アプリのコードを入れて発行する。発行したコードは、1回だけ見られる
+        $this->get('/mypage/two-factor')->assertOk()->assertSee('バックアップコードを発行する');
+        $backupCodes = $this->post('/mypage/two-factor/backup-codes/regenerate', ['code' => (new Google2FA())->getCurrentOtp($secret)])
+            ->assertRedirect(route('twoFactor.backupCodes'))
+            ->getSession()->get('newBackupCodes');
+        $this->assertCount(10, $backupCodes);
+        $this->get('/mypage/two-factor/backup-codes')->assertOk()->assertSee($backupCodes[0]);
+        $this->get('/mypage/two-factor/backup-codes')->assertRedirect(route('mypage'));
+        $this->get('/mypage/two-factor')->assertOk()->assertSee('バックアップコードを再発行する');
+        $this->post('/logout');
+
+        // 発行した後は、2段階目の画面に入力欄が出る
+        $this->loginAsMember();
+        $this->get('/login/verify')->assertOk()->assertSee('バックアップコード');
         $this->post('/logout');
 
         // バックアップコードでも通れる。同じコードは2回使えない
@@ -329,14 +340,91 @@ class TwoFactorMethodTest extends TestCase
         $this->assertSame(0, Passkey::count());
     }
 
-    public function test_management_screen_is_not_shown_while_the_method_is_not_totp(): void
+    public function test_reset_is_not_offered_while_the_method_is_not_totp(): void
     {
-        // 見本のサイトの方式（会員はメール）では、入口も解除のボタンも出ない
+        // 見本のサイトの方式（会員はメール）では、解除のボタンは出ない。バックアップコードの発行だけが出る
         $member = $this->member();
 
-        $this->actingAs($member, 'web')->get('/mypage')->assertOk()->assertDontSee(route('mypage.twoFactor'));
+        $this->actingAs($member, 'web')->get('/mypage')->assertOk()->assertSee(route('mypage.twoFactor'));
+        $this->actingAs($member, 'web')->get('/mypage/two-factor')
+            ->assertOk()->assertSee('バックアップコードを発行する')->assertDontSee('2段階認証の登録を解除する');
+        $this->actingAs($member, 'web')->delete('/mypage/two-factor', ['code' => '000000'])->assertNotFound();
         $this->actingAs($this->staff(), 'admin')->get(route('admin.members.show', $member))
             ->assertOk()->assertDontSee('2段階認証の登録を解除する');
+    }
+
+    // ---- バックアップコード。使うかどうかは、モデルの定数で選ぶ ----
+
+    public function test_member_with_email_method_issues_backup_codes_and_logs_in_by_one(): void
+    {
+        // 見本のサイトの方式（会員はメール）。発行の前の本人確認は、メールの確認コード
+        $member = $this->member();
+
+        // 確認コードを送る前は、発行できない
+        $this->actingAs($member, 'web')->post('/mypage/two-factor/backup-codes/regenerate', ['code' => '000000'])
+            ->assertSessionHasErrors('code', errorBag: 'regenerateBackupCodes');
+        $this->assertSame(0, $member->backupCodes()->count());
+
+        // 確認コードを送ると、入力欄が出る
+        $this->post('/mypage/two-factor/backup-codes/code')->assertRedirect(route('mypage.twoFactor'));
+        $this->assertStringContainsString('バックアップコードの発行', (string) $this->lastMail()->getTextBody());
+        $this->get('/mypage/two-factor')->assertOk()->assertSee('メールでお送りした確認コード');
+
+        // 届いたコードで発行する
+        $backupCodes = $this->post('/mypage/two-factor/backup-codes/regenerate', ['code' => $this->lastVerificationCode()])
+            ->assertRedirect(route('twoFactor.backupCodes'))
+            ->getSession()->get('newBackupCodes');
+        $this->assertSame(10, $member->backupCodes()->count());
+        $this->post('/logout');
+
+        // ログインの2段階目を、メールの確認コードの代わりにバックアップコードで通る。同じコードは2回使えない
+        $this->loginAsMember();
+        $this->get('/login/verify')->assertOk()->assertSee('バックアップコード');
+        $this->post('/login/verify', ['backup_code' => $backupCodes[0]])->assertRedirect(route('mypage'));
+        $this->assertAuthenticatedAs($member, 'web');
+        $this->post('/logout');
+
+        $this->loginAsMember();
+        $this->post('/login/verify', ['backup_code' => $backupCodes[0]])->assertSessionHasErrors('backup_code');
+        $this->assertGuest('web');
+    }
+
+    public function test_login_code_is_not_accepted_for_issuing_backup_codes(): void
+    {
+        // ログインのために送った確認コードは、発行の本人確認には使えない
+        $member = $this->member();
+        $this->loginAsMember();
+        $loginCode = $this->lastVerificationCode();
+
+        $this->actingAs($member, 'web')->post('/mypage/two-factor/backup-codes/regenerate', ['code' => $loginCode])
+            ->assertSessionHasErrors('code', errorBag: 'regenerateBackupCodes');
+        $this->assertSame(0, $member->backupCodes()->count());
+    }
+
+    public function test_backup_codes_are_not_used_by_a_model_that_turns_them_off(): void
+    {
+        $this->useBackupCodes(Staff::class, false);
+        $staff = $this->staff();
+        $secret = (new Google2FA())->generateSecretKey();
+        $staff->registerTwoFactor($secret);
+
+        // 使う設定の頃に発行したコードが残っていても、通さない
+        $backupCodes = (new BackupCodeGenerator())->generateFor($staff);
+
+        // ログインの2段階目に入力欄が出ず、送っても通らない
+        $this->post('/admin/login', ['login_id' => 'hanako', 'password' => self::PASSWORD]);
+        $this->get('/admin/login/verify')->assertOk()->assertDontSee('バックアップコード');
+        $this->post('/admin/login/verify', ['backup_code' => $backupCodes[0]])->assertSessionHasErrors('code');
+        $this->assertGuest('admin');
+
+        // 自分の画面にも、発行のボタンと入力欄が出ない。解除は、認証アプリのコードだけで確かめる
+        $this->post('/admin/login/verify', ['code' => (new Google2FA())->getCurrentOtp($secret)]);
+        $this->get(route('admin.staff.show', $staff))
+            ->assertOk()->assertDontSee('バックアップコード')->assertSee('2段階認証の登録を解除する');
+        $this->post('/admin/2fa/backup-codes/regenerate', ['code' => (new Google2FA())->getCurrentOtp($secret)])->assertNotFound();
+        $this->delete('/admin/2fa', ['backup_code' => $backupCodes[1]])
+            ->assertSessionHasErrors('code', errorBag: 'selfResetTwoFactor');
+        $this->assertTrue($staff->refresh()->hasTwoFactorConfirmed());
     }
 
     // ---- パスキーの登録の前の本人確認。その人の2段階目の方式で確かめる ----

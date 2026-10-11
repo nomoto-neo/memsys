@@ -54,6 +54,9 @@ class Staff extends Authenticatable implements LoginAccount, PasskeyUser
      */
     public const TWO_FACTOR_METHOD = TwoFactorMethod::Totp;
 
+    /** バックアップコードを使うか。使うなら、希望する人が自分の画面で発行する */
+    public const BACKUP_CODES = true;
+
     protected $table = 't_staffs';
 
     protected $fillable = [

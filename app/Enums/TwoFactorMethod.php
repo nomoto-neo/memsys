@@ -11,7 +11,7 @@ enum TwoFactorMethod: string
     /** メールで送る確認コード */
     case Email = 'email';
 
-    /** 認証アプリのコード（TOTP）。予備にバックアップコードを持つ */
+    /** 認証アプリのコード（TOTP） */
     case Totp = 'totp';
 
     /** 2段階目を求めない。パスワードが合ったら、そのままログインを確定する */

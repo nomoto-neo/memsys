@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\DB;
  *
  * ■ モデルに書くもの
  * - 定数 TWO_FACTOR_METHOD   ログインの2段階目の方式。App\Enums\TwoFactorMethodの値
+ * - 定数 BACKUP_CODES        バックアップコードを使うか。true・false
  * 既定の値は無い。書いていないモデルでログインするとエラーになる。書き忘れで
  * 「2段階目なし」になるのを防ぐため。
  *
@@ -34,6 +35,9 @@ trait HasTwoFactor
      */
     private static ?TwoFactorMethod $fakeTwoFactorMethod = null;
 
+    /** テストで、バックアップコードを使うかを差し替えるための入れ物。ふだんはnullで、定数が使われる */
+    private static ?bool $fakeBackupCodes = null;
+
     /** ログインの2段階目の方式 */
     public static function twoFactorMethod(): TwoFactorMethod
     {
@@ -47,12 +51,29 @@ trait HasTwoFactor
     }
 
     /**
+     * バックアップコードを使うか。2段階目を求める方式で、定数 BACKUP_CODES がtrueのとき。
+     * 使うモデルでは、希望する人が自分の画面で発行する。2段階目を通れないときの予備になる。
+     * 2段階目を通る手段が1つ増えるので、使うかどうかをモデルごとに選べるようにしている。
+     */
+    public static function usesBackupCodes(): bool
+    {
+        return static::twoFactorMethod() !== TwoFactorMethod::None
+            && (self::$fakeBackupCodes ?? static::BACKUP_CODES);
+    }
+
+    /**
      * テストの間だけ、このモデルの方式を差し替える。nullを渡すと元に戻る。
      * テストの後始末で、必ずnullに戻す（tests/Support/FakesTwoFactorMethod）。
      */
     public static function fakeTwoFactorMethod(?TwoFactorMethod $method): void
     {
         self::$fakeTwoFactorMethod = $method;
+    }
+
+    /** テストの間だけ、バックアップコードを使うかを差し替える。nullを渡すと元に戻る */
+    public static function fakeBackupCodes(?bool $use): void
+    {
+        self::$fakeBackupCodes = $use;
     }
 
     /** 2段階認証のバックアップコード */
@@ -109,7 +130,7 @@ trait HasTwoFactor
         $this->unsetRelation('twoFactorSecret');
     }
 
-    /** 使っていないバックアップコードの残りの数。詳細画面の案内に使う */
+    /** 使っていないバックアップコードの残りの数。発行していない人は0 */
     public function unusedBackupCodesCount(): int
     {
         return $this->backupCodes()->whereNull('used_at')->count();

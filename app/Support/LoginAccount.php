@@ -48,6 +48,9 @@ interface LoginAccount
     /** 方式が認証アプリ（TOTP）か */
     public static function usesTotp(): bool;
 
+    /** バックアップコードを使うか */
+    public static function usesBackupCodes(): bool;
+
     /** 認証アプリ（TOTP）の登録が済んでいるか */
     public function hasTwoFactorConfirmed(): bool;
 
@@ -62,6 +65,9 @@ interface LoginAccount
 
     /** 2段階認証のバックアップコード */
     public function backupCodes(): MorphMany;
+
+    /** 使っていないバックアップコードの残りの数 */
+    public function unusedBackupCodesCount(): int;
 
     /** 2段階目を省けるように記憶した端末 */
     public function trustedDevices(): MorphMany;

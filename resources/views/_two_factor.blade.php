@@ -7,6 +7,7 @@
     - $twoFactorState    今出す画面。email＝メールの確認コードの入力、totp＝認証アプリのコードの入力、
                           setup＝認証アプリの登録（QRコード）
     - $twoFactorLoginId  ログインに使った値。認証アプリの画面で、どのアカウントのコードかを示す
+    - $twoFactorBackupCodes  バックアップコードの入力欄を出すか。発行してある人にだけ出す
     - $twoFactorRoutes   ルートの名前。login＝ログイン画面、confirm＝照合、resend＝確認コードの再送
     - $twoFactorSecret・$twoFactorQrCode  （setup）秘密鍵と、QRコードの画像
 
@@ -46,9 +47,13 @@
                 @csrf
                 <button type="submit" class="btn btn-link p-0">確認コードを再送する</button>
             </form>
+
+            @if ($twoFactorBackupCodes)
+                @include('_two_factor_backup_code_form', ['backupCodeLead' => 'メールが届かない場合は、発行済みのバックアップコードでもログインできます。'])
+            @endif
         </div>
     @elseif ($twoFactorState === 'totp')
-        {{-- 認証アプリのコードの入力。スマートフォンが手元に無いときは、バックアップコードでも通れる --}}
+        {{-- 認証アプリのコードの入力 --}}
         <div class="card-header">2段階認証</div>
         <div class="card-body">
             <p>
@@ -75,29 +80,9 @@
                 <button type="submit" class="btn btn-primary">ログインする</button>
             </form>
 
-            <hr>
-
-            <p class="text-muted small mb-2">
-                スマートフォンが手元に無い場合は、登録時に発行されたバックアップコードでもログインできます。
-            </p>
-
-            <form method="POST" action="{{ route($twoFactorRoutes['confirm']) }}">
-                @csrf
-
-                <div class="mb-3">
-                    <label for="backup_code" class="form-label">バックアップコード</label>
-                    <input id="backup_code" type="text" name="backup_code"
-                           class="form-control" placeholder="0000-0000">
-                    <div class="invalid-feedback" data-item="backup_code">{{ $errors->first('backup_code') }}</div>
-                </div>
-
-                <div class="mb-3 form-check">
-                    <input type="checkbox" name="remember_device" value="1" class="form-check-input" id="remember_device_backup">
-                    <label class="form-check-label" for="remember_device_backup">{{ $rememberLabel }}</label>
-                </div>
-
-                <button type="submit" class="btn btn-outline-secondary">バックアップコードでログインする</button>
-            </form>
+            @if ($twoFactorBackupCodes)
+                @include('_two_factor_backup_code_form', ['backupCodeLead' => 'スマートフォンが手元に無い場合は、発行済みのバックアップコードでもログインできます。'])
+            @endif
 
             <div class="mt-3">
                 <a href="{{ route($twoFactorRoutes['login']) }}">ログイン画面に戻る</a>

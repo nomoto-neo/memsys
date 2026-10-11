@@ -179,10 +179,14 @@ Route::middleware(['auth:web', 'auth.session'])->group(function () {
 
     // パスキーの一覧・登録・削除（App\Support\PasskeyManagement）。使わない場合はこの6つを消す
     // （マイページの入口も消える）
-    // 本人による、2段階認証（認証アプリ）の管理（App\Support\TwoFactorManagement）。
-    // 方式が認証アプリのときだけ使う。入口も、そのときだけ出る
+    // 本人による、2段階認証の管理（App\Support\TwoFactorManagement）。バックアップコードの発行と、
+    // 認証アプリの登録の解除。入口は、どちらかができるときだけ出る。.code（確認コードの送信）は、
+    // メールの方式のときだけ使う
     Route::get('/mypage/two-factor', [MypageController::class, 'twoFactorIndex'])->name('mypage.twoFactor');
     Route::get('/mypage/two-factor/backup-codes', [MypageController::class, 'showNewBackupCodes'])->name('twoFactor.backupCodes');
+    Route::post('/mypage/two-factor/backup-codes/code', [MypageController::class, 'sendBackupCodesCode'])
+        ->middleware('throttle:3,1,member-backup-codes-code-send')
+        ->name('twoFactor.backupCodes.code');
     Route::post('/mypage/two-factor/backup-codes/regenerate', [MypageController::class, 'regenerateBackupCodes'])
         ->name('twoFactor.regenerateBackupCodes');
     Route::delete('/mypage/two-factor', [MypageController::class, 'selfReset'])->name('twoFactor.selfReset');
@@ -320,10 +324,14 @@ Route::prefix('company')->name('company.')->group(function () {
 
         // パスキーの一覧・登録・削除（App\Support\PasskeyManagement）。使わない場合はこの6つを消す
         // （マイページの入口も消える）
-        // 本人による、2段階認証（認証アプリ）の管理（App\Support\TwoFactorManagement）。
-        // 方式が認証アプリのときだけ使う。入口も、そのときだけ出る
+        // 本人による、2段階認証の管理（App\Support\TwoFactorManagement）。バックアップコードの発行と、
+        // 認証アプリの登録の解除。入口は、どちらかができるときだけ出る。.code（確認コードの送信）は、
+        // メールの方式のときだけ使う
         Route::get('/mypage/two-factor', [CompanyMypageController::class, 'twoFactorIndex'])->name('mypage.twoFactor');
         Route::get('/mypage/two-factor/backup-codes', [CompanyMypageController::class, 'showNewBackupCodes'])->name('twoFactor.backupCodes');
+        Route::post('/mypage/two-factor/backup-codes/code', [CompanyMypageController::class, 'sendBackupCodesCode'])
+            ->middleware('throttle:3,1,company-backup-codes-code-send')
+            ->name('twoFactor.backupCodes.code');
         Route::post('/mypage/two-factor/backup-codes/regenerate', [CompanyMypageController::class, 'regenerateBackupCodes'])
             ->name('twoFactor.regenerateBackupCodes');
         Route::delete('/mypage/two-factor', [CompanyMypageController::class, 'selfReset'])->name('twoFactor.selfReset');
@@ -379,10 +387,14 @@ Route::prefix('admin')->name('admin.')->middleware('admin.ip')->group(function (
         // ログアウト
         Route::post('/logout', [AdminSessionController::class, 'destroy'])->name('logout');
 
-        // 2段階認証の初回登録直後にバックアップコードを一度だけ見せる画面。
+        // 発行した直後のバックアップコードを一度だけ見せる画面。
         Route::get('/2fa/backup-codes', [AdminStaffController::class, 'showNewBackupCodes'])->name('twoFactor.backupCodes');
 
-        // 本人による、バックアップコードの再発行・2段階認証の登録解除。
+        // 本人による、バックアップコードの発行・2段階認証の登録解除。.code（確認コードの送信）は、
+        // メールの方式のときだけ使う
+        Route::post('/2fa/backup-codes/code', [AdminStaffController::class, 'sendBackupCodesCode'])
+            ->middleware('throttle:3,1,admin-backup-codes-code-send')
+            ->name('twoFactor.backupCodes.code');
         Route::post('/2fa/backup-codes/regenerate', [AdminStaffController::class, 'regenerateBackupCodes'])
             ->name('twoFactor.regenerateBackupCodes');
         Route::delete('/2fa', [AdminStaffController::class, 'selfReset'])->name('twoFactor.selfReset');
