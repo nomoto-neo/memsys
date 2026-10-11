@@ -4,12 +4,12 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\OperationLogAction;
 use App\Http\Controllers\Controller;
+use App\Models\Staff;
 use App\Support\LoginRedirect;
-use App\Support\LoginSession;
 use App\Support\LoginThrottle;
 use App\Support\OperationRecorder;
 use App\Support\PasskeyLogin;
-use App\Support\TrustedDeviceManager;
+use App\Support\TwoFactorLogin;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -19,16 +19,32 @@ use Illuminate\View\View;
  * 管理画面のログイン・ログアウト。
  *
  * ログインは2段階で、ログインIDとパスワードが合っても、すぐにはログインさせない。
- * 認証アプリのコードを入力してもらい、TwoFactorChallengeControllerで本ログインにする。
+ * 2段階目の方式（Staff::TWO_FACTOR_METHOD）で確かめてから、本ログインにする。
  * そのため、ここでは確認だけを行うAuth::validate()を使い、Auth::attempt()は使わない。
- * 「この端末を信頼する」を選んだ端末では、認証アプリのコードを省く。
+ * パスワードが合った後の流れ（2段階目・信頼済みの端末・ログインの確定）は、TwoFactorLoginトレイトにある。
  */
 class AuthSessionController extends Controller
 {
+    // ---- 共通処理（トレイト） ----
+
+    // パスワードが合った後の流れ（continueAfterPassword()）、2段階目の画面と照合
+    // （showVerification()・verifyCode()・resendCode()）、ログアウト（logoutAccount()）。
+    use TwoFactorLogin;
+
     // パスキーでのログイン（passkeyLoginOptions()・passkeyLogin()）。パスキーで
-    // 通ったときは、2段階目（TOTP）も求めない（App\Support\PasskeyLogin参照）。
+    // 通ったときは、2段階目も求めない（App\Support\PasskeyLogin参照）。
     // 使わないサイトでは、このuseとroutes/web.phpのadmin.login.passkeyのルートを消す。
     use PasskeyLogin;
+
+    // ---- ログイン（TwoFactorLogin）の設定 ----
+
+    /** ログインする人のモデル。ガード・ルート・2段階目の方式は、ここから決まる。 */
+    private const LOGIN_ACCOUNT = Staff::class;
+
+    /** 2段階目の画面のビュー。 */
+    private const TWO_FACTOR_VIEW = 'admin.auth.login-verify';
+
+    // ---- パスキーでのログイン（PasskeyLogin）の設定 ----
 
     /** パスキーでログインさせるガード（App\Support\PasskeyLogin参照）。 */
     private const PASSKEY_GUARD = 'admin';
@@ -79,41 +95,31 @@ class AuthSessionController extends Controller
 
         $throttle->clear();
 
-        // validate()で確かめたスタッフ（validate()が内部に持っている）
-        $staff = Auth::guard('admin')->getLastAttempted();
-
-        // 2段階認証を登録済みで、信頼済みの端末なら、TOTPを省いてログインを完了する
-        if ($staff->hasTwoFactorConfirmed() && TrustedDeviceManager::forStaff()->isTrusted($staff, $request)) {
-            Auth::guard('admin')->login($staff, $remember);
-            $request->session()->regenerate();
-
-            // ログインが必要な画面から来た場合はその画面へ、そうでなければ管理画面TOPへ
-            return redirect(LoginRedirect::forStaff());
-        }
-
-        // それ以外は、「パスワード確認済み・2段階目が未完了」をセッションに置き、2段階目の画面へ
-        // （本ログインはTwoFactorChallengeController::completeLogin()）
-        $request->session()->put(TwoFactorChallengeController::PENDING_SESSION_KEY, $staff->id);
-        $request->session()->put(TwoFactorChallengeController::REMEMBER_SESSION_KEY, $remember);
-
-        return redirect()->route('admin.twoFactor.show');
+        // 2段階目が要らなければそのままログイン、要るなら2段階目の画面へ。
+        // 確かめたスタッフは、validate()が内部に持っている
+        return $this->continueAfterPassword($request, Auth::guard('admin')->getLastAttempted(), $remember);
     }
 
     /**
-     * パスキーでログインした後の移動先。ログインID・パスワードでのログインと同じく、
-     * ログインが必要な画面から来た場合はその画面へ戻す（App\Support\LoginRedirect）。
+     * ログインが確定した後の移動先。ログインが必要な画面から来た場合はその画面へ、
+     * そうでなければ管理画面TOPへ（App\Support\LoginRedirect）。
      */
-    private function passkeyRedirectUrl(): string
+    private function loginRedirectUrl(): string
     {
         return LoginRedirect::forStaff();
+    }
+
+    /** パスキーでログインした後の移動先。ログインID・パスワードでのログインと同じ */
+    private function passkeyRedirectUrl(): string
+    {
+        return $this->loginRedirectUrl();
     }
 
     /** ログアウト */
     public function destroy(Request $request): RedirectResponse
     {
         // 管理画面のログインだけを終わらせる。同じブラウザの会員のログインは残す
-        // （App\Support\LoginSession）
-        LoginSession::logout($request, 'admin');
+        $this->logoutAccount($request);
 
         return redirect()->route('admin.login');
     }

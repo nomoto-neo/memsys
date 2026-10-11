@@ -414,7 +414,7 @@ return [
 | 部品 | 役割 |
 |---|---|
 | `MemberAccount`・`IsMemberAccount` | 会員のモデルの共通の型と、名前の決まり（2.1） |
-| `MemberLogin`（トレイト） | ログインと2段階目の流れ。個人会員と企業の担当者で同じ流れなので、切り出す |
+| `TwoFactorLogin`（トレイト） | ログインと2段階目の流れ。個人会員・企業の担当者・スタッフで同じ流れなので、切り出す（`docs/two-factor-spec.md`） |
 | `Company\FirstLoginSetupController` | メールアドレスが空の人の、初回のログインでの登録。企業の情報の照合と確認コード（2.7・2.8）。トレイトにはせず、企業会員のコントローラーとして書いた。個人会員で要るサイトは、これを写して作る（2.7） |
 | `LegacyPassword` と、MD5・SHA-1・SHA-256 のクラス | 古い方式のパスワード（2.9） |
 | `LoginIdMemory` | 「企業ID と担当者ID を記憶する」の Cookie（2.3） |

@@ -41,6 +41,7 @@
 | 第3.4版 | 2026-10-08 | 固定ページの本文のエディタを、SunEditor（MIT ライセンス。jQuery に頼らない）にした（7章） |
 | 第3.5版 | 2026-10-08 | CKEditor を外した。WYSIWYG エディタは SunEditor と summernote の2つ（7章） |
 | 第3.6版 | 2026-10-09 | 宣言の上の説明を、PHPDoc の形（`/** */`）で書く決まりにした。エディタが説明を表示できるようにするため（1章） |
+| 第3.7版 | 2026-10-11 | ログインの2段階目を、独立した部品にした。方式（メールの確認コード・認証アプリ・なし）を、モデルの定数で選ぶ。管理画面の2段階目の URL は `/admin/login/verify` に変わった（14章・23章） |
 
 ## 0. このガイドについて
 
@@ -228,7 +229,9 @@ GRANT ALL PRIVILEGES ON memsys_testing.* TO 'memsys'@'localhost';
 | `MailTemplate`・`TemplatedMail` | `app/Support/`・`app/Mail/` | テンプレートファイルによるメール送信 | 11 |
 | `LoginThrottle` | `app/Support/` | 認証の失敗回数による試行制限 | 14 |
 | `MemberAccount`・`IsMemberAccount` | `app/Support/` | 訪問者側でログインするモデルの共通の型と、名前の決まり | 14 |
-| `MemberLogin` | `app/Support/` | 会員のログインの、パスワードが合った後の流れ（確認コード・記憶済みの端末）と、ログアウト | 14 |
+| `LoginAccount`・`HasTwoFactor` | `app/Support/` | ログインするモデル（会員・スタッフ）の共通の型と、2段階認証にかかわるモデルの中身 | 14 |
+| `TwoFactorLogin` | `app/Support/` | ログインの、パスワードが合った後の流れ（2段階目・信頼済みの端末・ログインの確定）と、ログアウト | 14 |
+| `TwoFactorChallenge` | `app/Support/` | その人の2段階目の方式で、本人かどうかを確かめる | 14 |
 | `LegacyPasswordUserProvider`・`LegacyPassword` | `app/Support/` | 既存のシステムから移した会員の、古い方式のパスワードの照合と、今の方式への置き換え | 14 |
 | `LoginIdMemory` | `app/Support/` | ログイン画面の入力（企業ID と担当者ID）を、ブラウザに覚えさせる | 14 |
 | `CompanyInvitationManager` | `app/Support/` | 企業会員の担当者の招待（リンクの発行・送り直し・取り消し・照合） | 14 |
@@ -1084,7 +1087,7 @@ if ($spam === SpamCheckResult::Failed) {
 
 <p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
 
-**実例**：会員は `AuthSessionController`（パスワードが合った後の流れは `MemberLogin` トレイト）・`PasswordResetController`・`AuthPasswordController`・`AuthRegisteredMemberController`・`MypageController`、管理は `Admin\AuthSessionController`・`Admin\TwoFactorChallengeController`
+**実例**：会員は `AuthSessionController`・`PasswordResetController`・`AuthPasswordController`・`AuthRegisteredMemberController`・`MypageController`、管理は `Admin\AuthSessionController`・`Admin\TwoFactorChallengeController`。パスワードが合った後の流れは、どのログインも `TwoFactorLogin` トレイト
 
 認証の画面は遷移が独特なので、FormFlow には載せず、それぞれのコントローラーで書いています。新しく作るより、実例を写して直す方が安全です。
 
@@ -1096,8 +1099,10 @@ if ($spam === SpamCheckResult::Failed) {
 | ログインに使う値 | メールアドレス | 企業ID・担当者ID | ログインID |
 | ログインが要る画面 | `Route::middleware(['auth:web', 'auth.session'])` | `Route::middleware(['auth:company', 'auth.session', 'company.approved'])` | `Route::middleware(['auth:admin', 'auth.session'])` |
 | ログイン前だけの画面 | `guest` | `guest:company` | `guest:admin` |
-| 2段階目 | メールの確認コード（`MemberVerificationCode`） | 同じ | TOTP（`TwoFactorAuthenticator`）＋バックアップコード |
-| 2段階目の省略 | 「このデバイスを記憶する」（`TrustedDeviceManager::forMember()`） | 同じ | 「この端末を信頼する」（`TrustedDeviceManager::forStaff()`） |
+| 2段階目の方式 | メールの確認コード | 同じ | 認証アプリ（TOTP）＋バックアップコード |
+| 2段階目の省略 | 「このデバイスを記憶する」 | 同じ | 「この端末を信頼する」 |
+
+2段階目の方式は、モデルの定数で選びます（下の「2段階認証」）。表は、見本のサイトでの値です。省略の仕組み（`TrustedDeviceManager::for()`）は、どのログインでも同じです。
 
 未ログインのときの行き先・ログイン済みでゲスト専用画面に来たときの行き先は、`bootstrap/app.php` でルート名（`admin.*`・`company.*` かどうか）から振り分けています。
 
@@ -1105,15 +1110,66 @@ if ($spam === SpamCheckResult::Failed) {
 
 ### ログインの流れ（会員・管理とも同じ形）
 
-1. ID・パスワードを `Auth::guard(...)->validate()` で確かめる（まだログインはしない）。
-2. 信頼済み端末なら、そのまま `Auth::login()`。
-3. そうでなければ「パスワード確認済み・2段階目が未完了」をセッションに置き、2段階目の画面へ。2段階目の画面は `guest` にも `auth` にも入れず、コントローラー自身がセッションで守る。
-4. 2段階目が通ったら `Auth::login()` と `session()->regenerate()`。
-5. ログインが必要な画面から来た場合はその画面へ、そうでなければ既定の画面（マイページ・管理画面TOP）へ移す。移動先は `LoginRedirect::forMember(Member::class)`・`forStaff()` で決める（2・4とパスキーで通ったとき）。
+1. ID・パスワードを `Auth::guard(...)->validate()` で確かめる（まだログインはしない）。ここまではコントローラーに書き、合ったら `continueAfterPassword()` を呼ぶ。
+2. 2段階目の方式が「なし」なら、そのままログインを確定する。
+3. 信頼済み端末なら、そのままログインを確定する。
+4. そうでなければ「パスワード確認済み・2段階目が未完了」をセッションに置き、2段階目の画面へ。2段階目の画面は `guest` にも `auth` にも入れず、トレイトがセッションで守る。
+5. 2段階目が通ったら、ログインを確定する。
+6. ログインが必要な画面から来た場合はその画面へ、そうでなければ既定の画面（マイページ・管理画面TOP）へ移す。移動先は `LoginRedirect::forMember(Member::class)`・`forStaff()` で決める（2・3・5とパスキーで通ったとき）。
+
+2から5は `TwoFactorLogin` トレイトが受け持ちます。ログインの確定（`Auth::login()` と `session()->regenerate()`）は、どの道を通ってもトレイトの中の1か所で行います。
 
 開こうとしていた画面の記録（セッションの `url.intended`）は、会員と管理画面で1つしか無いので、`redirect()->intended()` を直接使わず `LoginRedirect` を通します。記録された URL がログインした側の画面（管理画面なら `admin.*` のルート）のときだけ戻り先にし、そうでなければ既定の画面へ移して、記録はもう一方の側のために残します。
 
 記録された URL がどちらの側の画面かは、そのルートの `auth` のミドルウェアから読みます。ログインの必要なルートには、`auth:web`・`auth:admin` のように、ガードの名前を省かずに書きます。
+
+### 2段階認証（TwoFactorLogin・TwoFactorChallenge）
+
+**ファイル**：`app/Enums/TwoFactorMethod.php`、`app/Support/LoginAccount.php`・`HasTwoFactor.php`・`TwoFactorLogin.php`・`TwoFactorChallenge.php`・`TwoFactorAuthenticator.php`・`BackupCodeGenerator.php`・`TrustedDeviceManager.php`、`resources/views/_two_factor.blade.php`、設計の詳細は「2段階認証の設計」（`docs/two-factor-spec.md`）　**実例**：`AuthSessionController`・`Company\AuthSessionController`・`Admin\AuthSessionController`
+
+ログインの2段階目の方式は、ログインするモデルの定数で選びます。部品は、相手が会員かスタッフかを知りません。
+
+| 方式（`TwoFactorMethod`） | 2段階目 |
+|---|---|
+| `Email` | メールで送る確認コード（6桁、10分有効） |
+| `Totp` | 認証アプリのコード。未登録の人は、パスワードの後の画面で QR コードを読み取って登録する。予備にバックアップコード |
+| `None` | 求めない。パスワードが合ったら、そのままログインを確定する |
+
+```php
+// モデル。ログインする人の共通の型（LoginAccount）を実装する。会員は MemberAccount が継いでいる
+class Staff extends Authenticatable implements LoginAccount, PasskeyUser
+{
+    use HasTwoFactor;
+
+    /** ログインの2段階目の方式 */
+    public const TWO_FACTOR_METHOD = TwoFactorMethod::Totp;
+}
+
+// ログインのコントローラー
+use TwoFactorLogin;
+private const LOGIN_ACCOUNT = Staff::class;                    // ガード・ルート・2段階目の方式は、ここから決まる
+private const TWO_FACTOR_VIEW = 'admin.auth.login-verify';     // 2段階目の画面
+private function loginRedirectUrl(): string                    // ログインが確定した後の移動先
+{
+    return LoginRedirect::forStaff();
+}
+
+// パスワードが合った後は、トレイトに任せる
+return $this->continueAfterPassword($request, $staff, $request->boolean('remember'));
+```
+
+| アクション | ルート名（管理は `admin.`、企業会員は `company.` が付く） |
+|---|---|
+| `showVerification()`（GET） | `login.verify` |
+| `verifyCode()`（POST） | `login.verify.confirm` |
+| `resendCode()`（POST。メールの方式だけ。`throttle` を付ける） | `login.verify.resend` |
+
+- **定数に既定の値はありません**。`TWO_FACTOR_METHOD` を書いていないモデルでログインすると、エラーになります。書き忘れで「なし」になるのを防ぐためです。
+- **2段階目の画面のビューは、`@include('_two_factor', ['rememberLabel' => '…'])` するだけにします**。中身は方式と状態（コードの入力か、QR コードの登録か）で出し分けます。
+- **TOTP の列は、どのテーブルにも持たせます**（`totp_secret`・`totp_confirmed_at`）。秘密鍵の暗号化は `HasTwoFactor` が付けるので、モデルの `$casts` には書きません。
+- **本人をもう一度確かめるときは `TwoFactorChallenge` を使います**。`send()` で準備（メールの方式なら確認コードを送る）、`verify()` で照合、`throttle()` で試行制限です。方式での場合分けは、部品の中にあります。
+- **メールの方式のモデルは、メールアドレスを必須にします**。スタッフのメールアドレスは任意なので、スタッフを `Email` にするときは、検証のルールを必須に変えます。
+- **稼働中のサイトで方式を変えたら、その種類の信頼済み端末の記録を消します**（`trusted_devices` の、`authenticatable_type` がその種類の行）。
 
 ### 会員の共通の型（MemberAccount）
 
@@ -1164,7 +1220,7 @@ $member->forceFill([
 
 ### ログアウト（LoginSession）
 
-ログアウトは `LoginSession::logout($request, ガードの名前)` で行います。会員のコントローラーは、`MemberLogin` トレイトの `logoutMember()` を呼びます。
+ログアウトは `LoginSession::logout($request, ガードの名前)` で行います。ログインのコントローラーは、`TwoFactorLogin` トレイトの `logoutAccount()` を呼びます。
 
 - **そのガードのログインだけを終わらせます**。同じブラウザのほかのガードのログイン（会員と管理画面）は残ります。運営のスタッフが、会員の側の画面を確かめながら管理画面で操作する、といった使い方のためです。
 - **ログアウトした人がセッションに残したものは、全部消えます**（検索条件、確認コードの仮置きなど）。残したほかのガードの側でも、検索条件などは消えます。
@@ -1727,7 +1783,7 @@ private function afterSave(Member $member, array $validated, array $changedField
 
 <p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
 
-**ファイル**：`app/Support/MemberAccount.php`・`IsMemberAccount.php`・`MemberLogin.php`・`CompanyInvitationManager.php`・`LoginIdMemory.php`、`config/members.php`、設計の詳細は「個人会員と企業会員を共存させる設計」（`docs/member-types-spec.md`）　**実例**：個人会員は `AuthSessionController` ほか、企業会員は `app/Http/Controllers/Company/` の下と `Admin\CompanyController`・`Admin\CompanyUserController`
+**ファイル**：`app/Support/MemberAccount.php`・`IsMemberAccount.php`・`TwoFactorLogin.php`・`CompanyInvitationManager.php`・`LoginIdMemory.php`、`config/members.php`、設計の詳細は「個人会員と企業会員を共存させる設計」（`docs/member-types-spec.md`）　**実例**：個人会員は `AuthSessionController` ほか、企業会員は `app/Http/Controllers/Company/` の下と `Admin\CompanyController`・`Admin\CompanyUserController`
 
 訪問者側でログインする人は、個人会員と、企業の担当者の2種類です。ログインの仕組み（14章）は同じ共通部品を使い、画面・URL・コントローラーは種類ごとに分けて書きます。企業会員を使わないサイトは、企業会員のファイルを消します。
 
@@ -1774,12 +1830,12 @@ class CompanyUser extends Authenticatable implements MemberAccount, PasskeyUser
 共通部品には、会員のモデルを渡します。
 
 ```php
-// ログインのコントローラー
-use MemberLogin;
-private const MEMBER_CLASS = CompanyUser::class;                 // ガード・ルート・テンプレートの名前は、ここから決まる
-private const LOGIN_VERIFY_VIEW = 'company.auth.login-verify';   // 確認コードの入力画面
+// ログインのコントローラー（14章の「2段階認証」）
+use TwoFactorLogin;
+private const LOGIN_ACCOUNT = CompanyUser::class;               // ガード・ルート・2段階目の方式は、ここから決まる
+private const TWO_FACTOR_VIEW = 'company.auth.login-verify';    // 2段階目の画面
 
-// パスワードが合った後は、トレイトに任せる（記憶済みの端末か、確認コードか）
+// パスワードが合った後は、トレイトに任せる（2段階目が要るか、信頼済みの端末か）
 return $this->continueAfterPassword($request, $user, $request->boolean('remember'));
 ```
 
@@ -1788,12 +1844,12 @@ return $this->continueAfterPassword($request, $user, $request->boolean('remember
 | ログイン中の人を取る | `Auth::guard(CompanyUser::memberGuard())->user()` |
 | その種類のルートへ移す | `route(CompanyUser::memberRoute('mypage'))` |
 | 確認コード | `new MemberVerificationCode(CompanyUser::class)` |
-| 信頼済み端末 | `TrustedDeviceManager::forMember($user)` |
+| 信頼済み端末 | `TrustedDeviceManager::for($user)` |
 | ログインの後の移動先 | `LoginRedirect::forMember(CompanyUser::class)` |
 | パスワードを変えた後始末 | `PasswordChange::resetAndNotify($user)` |
 | 情報が変わったお知らせ | `MemberProfileNotice::send($user, $changedFields)` |
 | メールアドレスの変更の確認 | トレイトの `holdForEmailChange($request, $user)`（`EmailChange`） |
-| ログアウト | トレイトの `logoutMember($request)` |
+| ログアウト | トレイトの `logoutAccount($request)` |
 
 ### ルート
 

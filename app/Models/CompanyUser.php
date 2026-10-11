@@ -2,11 +2,12 @@
 
 namespace App\Models;
 
+use App\Enums\TwoFactorMethod;
 use App\Support\HasPasskeys;
+use App\Support\HasTwoFactor;
 use App\Support\IsMemberAccount;
 use App\Support\MemberAccount;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Laravel\Passkeys\Contracts\PasskeyUser;
 
@@ -26,8 +27,17 @@ class CompanyUser extends Authenticatable implements MemberAccount, PasskeyUser
     // ルート（company.login など）、メールのテンプレート（company_...）の名前を作る
     use IsMemberAccount;
 
+    // 2段階認証（方式の読み出し・認証アプリの列・バックアップコード・信頼済み端末）
+    use HasTwoFactor;
+
     /** 種類の名前 */
     public const MEMBER_TYPE = 'company';
+
+    /**
+     * ログインの2段階目の方式。メールで送る確認コード。
+     * 変えるときは docs/two-factor-spec.md を読む
+     */
+    public const TWO_FACTOR_METHOD = TwoFactorMethod::Email;
 
     /**
      * 担当者IDに使える文字。半角の英数字と、記号の「_」「.」「-」。
@@ -62,12 +72,6 @@ class CompanyUser extends Authenticatable implements MemberAccount, PasskeyUser
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
-    }
-
-    /** 「このデバイスを記憶する」で記憶した端末。判定はApp\Support\TrustedDeviceManagerが行う。 */
-    public function trustedDevices(): MorphMany
-    {
-        return $this->morphMany(TrustedDevice::class, 'authenticatable');
     }
 
     /**

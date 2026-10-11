@@ -95,7 +95,7 @@ class CompanyUserAdminTest extends TestCase
     {
         $user = $this->user($this->company());
         $staff = $this->staff();
-        TrustedDeviceManager::forMember($user)->remember($user);
+        TrustedDeviceManager::for($user)->remember($user);
 
         $this->actingAs($staff, 'admin')->patch($this->url($user, '/update'), [
             'name' => '山田 太郎',
@@ -123,7 +123,7 @@ class CompanyUserAdminTest extends TestCase
         $company = $this->company();
         $user = $this->user($company);
         $staff = $this->staff();
-        TrustedDeviceManager::forMember($user)->remember($user);
+        TrustedDeviceManager::for($user)->remember($user);
 
         $this->actingAs($staff, 'admin')->delete($this->url($user, '/delete'))
             ->assertRedirect(route('admin.companies.show', $company));

@@ -57,7 +57,7 @@ class SharedBrowserTest extends TestCase
     private function loginAsStaff(): void
     {
         $this->post('/admin/login', ['login_id' => 'hanako', 'password' => self::PASSWORD]);
-        $this->post('/admin/2fa/verify', ['code' => (new Google2FA())->getCurrentOtp($this->secret)]);
+        $this->post('/admin/login/verify', ['code' => (new Google2FA())->getCurrentOtp($this->secret)]);
     }
 
     /**
@@ -145,7 +145,7 @@ class SharedBrowserTest extends TestCase
 
         // 記録は残っているので、スタッフとしてログインすると、開こうとしていた画面へ戻る
         $this->post('/admin/login', ['login_id' => 'hanako', 'password' => self::PASSWORD]);
-        $this->post('/admin/2fa/verify', ['code' => (new Google2FA())->getCurrentOtp($this->secret)])
+        $this->post('/admin/login/verify', ['code' => (new Google2FA())->getCurrentOtp($this->secret)])
             ->assertRedirect(route('admin.members.index'));
     }
 

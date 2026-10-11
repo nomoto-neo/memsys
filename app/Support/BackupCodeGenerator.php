@@ -2,7 +2,6 @@
 
 namespace App\Support;
 
-use App\Models\Staff;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
@@ -23,12 +22,12 @@ class BackupCodeGenerator
      * 一覧を返す。再発行のたびに古いコードが有効なまま残らないよう、今あるコードは
      * 使用済みかどうかに関係なくすべて消してから作り直す。
      */
-    public function generateFor(Staff $staff): array
+    public function generateFor(LoginAccount $account): array
     {
         // 途中で止まって古いコードも新しいコードも無い状態にならないよう、
         // 古いコードの削除と新しいコードの作成はまとめて行う
-        return DB::transaction(function () use ($staff) {
-            $staff->backupCodes()->delete();
+        return DB::transaction(function () use ($account) {
+            $account->backupCodes()->delete();
 
             $plainCodes = [];
 
@@ -36,7 +35,7 @@ class BackupCodeGenerator
                 // 手で書き写したり口で伝えたりしやすいよう、見間違えやすい英字は使わず、数字だけ8桁にする
                 $digits = (string) random_int(10000000, 99999999);
 
-                $staff->backupCodes()->create([
+                $account->backupCodes()->create([
                     // 照合はハイフンの無い8桁の数字で行う。ハイフンは見やすさのためだけ
                     'code_hash' => Hash::make($digits),
                 ]);
@@ -49,11 +48,11 @@ class BackupCodeGenerator
     }
 
     /**
-     * $codeが、そのスタッフの使っていないバックアップコードのどれかと一致するかを確かめる。
+     * $codeが、その人の使っていないバックアップコードのどれかと一致するかを確かめる。
      * 一致したコードは使用済みにして二度と使えなくする。
      * ハイフンや空白は気にせず、数字だけを取り出して照合する。
      */
-    public function verifyAndConsume(Staff $staff, string $code): bool
+    public function verifyAndConsume(LoginAccount $account, string $code): bool
     {
         // 数字だけにする
         $normalized = preg_replace('/\D/', '', $code) ?? '';
@@ -63,7 +62,7 @@ class BackupCodeGenerator
         }
 
         // 使っていないコードと1つずつ照合し、一致したら使用済みにする
-        $candidates = $staff->backupCodes()->whereNull('used_at')->get();
+        $candidates = $account->backupCodes()->whereNull('used_at')->get();
 
         foreach ($candidates as $candidate) {
             if (Hash::check($normalized, $candidate->code_hash)) {

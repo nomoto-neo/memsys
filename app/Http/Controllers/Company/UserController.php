@@ -83,7 +83,7 @@ class UserController extends Controller
     /** 削除の直前の処理。信頼済み端末とパスキーは、担当者の行と一緒に消す */
     private function beforeDelete(CompanyUser $user): void
     {
-        TrustedDeviceManager::forMember($user)->forgetAll($user);
+        TrustedDeviceManager::for($user)->forgetAll($user);
         $user->passkeys()->delete();
     }
 

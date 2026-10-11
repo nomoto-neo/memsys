@@ -45,6 +45,28 @@ trait IsMemberAccount
         return static::MEMBER_TYPE.'_trusted_device';
     }
 
+    // ---- ログインする人の共通の型（LoginAccount）の問い。会員の決まりのまま答える ----
+
+    public static function loginType(): string
+    {
+        return static::memberType();
+    }
+
+    public static function loginGuard(): string
+    {
+        return static::memberGuard();
+    }
+
+    public static function loginRoute(string $name): string
+    {
+        return static::memberRoute($name);
+    }
+
+    public static function loginMailTemplate(string $name): string
+    {
+        return static::memberMailTemplate($name);
+    }
+
     /** ログインに使う値。ログインに使う列は、メールアドレス */
     public function loginId(): string
     {

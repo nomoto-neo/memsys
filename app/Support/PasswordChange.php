@@ -36,8 +36,7 @@ class PasswordChange
     public static function resetAndNotify(MemberAccount|Staff $owner, ?Staff $changedBy = null): int
     {
         // 信頼済みの端末とパスキーを無効にする
-        $manager = $owner instanceof Staff ? TrustedDeviceManager::forStaff() : TrustedDeviceManager::forMember($owner);
-        $manager->forgetAll($owner);
+        TrustedDeviceManager::for($owner)->forgetAll($owner);
 
         $deletedPasskeys = $owner->passkeys()->delete();
 

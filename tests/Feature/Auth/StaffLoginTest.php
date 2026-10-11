@@ -53,12 +53,12 @@ class StaffLoginTest extends TestCase
 
         // 1段階目。パスワードが合っても、まだログインにはならない
         $this->post('/admin/login', ['login_id' => 'hanako', 'password' => self::PASSWORD])
-            ->assertRedirect(route('admin.twoFactor.show'));
+            ->assertRedirect(route('admin.login.verify'));
         $this->assertGuest('admin');
-        $this->get('/admin/2fa')->assertOk();
+        $this->get('/admin/login/verify')->assertOk();
 
         // 2段階目。認証アプリのコードで本ログインになる
-        $this->post('/admin/2fa/verify', ['code' => $this->currentCode()])
+        $this->post('/admin/login/verify', ['code' => $this->currentCode()])
             ->assertRedirect(route('admin.dashboard'));
         $this->assertAuthenticatedAs($staff, 'admin');
 
@@ -87,8 +87,8 @@ class StaffLoginTest extends TestCase
         $this->post('/admin/login', ['login_id' => 'hanako', 'password' => self::PASSWORD]);
         $wrong = $this->currentCode() === '000000' ? '111111' : '000000';
 
-        $this->post('/admin/2fa/verify', ['code' => $wrong])
-            ->assertRedirect(route('admin.twoFactor.show'))
+        $this->post('/admin/login/verify', ['code' => $wrong])
+            ->assertRedirect(route('admin.login.verify'))
             ->assertSessionHasErrors('code');
         $this->assertGuest('admin');
 
@@ -99,7 +99,7 @@ class StaffLoginTest extends TestCase
 
     public function test_second_step_needs_the_first_step(): void
     {
-        $this->get('/admin/2fa')->assertRedirect(route('admin.login'));
+        $this->get('/admin/login/verify')->assertRedirect(route('admin.login'));
     }
 
     public function test_trusted_device_skips_the_authenticator_code(): void
@@ -108,7 +108,7 @@ class StaffLoginTest extends TestCase
 
         // 「この端末を信頼する」を付けてログインする
         $this->post('/admin/login', ['login_id' => 'hanako', 'password' => self::PASSWORD]);
-        $response = $this->post('/admin/2fa/verify', ['code' => $this->currentCode(), 'remember_device' => '1']);
+        $response = $this->post('/admin/login/verify', ['code' => $this->currentCode(), 'remember_device' => '1']);
         $cookie = $response->getCookie('staff_trusted_device');
         $this->assertSame('/', $cookie->getPath());
 
@@ -132,7 +132,7 @@ class StaffLoginTest extends TestCase
 
         $this->withCookie('staff_trusted_device', 'member-token')
             ->post('/admin/login', ['login_id' => 'hanako', 'password' => self::PASSWORD])
-            ->assertRedirect(route('admin.twoFactor.show'));
+            ->assertRedirect(route('admin.login.verify'));
         $this->assertGuest('admin');
     }
 
@@ -148,8 +148,8 @@ class StaffLoginTest extends TestCase
 
         // 2段階認証をまだ登録していないスタッフは、登録の画面（QRコード）になる
         $this->post('/admin/login', ['login_id' => 'newcomer', 'password' => self::PASSWORD])
-            ->assertRedirect(route('admin.twoFactor.show'));
-        $this->get('/admin/2fa')->assertOk()->assertSee('QR');
+            ->assertRedirect(route('admin.login.verify'));
+        $this->get('/admin/login/verify')->assertOk()->assertSee('QR');
         $this->assertGuest('admin');
     }
 
@@ -160,7 +160,7 @@ class StaffLoginTest extends TestCase
         $this->get('/admin/members')->assertRedirect(route('admin.login'));
 
         $this->post('/admin/login', ['login_id' => 'hanako', 'password' => self::PASSWORD]);
-        $this->post('/admin/2fa/verify', ['code' => $this->currentCode()])
+        $this->post('/admin/login/verify', ['code' => $this->currentCode()])
             ->assertRedirect(route('admin.members.index'));
     }
 

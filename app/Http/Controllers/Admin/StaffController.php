@@ -206,7 +206,7 @@ class StaffController extends Controller
         // （復元したときに、削除前の信頼が一緒に戻らないようにするため）。
         // パスキーは、パスワード・2段階認証の設定と同じく消さずに残す。削除済みの
         // スタッフは、パスキーでもログインできない（App\Models\Passkey::user()参照）。
-        TrustedDeviceManager::forStaff()->forgetAll($staff);
+        TrustedDeviceManager::for(Staff::class)->forgetAll($staff);
     }
 
     /**
@@ -428,15 +428,8 @@ class StaffController extends Controller
     public function resetTwoFactor(Staff $staff): RedirectResponse
     {
         DB::transaction(function () use ($staff) {
-            // TOTPの登録を消す
-            $staff->totp_secret = null;
-            $staff->totp_confirmed_at = null;
-            $staff->save();
-
-            // バックアップコード・信頼済み端末・パスキーも失効させる
-            $staff->backupCodes()->delete();
-            TrustedDeviceManager::forStaff()->forgetAll($staff);
-            $staff->passkeys()->delete();
+            // 認証アプリの登録と、バックアップコード・信頼済み端末・パスキーを無効にする
+            $staff->resetTwoFactor();
 
             OperationRecorder::record(OperationLogAction::TwoFactorReset, $staff);
         });

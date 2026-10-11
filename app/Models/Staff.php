@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use App\Enums\StaffAcl;
+use App\Enums\TwoFactorMethod;
 use App\Support\HasPasskeys;
+use App\Support\HasTwoFactor;
+use App\Support\LoginAccount;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Laravel\Passkeys\Contracts\PasskeyUser;
@@ -20,18 +22,37 @@ use Laravel\Passkeys\Contracts\PasskeyUser;
  * ログインできず、編集画面などを開いても404になる。削除済みも含めて扱うときは、
  * クエリやルートにwithTrashed()を付ける。
  *
- * ■ 2段階認証
- * totp_secretは認証アプリと共有する秘密鍵で、DBには暗号化して保存する。
- * totp_secretがあっても、totp_confirmed_atが空の間は、QRコードを出しただけで
- * 登録はまだ済んでいない。
+ * ■ ログインする人の共通の型
+ * 会員と同じ共通の型（App\Support\LoginAccount）を実装している。2段階認証などのログインまわりの
+ * 共通部品は、スタッフと会員を同じ形で扱う。
  */
-class Staff extends Authenticatable implements PasskeyUser
+class Staff extends Authenticatable implements LoginAccount, PasskeyUser
 {
     use HasFactory;
     use SoftDeletes;
 
     // パスキーを持てるようにする
     use HasPasskeys;
+
+    // 2段階認証（方式の読み出し・認証アプリの列・バックアップコード・信頼済み端末）
+    use HasTwoFactor;
+
+    // ---- ログインする人の共通の型（LoginAccount）の設定 ----
+
+    /** 種類の名前。メールのテンプレート（staff_...）や、信頼済み端末のCookieの名前の頭になる */
+    public const LOGIN_TYPE = 'staff';
+
+    /** ログインするガード */
+    public const LOGIN_GUARD = 'admin';
+
+    /** ルートの名前の頭 */
+    public const LOGIN_ROUTE_PREFIX = 'admin.';
+
+    /**
+     * ログインの2段階目の方式。認証アプリのコード（TOTP）。
+     * 変えるときは docs/two-factor-spec.md を読む
+     */
+    public const TWO_FACTOR_METHOD = TwoFactorMethod::Totp;
 
     protected $table = 't_staffs';
 
@@ -46,41 +67,62 @@ class Staff extends Authenticatable implements PasskeyUser
     protected $hidden = [
         'password',
         'remember_token',
-        'totp_secret',
     ];
 
     protected $casts = [
         // 権限は列挙型で読み書きする。DBには0か1で入る
         'acl' => StaffAcl::class,
-        'totp_secret' => 'encrypted',
-        'totp_confirmed_at' => 'datetime',
     ];
+
+    // ---- ログインする人の共通の型（LoginAccount）の問い ----
+
+    public static function loginType(): string
+    {
+        return self::LOGIN_TYPE;
+    }
+
+    public static function loginGuard(): string
+    {
+        return self::LOGIN_GUARD;
+    }
+
+    public static function loginRoute(string $name): string
+    {
+        return self::LOGIN_ROUTE_PREFIX.$name;
+    }
+
+    public static function loginMailTemplate(string $name): string
+    {
+        return self::LOGIN_TYPE.'_'.$name;
+    }
+
+    public static function trustedDeviceCookie(): string
+    {
+        return self::LOGIN_TYPE.'_trusted_device';
+    }
+
+    /** 画面やメールに出す名前 */
+    public function displayName(): string
+    {
+        return (string) $this->name;
+    }
+
+    /** お知らせや確認コードを送るメールアドレス。スタッフのメールアドレスは任意なので、空ならnull */
+    public function notificationEmail(): ?string
+    {
+        return $this->email ?: null;
+    }
+
+    /** ログインに使う値 */
+    public function loginId(): string
+    {
+        return (string) $this->login_id;
+    }
 
     /** 管理者かどうか。ミドルウェアとPolicyで同じ判定を使うため、ここに置いている。 */
     public function isManager(): bool
     {
         return $this->acl === StaffAcl::Manager;
-    }
-
-    /** 2段階認証のバックアップコード。 */
-    public function backupCodes(): MorphMany
-    {
-        return $this->morphMany(TwoFactorBackupCode::class, 'authenticatable');
-    }
-
-    /** 「この端末を信頼する」で信頼した端末。判定はApp\Support\TrustedDeviceManagerが行う。 */
-    public function trustedDevices(): MorphMany
-    {
-        return $this->morphMany(TrustedDevice::class, 'authenticatable');
-    }
-
-    /**
-     * 2段階認証の登録が済んでいるか。QRコードを読み取り、コードの入力まで済んだら登録済み。
-     * 秘密鍵があるだけでは、まだ登録の途中のことがあるので、totp_confirmed_atで判定する。
-     */
-    public function hasTwoFactorConfirmed(): bool
-    {
-        return $this->totp_confirmed_at !== null;
     }
 
     /**
@@ -97,11 +139,5 @@ class Staff extends Authenticatable implements PasskeyUser
     public function getPasskeyUsername(): string
     {
         return '管理画面：'.$this->login_id;
-    }
-
-    /** 使っていないバックアップコードの残りの数。スタッフの詳細画面の案内に使う。 */
-    public function unusedBackupCodesCount(): int
-    {
-        return $this->backupCodes()->whereNull('used_at')->count();
     }
 }

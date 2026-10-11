@@ -129,9 +129,9 @@ Route::middleware('guest')->group(function () {
         ->name('password.reset.update');
 });
 
-// メールによる二段階認証（認証試行のthrottle制御はコントローラー側で行う）
-// パスワード通過後で二段階認証前という中間状態なのでmiddleware判断はせず独自にSESSIONで判定
-// （入口はApp\Support\MemberLoginトレイト）
+// ログインの2段階目（入口はApp\Support\TwoFactorLoginトレイト。方式はMember::TWO_FACTOR_METHOD）。
+// パスワード通過後で2段階目の前という中間の状態なので、ミドルウェアでは守らず、セッションで判定する。
+// 照合の試行制限はコントローラーの側で行う。再送は、メールの方式のときだけ使う
 Route::get('/login/verify', [AuthSessionController::class, 'showVerification'])->name('login.verify');
 Route::post('/login/verify', [AuthSessionController::class, 'verifyCode'])->name('login.verify.confirm');
 Route::post('/login/verify/resend', [AuthSessionController::class, 'resendCode'])
@@ -246,7 +246,7 @@ Route::prefix('company')->name('company.')->group(function () {
             ->name('password.reset.update');
     });
 
-    // メールによる2段階目（入口はApp\Support\MemberLoginトレイト）。
+    // ログインの2段階目（入口はApp\Support\TwoFactorLoginトレイト。方式はCompanyUser::TWO_FACTOR_METHOD）。
     // パスワード通過後で2段階目の前という中間の状態なので、ミドルウェアでは守らず、セッションで判定する
     Route::get('/login/verify', [CompanySessionController::class, 'showVerification'])->name('login.verify');
     Route::post('/login/verify', [CompanySessionController::class, 'verifyCode'])->name('login.verify.confirm');
@@ -345,10 +345,14 @@ Route::prefix('admin')->name('admin.')->middleware('admin.ip')->group(function (
             ->name('login.passkey');
     });
 
-    // 管理ログインの2段階目（TOTP）未ログインとログイン済の中間状態
-    // （認証試行のthrottle制御はコントローラー側で行う）
-    Route::get('/2fa', [TwoFactorChallengeController::class, 'show'])->name('twoFactor.show');
-    Route::post('/2fa/verify', [TwoFactorChallengeController::class, 'verify'])->name('twoFactor.verify');
+    // ログインの2段階目（入口はApp\Support\TwoFactorLoginトレイト。方式はStaff::TWO_FACTOR_METHOD）。
+    // パスワード通過後で2段階目の前という中間の状態なので、ミドルウェアでは守らず、セッションで判定する。
+    // 照合の試行制限はコントローラーの側で行う。再送は、メールの方式のときだけ使う
+    Route::get('/login/verify', [AdminSessionController::class, 'showVerification'])->name('login.verify');
+    Route::post('/login/verify', [AdminSessionController::class, 'verifyCode'])->name('login.verify.confirm');
+    Route::post('/login/verify/resend', [AdminSessionController::class, 'resendCode'])
+        ->middleware('throttle:3,1,admin-login-verify-resend')
+        ->name('login.verify.resend');
 
     // ログイン中のスタッフだけが使う画面。auth.sessionは会員側と同じ
     // （パスワードが変わったら、ほかの端末のログインと保持用のCookieを無効にする）。

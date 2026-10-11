@@ -207,7 +207,7 @@ class CompanyAdminTest extends TestCase
     {
         $company = $this->company(CompanyStatus::Approved);
         $user = $this->user($company);
-        TrustedDeviceManager::forMember($user)->remember($user);
+        TrustedDeviceManager::for($user)->remember($user);
         CompanyInvitationManager::invite($company, 'guest@example.com');
         $other = $this->company(CompanyStatus::Approved, 'other');
         $staff = $this->staff();

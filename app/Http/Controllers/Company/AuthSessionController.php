@@ -10,9 +10,9 @@ use App\Models\CompanyUser;
 use App\Support\LoginIdMemory;
 use App\Support\LoginRedirect;
 use App\Support\LoginThrottle;
-use App\Support\MemberLogin;
 use App\Support\OperationRecorder;
 use App\Support\PasskeyLogin;
+use App\Support\TwoFactorLogin;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -24,28 +24,28 @@ use Illuminate\View\View;
  *
  * ログイン画面では、企業ID・担当者ID・パスワードの3つを入力する。担当者IDは企業の中でだけ
  * 重ならないので、企業IDで企業を決めてから、その企業の担当者を探す。
- * パスワードが合った後の流れ（確認コードの送信・照合・記憶済みの端末）は、個人会員と同じで、
- * MemberLoginトレイトにある。
+ * パスワードが合った後の流れ（2段階目・記憶済みの端末・ログインの確定）は、個人会員と同じで、
+ * TwoFactorLoginトレイトにある。2段階目の方式は、CompanyUser::TWO_FACTOR_METHOD。
  */
 class AuthSessionController extends Controller
 {
     // ---- 共通処理（トレイト） ----
 
-    // パスワードが合った後の流れ（continueAfterPassword()）、確認コードの入力画面と照合
-    // （showVerification()・verifyCode()・resendCode()）、ログアウト（logoutMember()）。
-    use MemberLogin;
+    // パスワードが合った後の流れ（continueAfterPassword()）、2段階目の画面と照合
+    // （showVerification()・verifyCode()・resendCode()）、ログアウト（logoutAccount()）。
+    use TwoFactorLogin;
 
     // パスキーでのログイン（passkeyLoginOptions()・passkeyLogin()）。
     // 使わないサイトでは、このuseとroutes/web.phpのcompany.login.passkeyのルートを消す。
     use PasskeyLogin;
 
-    // ---- ログイン（MemberLogin）の設定 ----
+    // ---- ログイン（TwoFactorLogin）の設定 ----
 
-    /** ログインする会員のモデル。ガード・ルート・メールのテンプレートの名前は、ここから決まる。 */
-    private const MEMBER_CLASS = CompanyUser::class;
+    /** ログインする人のモデル。ガード・ルート・2段階目の方式は、ここから決まる。 */
+    private const LOGIN_ACCOUNT = CompanyUser::class;
 
-    /** 確認コードの入力画面のビュー。 */
-    private const LOGIN_VERIFY_VIEW = 'company.auth.login-verify';
+    /** 2段階目の画面のビュー。 */
+    private const TWO_FACTOR_VIEW = 'company.auth.login-verify';
 
     /**
      * ログインの試行制限（LoginThrottle）で、このコントローラーの失敗回数を数えるカウンターの名前。
@@ -108,7 +108,7 @@ class AuthSessionController extends Controller
 
         // パスワードの確認だけ行う（まだログインはしない）。古い方式のパスワードの置き換えも、
         // ここで働く（App\Support\LegacyPasswordUserProvider）
-        $provider = Auth::guard(self::MEMBER_CLASS::memberGuard())->getProvider();
+        $provider = Auth::guard(self::LOGIN_ACCOUNT::memberGuard())->getProvider();
 
         if ($user === null || ! $provider->validateCredentials($user, ['password' => $credentials['password']])) {
             $throttle->hit();
@@ -148,25 +148,31 @@ class AuthSessionController extends Controller
             'login_id' => $credentials['login_id'],
         ]);
 
-        // 記憶済みの端末ならそのままログイン、そうでなければ確認コードの入力へ。
+        // 2段階目が要らなければそのままログイン、要るなら2段階目の画面へ。
         // 「ログイン状態を保持する」のチェックも渡す（チェックが無ければfalse）
         return $this->continueAfterPassword($request, $user, $request->boolean('remember'));
     }
 
     /**
-     * パスキーでログインした後の移動先。ログインが必要な画面から来た場合はその画面へ戻す
-     * （App\Support\LoginRedirect）。
+     * ログインが確定した後の移動先。ログインが必要な画面から来た場合はその画面へ、
+     * そうでなければマイページへ（App\Support\LoginRedirect）。
      */
+    private function loginRedirectUrl(): string
+    {
+        return LoginRedirect::forMember(self::LOGIN_ACCOUNT);
+    }
+
+    /** パスキーでログインした後の移動先。パスワードでのログインと同じ */
     private function passkeyRedirectUrl(): string
     {
-        return LoginRedirect::forMember(self::MEMBER_CLASS);
+        return $this->loginRedirectUrl();
     }
 
     /** ログアウト */
     public function destroy(Request $request): RedirectResponse
     {
-        $this->logoutMember($request);
+        $this->logoutAccount($request);
 
-        return redirect()->route(self::MEMBER_CLASS::memberRoute('login'));
+        return redirect()->route(self::LOGIN_ACCOUNT::loginRoute('login'));
     }
 }

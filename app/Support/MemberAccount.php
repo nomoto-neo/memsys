@@ -10,6 +10,9 @@ namespace App\Support;
  * モデルに「種類の名前」を聞いて、決まりのとおりに作る。
  * 設計は docs/member-types-spec.md。決まった中身はIsMemberAccountトレイトにある。
  *
+ * ログインする人の共通の型（LoginAccount）を継いでいる。宛名・宛先・2段階目の方式のような、
+ * スタッフにも共通の問いは、そちらにある。
+ *
  * ■ 名前の決まり（種類の名前が company のとき）
  * - ガード              company
  * - ルート              company.login・company.mypage のように、頭に「種類の名前.」を付ける
@@ -17,7 +20,7 @@ namespace App\Support;
  * - 信頼済み端末のCookie  company_trusted_device
  * 個人会員だけは、今のURLとルートの名前を変えないよう、ガードは web、ルートの頭は無しにしている。
  */
-interface MemberAccount
+interface MemberAccount extends LoginAccount
 {
     /** 種類の名前。個人会員は member */
     public static function memberType(): string;
@@ -30,16 +33,4 @@ interface MemberAccount
 
     /** この種類のメールのテンプレートの名前。$nameは頭を付ける前の名前。例：'verification_code' */
     public static function memberMailTemplate(string $name): string;
-
-    /** 信頼済み端末の値を入れるCookieの名前 */
-    public static function trustedDeviceCookie(): string;
-
-    /** 画面やメールに出す名前。個人なら氏名 */
-    public function displayName(): string;
-
-    /** お知らせや確認コードを送るメールアドレス。未登録ならnull */
-    public function notificationEmail(): ?string;
-
-    /** ログインに使う値。試行制限やパスキーの表示名に使う */
-    public function loginId(): string;
 }

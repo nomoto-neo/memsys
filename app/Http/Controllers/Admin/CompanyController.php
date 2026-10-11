@@ -204,7 +204,7 @@ class CompanyController extends Controller
         $company->invitations()->delete();
 
         foreach ($company->users as $user) {
-            TrustedDeviceManager::forMember($user)->forgetAll($user);
+            TrustedDeviceManager::for($user)->forgetAll($user);
             $user->passkeys()->delete();
             $user->delete();
         }

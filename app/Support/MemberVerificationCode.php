@@ -23,6 +23,8 @@ use Illuminate\Support\Facades\Mail;
  * 会員登録・初回のログインでの登録・メールアドレスの変更は、メールアドレスがまだ
  * 保存されていないので、宛先のメールアドレスに結び付けて発行と照合をする。
  *
+ * 相手は、ログインする人の共通の型（LoginAccount）で受け取る。スタッフのログインの2段階目を
+ * メールの方式にしたときは、スタッフにも送る（App\Support\TwoFactorChallenge）。
  * 会員の種類（個人会員か、企業の担当者か）は、作るときにモデルのクラスで渡す。
  *     new MemberVerificationCode(Member::class)
  * メールのテンプレートと、セッションのキーは、種類の名前から決まる（個人会員なら
@@ -60,7 +62,7 @@ class MemberVerificationCode
     private const VALID_MINUTES = 10;
 
     /**
-     * @param  class-string<MemberAccount>  $memberClass  確認コードを送る相手の、会員のモデル
+     * @param  class-string<LoginAccount>  $memberClass  確認コードを送る相手のモデル
      */
     public function __construct(private readonly string $memberClass)
     {
@@ -69,7 +71,7 @@ class MemberVerificationCode
     /** 会員の種類と使い道ごとのセッションのキー */
     private function sessionKey(string $purpose): string
     {
-        return $this->memberClass::memberType().".verification_code.$purpose";
+        return $this->memberClass::loginType().".verification_code.$purpose";
     }
 
     /**
@@ -80,7 +82,7 @@ class MemberVerificationCode
      * エラーにしてよい。パスワードの再設定では会員かどうかを知られないよう、送れなくても
      * 同じ案内を出す。PasswordResetController::sendCode()がその例。
      */
-    public function issue(Request $request, MemberAccount $member, string $purpose): bool
+    public function issue(Request $request, LoginAccount $member, string $purpose): bool
     {
         $code = $this->generateCode();
 
@@ -123,7 +125,7 @@ class MemberVerificationCode
      * その使い道と会員に、まだ有効なコードを発行してあるか。マイページのパスワード変更で
      * 画面を読み直すたびにコードを送り直さないよう、先にこれで確かめる。
      */
-    public function hasPending(Request $request, string $purpose, MemberAccount $member): bool
+    public function hasPending(Request $request, string $purpose, LoginAccount $member): bool
     {
         $state = $request->session()->get($this->sessionKey($purpose));
 
@@ -137,7 +139,7 @@ class MemberVerificationCode
      * 入力されたコードを照合する。通ったらその会員を返し、通らなければnullを返す。
      * 通ったら仮置きを消すので、コードは1回だけ使える。
      */
-    public function verify(Request $request, string $purpose, string $inputCode): ?MemberAccount
+    public function verify(Request $request, string $purpose, string $inputCode): ?LoginAccount
     {
         $state = $this->consume($request, $purpose, $inputCode);
 
@@ -215,7 +217,7 @@ class MemberVerificationCode
         };
 
         try {
-            Mail::send(new TemplatedMail($this->memberClass::memberMailTemplate(self::TEMPLATE), [
+            Mail::send(new TemplatedMail($this->memberClass::loginMailTemplate(self::TEMPLATE), [
                 'from_mail' => config('mail.from.address'),
                 'from_name' => config('mail.from.name'),
                 'to_mail' => $email,

@@ -3,14 +3,15 @@
 namespace App\Models;
 
 use App\Enums\NoticeMail;
+use App\Enums\TwoFactorMethod;
 use App\Support\HasPasskeys;
+use App\Support\HasTwoFactor;
 use App\Support\IsMemberAccount;
 use App\Support\MemberAccount;
 use App\Support\UploadFilePath;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Passkeys\Contracts\PasskeyUser;
@@ -23,6 +24,9 @@ class Member extends Authenticatable implements MemberAccount, PasskeyUser
 {
     // 訪問者側でログインするモデルの、決まった中身（種類の名前からルートなどの名前を作る）
     use IsMemberAccount;
+
+    // 2段階認証（方式の読み出し・認証アプリの列・バックアップコード・信頼済み端末）
+    use HasTwoFactor;
     use Notifiable;
 
     // パスキーを持てるようにする。パスキーでログインさせるかどうかは、ルートと
@@ -42,6 +46,12 @@ class Member extends Authenticatable implements MemberAccount, PasskeyUser
     public const MEMBER_GUARD = 'web';
 
     public const MEMBER_ROUTE_PREFIX = '';
+
+    /**
+     * ログインの2段階目の方式。メールで送る確認コード。
+     * 変えるときは docs/two-factor-spec.md を読む
+     */
+    public const TWO_FACTOR_METHOD = TwoFactorMethod::Email;
 
     /**
      * 顔写真の横幅(px)。これより大きい画像は、この横幅に縮めて保存する。
@@ -131,12 +141,6 @@ class Member extends Authenticatable implements MemberAccount, PasskeyUser
     {
         return $this->belongsTo(Staff::class, 'staff_id')
             ->withTrashed();
-    }
-
-    /** 「このデバイスを記憶する」で記憶した端末。判定はApp\Support\TrustedDeviceManagerが行う。 */
-    public function trustedDevices(): MorphMany
-    {
-        return $this->morphMany(TrustedDevice::class, 'authenticatable');
     }
 
     /**

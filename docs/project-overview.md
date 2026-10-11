@@ -69,6 +69,7 @@ Laravel の標準の構成に、次のものを足している。
 | `docs/neobit-framework-guide.md` | ネオビットフレームワークの利用ガイド。部品の使い方の全体 |
 | `docs/new-project-files.md` | 新しいプロジェクトに展開するときに書き換えるファイル |
 | `docs/csv-import-spec.md` | CSV 取り込みの設計 |
+| `docs/two-factor-spec.md` | 2段階認証の設計 |
 | `docs/passkeys-spec.md` | パスキーの設計 |
 | `docs/member-types-spec.md` | 個人会員と企業会員を共存させる設計 |
 | `docs/security-code-check.md` | コードのセキュリティを確かめる観点と、確かめた記録 |
