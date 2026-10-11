@@ -22,9 +22,10 @@
                 @if (Route::has('company.mypage.passkeys'))
                     <a href="{{ route('company.mypage.passkeys') }}" class="list-group-item list-group-item-action">パスキー</a>
                 @endif
-                {{-- 2段階認証の画面への入口。認証アプリの方式か、バックアップコードを使うときに出す --}}
+                {{-- 2段階認証の画面への入口。認証アプリの方式か、バックアップコードを使うときに出す。
+                     メールの方式では、できることがバックアップコードの発行だけなので、名前もそれに合わせる --}}
                 @if ($user::usesTotp() || $user::usesBackupCodes())
-                    <a href="{{ route('company.mypage.twoFactor') }}" class="list-group-item list-group-item-action">2段階認証</a>
+                    <a href="{{ route('company.mypage.twoFactor') }}" class="list-group-item list-group-item-action">{{ $user::usesTotp() ? '2段階認証' : 'バックアップコード' }}</a>
                 @endif
             </div>
         </div>

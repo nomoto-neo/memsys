@@ -16,9 +16,10 @@
                 @if (Route::has('mypage.passkeys'))
                     <a href="{{ route('mypage.passkeys') }}" class="list-group-item list-group-item-action">パスキー</a>
                 @endif
-                {{-- 2段階認証の画面への入口。認証アプリの方式か、バックアップコードを使うときに出す --}}
+                {{-- 2段階認証の画面への入口。認証アプリの方式か、バックアップコードを使うときに出す。
+                     メールの方式では、できることがバックアップコードの発行だけなので、名前もそれに合わせる --}}
                 @if ($member::usesTotp() || $member::usesBackupCodes())
-                    <a href="{{ route('mypage.twoFactor') }}" class="list-group-item list-group-item-action">2段階認証</a>
+                    <a href="{{ route('mypage.twoFactor') }}" class="list-group-item list-group-item-action">{{ $member::usesTotp() ? '2段階認証' : 'バックアップコード' }}</a>
                 @endif
                 <a href="{{ route('mypage.resume') }}" class="list-group-item list-group-item-action" target="_blank">履歴書PDF</a>
                 <a href="{{ route('mypage.withdraw') }}" class="list-group-item list-group-item-action text-muted small">退会する</a>

@@ -1,6 +1,7 @@
 @extends('layouts.company')
 
-@section('title', '2段階認証')
+{{-- 画面の名前。メールの方式では、できることがバックアップコードの発行だけなので、それに合わせる --}}
+@section('title', $twoFactorAccount::usesTotp() ? '2段階認証' : 'バックアップコード')
 
 {{--
     発行と解除の確認の画面（モーダル）に、BootstrapのJavaScriptが要る。訪問者向けのレイアウトは
@@ -19,7 +20,7 @@
     <div class="col-md-8">
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
-                2段階認証
+                {{ $twoFactorAccount::usesTotp() ? '2段階認証' : 'バックアップコード' }}
                 <a href="{{ route('company.mypage') }}" class="btn btn-sm btn-outline-secondary">マイページへ戻る</a>
             </div>
             <div class="card-body">

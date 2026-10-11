@@ -237,7 +237,8 @@ class TwoFactorMethodTest extends TestCase
         $member->registerTwoFactor($secret);
 
         // マイページに入口が出る
-        $this->actingAs($member, 'web')->get('/mypage')->assertOk()->assertSee(route('mypage.twoFactor'));
+        $this->actingAs($member, 'web')->get('/mypage')
+            ->assertOk()->assertSee(route('mypage.twoFactor'))->assertSee('>2段階認証</a>', false);
         $this->actingAs($member, 'web')->get('/mypage/two-factor')->assertOk()->assertSee('2段階認証の登録を解除する');
 
         // 今のコードが要る
@@ -345,9 +346,11 @@ class TwoFactorMethodTest extends TestCase
         // 見本のサイトの方式（会員はメール）では、解除のボタンは出ない。バックアップコードの発行だけが出る
         $member = $this->member();
 
-        $this->actingAs($member, 'web')->get('/mypage')->assertOk()->assertSee(route('mypage.twoFactor'));
+        $this->actingAs($member, 'web')->get('/mypage')
+            ->assertOk()->assertSee(route('mypage.twoFactor'))->assertSee('>バックアップコード</a>', false);
         $this->actingAs($member, 'web')->get('/mypage/two-factor')
-            ->assertOk()->assertSee('バックアップコードを発行する')->assertDontSee('2段階認証の登録を解除する');
+            ->assertOk()->assertSee('<title>バックアップコード</title>', false)
+            ->assertSee('バックアップコードを発行する')->assertDontSee('2段階認証の登録を解除する');
         $this->actingAs($member, 'web')->delete('/mypage/two-factor', ['code' => '000000'])->assertNotFound();
         $this->actingAs($this->staff(), 'admin')->get(route('admin.members.show', $member))
             ->assertOk()->assertDontSee('2段階認証の登録を解除する');
