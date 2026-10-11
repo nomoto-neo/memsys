@@ -396,11 +396,11 @@ return [
 |---|---|---|
 | `MemberVerificationCode` | `Member` を受け取る。テンプレートは固定 | `MemberAccount` を受け取る。セッションに種類と id を持つ。テンプレートは種類の名前から。初回のログインでの登録（2.7・2.8）の用途を足す |
 | `TrustedDeviceManager` | `forMember()`・`forStaff()` | 会員もスタッフも `for($account)`。Cookie の名前は種類の名前から（`docs/two-factor-spec.md`） |
-| `PasswordChange` | `Member|Staff`。ルートとテンプレートは固定 | `MemberAccount|Staff`。ルートとテンプレートは種類の名前から |
+| `PasswordChange` | `Member|Staff`。ルートとテンプレートは固定 | `LoginAccount`。ルートとテンプレートは種類の名前から |
 | `PasskeyManagement`・`PasskeyLogin` | `Member|Staff` | `MemberAccount|Staff`。ガードは、今までどおりコントローラーの定数 |
 | `MemberProfileNotice` | `Member`。ルートとテンプレートは固定 | `MemberAccount`。種類の名前から |
 | `MemberActivityLog` | `Member` | `MemberAccount`。記録に種類を足す |
-| `LoginRedirect` | `forMember()`・`forStaff()`。ルートは固定 | `forStaff()` と `forMember($account)`。行き先は種類の名前から。戻り先を種類ごとに覚える |
+| `LoginRedirect` | `forMember()`・`forStaff()`。ルートは固定 | `for($accountClass, $defaultUrl)` の1つ。ガードはモデルから決まり、既定の移動先は呼ぶ側が渡す。戻り先を種類ごとに覚える |
 | `LoginThrottle` | アカウントを1つの値で区別する | 変えない。企業会員は、企業ID と担当者ID をつないだ値を渡す |
 | `HasPasskeys` | パスキーの表示名にメールアドレスを使う | `loginId()` を使う |
 | `OperationLog`・`OperationLogReport`・`OperationLogStats` | 氏名を引く相手が、スタッフと `Member` | スタッフ・個人会員・企業の担当者。名前は `displayName()` |

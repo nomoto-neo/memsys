@@ -19,6 +19,8 @@ use Illuminate\Support\Facades\Mail;
  * メールアドレスが変わったときは、変わる前と後の両方のアドレスに送る。他人にアドレスを
  * 書き換えられたときに、本人が気付けるのは変わる前のアドレスだけだから。
  * メールは保存が確定した後に送り、送れなくても変更は取り消さずにログにだけ残す。
+ * テンプレートは、会員の種類の「種類の名前_profile_changed」。渡す値は、name・changed_at・
+ * reset_url（その種類のパスワードの再設定の画面）。
  */
 final class MemberProfileNotice
 {
@@ -43,7 +45,6 @@ final class MemberProfileNotice
             'name' => $member->displayName(),
             'changed_at' => now()->format('Y年n月j日 H:i'),
             'reset_url' => route($member::memberRoute('password.forgot')),
-            'contact_url' => route('contact.create'),
         ];
 
         // 宛先。メールアドレスが変わったときは、変わる前のアドレスにも送る

@@ -6,8 +6,10 @@ use Illuminate\Http\Request;
 
 /**
  * ログインが完了した後の移動先。ログインの必要な画面を開いてログイン画面へ回された人を、
- * ログインの後で、開こうとしていた画面へ戻す。開こうとしていた画面が無ければ、マイページか
- * 管理画面のTOPへ移す。
+ * ログインの後で、開こうとしていた画面へ戻す。開こうとしていた画面が無ければ、呼ぶ側が渡した
+ * 既定の画面へ移す。
+ *
+ *     LoginRedirect::for(Staff::class, route('admin.dashboard'))
  *
  * ■ 戻り先は、ログインの種類（ガード）ごとに別々に覚える
  * Laravel標準のredirect()->intended()は、戻り先を1つしか覚えない。複数の種類のログイン画面を
@@ -24,17 +26,13 @@ use Illuminate\Http\Request;
  *
  * ■ 呼ぶところ
  * - remember()：未ログインの人をログイン画面へ回すところ（bootstrap/app.phpのredirectGuestsTo）
- * - forStaff()・forMember()：ログインが完了したところ。2段階目が通ったとき、2段階目を省いたとき、
- *   パスキーで通ったとき。パスワードが合って2段階目へ進むときに呼ぶと、戻り先が消えてしまうので
- *   呼ばない
+ * - for()：ログインが完了したところ。2段階目が通ったとき、2段階目を省いたとき、パスキーで
+ *   通ったとき。パスワードが合って2段階目へ進むときに呼ぶと、戻り先が消えてしまうので呼ばない
  */
 final class LoginRedirect
 {
     /** 戻り先を置くセッションのキーの頭。後ろにガードの名前が付く。例：login_intended.admin */
     private const SESSION_KEY_PREFIX = 'login_intended.';
-
-    /** 管理画面のスタッフのガード。 */
-    private const STAFF_GUARD = 'admin';
 
     /**
      * 未ログインの人が開こうとした画面を、その画面のガードの戻り先として覚える。
@@ -68,27 +66,17 @@ final class LoginRedirect
         $request->session()->put(self::SESSION_KEY_PREFIX.$guard, $query ? $path.'?'.$query : $path);
     }
 
-    /** 管理画面のスタッフのログイン後の移動先。 */
-    public static function forStaff(): string
-    {
-        return self::intendedUrl(self::STAFF_GUARD) ?? route('admin.dashboard');
-    }
-
     /**
-     * 会員のログイン後の移動先。開こうとしていた画面が無ければ、その種類のマイページ。
+     * ログインした人の、ログイン後の移動先。その人のガードの戻り先があれば、それを返す。
+     * 戻り先は、1回使ったら消す。無ければ$defaultUrlを返す。
      *
-     * @param  class-string<MemberAccount>  $memberClass  ログインした会員のモデル
+     * @param  class-string<LoginAccount>  $accountClass  ログインした人のモデル
+     * @param  string  $defaultUrl  開こうとしていた画面が無いときの移動先。マイページや管理画面のTOP
      */
-    public static function forMember(string $memberClass): string
+    public static function for(string $accountClass, string $defaultUrl): string
     {
-        return self::intendedUrl($memberClass::memberGuard()) ?? route($memberClass::memberRoute('mypage'));
-    }
+        $url = session()->pull(self::SESSION_KEY_PREFIX.$accountClass::loginGuard());
 
-    /** そのガードの戻り先を取り出す。1回使ったら消す。無ければnull */
-    private static function intendedUrl(string $guard): ?string
-    {
-        $url = session()->pull(self::SESSION_KEY_PREFIX.$guard);
-
-        return is_string($url) && $url !== '' ? $url : null;
+        return is_string($url) && $url !== '' ? $url : $defaultUrl;
     }
 }

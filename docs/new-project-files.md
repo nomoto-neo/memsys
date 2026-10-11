@@ -45,11 +45,9 @@
 - 個人会員をログインID でログインさせるサイトで直すもの：23章の「個人会員をログインID でログインさせるサイト」
 - 会員の種類をもう1つ足すときに触るもの：23章の「会員の種類をもう1つ足すとき」
 
-### スタッフ（Staff）のモデルを名指ししているもの
+### ログインする人の受け取り方
 
-- `PasswordChange`（お知らせのメールのテンプレートと文面を、会員かスタッフかで分けている所）
-
-2段階認証・信頼済み端末・パスキーの部品は、スタッフを名指ししていません。相手を、ログインする人の共通の型（`LoginAccount`）で受け取ります。スタッフのモデルの名前が違うサイトでも、そのモデルが `LoginAccount` を実装していれば使えます。
+2段階認証・信頼済み端末・パスキー・パスワードを変えた後始末（`PasswordChange`）の部品は、スタッフを名指ししていません。相手を、ログインする人の共通の型（`LoginAccount`）で受け取ります。スタッフのモデルの名前が違うサイトでも、そのモデルが `LoginAccount` を実装していれば使えます。
 
 ### モデルの種類ごとの一覧を持っているもの
 
@@ -65,11 +63,10 @@
 
 ### ルートやビューの名前を直接書いているもの
 
+どれも、部品と組で使う、フレームワーク自身のルートとビューです。業務の画面のルート名は、部品には書いていません。
+
 | 部品 | 書いてある名前 |
 |---|---|
-| `LoginRedirect` | `admin.dashboard`。会員の側は、種類の名前から作る |
-| `PasswordChange` | `admin.login`・`contact.create`。会員の側は、種類の名前から作る |
-| `MemberProfileNotice` | `contact.create` |
 | `AdminRequestLimit` | ビュー `admin.too_many_requests` |
 | `CsvImport` | ビュー `admin.csv_import.form`・`confirm` |
 | `UploadFilePath` | `uploads.show`・`uploads.tmp` |

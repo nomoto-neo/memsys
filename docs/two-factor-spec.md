@@ -166,7 +166,7 @@ private const TWO_FACTOR_VIEW = 'admin.auth.login-verify';
 /** ログインが確定した後の移動先 */
 private function loginRedirectUrl(): string
 {
-    return LoginRedirect::forStaff();
+    return LoginRedirect::for(self::LOGIN_ACCOUNT, route('admin.dashboard'));
 }
 ```
 

@@ -106,7 +106,7 @@ class AuthSessionController extends Controller
      */
     private function loginRedirectUrl(): string
     {
-        return LoginRedirect::forStaff();
+        return LoginRedirect::for(self::LOGIN_ACCOUNT, route('admin.dashboard'));
     }
 
     /** パスキーでログインした後の移動先。ログインID・パスワードでのログインと同じ */

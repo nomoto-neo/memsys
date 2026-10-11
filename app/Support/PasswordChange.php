@@ -4,36 +4,45 @@ namespace App\Support;
 
 use App\Enums\OperationLogAction;
 use App\Mail\TemplatedMail;
-use App\Models\Staff;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Route;
 
 /**
  * パスワードを変えたときの後始末。会員とスタッフのパスワードを変える処理は、どれも
- * パスワードを保存した直後にresetAndNotify()を呼ぶ。
+ * パスワードを保存した直後にresetAndNotify()を呼ぶ。相手は、ログインする人の共通の型
+ * （LoginAccount）で受け取る。
  *
  * ■ ほかのログインの手段を無効にする
  * 信頼済みの端末とパスキーをすべて無効にする。乗っ取りを疑ってパスワードを変えたときに、
  * 他人が登録した端末やパスキーから入れる状態を残さないため。理由を問わず同じにしているので、
  * 「パスワードを変えたらほかのログインの手段はすべてリセットされる」と説明できる。
- * スタッフの認証アプリの登録は消さない。秘密鍵は本人のスマートフォンにあり、
+ * 認証アプリの登録は消さない。秘密鍵は本人のスマートフォンにあり、
  * パスワードとは別のものだから。ほかの端末のログインはルートのauth.sessionが解除する。
  *
  * ■ お知らせのメール
  * 本人以外が変えたときに気付けるよう、登録されているメールアドレスへお知らせを送る。
- * スタッフはメールアドレスが任意なので、空なら送らない。メールは保存が確定した後に送り、
+ * メールアドレスが無い人には送らない。メールは保存が確定した後に送り、
  * 送れなくてもパスワードの変更は取り消さずにログにだけ残す。
+ * テンプレートは、その人の種類の「種類の名前_password_changed」（LoginAccount::loginMailTemplate()）。
+ * テンプレートに渡す値：
+ * - name・login_id        宛名と、ログインに使う値
+ * - changed_at            変えた日時
+ * - changed_by_other      本人以外が変えたか。changed_by_nameは、変えた人の名前
+ * - passkeys_deleted      パスキーを消したか
+ * - login_url             その種類のログイン画面
+ * - reset_url             その種類のパスワードの再設定の画面。そのルートが無い種類では空
  */
 class PasswordChange
 {
     /**
-     * @param  MemberAccount|Staff  $owner  パスワードを変えたアカウント
-     * @param  Staff|null  $changedBy  管理画面から変えたスタッフ。本人がマイページなどから
-     *                                 変えたときはnull。お知らせのメールの文面に使う
+     * @param  LoginAccount  $owner  パスワードを変えたアカウント
+     * @param  LoginAccount|null  $changedBy  本人の代わりに変えた人。管理画面から変えたスタッフなど。
+     *                                        本人が変えたときはnull。お知らせのメールの文面に使う
      * @return int  削除したパスキーの件数。画面のメッセージに使う
      */
-    public static function resetAndNotify(MemberAccount|Staff $owner, ?Staff $changedBy = null): int
+    public static function resetAndNotify(LoginAccount $owner, ?LoginAccount $changedBy = null): int
     {
         // 信頼済みの端末とパスキーを無効にする
         TrustedDeviceManager::for($owner)->forgetAll($owner);
@@ -56,48 +65,37 @@ class PasswordChange
     }
 
     /** パスワードが変わったことのお知らせのメール */
-    private static function sendMail(MemberAccount|Staff $owner, ?Staff $changedBy, bool $passkeysDeleted): void
+    private static function sendMail(LoginAccount $owner, ?LoginAccount $changedBy, bool $passkeysDeleted): void
     {
-        // 宛先と宛名。会員は、共通の型のメソッドから取る
-        $email = $owner instanceof Staff ? $owner->email : $owner->notificationEmail();
-        $name = $owner instanceof Staff ? $owner->name : $owner->displayName();
+        $email = $owner->notificationEmail();
 
         // メールアドレスが無ければ送らない
         if (empty($email)) {
             return;
         }
 
-        // 本人が自分で変えたのではなく、管理画面のスタッフが変えたか
-        $byOther = $changedBy !== null && ! ($owner instanceof Staff && $changedBy->id === $owner->id);
+        // 本人が自分で変えたのではなく、ほかの人が変えたか
+        $byOther = $changedBy !== null && ! $changedBy->is($owner);
+
+        // パスワードの再設定の画面は、その種類にルートがあるときだけ案内する
+        $resetRoute = $owner::loginRoute('password.forgot');
 
         $variables = [
             'from_mail' => config('mail.from.address'),
             'from_name' => config('mail.from.name'),
             'to_mail' => $email,
-            'name' => $name,
+            'name' => $owner->displayName(),
+            'login_id' => $owner->loginId(),
             'changed_at' => now()->format('Y年n月j日 H:i'),
             'changed_by_other' => $byOther,
+            'changed_by_name' => $byOther ? $changedBy->displayName() : '',
             'passkeys_deleted' => $passkeysDeleted,
+            'login_url' => route($owner::loginRoute('login')),
+            'reset_url' => Route::has($resetRoute) ? route($resetRoute) : '',
         ];
 
-        // スタッフと会員でテンプレートと案内のURLを変える。会員のものは、種類の名前から決まる
-        if ($owner instanceof Staff) {
-            $template = 'staff_password_changed';
-            $variables += [
-                'login_id' => $owner->login_id,
-                'changed_by_name' => $byOther ? $changedBy->name : '',
-                'login_url' => route('admin.login'),
-            ];
-        } else {
-            $template = $owner::memberMailTemplate('password_changed');
-            $variables += [
-                'reset_url' => route($owner::memberRoute('password.forgot')),
-                'contact_url' => route('contact.create'),
-            ];
-        }
-
         try {
-            Mail::send(new TemplatedMail($template, $variables));
+            Mail::send(new TemplatedMail($owner::loginMailTemplate('password_changed'), $variables));
         } catch (\Throwable $e) {
             Log::error('PasswordChange: パスワード変更のお知らせメールの送信に失敗しました。', [
                 'type' => $owner->getMorphClass(),

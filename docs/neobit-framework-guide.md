@@ -1119,7 +1119,7 @@ if ($spam === SpamCheckResult::Failed) {
 3. 信頼済み端末なら、そのままログインを確定する。
 4. そうでなければ「パスワード確認済み・2段階目が未完了」をセッションに置き、2段階目の画面へ。2段階目の画面は `guest` にも `auth` にも入れず、トレイトがセッションで守る。
 5. 2段階目が通ったら、ログインを確定する。
-6. ログインが必要な画面から来た場合はその画面へ、そうでなければ既定の画面（マイページ・管理画面TOP）へ移す。移動先は `LoginRedirect::forMember(Member::class)`・`forStaff()` で決める（2・3・5とパスキーで通ったとき）。
+6. ログインが必要な画面から来た場合はその画面へ、そうでなければ既定の画面（マイページ・管理画面TOP）へ移す。移動先は `LoginRedirect::for(Member::class, route('mypage'))` で決める（2・3・5とパスキーで通ったとき）。2つ目の引数が、既定の画面。
 
 2から5は `TwoFactorLogin` トレイトが受け持ちます。ログインの確定（`Auth::login()` と `session()->regenerate()`）は、どの道を通ってもトレイトの中の1か所で行います。
 
@@ -1158,7 +1158,7 @@ private const LOGIN_ACCOUNT = Staff::class;                    // ガード・�
 private const TWO_FACTOR_VIEW = 'admin.auth.login-verify';     // 2段階目の画面
 private function loginRedirectUrl(): string                    // ログインが確定した後の移動先
 {
-    return LoginRedirect::forStaff();
+    return LoginRedirect::for(self::LOGIN_ACCOUNT, route('admin.dashboard'));
 }
 
 // パスワードが合った後は、トレイトに任せる
@@ -1366,7 +1366,7 @@ public function update(Request $request): RedirectResponse
 
 - `auth.session` が、パスワードを変えたときにほかの端末のログインと「ログイン状態を保持する」の Cookie を無効にします。
 - パスワードの更新は、必ず「ログイン中のユーザーのインスタンス」に対して行います（別のインスタンスを更新すると本人までログアウトされます）。別のインスタンスを保存した場合は `Auth::guard(...)->setUser($record)` で差し替えます（実例：`StaffController::afterSave()`）。
-- パスワードを変えたら、保存の直後に `PasswordChange::resetAndNotify($record, changedBy: 管理画面から変えたスタッフ)` を呼びます（トランザクションの中でよい）。信頼済み端末とパスキーをすべて無効にし、確定後に登録されているメールアドレスへお知らせを送ります（テンプレートは `member_password_changed`・`company_password_changed`・`staff_password_changed`）。スタッフの2段階認証（TOTP）は消しません。戻り値は削除したパスキーの件数で、画面のメッセージに使えます。
+- パスワードを変えたら、保存の直後に `PasswordChange::resetAndNotify($record, changedBy: 管理画面から変えたスタッフ)` を呼びます（トランザクションの中でよい）。信頼済み端末とパスキーをすべて無効にし、確定後に登録されているメールアドレスへお知らせを送ります（テンプレートは `member_password_changed`・`company_password_changed`・`staff_password_changed`）。スタッフの2段階認証（TOTP）は消しません。戻り値は削除したパスキーの件数で、画面のメッセージに使えます。お問い合わせの画面のように、サイトごとに違う案内の URL は、テンプレートの中に `{!! route('contact.create') !!}` のように書きます。
 
 ### 認証まわりのテーブル
 
@@ -1386,7 +1386,7 @@ use PasskeyLogin;
 private const PASSKEY_GUARD = 'web';                  // ログインさせるガード
 private function passkeyRedirectUrl(): string         // ログイン後の移動先
 {
-    return LoginRedirect::forMember(Member::class);
+    return LoginRedirect::for(Member::class, route('mypage'));
 }
 
 // 本人のパスキーを扱うコントローラー
@@ -1927,7 +1927,7 @@ return $this->continueAfterPassword($request, $user, $request->boolean('remember
 | その種類のルートへ移す | `route(CompanyUser::memberRoute('mypage'))` |
 | 確認コード | `new MemberVerificationCode(CompanyUser::class)` |
 | 信頼済み端末 | `TrustedDeviceManager::for($user)` |
-| ログインの後の移動先 | `LoginRedirect::forMember(CompanyUser::class)` |
+| ログインの後の移動先 | `LoginRedirect::for(CompanyUser::class, route('company.mypage'))` |
 | パスワードを変えた後始末 | `PasswordChange::resetAndNotify($user)` |
 | 情報が変わったお知らせ | `MemberProfileNotice::send($user, $changedFields)` |
 | メールアドレスの変更の確認 | トレイトの `holdForEmailChange($request, $user)`（`EmailChange`） |

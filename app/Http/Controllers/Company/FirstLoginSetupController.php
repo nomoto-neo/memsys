@@ -253,7 +253,7 @@ class FirstLoginSetupController extends Controller
         $request->session()->regenerate();
 
         // ログインが必要な画面から来た場合はその画面へ、そうでなければマイページへ
-        return redirect(LoginRedirect::forMember(CompanyUser::class))
+        return redirect(LoginRedirect::for(CompanyUser::class, route(CompanyUser::memberRoute('mypage'))))
             ->with('status', '登録が完了しました。次回からは、新しい担当者IDとパスワードでログインしてください。');
     }
 

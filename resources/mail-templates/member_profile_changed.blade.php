@@ -14,7 +14,7 @@ SUBJECT: 会員情報変更のお知らせ
 {!! $reset_url !!}
 
 お問い合わせ
-{!! $contact_url !!}
+{!! route('contact.create') !!}
 
 --
 このメールは自動送信されています。返信いただいてもお答えできません。
