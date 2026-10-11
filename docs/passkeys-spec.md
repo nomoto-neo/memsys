@@ -179,7 +179,7 @@ private const PASSKEY_GUARD = 'web';           // ログインさせるガード
 
 private function passkeyRedirectUrl(): string // ログイン後に移動するURL
 {
-    return redirect()->intended(route('mypage'))->getTargetUrl();
+    return LoginRedirect::forMember(Member::class);
 }
 ```
 

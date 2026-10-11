@@ -7,6 +7,7 @@ use App\Http\Middleware\NormalizeInput;
 use App\Http\Middleware\RestrictAdminAccess;
 use App\Http\Middleware\RestrictSiteAccess;
 use App\Http\Middleware\SecurityHeaders;
+use App\Support\LoginRedirect;
 use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -23,10 +24,15 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         // 非ログイン時の飛び先：管理画面(admin.*)はadmin.loginへ、企業会員の画面(company.*)は
         // company.loginへ、それ以外はloginへ
-        $middleware->redirectGuestsTo(fn (Request $request) => match (true) {
-            $request->routeIs('admin.*') => route('admin.login'),
-            $request->routeIs('company.*') => route('company.login'),
-            default => route('login'),
+        $middleware->redirectGuestsTo(function (Request $request) {
+            // 開こうとした画面を覚えておき、ログインの後でそこへ戻す（App\Support\LoginRedirect）
+            LoginRedirect::remember($request);
+
+            return match (true) {
+                $request->routeIs('admin.*') => route('admin.login'),
+                $request->routeIs('company.*') => route('company.login'),
+                default => route('login'),
+            };
         });
 
         // ログイン済みなのにゲスト専用画面（ログイン画面など）に来たときの飛び先も、同じ考え方で分ける

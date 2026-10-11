@@ -241,7 +241,7 @@ GRANT ALL PRIVILEGES ON memsys_testing.* TO 'memsys'@'localhost';
 | `LoginIdMemory` | `app/Support/` | ログイン画面の入力（企業ID と担当者ID）を、ブラウザに覚えさせる | 14 |
 | `CompanyInvitationManager` | `app/Support/` | 企業会員の担当者の招待（リンクの発行・送り直し・取り消し・照合） | 14 |
 | `LoginSession` | `app/Support/` | そのガードだけのログアウト（同じブラウザのほかのログインは残す） | 14 |
-| `LoginRedirect` | `app/Support/` | ログインの後の移動先（開こうとしていた画面へ戻す。会員と管理画面で入れ違わない） | 14 |
+| `LoginRedirect` | `app/Support/` | ログインの後の移動先（開こうとしていた画面へ戻す。戻り先は、ログインの種類ごとに覚える） | 14 |
 | `MemberVerificationCode` | `app/Support/` | メールで送る確認コード | 14 |
 | `EmailChange` | `app/Support/` | 本人がメールアドレスを変えるときに、新しいアドレスへの確認コードの入力を挟む | 14 |
 | `TrustedDeviceManager` | `app/Support/` | 2段階目を省略できる信頼済み端末 | 14 |
@@ -1123,9 +1123,9 @@ if ($spam === SpamCheckResult::Failed) {
 
 2から5は `TwoFactorLogin` トレイトが受け持ちます。ログインの確定（`Auth::login()` と `session()->regenerate()`）は、どの道を通ってもトレイトの中の1か所で行います。
 
-開こうとしていた画面の記録（セッションの `url.intended`）は、会員と管理画面で1つしか無いので、`redirect()->intended()` を直接使わず `LoginRedirect` を通します。記録された URL がログインした側の画面（管理画面なら `admin.*` のルート）のときだけ戻り先にし、そうでなければ既定の画面へ移して、記録はもう一方の側のために残します。
+未ログインでログインの要る画面を開くと、ログインの後に、その画面へ戻します。Laravel 標準の `redirect()->intended()` は、戻り先を1つしか記憶できず、複数の種類のログイン画面を同じブラウザで使うと、正しい戻り先を判別できません。そこで `LoginRedirect` が、戻り先をログインの種類ごとに別々に記憶します。
 
-記録された URL がどちらの側の画面かは、そのルートの `auth` のミドルウェアから読みます。ログインの必要なルートには、`auth:web`・`auth:admin` のように、ガードの名前を省かずに書きます。
+開こうとした画面がどの種類の画面かは、そのルートの `auth` のミドルウェアから読みます。ログインの必要なルートには、`auth:web`・`auth:admin` のように、ガードの名前を省かずに書きます。
 
 ### 2段階認証（TwoFactorLogin・TwoFactorChallenge）
 
@@ -1386,7 +1386,7 @@ use PasskeyLogin;
 private const PASSKEY_GUARD = 'web';                  // ログインさせるガード
 private function passkeyRedirectUrl(): string         // ログイン後の移動先
 {
-    return redirect()->intended(route('mypage'))->getTargetUrl();
+    return LoginRedirect::forMember(Member::class);
 }
 
 // 本人のパスキーを扱うコントローラー

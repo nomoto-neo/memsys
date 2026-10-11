@@ -3,36 +3,70 @@
 namespace App\Support;
 
 use Illuminate\Http\Request;
-use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 /**
- * ログインが完了した後の移動先。ログインの必要な画面を開いた人は、Laravelが開こうとしたURLを
- * セッションのurl.intendedに記録してからログイン画面へ回すので、ログインしたらその画面へ戻す。
- * 記録が無ければ、マイページか管理画面のTOPへ移す。
+ * ログインが完了した後の移動先。ログインの必要な画面を開いてログイン画面へ回された人を、
+ * ログインの後で、開こうとしていた画面へ戻す。開こうとしていた画面が無ければ、マイページか
+ * 管理画面のTOPへ移す。
  *
- * ■ 記録は、会員と管理画面で1つしか無い
- * url.intendedは、どのガードでも同じ1つのキー。redirect()->intended()をそのまま使うと、
- * 同じブラウザで両方を使ったときに、会員のログインの後に管理画面のURLへ飛んでしまう。
- * そこで、記録されたURLがどのガードの画面かを調べ、ログインしたガードの画面のときだけ戻り先にする。
- * どのガードの画面かは、そのルートに付いているauthのミドルウェアで見分ける（auth:adminなら
- * admin、auth:webならweb）。ルートの名前の付け方には頼らない。
+ * ■ 戻り先は、ログインの種類（ガード）ごとに別々に覚える
+ * Laravel標準のredirect()->intended()は、戻り先を1つしか覚えない。複数の種類のログイン画面を
+ * 同じブラウザで使うと、会員のログインの後に管理画面のURLへ飛ぶ、ということが起きる。
+ * そこで、戻り先をガードごとのセッションのキーに覚え、ログインしたガードの分だけを使う。
+ * ほかのガードの戻り先には触らないので、それぞれのログインの後に、それぞれの画面へ戻る。
+ *
+ * ■ どのガードの画面か
+ * 開こうとした画面のルートに付いているauthのミドルウェアで見分ける（auth:adminならadmin、
+ * auth:webならweb）。ルートの名前の付け方には頼らない。
  * そのため、ログインの必要なルートには、ガードの名前を省かずに書く（authだけにしない）。
  * authだけのルートは既定のガードとして扱うが、既定のガードは、auth:adminのように名前を書いた
  * ルートを通ると、そのリクエストの間は書き換わる。省かずに書いておけば、取り違えない。
- * 戻り先にしなかった記録は、もう一方の側がログインしたときに使えるよう消さずに残す。
- * 戻すのはパスと問い合わせの部分だけで、ホスト名は付けない。
  *
  * ■ 呼ぶところ
- * ログインが完了したところで呼ぶ。2段階目が通ったとき、2段階目を省いたとき、パスキーで通ったとき。
- * パスワードが合って2段階目へ進むときに呼ぶと、記録が消えてしまうので呼ばない。
+ * - remember()：未ログインの人をログイン画面へ回すところ（bootstrap/app.phpのredirectGuestsTo）
+ * - forStaff()・forMember()：ログインが完了したところ。2段階目が通ったとき、2段階目を省いたとき、
+ *   パスキーで通ったとき。パスワードが合って2段階目へ進むときに呼ぶと、戻り先が消えてしまうので
+ *   呼ばない
  */
 final class LoginRedirect
 {
-    /** 記録を置くセッションのキー。Laravelが決めているもの。 */
-    private const INTENDED_SESSION_KEY = 'url.intended';
+    /** 戻り先を置くセッションのキーの頭。後ろにガードの名前が付く。例：login_intended.admin */
+    private const SESSION_KEY_PREFIX = 'login_intended.';
 
     /** 管理画面のスタッフのガード。 */
     private const STAFF_GUARD = 'admin';
+
+    /**
+     * 未ログインの人が開こうとした画面を、その画面のガードの戻り先として覚える。
+     * 覚えるのは、画面を開くリクエスト（GET）だけ。フォームの送信先へは戻せないため。
+     * 覚えるのはパスと問い合わせの部分だけで、ホスト名は持たない。
+     */
+    public static function remember(Request $request): void
+    {
+        if (! $request->isMethod('GET') || $request->route() === null) {
+            return;
+        }
+
+        // そのルートが、どのガードのログインを求めているか。authのミドルウェアから読む。
+        // 「auth」だけなら既定のガード、「auth:admin」ならadmin
+        $guard = null;
+        foreach ($request->route()->gatherMiddleware() as $middleware) {
+            if ($middleware === 'auth') {
+                $guard = config('auth.defaults.guard');
+            } elseif (is_string($middleware) && str_starts_with($middleware, 'auth:')) {
+                $guard = substr($middleware, strlen('auth:'));
+            }
+        }
+
+        if ($guard === null) {
+            return;
+        }
+
+        $path = '/'.ltrim($request->path(), '/');
+        $query = $request->getQueryString();
+
+        $request->session()->put(self::SESSION_KEY_PREFIX.$guard, $query ? $path.'?'.$query : $path);
+    }
 
     /** 管理画面のスタッフのログイン後の移動先。 */
     public static function forStaff(): string
@@ -50,45 +84,11 @@ final class LoginRedirect
         return self::intendedUrl($memberClass::memberGuard()) ?? route($memberClass::memberRoute('mypage'));
     }
 
-    /**
-     * 記録されたURLが、ログインしたガード（$guard）の画面なら、パスと問い合わせの部分を返して
-     * 記録を消す。そうでなければnullを返して記録は残す。
-     */
+    /** そのガードの戻り先を取り出す。1回使ったら消す。無ければnull */
     private static function intendedUrl(string $guard): ?string
     {
-        $url = session(self::INTENDED_SESSION_KEY);
+        $url = session()->pull(self::SESSION_KEY_PREFIX.$guard);
 
-        if (! is_string($url) || $url === '') {
-            return null;
-        }
-
-        try {
-            $route = app('router')->getRoutes()->match(Request::create($url, 'GET'));
-        } catch (HttpExceptionInterface) {
-            // 今はもう無い画面のURLなど
-            return null;
-        }
-
-        // そのルートが、どのガードのログインを求めているか。authのミドルウェアから読む。
-        // 「auth」だけなら既定のガード、「auth:admin」ならadmin。authが無いルートは戻り先にしない
-        $routeGuard = null;
-        foreach ($route->gatherMiddleware() as $middleware) {
-            if ($middleware === 'auth') {
-                $routeGuard = config('auth.defaults.guard');
-            } elseif (is_string($middleware) && str_starts_with($middleware, 'auth:')) {
-                $routeGuard = substr($middleware, strlen('auth:'));
-            }
-        }
-
-        if ($routeGuard !== $guard) {
-            return null;
-        }
-
-        session()->forget(self::INTENDED_SESSION_KEY);
-
-        $path = '/'.ltrim((string) parse_url($url, PHP_URL_PATH), '/');
-        $query = parse_url($url, PHP_URL_QUERY);
-
-        return $query ? $path.'?'.$query : $path;
+        return is_string($url) && $url !== '' ? $url : null;
     }
 }

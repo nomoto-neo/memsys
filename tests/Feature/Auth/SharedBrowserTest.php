@@ -149,6 +149,44 @@ class SharedBrowserTest extends TestCase
             ->assertRedirect(route('admin.members.index'));
     }
 
+    public function test_each_side_remembers_its_own_page_to_return_to(): void
+    {
+        $this->member();
+        $this->staff();
+
+        // ログインせずに、管理画面と会員の画面を続けて開こうとした
+        $this->get('/admin/members?page=2')->assertRedirect(route('admin.login'));
+        $this->get('/mypage/edit')->assertRedirect(route('login'));
+
+        // 後から会員の画面を開こうとしていても、スタッフのログインの後は、管理画面の元の画面へ戻る
+        $this->post('/admin/login', ['login_id' => 'hanako', 'password' => self::PASSWORD]);
+        $this->post('/admin/login/verify', ['code' => (new Google2FA())->getCurrentOtp($this->secret)])
+            ->assertRedirect('/admin/members?page=2');
+
+        // 会員のログインの後は、会員の元の画面へ戻る
+        $this->post('/login', ['email' => 'taro@example.com', 'password' => self::PASSWORD]);
+        $this->post('/login/verify', ['code' => $this->lastVerificationCode()])
+            ->assertRedirect(route('mypage.edit'));
+
+        // 戻り先は1回使ったら消える。次のログインでは、既定の画面へ移る
+        $this->post('/logout');
+        $this->post('/login', ['email' => 'taro@example.com', 'password' => self::PASSWORD]);
+        $this->post('/login/verify', ['code' => $this->lastVerificationCode()])
+            ->assertRedirect(route('mypage'));
+    }
+
+    public function test_page_to_return_to_is_not_remembered_for_a_form_post(): void
+    {
+        $this->member();
+
+        // フォームの送信先は、戻り先にしない
+        $this->delete('/mypage/withdraw')->assertRedirect(route('login'));
+
+        $this->post('/login', ['email' => 'taro@example.com', 'password' => self::PASSWORD]);
+        $this->post('/login/verify', ['code' => $this->lastVerificationCode()])
+            ->assertRedirect(route('mypage'));
+    }
+
     public function test_withdraw_keeps_the_staff_login(): void
     {
         $this->member();
