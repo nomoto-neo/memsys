@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 /**
- * 画面を短く書くためのヘルパー（hit()・code_options()・code_labels()）と、
+ * 画面を短く書くためのヘルパー（hit()・code_options()・code_label()）と、
  * 画面に渡す$input・$filtersに、値の無い項目のキーも入っていること。
  */
 class FormHelpersTest extends TestCase
@@ -58,7 +58,7 @@ class FormHelpersTest extends TestCase
         $this->assertFalse(hit('', ''));
     }
 
-    // ---- code_options()・code_labels() ----
+    // ---- code_options()・code_label() ----
 
     public function test_code_options_marks_the_selected_one(): void
     {
@@ -119,21 +119,23 @@ class FormHelpersTest extends TestCase
         }
     }
 
-    public function test_code_labels_joins_the_names(): void
+    public function test_code_label_joins_the_names_of_multiple_values(): void
     {
-        $this->assertSame('北海道、東京都', code_labels('prefectures', ['1', 13]));
-        $this->assertSame('北海道/東京都', code_labels('prefectures', [1, 13], '/'));
+        // 1つの値
+        $this->assertSame('東京都', code_label('prefectures', 13));
+        $this->assertSame('東京都', code_label('prefectures', '13', '（未設定）'));
+        $this->assertSame('', code_label('prefectures', null));
+        $this->assertSame('（未設定）', code_label('prefectures', 999, '（未設定）'));
 
-        // コード表に無い値は飛ばす。1つだけの値と、空の値も受け付ける
-        $this->assertSame('東京都', code_labels('prefectures', [999, 13]));
-        $this->assertSame('東京都', code_labels('prefectures', 13));
-        $this->assertSame('', code_labels('prefectures', null));
+        // 配列なら、名称をつなげる。区切りは4つ目の引数
+        $this->assertSame('北海道、東京都', code_label('prefectures', ['1', 13]));
+        $this->assertSame('北海道/東京都', code_label('prefectures', [1, 13], '（未設定）', '/'));
+        $this->assertSame('北海道/東京都', code_label('prefectures', [1, 13], separator: '/'));
 
-        // 名称が1つも無ければ、既定の値を返す。区切りをnullにすると「、」になる
-        $this->assertSame('（未設定）', code_labels('prefectures', null, default: '（未設定）'));
-        $this->assertSame('（未設定）', code_labels('prefectures', [999], null, '（未設定）'));
-        $this->assertSame('北海道、東京都', code_labels('prefectures', [1, 13], null, '（未設定）'));
-        $this->assertSame('北海道/東京都', code_labels('prefectures', [1, 13], '/', '（未設定）'));
+        // コード表に無い値は飛ばす。名称が1つも無ければ、既定の値を返す
+        $this->assertSame('東京都', code_label('prefectures', [999, 13]));
+        $this->assertSame('', code_label('prefectures', []));
+        $this->assertSame('（未設定）', code_label('prefectures', [999], '（未設定）'));
     }
 
     // ---- 値の無い項目のキー ----

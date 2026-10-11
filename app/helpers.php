@@ -33,46 +33,33 @@ if (! function_exists('code_label')) {
      * コード表で、値に対応する名称を返す。画面の表示に使う。
      * 値が空か、コード表に無い値なら$defaultを返す。列挙型の値をそのまま渡してもよい。
      *
-     *   code_label('prefectures', $member->prefecture, '（未設定）')
-     */
-    function code_label(string $codeName, mixed $value, string $default = ''): string
-    {
-        // 列挙型なら、その値で探す
-        if ($value instanceof BackedEnum) {
-            $value = $value->value;
-        }
-
-        $table = CodeTable::get($codeName);
-
-        // 空の値や、コード表に無い値なら$default
-        if ((! is_int($value) && ! is_string($value)) || ! array_key_exists($value, $table)) {
-            return $default;
-        }
-
-        // 2階層のコード表の見出しは、名称ではないので$default
-        return is_string($table[$value]) ? $table[$value] : $default;
-    }
-}
-
-if (! function_exists('code_labels')) {
-    /**
-     * 複数選ばれた値を、コード表の名称に変えてつなげて返す。チェックボックスの項目を、
-     * 一覧や詳細に出すのに使う。コード表に無い値は飛ばす。値が1つでも、空でもよい。
-     * 区切りは、書かないかnullなら「、」。名称が1つも無ければ$defaultを返す。
+     * チェックボックスのように複数選ばれた値は、配列で渡す。名称を$separatorでつなげて返す。
+     * コード表に無い値は飛ばし、名称が1つも無ければ$defaultを返す。
      *
-     *   {{ code_labels('prefectures', $row->area_prefs) }}                         東京都、神奈川県
-     *   {{ code_labels('prefectures', $row->area_prefs, '/') }}                    東京都/神奈川県
-     *   {{ code_labels('prefectures', $row->area_prefs, default: '（未設定）') }}   1つも無ければ（未設定）
+     *   code_label('prefectures', $member->prefecture, '（未設定）')
+     *   code_label('prefectures', $row->area_prefs, '（未設定）')        東京都、神奈川県
+     *   code_label('prefectures', $row->area_prefs, '（未設定）', '/')   東京都/神奈川県
      */
-    function code_labels(string $codeName, mixed $values, ?string $separator = null, string $default = ''): string
+    function code_label(string $codeName, mixed $value, string $default = '', string $separator = '、'): string
     {
+        $table = CodeTable::get($codeName);
         $labels = [];
 
-        foreach ((array) ($values ?? []) as $value) {
-            $label = code_label($codeName, $value);
+        // 1つの値も配列にして、同じ流れで名称に変える
+        foreach (is_array($value) ? $value : [$value] as $one) {
+            // 列挙型なら、その値で探す
+            if ($one instanceof BackedEnum) {
+                $one = $one->value;
+            }
 
-            if ($label !== '') {
-                $labels[] = $label;
+            // 空の値や、コード表に無い値は飛ばす
+            if ((! is_int($one) && ! is_string($one)) || ! array_key_exists($one, $table)) {
+                continue;
+            }
+
+            // 2階層のコード表の見出しは、名称ではないので飛ばす
+            if (is_string($table[$one])) {
+                $labels[] = $table[$one];
             }
         }
 
@@ -80,7 +67,7 @@ if (! function_exists('code_labels')) {
             return $default;
         }
 
-        return implode($separator ?? '、', $labels);
+        return implode($separator, $labels);
     }
 }
 

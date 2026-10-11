@@ -20,7 +20,7 @@
  * - 名前が _ary で終わる変数は区分表。foreachならcode_table('名前')、
  *   $xxx_ary[$v] ならcode_label('名前', $v)
  * - |checked:$k・|selected:$k は @checked(hit(…))・@selected(hit(…))
- * - html_optionsはcode_options()、html_valuesはcode_labels()
+ * - html_optionsはcode_options()、html_valuesはcode_label()
  * - <!--{$err.xxx}--> は、エラー欄の<div class="invalid-feedback" …>
  * - HTMLのコメント <!-- … --> は、Bladeのコメント {{-- … --}}
  * - method="post"の<form>には、@csrfを足す
@@ -654,7 +654,7 @@ final class Tpl2Blade
         return "{{ code_options('{$codeName}'{$selected}) }}";
     }
 
-    /** html_values options=$xxx_ary selected=$v separator="/" → code_labels('xxx', …, '/') */
+    /** html_values options=$xxx_ary selected=$v separator="/" → code_label('xxx', …, separator: '/') */
     private function convertHtmlValues(string $rest, string $inner): string
     {
         $attrs = $this->attributes($rest);
@@ -664,9 +664,9 @@ final class Tpl2Blade
             return $this->todo('html_valuesを書き換えられません', $inner);
         }
 
-        $separator = isset($attrs['separator']) ? ', '.$this->expr($attrs['separator']) : '';
+        $separator = isset($attrs['separator']) ? ', separator: '.$this->expr($attrs['separator']) : '';
 
-        return "{{ code_labels('{$codeName}', ".$this->expr($attrs['selected'])."{$separator}) }}";
+        return "{{ code_label('{$codeName}', ".$this->expr($attrs['selected'])."{$separator}) }}";
     }
 
     /**
