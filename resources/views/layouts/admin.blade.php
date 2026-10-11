@@ -77,7 +77,8 @@
         </div>
     </div>
 </nav>
-<div class="container" style="max-width: 1000px;">
+{{-- 本文の横幅。列の多い一覧の画面は、@section('content-width', '1200px')のように書いて広げる --}}
+<div class="container" style="max-width: @yield('content-width', '1000px');">
     @if (session('status'))
         <div class="alert alert-success">{{ session('status') }}</div>
     @endif
