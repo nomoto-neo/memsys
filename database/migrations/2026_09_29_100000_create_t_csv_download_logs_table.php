@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 /**
  * CSVダウンロードの記録（App\Models\CsvDownloadLog）。
  *
- * 業務の側で参照したり、古い行を消したりするデータなので、t_の付くテーブルにしている。
+ * テーブルの名前は、後のマイグレーション（rename_log_tables）で、頭のt_を外した名前に変わる。
  * operator_idは、ダウンロードしたときにログインしていた人のid（管理画面ならスタッフのid）。
  */
 return new class extends Migration

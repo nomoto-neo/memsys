@@ -3,7 +3,7 @@
 namespace App\Enums;
 
 /**
- * 操作ログの操作の種類（t_operation_logs.action）。DBには文字列（value）で保存する。
+ * 操作ログの操作の種類（operation_logs.action）。DBには文字列（value）で保存する。
  * 画面ではコード表code_table('operation_log_action')として使う。
  * 記録するところはApp\Support\OperationRecorderの冒頭のコメントにまとめてある。
  */

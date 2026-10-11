@@ -13,7 +13,7 @@ class CsvImportLog extends Model
 {
     public const UPDATED_AT = null;
 
-    protected $table = 't_csv_import_logs';
+    protected $table = 'csv_import_logs';
 
     protected $fillable = [
         'name',

@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
 /**
- * 操作ログ（t_operation_logs）の件数の集計。件数の多い時間帯や、操作の多い人に気付けるようにする。
+ * 操作ログ（operation_logs）の件数の集計。件数の多い時間帯や、操作の多い人に気付けるようにする。
  * 管理画面の操作ログの一覧の上に出すグラフと表、1日1回の報告のメール（OperationLogReport）で使う。
  *
  * どのメソッドも、対象を絞った操作ログのクエリを受け取り、そこに期間の条件を足して数える。

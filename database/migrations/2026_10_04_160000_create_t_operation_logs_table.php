@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 /**
  * 操作ログ（App\Models\OperationLog）。誰が・いつ・どこから・何に・何をしたかを1行ずつ残す。
  *
- * 業務の側で参照したり、古い行を消したりするデータなので、t_の付くテーブルにしている。
+ * テーブルの名前は、後のマイグレーション（rename_log_tables）で、頭のt_を外した名前に変わる。
  * 操作した人と対象は、種類（staff・memberなど。AppServiceProviderのenforceMorphMap()の名前）と
  * idの組で持つ。氏名などの個人情報と、変更の前後の値は持たない。
  */

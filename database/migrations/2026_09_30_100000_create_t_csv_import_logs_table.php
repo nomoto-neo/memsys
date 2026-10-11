@@ -7,8 +7,7 @@ use Illuminate\Support\Facades\Schema;
 /**
  * CSV取り込みの記録（App\Models\CsvImportLog）。
  *
- * ダウンロードの記録（t_csv_download_logs）と同じく、業務の側で参照したり、
- * 古い行を消したりするデータなので、t_の付くテーブルにしている。
+ * テーブルの名前は、後のマイグレーション（rename_log_tables）で、頭のt_を外した名前に変わる。
  * 件数は、処理だけのモード（CsvImportMode::Process）ではrow_countだけが入り、
  * 追加・更新・変更なしは0になる。
  */

@@ -27,7 +27,7 @@ use Illuminate\Support\Facades\Storage;
  * 企業会員の担当者の招待（t_company_invitationsテーブル）
  *   消すもの：期限の切れた行
  *
- * 操作ログ（t_operation_logsテーブル）
+ * 操作ログ（operation_logsテーブル）
  *   消すもの：config('logging.operation_log_days')の日数より古い行
  *
  * お問い合わせ（t_inquiriesテーブルと添付ファイル）

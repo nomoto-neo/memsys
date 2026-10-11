@@ -16,7 +16,7 @@ class OperationLog extends Model
 {
     public const UPDATED_AT = null;
 
-    protected $table = 't_operation_logs';
+    protected $table = 'operation_logs';
 
     protected $fillable = [
         'operator_type',

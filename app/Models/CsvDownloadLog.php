@@ -13,7 +13,7 @@ class CsvDownloadLog extends Model
 {
     public const UPDATED_AT = null;
 
-    protected $table = 't_csv_download_logs';
+    protected $table = 'csv_download_logs';
 
     protected $fillable = [
         'name',

@@ -33,8 +33,9 @@
 
 ## テーブル
 
-- 業務のデータと、業務の側で参照したり古い行を消したりする記録は `t_` を付ける
-- 認証の保持・試行制限のようなフレームワーク内部のテーブルは `t_` を付けず、会員・スタッフ共通の1つにして `authenticatable_type`・`authenticatable_id` で区別する。新しい認証対象のモデルを足したら `AppServiceProvider` の `Relation::enforceMorphMap()` にも足す
+- 業務のデータは `t_` を付ける
+- フレームワークの側のテーブルは `t_` を付けない。認証の保持・試行制限のためのものと、誰が何をしたかの記録（操作ログ、CSV のダウンロード・取り込みの記録）
+- 認証のためのテーブルは、会員・スタッフ共通の1つにして `authenticatable_type`・`authenticatable_id` で区別する。新しい認証対象のモデルを足したら `AppServiceProvider` の `Relation::enforceMorphMap()` にも足す
 - 外部キー制約は付けない。関連の片付けはコードで行う
 - DB への書き込みが2つ以上続く処理は `DB::transaction()` で囲む。ファイルの削除とメールの送信は、トランザクションが確定した後に行う
 

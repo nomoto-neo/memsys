@@ -3,7 +3,7 @@
 namespace App\Enums;
 
 /**
- * 操作ログの「操作した人」と「対象」の種類（t_operation_logs.operator_type・target_type）。
+ * 操作ログの「操作した人」と「対象」の種類（operation_logs.operator_type・target_type）。
  * 値は、AppServiceProviderのRelation::enforceMorphMap()に書いたモデルの名前と同じにする。
  * 画面ではコード表code_table('operation_log_subject')として、種類の名前を出すのに使う。
  * 操作ログに残すモデルを増やしたら、enforceMorphMap()とここの両方に足す。

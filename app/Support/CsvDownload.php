@@ -57,7 +57,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  * そのまま。Excelで開かずにほかのシステムへ渡すCSVでは「'」が残ってしまうので、falseにする。
  *
  * ■ ダウンロードの記録
- * 1回ごとに、名前・日時・操作者・検索条件・IPアドレス・件数をt_csv_download_logsに残す。
+ * 1回ごとに、名前・日時・操作者・検索条件・IPアドレス・件数をcsv_download_logsに残す。
  * 途中で止まってもダウンロードしようとしたことが残るよう、書き出す前に行を作る。
  */
 trait CsvDownload

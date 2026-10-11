@@ -81,7 +81,7 @@ use Throwable;
  * - 更新日時と最終更新者が取り込んだ人に書き換わらないよう、変更の無い行は保存しない
  *
  * ■ 取り込みの記録
- * 取り込みが確定するたびに、CsvImportLogのt_csv_import_logsへ名前・日時・操作した人・
+ * 取り込みが確定するたびに、CsvImportLogのcsv_import_logsへ名前・日時・操作した人・
  * ファイル名・文字コード・件数・IPアドレスを残す。
  */
 trait CsvImport

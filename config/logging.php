@@ -51,7 +51,7 @@ return [
     |
     */
 
-    // 操作ログ（t_operation_logs。App\Support\OperationRecorder）を残す日数。
+    // 操作ログ（operation_logs。App\Support\OperationRecorder）を残す日数。
     // これを過ぎた行は、App\Support\TemporaryDataCleanerが消す
     'operation_log_days' => (int) env('OPERATION_LOG_DAYS', 365),
 

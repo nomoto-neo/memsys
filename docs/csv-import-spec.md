@@ -203,7 +203,7 @@ Route::post('/members/csv-import/execute', [AdminMemberController::class, 'csvIm
 
 ## 11. 取り込み記録
 
-`t_csv_import_logs`（ダウンロード記録と同じく、業務側で参照・削除するデータなので `t_` を付ける）。
+`csv_import_logs`（ダウンロード記録・操作ログと同じく、フレームワークの側の記録なので `t_` を付けない）。
 
 | 列 | 中身 |
 |---|---|

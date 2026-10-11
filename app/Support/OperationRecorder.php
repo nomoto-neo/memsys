@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 
 /**
- * 操作ログ（t_operation_logs）を書く。誰が・いつ・どこから・何に・何をしたかを1行ずつ残す。
+ * 操作ログ（operation_logs）を書く。誰が・いつ・どこから・何に・何をしたかを1行ずつ残す。
  * 情報が漏れたときや、身に覚えのない変更の問い合わせがあったときに、後からたどれるようにするため。
  *
  * ■ 残さないもの
