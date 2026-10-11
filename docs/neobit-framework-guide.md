@@ -114,7 +114,7 @@ MAIL_FROM_NAME="${SITE_NAME}"
 | `SITE_NAME` | 画面やメールに出す名前。日本語で書いてよい | メニューの左上、ブラウザのタブの題名、メールの差出人名、エラーの通知と操作ログの報告の件名 |
 
 - **`APP_NAME` を日本語にしてはいけません**。Laravel は、`APP_NAME` から英数字だけを残して、Cookie とキャッシュの名前を作ります。日本語だけだと全部が消えて、Cookie の名前が `-session` になります。同じドメインに置いたほかの Laravel のサイトと名前が重なり、片方にログインすると、もう片方がログアウトします。
-- **`SITE_NAME` を書かなければ、`APP_NAME` が出ます**。
+- **`SITE_NAME` を書かなければ、名前は出ません**。空のままになり、`APP_NAME` を代わりに出すことはありません。`APP_NAME` は処理の中で使う識別名で、人に見せる名前ではないためです。サイトを設置するときに、必ず `SITE_NAME` を書きます。
 - **画面では `config('app.site_name')` で出します**。レイアウト（`layouts/app.blade.php`・`admin.blade.php`・`company.blade.php`）が、メニューと題名に使っています。メンテナンス中の画面（`maintenance.blade.php`）だけは、設定に頼らない1枚の HTML なので、名前を直接書いてあります。
 - **`.env` を変えたら `php artisan config:cache` をやり直します**。`APP_NAME` を変えると Cookie の名前が変わるので、ログイン中の人は、ログインし直しになります。
 

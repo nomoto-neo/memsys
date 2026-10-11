@@ -28,9 +28,52 @@ class SiteNameTest extends TestCase
         $this->get(route('company.login'))->assertOk()->assertSee('企業会員ログイン - デモサイト')->assertSee('デモサイト 企業会員');
     }
 
-    public function test_site_name_falls_back_to_the_app_name(): void
+    public function test_site_name_is_read_from_the_env(): void
     {
-        // SITE_NAMEを書いていなければ、APP_NAMEが出る（config/app.php）
-        $this->assertSame(config('app.name'), config('app.site_name'));
+        $this->assertSame('デモサイト', $this->siteNameWhen('デモサイト'));
+    }
+
+    public function test_site_name_stays_empty_without_falling_back_to_the_app_name(): void
+    {
+        // SITE_NAMEを書いていなくても、空で書いても、名前は空のまま。APP_NAMEは人に見せる名前ではないので、
+        // 代わりに出さない（config/app.php）
+        $this->assertSame('', $this->siteNameWhen(null));
+        $this->assertSame('', $this->siteNameWhen(''));
+    }
+
+    /**
+     * .envのSITE_NAMEがその値のときに、設定のサイトの名前がどうなるか。nullは、書いていないとき。
+     * 手元の.envの中身に左右されないよう、環境変数を差し替えてconfig/app.phpを読み直す。
+     * 読み終えたら、環境変数を元に戻す。
+     */
+    private function siteNameWhen(?string $value): string
+    {
+        $original = ['env' => $_ENV['SITE_NAME'] ?? null, 'server' => $_SERVER['SITE_NAME'] ?? null, 'getenv' => getenv('SITE_NAME')];
+
+        try {
+            $this->putSiteNameEnv($value, $value, $value ?? false);
+
+            return (require config_path('app.php'))['site_name'];
+        } finally {
+            $this->putSiteNameEnv($original['env'], $original['server'], $original['getenv']);
+        }
+    }
+
+    /** 環境変数のSITE_NAMEを、Laravelが読む3か所とも書き換える。nullかfalseは、無い状態にする */
+    private function putSiteNameEnv(?string $env, ?string $server, string|false $getenv): void
+    {
+        if ($env === null) {
+            unset($_ENV['SITE_NAME']);
+        } else {
+            $_ENV['SITE_NAME'] = $env;
+        }
+
+        if ($server === null) {
+            unset($_SERVER['SITE_NAME']);
+        } else {
+            $_SERVER['SITE_NAME'] = $server;
+        }
+
+        putenv($getenv === false ? 'SITE_NAME' : 'SITE_NAME='.$getenv);
     }
 }
