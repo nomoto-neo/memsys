@@ -10,8 +10,8 @@ use Tests\Support\ReadsSentMail;
 use Tests\TestCase;
 
 /**
- * 「このデバイスを記憶する」のCookie。パスの指定を誤っていた頃に保存された古いCookieが
- * ブラウザに残っていても、新しく記憶した端末が使われること。
+ * 「この端末を信頼する」のCookie。パスの指定を誤っていた頃に保存された古いCookieが
+ * ブラウザに残っていても、新しく信頼した端末が使われること。
  */
 class TrustedDeviceCookieTest extends TestCase
 {

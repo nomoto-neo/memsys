@@ -6,8 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 /**
- * ログインの2段階目を省ける、信頼済みの端末1台分の記録。会員の「このデバイスを記憶する」と、
- * スタッフの「この端末を信頼する」の両方に使う。
+ * ログインの2段階目を省ける、信頼済みの端末1台分の記録。2段階目の画面の「この端末を信頼する」で作る。
+ * 会員とスタッフの両方に使う。
  *
  * 認証の仕組みのためのデータなので、会員とスタッフで1つのテーブルを共通に使い、
  * 誰の端末かは2つの列で表す。判定・発行・取り消しは、App\Support\TrustedDeviceManagerが行う。

@@ -21,7 +21,7 @@ use Illuminate\Support\Facades\Storage;
  * 試行制限の回数などのキャッシュ（cache・cache_locksテーブル）
  *   消すもの：期限の切れた行
  *
- * 「このデバイスを記憶する」の記録（trusted_devicesテーブル）
+ * 「この端末を信頼する」の記録（trusted_devicesテーブル）
  *   消すもの：期限の切れた行
  *
  * 企業会員の担当者の招待（t_company_invitationsテーブル）
@@ -103,7 +103,7 @@ final class TemporaryDataCleaner
     }
 
     /**
-     * TrustedDeviceManagerの「このデバイスを記憶する」「この端末を信頼する」の記録のうち、
+     * TrustedDeviceManagerの「この端末を信頼する」の記録のうち、
      * 期限の切れた行。会員とスタッフの両方の分。
      */
     public static function expiredTrustedDevices(): int

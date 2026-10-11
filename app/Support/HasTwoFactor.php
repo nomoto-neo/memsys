@@ -82,7 +82,7 @@ trait HasTwoFactor
         return $this->morphMany(TwoFactorBackupCode::class, 'authenticatable');
     }
 
-    /** 2段階目を省けるように記憶した端末。判定はApp\Support\TrustedDeviceManagerが行う */
+    /** 2段階目を省けるように信頼した端末。判定はApp\Support\TrustedDeviceManagerが行う */
     public function trustedDevices(): MorphMany
     {
         return $this->morphMany(TrustedDevice::class, 'authenticatable');

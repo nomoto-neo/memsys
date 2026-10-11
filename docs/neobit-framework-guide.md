@@ -1104,7 +1104,7 @@ if ($spam === SpamCheckResult::Failed) {
 | ログイン前だけの画面 | `guest` | `guest:company` | `guest:admin` |
 | 2段階目の方式 | メールの確認コード | 同じ | 認証アプリ（TOTP） |
 | バックアップコード | 希望する人が発行 | 同じ | 同じ |
-| 2段階目の省略 | 「このデバイスを記憶する」 | 同じ | 「この端末を信頼する」 |
+| 2段階目の省略 | 「この端末を信頼する」 | 同じ | 同じ |
 
 2段階目の方式は、モデルの定数で選びます（下の「2段階認証」）。表は、見本のサイトでの値です。省略の仕組み（`TrustedDeviceManager::for()`）は、どのログインでも同じです。
 
@@ -1172,7 +1172,7 @@ return $this->continueAfterPassword($request, $staff, $request->boolean('remembe
 | `resendCode()`（POST。メールの方式だけ。`throttle` を付ける） | `login.verify.resend` |
 
 - **定数に既定の値はありません**。`TWO_FACTOR_METHOD` と `BACKUP_CODES` を書いていないモデルでログインすると、エラーになります。書き忘れで「なし」になるのを防ぐためです。
-- **2段階目の画面のビューは、`@include('_two_factor', ['rememberLabel' => '…'])` するだけにします**。中身は方式と状態（コードの入力か、QR コードの登録か）で出し分けます。
+- **2段階目の画面のビューは、`@include('_two_factor')` するだけにします**。中身は方式と状態（コードの入力か、QR コードの登録か）で出し分けます。
 - **認証アプリの登録は、共通のテーブル `two_factor_secrets` に持ちます**。バックアップコード（`two_factor_backup_codes`）・信頼済み端末（`trusted_devices`）と同じ扱いで、業務のテーブルには列を足しません。読み書きは、モデルの `hasTwoFactorConfirmed()`・`twoFactorConfirmedAt()`・`registerTwoFactor($secret)`・`resetTwoFactor()` で行います。
 - **本人をもう一度確かめるときは `TwoFactorChallenge` を使います**。`send()` で準備（メールの方式なら確認コードを送る）、`verify()` で照合、`throttle()` で試行制限です。方式での場合分けは、部品の中にあります。
 - **メールの方式のモデルは、メールアドレスを必須にします**。スタッフのメールアドレスは任意なので、スタッフを `Email` にするときは、検証のルールを必須に変えます。
@@ -1551,7 +1551,7 @@ Schedule::command(CleanupTemporaryData::class)->hourly()->withoutOverlapping();
 | アップロード直後の一時ファイル | `storage/app/private/tmp` | 24時間（`MAX_AGE_HOURS`）より古いファイル |
 | CSV 取り込みの作業用ファイル | `storage/app/private/csv_import` | 24時間より古いファイル |
 | 試行制限の回数などのキャッシュ | `cache`・`cache_locks` テーブル | 期限の切れた行（キャッシュを database に置いているときだけ） |
-| 「このデバイスを記憶する」の記録 | `trusted_devices` テーブル | 期限（`expires_at`）の切れた行 |
+| 「この端末を信頼する」の記録 | `trusted_devices` テーブル | 期限（`expires_at`）の切れた行 |
 | 企業会員の担当者の招待（14章） | `t_company_invitations` テーブル | 期限（`expires_at`）の切れた行 |
 | 操作ログ（22章） | `operation_logs` テーブル | `OPERATION_LOG_DAYS`（既定は365日）より古い行 |
 | お問い合わせ（12章） | `t_inquiries` テーブルと添付ファイル | `INQUIRY_KEEP_DAYS` より古い行と、その添付ファイル。空なら消さない |

@@ -216,7 +216,7 @@ trait TwoFactorLogin
 
         $throttle->clear();
 
-        // 「この端末を記憶する」にチェックがあれば、次回から2段階目を省く
+        // 「この端末を信頼する」にチェックがあれば、次回から2段階目を省く
         if ($request->boolean('remember_device')) {
             TrustedDeviceManager::for($account)->remember($account);
         }

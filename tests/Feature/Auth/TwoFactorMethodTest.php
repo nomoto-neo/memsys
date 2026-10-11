@@ -174,7 +174,7 @@ class TwoFactorMethodTest extends TestCase
         $this->useTwoFactorMethod(Member::class, TwoFactorMethod::Totp);
         $member = $this->member();
 
-        // メールの方式の頃に記憶した端末が残っていても、認証アプリの登録は省かない
+        // メールの方式の頃に信頼した端末が残っていても、認証アプリの登録は省かない
         TrustedDeviceManager::for($member)->remember($member);
         $cookie = collect(cookie()->getQueuedCookies())->firstWhere(fn ($c) => $c->getName() === Member::trustedDeviceCookie());
 

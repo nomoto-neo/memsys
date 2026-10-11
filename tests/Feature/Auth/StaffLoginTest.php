@@ -126,7 +126,7 @@ class StaffLoginTest extends TestCase
     {
         $this->staff();
 
-        // 会員の側で記憶した端末の値を、スタッフの側のCookieとして送っても、信頼されない
+        // 会員の側で信頼した端末の値を、スタッフの側のCookieとして送っても、信頼されない
         $member = Member::factory()->create();
         $member->trustedDevices()->create(['token_hash' => hash('sha256', 'member-token'), 'expires_at' => now()->addDay()]);
 

@@ -69,7 +69,7 @@ interface LoginAccount
     /** 使っていないバックアップコードの残りの数 */
     public function unusedBackupCodesCount(): int;
 
-    /** 2段階目を省けるように記憶した端末 */
+    /** 2段階目を省けるように信頼した端末 */
     public function trustedDevices(): MorphMany;
 
     /** 認証アプリの登録を解除し、バックアップコード・信頼済み端末・パスキーも無効にする */

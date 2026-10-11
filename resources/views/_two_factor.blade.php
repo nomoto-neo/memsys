@@ -10,10 +10,11 @@
     - $twoFactorBackupCodes  バックアップコードの入力欄を出すか。発行してある人にだけ出す
     - $twoFactorRoutes   ルートの名前。login＝ログイン画面、confirm＝照合、resend＝確認コードの再送
     - $twoFactorSecret・$twoFactorQrCode  （setup）秘密鍵と、QRコードの画像
-
-    @includeする側が渡す変数：
-    - $rememberLabel     「この端末を記憶する」のチェックの文言
 --}}
+@php
+    // 2段階目を次から省くチェックの文言。どのログインでも同じ
+    $rememberLabel = 'この端末を信頼する（次回から30日間、この端末では確認コードの入力を省略します）';
+@endphp
 <div class="card">
     @if ($twoFactorState === 'email')
         {{-- メールの確認コードの入力 --}}

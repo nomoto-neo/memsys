@@ -4,7 +4,7 @@
 
     渡す変数：
     - $backupCodeLead  どんなときに使うかの案内
-    _two_factorの $twoFactorRoutes・$rememberLabel も使う。
+    _two_factorの $twoFactorRoutes と、そこで決めた $rememberLabel も使う。
 --}}
 <hr>
 

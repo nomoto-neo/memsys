@@ -91,7 +91,7 @@ class MemberLoginTest extends TestCase
     {
         $member = $this->member();
 
-        // 「このデバイスを記憶する」を付けてログインする
+        // 「この端末を信頼する」を付けてログインする
         $this->post('/login', ['email' => 'taro@example.com', 'password' => self::PASSWORD]);
         $response = $this->post('/login/verify', ['code' => $this->lastVerificationCode(), 'remember_device' => '1']);
         $cookie = $response->getCookie('member_trusted_device');
