@@ -24,7 +24,7 @@
 import { postUploadFile } from './upload_request.js';
 
 // エディタで選べる画像の種類。サーバー側の許可
-// (AjaxFileUpload::ALLOW_IMAGE_TYPES)に合わせている。最終的な判定は
+// (config/upload.phpのimage_types)に合わせている。最終的な判定は
 // サーバー側で行うので、ここは利用者が無駄にアップロードしないための
 // 案内にすぎない。
 const ACCEPT_IMAGE_TYPES = 'image/jpeg,image/png,image/webp';

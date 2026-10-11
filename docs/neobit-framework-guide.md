@@ -44,6 +44,7 @@
 | 第3.7版 | 2026-10-11 | ログインの2段階目を、独立した部品にした。方式（メールの確認コード・認証アプリ・なし）を、モデルの定数で選ぶ。管理画面の2段階目の URL は `/admin/login/verify` に変わった（14章・23章） |
 | 第3.8版 | 2026-10-11 | バックアップコードを、使うかどうかをモデルの定数 `BACKUP_CODES` で選び、希望する人が自分の画面で発行する形にした。メールの方式でも使える。2段階認証の登録を解除するコマンド `app:reset-two-factor` を追加（14章） |
 | 第3.9版 | 2026-10-11 | 操作ログと、CSV のダウンロード・取り込みの記録のテーブルから、名前の頭の `t_` を外した（`operation_logs`・`csv_download_logs`・`csv_import_logs`）。`t_` を付けるのは、業務のデータだけ（16章） |
+| 第3.10版 | 2026-10-12 | アップロードできるファイルの種類と大きさの上限を、`config/upload.php` で決めるようにした。CSV の取り込みの大きさの上限も同じ（7章） |
 
 ## 0. このガイドについて
 
@@ -708,7 +709,7 @@ private function prepareInput(array $validated): array
 - ルートにアップロード先を1本足します：`Route::post('/news/ajax-upload', [AdminNewsController::class, 'uploadAjaxFile'])->name('news.ajaxUpload');`（訪問者向けは `throttle` を付ける）。
 - **単数のフィールド**（`list_image`）：テーブルに `list_image`（保存ファイル名）と `list_image_origin`（元のファイル名）のカラムを作り、モデルの `$fillable` に入れます。
 - **複数のフィールド**（`attach.*`）：子テーブル（`filename`・`original_name`（NULL可）・親の id）と、フィールドと同じ名前の HasMany リレーション（`News::attach()`）を用意します。
-- 許可する拡張子・大きさの上限は、サイト全体の方針としてトレイトの定数にあります（コーナーごとには変えません）。
+- 許可する拡張子・大きさの上限は、サイト全体の方針として `config/upload.php` で決めます。コーナーごとには変えません。画像の種類を変えたら、エディタでファイルを選ぶときの絞り込み（`wysiwyg_suneditor.js`・`wysiwyg_summernote.js` の `ACCEPT_IMAGE_TYPES`）も合わせます。CSV の取り込みの大きさの上限（`csv_max_kb`）も、ここにあります。
 - **保存先**：`UploadFilePath` の規則で、モデルのクラス名と id から決まります（例：`news/000/000012/xxxx.jpg`）。1件分のファイルはフィールドに関係なく1つのディレクトリに入ります。表示の URL は `UploadFilePath::url(クラス, id, フィールド, ファイル名)` で作り、モデルのアクセサにしておきます（例：`News::list_image_url`、`NewsAttachment::url`）。
 
 ### 画面

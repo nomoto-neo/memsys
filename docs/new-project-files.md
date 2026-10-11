@@ -25,6 +25,7 @@
 | `config/mail.php` | 送信元の既定の値（`staff@example.com`）。実際の値は `.env` の `MAIL_FROM_ADDRESS` に書く |
 | `phpunit.xml` | テスト用の DB の名前（`memsys_testing`） |
 | `config/form.php` | 必須マークの HTML |
+| `config/upload.php` | アップロードできるファイルの種類と、大きさの上限。CSV の取り込みの上限もここ |
 | `config/members.php` | 既存のシステムから会員を移すサイトでは、古い方式のパスワードの種類（`legacy_passwords`）と、初回のログインで照合する列（`identity_check_column`）。新しく始めるサイトは、そのまま。企業会員のあるサイトでは、申請の通知の宛先（中身は `.env`） |
 | `config/contact.php`・`config/services.php` | お問い合わせの宛先、Turnstile の鍵（中身は `.env`） |
 | `bootstrap/app.php` | ログインしていないときの移動先のルート名、ミドルウェアの短い名前 |

@@ -41,16 +41,10 @@ use InvalidArgumentException;
  */
 trait CsvReader
 {
-    /**
-     * アップロードできるCSVファイルの大きさの上限(KB)。サーバーのupload_max_filesizeと
-     * post_max_sizeもこれ以上にしておく
-     */
-    private const CSV_FILE_MAX_KB = 10240;
-
-    /** CSVファイルの欄の検証ルール */
+    /** CSVファイルの欄の検証ルール。大きさの上限は、設定で決める（config/upload.php） */
     private function csvFileRules(): array
     {
-        return ['required', 'file', 'extensions:csv,txt', 'max:'.self::CSV_FILE_MAX_KB];
+        return ['required', 'file', 'extensions:csv,txt', 'max:'.config('upload.csv_max_kb')];
     }
 
     // ---- 確認画面から実行まで ----

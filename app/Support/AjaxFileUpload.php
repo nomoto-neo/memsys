@@ -35,8 +35,8 @@ use Illuminate\Support\Facades\Validator;
  * - uploadAjaxFile()を指すPOSTのルート。例：admin.news.ajaxUpload
  * - WYSIWYG_FIELDS：['フィールド名' => 横幅(px)]。画像を入れられるエディタの欄。省略できる
  *
- * 使える拡張子のALLOW_IMAGE_TYPESとALLOW_ATTACH_TYPESはサイト全体のセキュリティの方針なので、
- * このトレイトが持ってコーナーごとには変えさせない。
+ * 使える拡張子と大きさの上限は、サイト全体のセキュリティの方針なので、設定で決める（config/upload.php）。
+ * コーナーごとには変えさせない。
  *
  * ■ エディタの欄の画像
  * エディタに入れた画像も、ほかの画像と同じ流れで扱う。
@@ -80,19 +80,6 @@ use Illuminate\Support\Facades\Validator;
  */
 trait AjaxFileUpload
 {
-    private const ALLOW_IMAGE_TYPES = ['jpg', 'jpeg', 'png', 'webp'];
-
-    private const ALLOW_ATTACH_TYPES = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'csv', 'zip'];
-
-    /** 1ファイルの大きさの上限(KB) */
-    private const MAX_UPLOAD_KB = 10240;
-
-    /**
-     * 画像1枚の画素数の上限。4000万画素は8000×5000くらいで、スマートフォンの写真は十分に収まる。
-     * サーバーのメモリに余裕があってもこれを超える画像は受け付けない
-     */
-    private const MAX_IMAGE_PIXELS = 40_000_000;
-
     /** GDが画像を展開したときに1画素あたりに使うバイト数。フルカラーは1画素を4バイトで持つ */
     private const GD_BYTES_PER_PIXEL = 4;
 
@@ -142,7 +129,7 @@ trait AjaxFileUpload
         // 種類はLaravelのmimesで確かめる。拡張子だけでなくファイルの中身から見た種類も確かめる
         $validator = Validator::make(
             ['file' => $file],
-            ['file' => ['required', 'file', 'mimes:'.implode(',', $allowTypes), 'max:'.self::MAX_UPLOAD_KB]]
+            ['file' => ['required', 'file', 'mimes:'.implode(',', $allowTypes), 'max:'.config('upload.max_kb')]]
         );
 
         if ($validator->fails()) {
@@ -210,7 +197,7 @@ trait AjaxFileUpload
      * メモリを取ろうとしてmemory_limitを超え、処理が止まる。getimagesize()はファイルの先頭の寸法を
      * 読むだけで展開しないので、その前に断れる。
      *
-     * 1. MAX_IMAGE_PIXELSを超えていたら、メモリに関係なく断る
+     * 1. 画素数の上限（config/upload.phpのmax_image_pixels）を超えていたら、メモリに関係なく断る
      * 2. 展開に要るメモリの見込みが残りのメモリに収まらなければ断る。縦向きに撮った写真は
      *    回転を直すときに同じ大きさの画像をもう1枚作るので、見込みは2枚分にする。
      *    memory_limitが無制限なら確かめない
@@ -238,12 +225,12 @@ trait AjaxFileUpload
             $imageHeight
         );
 
-        // 1. 画素数の上限
-        if ($pixels > self::MAX_IMAGE_PIXELS) {
+        // 1. 画素数の上限（config/upload.php）
+        if ($pixels > config('upload.max_image_pixels')) {
             Log::warning('AjaxFileUpload: 画像の画素数が上限を超えています。', [
                 'field' => $field,
                 'pixels' => $pixels,
-                'max_pixels' => self::MAX_IMAGE_PIXELS,
+                'max_pixels' => config('upload.max_image_pixels'),
             ]);
 
             return $message;
@@ -279,7 +266,8 @@ trait AjaxFileUpload
             }
 
             $width = $def['width'];
-            $allowTypes = $width > 0 ? self::ALLOW_IMAGE_TYPES : self::ALLOW_ATTACH_TYPES;
+            // 許可する種類は、サイト全体の方針として設定で決める（config/upload.php）
+            $allowTypes = config($width > 0 ? 'upload.image_types' : 'upload.attach_types');
 
             return [$width, $allowTypes];
         }
@@ -806,7 +794,7 @@ trait AjaxFileUpload
 
         $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
 
-        if (! in_array($extension, self::ALLOW_IMAGE_TYPES, true)) {
+        if (! in_array($extension, config('upload.image_types'), true)) {
             return null;
         }
 
