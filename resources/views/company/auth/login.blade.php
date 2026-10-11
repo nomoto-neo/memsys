@@ -59,12 +59,12 @@
             <meta name="csrf-token" content="{{ csrf_token() }}">
             @vite(['resources/js/passkeys.js'])
         @endpush
-        <div class="mt-4 pt-3 border-top" data-passkey-login hidden
+        <div class="mt-4 pt-3 border-top passkey_login" hidden
              data-options-url="{{ route('company.login.passkey.options') }}"
              data-submit-url="{{ route('company.login.passkey') }}"
              data-remember="remember">
             <button type="button" class="btn btn-outline-primary">パスキーでログイン</button>
-            <div class="text-danger small mt-2" data-passkey-message></div>
+            <div class="text-danger small mt-2 passkey_message"></div>
         </div>
     @endif
 

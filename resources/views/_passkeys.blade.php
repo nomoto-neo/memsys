@@ -57,13 +57,13 @@
 <h2 class="h6 mt-4">パスキーを追加する</h2>
 
 {{-- このブラウザがパスキーに対応していないときは、passkeys.jsがこの案内を表示し、登録の操作を隠す --}}
-<div class="alert alert-warning" data-passkey-unsupported hidden>
+<div class="alert alert-warning passkey_unsupported" hidden>
     このブラウザはパスキーに対応していません。
 </div>
 
-<div data-passkey-supported>
+<div class="passkey_supported">
     @if ($identityConfirmed)
-        <div data-passkey-register
+        <div class="passkey_register"
              data-options-url="{{ route($passkeyRoute.'.options') }}"
              data-submit-url="{{ route($passkeyRoute.'.store') }}">
             <p>
@@ -71,7 +71,7 @@
                 （本人確認から10分以内）。
             </p>
             <button type="button" class="btn btn-primary">この端末でパスキーを作成する</button>
-            <div class="text-danger small mt-2" data-passkey-message></div>
+            <div class="text-danger small mt-2 passkey_message"></div>
         </div>
     @elseif ($confirmBy === 'totp')
         @if ($twoFactorMissing)

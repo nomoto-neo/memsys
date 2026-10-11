@@ -7,17 +7,17 @@
  * サーバーとの通信（POST）のCSRFトークンは、@laravel/passkeysが
  * <meta name="csrf-token">から読む。読み込む画面には、この<meta>を一緒に置く。
  *
- * 1. data-passkey-login（ログイン画面）
+ * 1. クラス名passkey_login（ログイン画面）
  *    ボタンを押すと、data-options-urlからオプションを受け取り、端末でパスキーを
  *    選んでもらい、結果をdata-submit-urlへ送る。成功したら、サーバーが返した
  *    移動先へ移る。data-rememberには「ログイン状態を保持する」のチェックボックスの
  *    idを書く（押した時点のチェックの状態を送る）。
  *    パスキーに対応していないブラウザでは、ボタンごと出さない（hiddenのまま）。
- * 2. data-passkey-register（パスキーの一覧画面、本人確認の後）
+ * 2. クラス名passkey_register（パスキーの一覧画面、本人確認の後）
  *    ボタンを押すと、端末でパスキーを作ってもらい、結果をサーバーへ送る。
  *    成功したら画面を読み込み直す（完了のメッセージはサーバーがセッションに入れている）。
  *    パスキーの名前はサーバーが決めるので、ここからは送らない。
- * 3. data-passkey-unsupported / data-passkey-supported（パスキーの一覧画面）
+ * 3. クラス名passkey_unsupported / クラス名passkey_supported（パスキーの一覧画面）
  *    パスキーに対応していないブラウザでは、案内を出して登録の操作を隠す。
  * 4. form[data-confirm]（パスキーの削除）
  *    送信の前に、data-confirmの文言で確認する。
@@ -58,7 +58,7 @@ const messageFor = (error) => {
 // ボタンを押してから結果が出るまで、ボタンを押せないようにして、文言を消す。
 const run = async (box, task) => {
     const button = box.querySelector('button');
-    const message = box.querySelector('[data-passkey-message]');
+    const message = box.querySelector('.passkey_message');
 
     button.disabled = true;
     if (message) {
@@ -78,7 +78,7 @@ const run = async (box, task) => {
 const supported = Passkeys.isSupported();
 
 // 1. ログイン画面
-document.querySelectorAll('[data-passkey-login]').forEach((box) => {
+document.querySelectorAll('.passkey_login').forEach((box) => {
     if (!supported) {
         return;
     }
@@ -100,7 +100,7 @@ document.querySelectorAll('[data-passkey-login]').forEach((box) => {
 });
 
 // 2. パスキーの登録
-document.querySelectorAll('[data-passkey-register]').forEach((box) => {
+document.querySelectorAll('.passkey_register').forEach((box) => {
     box.querySelector('button').addEventListener('click', () => run(box, async () => {
         await Passkeys.register({
             name: '',
@@ -116,10 +116,10 @@ document.querySelectorAll('[data-passkey-register]').forEach((box) => {
 
 // 3. 対応していないブラウザの案内
 if (!supported) {
-    document.querySelectorAll('[data-passkey-unsupported]').forEach((el) => {
+    document.querySelectorAll('.passkey_unsupported').forEach((el) => {
         el.hidden = false;
     });
-    document.querySelectorAll('[data-passkey-supported]').forEach((el) => {
+    document.querySelectorAll('.passkey_supported').forEach((el) => {
         el.hidden = true;
     });
 }
