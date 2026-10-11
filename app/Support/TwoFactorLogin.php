@@ -313,6 +313,9 @@ trait TwoFactorLogin
 
         $request->session()->forget([$this->pendingSessionKey(), $this->rememberSessionKey()]);
         $request->session()->regenerate();
+
+        // パスキーを使うサイトなら、まだ持っていない人に、次の画面で登録を1回だけ勧める
+        PasskeySuggestion::afterLogin($request, $account);
     }
 
     /**

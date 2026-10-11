@@ -86,6 +86,9 @@
         <div class="alert alert-danger">{{ session('error') }}</div>
     @endif
 
+    {{-- パスキーの登録の案内。パスワードでログインした直後に、1回だけ出る --}}
+    @include('_passkey_suggest')
+
     @yield('content')
 </div>
 

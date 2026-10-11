@@ -233,6 +233,7 @@ GRANT ALL PRIVILEGES ON memsys_testing.* TO 'memsys'@'localhost';
 | `TwoFactorLogin` | `app/Support/` | ログインの、パスワードが合った後の流れ（2段階目・信頼済みの端末・ログインの確定）と、ログアウト | 14 |
 | `TwoFactorChallenge` | `app/Support/` | その人の2段階目の方式で、本人かどうかを確かめる | 14 |
 | `TwoFactorManagement` | `app/Support/` | ログイン中の本人による、認証アプリのバックアップコードの作り直しと、登録の解除 | 14 |
+| `PasskeySuggestion` | `app/Support/` | パスワードでログインした人に、パスキーの登録を1回だけ勧める | 14 |
 | `LegacyPasswordUserProvider`・`LegacyPassword` | `app/Support/` | 既存のシステムから移した会員の、古い方式のパスワードの照合と、今の方式への置き換え | 14 |
 | `LoginIdMemory` | `app/Support/` | ログイン画面の入力（企業ID と担当者ID）を、ブラウザに覚えさせる | 14 |
 | `CompanyInvitationManager` | `app/Support/` | 企業会員の担当者の招待（リンクの発行・送り直し・取り消し・照合） | 14 |
@@ -1377,6 +1378,7 @@ private const PASSKEY_VIEW = 'mypage.passkeys';                // 一覧画面�
 - 本人確認の失敗は、ログインの2段階目と同じカウンターで数えます（`TwoFactorChallenge::throttle()`）。
 - 認証アプリの方式の人は、認証アプリを登録してある間だけパスキーを持てます。未登録の間は、登録に進めません。
 - パスキーは `APP_URL` のドメインに結び付きます。`APP_URL` をブラウザで開いているアドレスと完全に同じにし、HTTPS（開発時の `localhost` は例外）で使います。
+- **登録の案内**：パスキーを持っていない人に、パスワードでログインした直後の画面の上で、登録を1回だけ勧めます（`PasskeySuggestion`・`_passkey_suggest.blade.php`）。パスキーの一覧画面のルートがあれば出て、無ければ出ません。見せたかどうかは、DB ではなくブラウザの Cookie で覚えます。パスワードを変えたときと、認証アプリを登録し直したときは、もう1回出ます。
 - 退会と2段階認証の登録解除では、`$record->passkeys()->delete()` でパスキーも消します。パスワードを変えたときは `PasswordChange` が消します。
 
 ## 15. トランザクションとファイルの削除

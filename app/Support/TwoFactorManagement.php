@@ -60,6 +60,8 @@ trait TwoFactorManagement
         return view(self::TWO_FACTOR_BACKUP_CODES_VIEW, [
             'codes' => $codes,
             'twoFactorNextUrl' => $this->twoFactorHomeUrl(),
+            // パスキーの登録の案内は、この画面では出さずに、次の画面へ持ち越す
+            'holdPasskeySuggest' => PasskeySuggestion::hold($request),
         ]);
     }
 
