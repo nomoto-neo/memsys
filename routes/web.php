@@ -600,7 +600,8 @@ Route::prefix('admin')->name('admin.')->middleware('admin.ip')->group(function (
 });
 
 // 固定ページ：訪問者向け。/aboutus のように、URLの名前（t_pages.slug）がそのままパスになる。
-// 必ず、このファイルのいちばん最後に置く。上のどのルートにも当たらなかった、1区切りのURLだけを
+// 名前には / を含められる（/service/price）。
+// 必ず、このファイルのいちばん最後に置く。上のどのルートにも当たらなかったURLだけを
 // ここで受けるため。上に置くと、/login や /news より先に当たってしまう。
 // ほかの画面のURLと同じ名前のページは、管理画面の検証で作れないようにしてある（Page::isReservedSlug()）。
 Route::get('/{slug}', [PageController::class, 'show'])

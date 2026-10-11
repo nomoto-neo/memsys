@@ -91,8 +91,8 @@ class PageController extends Controller
             'title' => ['required', 'string', 'max:255'],
             'slug' => [
                 'required', 'string', 'max:100',
-                // 訪問者の側のルートが受け付ける文字だけにする
-                'regex:/^'.Page::SLUG_PATTERN.'$/',
+                // 訪問者の側のルートが受け付ける文字だけにする。パターンに / が入るので、区切りは # にする
+                'regex:#^'.Page::SLUG_PATTERN.'$#',
                 // 自分を除いて、ほかの行と重ならないこと
                 Rule::unique(Page::class, 'slug')->ignore($page?->id),
                 // ほかの画面のURLと同じ語は、開けないページになるので断る

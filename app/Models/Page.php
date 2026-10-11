@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Route;
 /**
  * 固定ページ。会社概要のように、管理画面で本文を書いて、訪問者の側に決まったURLで出すページ。
  * URLは、URLの名前（slug）がそのままパスになる。aboutusなら /aboutus で開く。
+ * 名前には / を含められる。service/priceなら /service/price で開く。親に当たる /service の
+ * ページが無くても作れる。
  *
  * 本文はWYSIWYGエディタで書く。見本のサイトでは、ニュースの本文をsummernoteで、
  * 固定ページの本文をSunEditorで書くようにして、2つのエディタの動作の見本にしている。
@@ -28,9 +30,10 @@ class Page extends Model
 
     /**
      * URLの名前に使える文字。半角の英小文字・数字・ハイフンで、先頭は英小文字か数字。
+     * / で区切って、いくつでもつなげられる。先頭と末尾の / と、// は通さない。
      * 検証のルールと、訪問者の側のルートの両方で使う。食い違うと、登録できるのに開けないページができる
      */
-    public const SLUG_PATTERN = '[a-z0-9][a-z0-9-]*';
+    public const SLUG_PATTERN = '[a-z0-9][a-z0-9-]*(?:/[a-z0-9][a-z0-9-]*)*';
 
     protected $table = 't_pages';
 
@@ -54,18 +57,22 @@ class Page extends Model
     }
 
     /**
-     * URLの名前として使えない語かを返す。ほかの画面のURLの最初の区切りと同じ語は、使えない。
-     * 固定ページのルートは、ほかの全部のルートの後ろで受けるので、たとえばloginという名前の
-     * ページを作っても、ログイン画面が先に当たって、開けないため。
+     * URLの名前として使えない名前かを返す。名前の最初の区切りが、ほかの画面のURLの最初の区切りと
+     * 同じなら、使えない。固定ページのルートは、ほかの全部のルートの後ろで受けるので、たとえば
+     * loginという名前のページを作っても、ログイン画面が先に当たって、開けないため。
+     * admin/helpのように下に続く名前も、その画面のURLと紛らわしく、後から同じURLの画面を足すと
+     * 開けなくなるので、同じく使えない。
      * ルートの一覧から調べるので、画面を足しても、ここを直す必要は無い。
      */
     public static function isReservedSlug(string $slug): bool
     {
+        $slugFirst = explode('/', $slug)[0];
+
         foreach (Route::getRoutes() as $route) {
             // 固定ページのルート自身（/{slug}）は、変数なので比べない
             $first = explode('/', trim($route->uri(), '/'))[0];
 
-            if ($first === $slug) {
+            if ($first === $slugFirst) {
                 return true;
             }
         }

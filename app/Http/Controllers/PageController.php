@@ -6,7 +6,7 @@ use App\Models\Page;
 use Illuminate\View\View;
 
 /**
- * 固定ページの、訪問者の側の表示。/aboutus のように、URLの名前（slug）がそのままパスになる。
+ * 固定ページの、訪問者の側の表示。/aboutus や /service/price のように、URLの名前（slug）がそのままパスになる。
  *
  * ルートは、routes/web.phpのいちばん最後に置いてある。ほかの全部の画面のURLを先に当てて、
  * どれにも当たらなかった1区切りのURLだけを、ここで受けるため。

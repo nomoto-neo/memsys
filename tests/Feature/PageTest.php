@@ -56,6 +56,16 @@ class PageTest extends TestCase
             ->assertSee('<p>本文です。</p>', false);
     }
 
+    public function test_visitor_opens_a_page_whose_slug_contains_slashes(): void
+    {
+        // 親に当たる /service のページが無くても開ける
+        $this->page(['slug' => 'service/price/2026', 'title' => '料金表']);
+
+        $this->get('/service/price/2026')->assertOk()->assertSee('料金表');
+        $this->get('/service')->assertNotFound();
+        $this->get('/service/price')->assertNotFound();
+    }
+
     public function test_hidden_page_and_unknown_slug_are_not_found(): void
     {
         $this->page(['disp_flg' => false]);
@@ -143,13 +153,27 @@ class PageTest extends TestCase
         $this->page(['slug' => 'taken']);
 
         // ほかの画面で使っている名前、使えない文字、ほかのページと同じ名前は断る
-        foreach (['login', 'admin', 'news', 'About', 'about us', 'a/b', '-about', 'taken'] as $slug) {
+        foreach (['login', 'admin', 'news', 'About', 'about us', '-about', 'taken', '/about', 'about/', 'a//b', 'a/-b', 'admin/help', 'news/archive'] as $slug) {
             $this->actingAs($staff, 'admin')
                 ->post(route('admin.pages.store'), ['slug' => $slug] + self::INPUT)
                 ->assertSessionHasErrors('slug');
         }
 
         $this->assertSame(1, Page::count());
+    }
+
+    public function test_staff_registers_a_page_whose_slug_contains_slashes(): void
+    {
+        $staff = $this->staff();
+
+        $this->actingAs($staff, 'admin')
+            ->post(route('admin.pages.store'), ['slug' => 'service/price'] + self::INPUT)
+            ->assertSessionHasNoErrors();
+        $this->assertSame('service/price', Page::sole()->slug);
+
+        // 一覧のリンクも、/ をそのまま含むURLになる
+        $this->actingAs($staff, 'admin')->get(route('admin.pages.index'))
+            ->assertOk()->assertSee(url('/service/price'));
     }
 
     public function test_staff_updates_and_deletes_a_page(): void
