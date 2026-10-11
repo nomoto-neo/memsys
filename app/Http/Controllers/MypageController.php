@@ -288,8 +288,8 @@ class MypageController extends Controller
 
         // 会員と、会員に付いている記録・ファイルをまとめて消す
         DB::transaction(function () use ($member) {
-            $member->trustedDevices()->delete();
-            $member->passkeys()->delete();
+            // ログインのための記録（認証アプリの登録・バックアップコード・信頼済み端末・パスキー）
+            $member->resetTwoFactor();
             $this->deleteSessionsOf($member);
             // 顔写真のファイルは、トランザクションが確定した後に消える（AjaxFileUpload参照）
             $this->deleteAllUploads($member);

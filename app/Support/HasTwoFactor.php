@@ -5,7 +5,10 @@ namespace App\Support;
 use App\Enums\TwoFactorMethod;
 use App\Models\TrustedDevice;
 use App\Models\TwoFactorBackupCode;
+use App\Models\TwoFactorSecret;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -17,29 +20,14 @@ use Illuminate\Support\Facades\DB;
  * 既定の値は無い。書いていないモデルでログインするとエラーになる。書き忘れで
  * 「2段階目なし」になるのを防ぐため。
  *
- * ■ テーブルに要る列
- * - totp_secret         認証アプリと共有する秘密鍵。DBには暗号化して保存する
- * - totp_confirmed_at   登録が済んだ日時。秘密鍵があってもここが空の間は、QRコードを
- *                       出しただけで登録はまだ済んでいない
- * 方式がTOTPでないモデルも、列は持っておく。方式の切り替えを、定数だけで済ませるため。
+ * ■ 認証アプリの登録の置き場所
+ * 認証アプリの秘密鍵と登録日時は、モデルのテーブルではなく、会員とスタッフで共通の
+ * two_factor_secrets に持つ（App\Models\TwoFactorSecret）。バックアップコードや信頼済みの端末と同じ。
+ * 業務のテーブルに、認証の仕組みのためだけの列を置かないため。方式の切り替えも、定数だけで済む。
+ * 登録が済んだ人にだけ行があり、解除すると行が消える。
  */
 trait HasTwoFactor
 {
-    /**
-     * 秘密鍵の暗号化と、配列やJSONに出さない指定を、モデルごとに書かなくて済むようにする。
-     * 書き忘れると秘密鍵が平文で保存されるので、ここで必ず付ける。
-     * Eloquentが、モデルを作るたびに呼ぶ。
-     */
-    public function initializeHasTwoFactor(): void
-    {
-        $this->mergeCasts([
-            'totp_secret' => 'encrypted',
-            'totp_confirmed_at' => 'datetime',
-        ]);
-
-        $this->makeHidden('totp_secret');
-    }
-
     /**
      * テストで方式を差し替えるための入れ物。モデルの定数は実行中に変えられないので、
      * テストだけがここに入れる。ふだんはnullで、定数が使われる
@@ -79,13 +67,46 @@ trait HasTwoFactor
         return $this->morphMany(TrustedDevice::class, 'authenticatable');
     }
 
+    /** 認証アプリの登録。登録が済んだ人にだけある */
+    public function twoFactorSecret(): MorphOne
+    {
+        return $this->morphOne(TwoFactorSecret::class, 'authenticatable');
+    }
+
     /**
      * 認証アプリの登録が済んでいるか。QRコードを読み取り、コードの入力まで済んだら登録済み。
-     * 秘密鍵があるだけでは、まだ登録の途中のことがあるので、totp_confirmed_atで判定する。
+     * 登録の途中の秘密鍵はセッションに持つだけなので、行があれば登録済み。
      */
     public function hasTwoFactorConfirmed(): bool
     {
-        return $this->totp_confirmed_at !== null;
+        return $this->twoFactorSecret !== null;
+    }
+
+    /** 認証アプリの登録が済んだ日時。未登録ならnull */
+    public function twoFactorConfirmedAt(): ?Carbon
+    {
+        return $this->twoFactorSecret?->confirmed_at;
+    }
+
+    /** 認証アプリと共有している秘密鍵。未登録ならnull */
+    public function totpSecret(): ?string
+    {
+        return $this->twoFactorSecret?->secret;
+    }
+
+    /**
+     * 認証アプリを登録する。QRコードを読み取った認証アプリが、正しいコードを出せたと確かめた後に呼ぶ。
+     * 登録し直したときは、前の秘密鍵を上書きする。
+     */
+    public function registerTwoFactor(string $secret): void
+    {
+        $this->twoFactorSecret()->updateOrCreate([], [
+            'secret' => $secret,
+            'confirmed_at' => now(),
+        ]);
+
+        // 読み込み済みの古い登録を捨てて、次に聞かれたときに今の登録を読み直す
+        $this->unsetRelation('twoFactorSecret');
     }
 
     /** 使っていないバックアップコードの残りの数。詳細画面の案内に使う */
@@ -98,13 +119,15 @@ trait HasTwoFactor
      * 認証アプリの登録を解除する。バックアップコード・信頼済み端末・パスキーも無効にする。
      * パスキーでのログインは2段階目を求めないので、残すと登録し直さないまま使えてしまうため。
      * 次のログインで、QRコードの登録からやり直しになる。
+     *
+     * アカウントを消すときの片付けにも使う。ログインのための記録は、どれもこのモデルのテーブルの
+     * 外にあり、外部キー制約も無いので、消す前にここで消しておく。
      */
     public function resetTwoFactor(): void
     {
         DB::transaction(function () {
-            $this->totp_secret = null;
-            $this->totp_confirmed_at = null;
-            $this->save();
+            $this->twoFactorSecret()->delete();
+            $this->unsetRelation('twoFactorSecret');
 
             $this->backupCodes()->delete();
             TrustedDeviceManager::for($this)->forgetAll($this);

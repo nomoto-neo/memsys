@@ -9,7 +9,6 @@ use App\Models\CompanyUser;
 use App\Support\FormFlow;
 use App\Support\OperationRecorder;
 use App\Support\PasswordChange;
-use App\Support\TrustedDeviceManager;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
@@ -90,11 +89,13 @@ class CompanyUserController extends Controller
         }
     }
 
-    /** 削除の直前の処理。信頼済み端末とパスキーは、担当者の行と一緒に消す */
+    /**
+     * 削除の直前の処理。ログインのための記録（認証アプリの登録・バックアップコード・信頼済み端末・
+     * パスキー）は、担当者の行と一緒に消す
+     */
     private function beforeDelete(CompanyUser $user): void
     {
-        TrustedDeviceManager::for($user)->forgetAll($user);
-        $user->passkeys()->delete();
+        $user->resetTwoFactor();
     }
 
     // ---- 詳細・編集・削除 ----

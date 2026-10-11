@@ -85,7 +85,7 @@ final class TwoFactorChallenge
         // 認証アプリ：登録が済んでいる人の、今のコード
         if ($this->method() === TwoFactorMethod::Totp) {
             return $this->account->hasTwoFactorConfirmed()
-                && (new TwoFactorAuthenticator())->verifyCode($this->account->totp_secret, $input);
+                && (new TwoFactorAuthenticator())->verifyCode($this->account->totpSecret(), $input);
         }
 
         // なし：パスワードの再入力

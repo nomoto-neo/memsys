@@ -43,7 +43,7 @@ class SharedBrowserTest extends TestCase
             'password' => Hash::make(self::PASSWORD),
             'acl' => StaffAcl::Manager,
         ]);
-        $staff->forceFill(['totp_secret' => $this->secret, 'totp_confirmed_at' => now()])->save();
+        $staff->registerTwoFactor($this->secret);
 
         return $staff;
     }

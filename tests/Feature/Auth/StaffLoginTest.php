@@ -36,7 +36,7 @@ class StaffLoginTest extends TestCase
             'password' => Hash::make(self::PASSWORD),
             'acl' => $acl,
         ]);
-        $staff->forceFill(['totp_secret' => $this->secret, 'totp_confirmed_at' => now()])->save();
+        $staff->registerTwoFactor($this->secret);
 
         return $staff;
     }

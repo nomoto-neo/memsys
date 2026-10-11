@@ -262,9 +262,7 @@ trait TwoFactorLogin
 
         // 登録の確定とバックアップコードの発行は、どちらかだけが残らないようにまとめて行う
         $backupCodes = DB::transaction(function () use ($account, $secret) {
-            $account->totp_secret = $secret;
-            $account->totp_confirmed_at = now();
-            $account->save();
+            $account->registerTwoFactor($secret);
 
             return (new BackupCodeGenerator())->generateFor($account);
         });

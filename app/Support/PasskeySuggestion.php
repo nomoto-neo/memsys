@@ -107,7 +107,7 @@ final class PasskeySuggestion
             $account->getMorphClass(),
             $account->getKey(),
             $account->getAuthPassword(),
-            $account->totp_confirmed_at?->timestamp,
+            $account->twoFactorConfirmedAt()?->timestamp,
         ]);
 
         return hash_hmac('sha256', $source, (string) config('app.key'));

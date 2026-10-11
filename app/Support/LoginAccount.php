@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Enums\TwoFactorMethod;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Support\Carbon;
 
 /**
  * ログインするモデルの共通の型。個人会員・企業の担当者・スタッフが実装する。
@@ -49,6 +50,15 @@ interface LoginAccount
 
     /** 認証アプリ（TOTP）の登録が済んでいるか */
     public function hasTwoFactorConfirmed(): bool;
+
+    /** 認証アプリの登録が済んだ日時。未登録ならnull */
+    public function twoFactorConfirmedAt(): ?Carbon;
+
+    /** 認証アプリと共有している秘密鍵。未登録ならnull */
+    public function totpSecret(): ?string;
+
+    /** 認証アプリを登録する */
+    public function registerTwoFactor(string $secret): void;
 
     /** 2段階認証のバックアップコード */
     public function backupCodes(): MorphMany;

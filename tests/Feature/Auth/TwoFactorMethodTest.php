@@ -223,7 +223,7 @@ class TwoFactorMethodTest extends TestCase
         $this->useTwoFactorMethod(Member::class, TwoFactorMethod::Totp);
         $member = $this->member();
         $secret = (new Google2FA())->generateSecretKey();
-        $member->forceFill(['totp_secret' => $secret, 'totp_confirmed_at' => now()])->save();
+        $member->registerTwoFactor($secret);
 
         // マイページに入口が出る
         $this->actingAs($member, 'web')->get('/mypage')->assertOk()->assertSee(route('mypage.twoFactor'));
@@ -237,7 +237,7 @@ class TwoFactorMethodTest extends TestCase
         $this->actingAs($member, 'web')->delete('/mypage/two-factor', ['code' => (new Google2FA())->getCurrentOtp($secret)])
             ->assertRedirect(route('mypage.twoFactor'));
         $this->assertFalse($member->refresh()->hasTwoFactorConfirmed());
-        $this->assertNull($member->totp_secret);
+        $this->assertNull($member->totpSecret());
 
         // 本人による解除は、操作ログに残る
         $this->assertSame(1, OperationLog::where('action', OperationLogAction::TwoFactorReset)
@@ -248,7 +248,7 @@ class TwoFactorMethodTest extends TestCase
     {
         $this->useTwoFactorMethod(Member::class, TwoFactorMethod::Totp);
         $member = $this->member();
-        $member->forceFill(['totp_secret' => (new Google2FA())->generateSecretKey(), 'totp_confirmed_at' => now()])->save();
+        $member->registerTwoFactor((new Google2FA())->generateSecretKey());
         $backupCodes = (new BackupCodeGenerator())->generateFor($member);
 
         // 間違ったバックアップコードでは解除できない
@@ -267,7 +267,7 @@ class TwoFactorMethodTest extends TestCase
     {
         $this->useTwoFactorMethod(Member::class, TwoFactorMethod::Totp);
         $member = $this->member();
-        $member->forceFill(['totp_secret' => (new Google2FA())->generateSecretKey(), 'totp_confirmed_at' => now()])->save();
+        $member->registerTwoFactor((new Google2FA())->generateSecretKey());
         $backupCodes = (new BackupCodeGenerator())->generateFor($member);
 
         // 作り直しは、今の認証アプリのコードだけで確かめる
@@ -280,7 +280,7 @@ class TwoFactorMethodTest extends TestCase
     {
         // 見本のサイトの方式のまま（スタッフは認証アプリ）。管理者が1人だけでも、自分で解除できる
         $staff = $this->staff();
-        $staff->forceFill(['totp_secret' => (new Google2FA())->generateSecretKey(), 'totp_confirmed_at' => now()])->save();
+        $staff->registerTwoFactor((new Google2FA())->generateSecretKey());
         $backupCodes = (new BackupCodeGenerator())->generateFor($staff);
 
         // バックアップコードでログインする
@@ -311,7 +311,7 @@ class TwoFactorMethodTest extends TestCase
     {
         $this->useTwoFactorMethod(Member::class, TwoFactorMethod::Totp);
         $member = $this->member();
-        $member->forceFill(['totp_secret' => (new Google2FA())->generateSecretKey(), 'totp_confirmed_at' => now()])->save();
+        $member->registerTwoFactor((new Google2FA())->generateSecretKey());
         TrustedDeviceManager::for($member)->remember($member);
         $actor = $this->staff();
 
@@ -382,7 +382,7 @@ class TwoFactorMethodTest extends TestCase
         $this->actingAs($member, 'web')->get('/mypage/passkeys')->assertOk()->assertSee('認証アプリ）の登録が必要です');
 
         $secret = (new Google2FA())->generateSecretKey();
-        $member->forceFill(['totp_secret' => $secret, 'totp_confirmed_at' => now()])->save();
+        $member->registerTwoFactor($secret);
 
         // 確認コードのメールは使わない
         $this->actingAs($member, 'web')->post('/mypage/passkeys/code')->assertNotFound();

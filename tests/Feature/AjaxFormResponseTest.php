@@ -33,7 +33,7 @@ class AjaxFormResponseTest extends TestCase
             'password' => Hash::make('correct-password'),
             'acl' => StaffAcl::Manager,
         ]);
-        $staff->forceFill(['totp_secret' => $this->secret, 'totp_confirmed_at' => now()])->save();
+        $staff->registerTwoFactor($this->secret);
 
         return $staff;
     }

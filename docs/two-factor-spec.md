@@ -86,13 +86,15 @@
 
 ### 2.2 テーブル
 
-| テーブル | 列 | 使う方式 |
+| テーブル | 中身 | 使う方式 |
 |---|---|---|
-| `t_members`・`t_company_users`・`t_staffs` | `totp_secret`（暗号化して保存）・`totp_confirmed_at` | `Totp` |
-| `two_factor_backup_codes` | 会員・スタッフ共通。`authenticatable_type`・`authenticatable_id` で区別 | `Totp` |
-| `trusted_devices` | 同上 | `Email`・`Totp` |
+| `two_factor_secrets` | 認証アプリの登録。`secret`（暗号化して保存）・`confirmed_at`。1人につき1行で、登録が済んだ人にだけある | `Totp` |
+| `two_factor_backup_codes` | バックアップコード | `Totp` |
+| `trusted_devices` | 信頼済みの端末 | `Email`・`Totp` |
 
-TOTP の列は、パスキーのテーブルと同じく、標準の構成として常に持つ。方式の切り替えは、モデルの定数だけで済む。
+どれも、会員とスタッフで共通のテーブルで、誰のものかは `authenticatable_type`・`authenticatable_id` で区別する。業務のテーブル（`t_members`・`t_company_users`・`t_staffs`）には、2段階認証のための列を持たせない。方式の切り替えは、モデルの定数だけで済む。
+
+読み書きは、モデルの `HasTwoFactor` を通して行う。`hasTwoFactorConfirmed()`（登録済みか）・`twoFactorConfirmedAt()`（登録日時）・`registerTwoFactor($secret)`（登録）・`resetTwoFactor()`（解除）。
 
 ### 2.3 途中の状態
 

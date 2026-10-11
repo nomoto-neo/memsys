@@ -1168,7 +1168,7 @@ return $this->continueAfterPassword($request, $staff, $request->boolean('remembe
 
 - **定数に既定の値はありません**。`TWO_FACTOR_METHOD` を書いていないモデルでログインすると、エラーになります。書き忘れで「なし」になるのを防ぐためです。
 - **2段階目の画面のビューは、`@include('_two_factor', ['rememberLabel' => '…'])` するだけにします**。中身は方式と状態（コードの入力か、QR コードの登録か）で出し分けます。
-- **TOTP の列は、どのテーブルにも持たせます**（`totp_secret`・`totp_confirmed_at`）。秘密鍵の暗号化は `HasTwoFactor` が付けるので、モデルの `$casts` には書きません。
+- **認証アプリの登録は、共通のテーブル `two_factor_secrets` に持ちます**。バックアップコード（`two_factor_backup_codes`）・信頼済み端末（`trusted_devices`）と同じ扱いで、業務のテーブルには列を足しません。読み書きは、モデルの `hasTwoFactorConfirmed()`・`twoFactorConfirmedAt()`・`registerTwoFactor($secret)`・`resetTwoFactor()` で行います。
 - **本人をもう一度確かめるときは `TwoFactorChallenge` を使います**。`send()` で準備（メールの方式なら確認コードを送る）、`verify()` で照合、`throttle()` で試行制限です。方式での場合分けは、部品の中にあります。
 - **メールの方式のモデルは、メールアドレスを必須にします**。スタッフのメールアドレスは任意なので、スタッフを `Email` にするときは、検証のルールを必須に変えます。
 - **稼働中のサイトで方式を変えたら、その種類の信頼済み端末の記録を消します**（`trusted_devices` の、`authenticatable_type` がその種類の行）。
@@ -1343,7 +1343,7 @@ public function update(Request $request): RedirectResponse
 
 ### 認証まわりのテーブル
 
-信頼済み端末（`trusted_devices`）・バックアップコード（`two_factor_backup_codes`）・パスキー（`passkeys`）のようなフレームワーク内部のテーブルは、会員・スタッフで共通の1つにし、`authenticatable_type`（`'member'`・`'company_user'`・`'staff'`）と `authenticatable_id` で区別します。新しい認証対象のモデルを足したら、`AppServiceProvider` の `Relation::enforceMorphMap()` にも足します。
+信頼済み端末（`trusted_devices`）・認証アプリの登録（`two_factor_secrets`）・バックアップコード（`two_factor_backup_codes`）・パスキー（`passkeys`）のようなフレームワーク内部のテーブルは、会員・スタッフで共通の1つにし、`authenticatable_type`（`'member'`・`'company_user'`・`'staff'`）と `authenticatable_id` で区別します。新しい認証対象のモデルを足したら、`AppServiceProvider` の `Relation::enforceMorphMap()` にも足します。
 
 ### パスキー（PasskeyLogin・PasskeyManagement）
 

@@ -17,7 +17,6 @@ use App\Support\CsvDownload;
 use App\Support\FormFlow;
 use App\Support\OperationRecorder;
 use App\Support\SearchableList;
-use App\Support\TrustedDeviceManager;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -197,15 +196,15 @@ class CompanyController extends Controller
 
     /**
      * 削除の直前の処理。却下と削除の両方で働く。外部キー制約を付けていないので、
-     * 企業に属する招待と担当者、担当者の信頼済みの端末とパスキーを、ここで消す
+     * 企業に属する招待と担当者、担当者のログインのための記録（認証アプリの登録・バックアップコード・
+     * 信頼済みの端末・パスキー）を、ここで消す
      */
     private function beforeDelete(Company $company): void
     {
         $company->invitations()->delete();
 
         foreach ($company->users as $user) {
-            TrustedDeviceManager::for($user)->forgetAll($user);
-            $user->passkeys()->delete();
+            $user->resetTwoFactor();
             $user->delete();
         }
     }

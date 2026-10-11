@@ -8,7 +8,6 @@ use App\Models\CompanyUser;
 use App\Support\CompanyInvitationManager;
 use App\Support\FormFlow;
 use App\Support\MemberProfileNotice;
-use App\Support\TrustedDeviceManager;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -80,11 +79,13 @@ class UserController extends Controller
         MemberProfileNotice::send($user, $changedFields);
     }
 
-    /** 削除の直前の処理。信頼済み端末とパスキーは、担当者の行と一緒に消す */
+    /**
+     * 削除の直前の処理。ログインのための記録（認証アプリの登録・バックアップコード・信頼済み端末・
+     * パスキー）は、担当者の行と一緒に消す
+     */
     private function beforeDelete(CompanyUser $user): void
     {
-        TrustedDeviceManager::for($user)->forgetAll($user);
-        $user->passkeys()->delete();
+        $user->resetTwoFactor();
     }
 
     // ---- 担当者の一覧 ----

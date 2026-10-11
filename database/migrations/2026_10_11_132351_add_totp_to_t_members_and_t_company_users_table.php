@@ -12,6 +12,9 @@ use Illuminate\Support\Facades\Schema;
  *
  * ログインの2段階目の方式は、モデルの定数で選ぶ（docs/two-factor-spec.md）。方式がTOTPで
  * ないサイトでも、列は標準の構成として持っておく。方式の切り替えを、定数だけで済ませるため。
+ *
+ * この列は、後のマイグレーション（create_two_factor_secrets_table）で消える。認証アプリの登録は、
+ * 会員とスタッフで共通の two_factor_secrets に持つようにしたため。
  */
 return new class extends Migration
 {

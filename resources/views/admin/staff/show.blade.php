@@ -73,7 +73,7 @@
             <div class="col-sm-3 text-muted">2段階認証</div>
             <div class="col-sm-9">
                 @if ($staff->hasTwoFactorConfirmed())
-                    登録済み（{{ $staff->totp_confirmed_at->format('Y年n月j日 H:i') }}確認）
+                    登録済み（{{ $staff->twoFactorConfirmedAt()->format('Y年n月j日 H:i') }}確認）
                     <span class="text-muted">／バックアップコード残り{{ $staff->unusedBackupCodesCount() }}件</span>
                 @else
                     未登録
