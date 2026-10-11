@@ -95,9 +95,6 @@ class MypageController extends Controller
     /** パスキーの一覧画面のビュー。 */
     private const PASSKEY_VIEW = 'mypage.passkeys';
 
-    /** 登録の前の本人確認（メールの確認コード）の試行制限（LoginThrottle）のカウンターの名前。 */
-    private const PASSKEY_THROTTLE_SCOPE = 'member-passkey-code';
-
     // ---- メールアドレスの変更の確認（EmailChange）の設定 ----
 
     /** ログイン中の会員を取るガード。 */

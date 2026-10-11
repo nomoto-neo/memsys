@@ -1088,7 +1088,7 @@ if ($spam === SpamCheckResult::Failed) {
 
 <p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
 
-**実例**：会員は `AuthSessionController`・`PasswordResetController`・`AuthPasswordController`・`AuthRegisteredMemberController`・`MypageController`、管理は `Admin\AuthSessionController`・`Admin\TwoFactorChallengeController`。パスワードが合った後の流れは、どのログインも `TwoFactorLogin` トレイト
+**実例**：会員は `AuthSessionController`・`PasswordResetController`・`AuthPasswordController`・`AuthRegisteredMemberController`・`MypageController`、管理は `Admin\AuthSessionController`・`Admin\StaffController`。パスワードが合った後の流れは、どのログインも `TwoFactorLogin` トレイト
 
 認証の画面は遷移が独特なので、FormFlow には載せず、それぞれのコントローラーで書いています。新しく作るより、実例を写して直す方が安全です。
 
@@ -1347,7 +1347,7 @@ public function update(Request $request): RedirectResponse
 
 **ファイル**：`app/Support/PasskeyLogin.php`・`PasskeyManagement.php`・`PasskeyCeremony.php`・`HasPasskeys.php`・`UserAgentLabel.php`、`app/Models/Passkey.php`、`resources/views/_passkeys.blade.php`、`resources/js/passkeys.js`、設計の詳細は「パスキーの設計」（`docs/passkeys-spec.md`）　**実例**：会員は `AuthSessionController`・`MypageController`、管理は `Admin\AuthSessionController`・`Admin\StaffController`
 
-ログイン画面の「パスキーでログイン」で通ったときは、パスワードも2段階目も求めずにログインさせます。登録の前の本人確認は、その人のログインの2段階目と同じ方法（会員：メールの確認コード、スタッフ：TOTP）で、トレイトが持ち主の種類から決めます。
+ログイン画面の「パスキーでログイン」で通ったときは、パスワードも2段階目も求めずにログインさせます。登録の前の本人確認は、その人のログインの2段階目の方式（メールの確認コードか、認証アプリのコード）で行います。2段階目が「なし」の人は、パスワードの再入力で確かめます。トレイトが `TwoFactorChallenge` に任せるので、方式での場合分けは要りません。
 
 パッケージ（composer の `laravel/passkeys`、npm の `@laravel/passkeys`）・`passkeys` テーブル・モデルの `implements PasskeyUser` と `use HasPasskeys` は、標準構成として常に入れておきます。使うかどうかは、次のコントローラーの `use` とルートで切り替えます。画面の入口（ログイン画面のボタン、マイページ・スタッフ詳細のリンク）は `Route::has()` で出し分けているので、ルートを消せば消えます。
 
@@ -1365,16 +1365,16 @@ use PasskeyManagement;
 private const PASSKEY_GUARD = 'web';                           // ログイン中の本人を取るガード
 private const PASSKEY_ROUTE = 'mypage.passkeys';               // 一覧画面のルート名
 private const PASSKEY_VIEW = 'mypage.passkeys';                // 一覧画面のビュー
-private const PASSKEY_THROTTLE_SCOPE = 'member-passkey-code';  // 本人確認のコードの試行制限
 ```
 
 | トレイト | アクション | ルート名 |
 |---|---|---|
 | `PasskeyLogin` | `passkeyLoginOptions()`（GET）・`passkeyLogin()`（POST） | `login.passkey.options`・`login.passkey`（管理は `admin.` を付ける。ゲスト用のグループに入れ、`throttle` を付ける） |
-| `PasskeyManagement` | `passkeyIndex()`（GET）・`passkeySendCode()`（POST、会員だけ）・`passkeyConfirm()`（POST）・`passkeyRegistrationOptions()`（GET）・`passkeyStore()`（POST）・`passkeyDestroy()`（DELETE） | `PASSKEY_ROUTE` と、その後ろに `.code`・`.confirm`・`.options`・`.store`・`.destroy` |
+| `PasskeyManagement` | `passkeyIndex()`（GET）・`passkeySendCode()`（POST。メールの方式だけ。`throttle` を付ける）・`passkeyConfirm()`（POST）・`passkeyRegistrationOptions()`（GET）・`passkeyStore()`（POST）・`passkeyDestroy()`（DELETE） | `PASSKEY_ROUTE` と、その後ろに `.code`・`.confirm`・`.options`・`.store`・`.destroy` |
 
 - 一覧画面のビューは、`@push('head-extra')` で CSRF の `<meta>` と `resources/js/passkeys.js` を読み込み、`@include('_passkeys')` するだけにします。
-- スタッフの `PASSKEY_THROTTLE_SCOPE` は `TwoFactorChallengeController::THROTTLE_SCOPE` にします（TOTP の失敗回数を、ログインの2段階目などと同じカウンターで数える）。
+- 本人確認の失敗は、ログインの2段階目と同じカウンターで数えます（`TwoFactorChallenge::throttle()`）。
+- 認証アプリの方式の人は、認証アプリを登録してある間だけパスキーを持てます。未登録の間は、登録に進めません。
 - パスキーは `APP_URL` のドメインに結び付きます。`APP_URL` をブラウザで開いているアドレスと完全に同じにし、HTTPS（開発時の `localhost` は例外）で使います。
 - 退会と2段階認証の登録解除では、`$record->passkeys()->delete()` でパスキーも消します。パスワードを変えたときは `PasswordChange` が消します。
 

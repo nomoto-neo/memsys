@@ -62,9 +62,6 @@ class MypageController extends Controller
     /** パスキーの一覧画面のビュー。 */
     private const PASSKEY_VIEW = 'company.mypage.passkeys';
 
-    /** 登録の前の本人確認（メールの確認コード）の試行制限（LoginThrottle）のカウンターの名前。 */
-    private const PASSKEY_THROTTLE_SCOPE = 'company-passkey-code';
-
     // ---- 企業の情報の項目の定義 ----
 
     /** 企業の情報の検証ルール。企業IDと状態は、企業の側からは変えられないので書かない。 */

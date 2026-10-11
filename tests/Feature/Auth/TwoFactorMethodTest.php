@@ -268,4 +268,57 @@ class TwoFactorMethodTest extends TestCase
         $this->actingAs($this->staff(), 'admin')->get(route('admin.members.show', $member))
             ->assertOk()->assertDontSee('2段階認証の登録を解除する');
     }
+
+    // ---- パスキーの登録の前の本人確認。その人の2段階目の方式で確かめる ----
+
+    public function test_passkey_registration_asks_the_password_when_there_is_no_two_factor(): void
+    {
+        $this->useTwoFactorMethod(Member::class, TwoFactorMethod::None);
+        $member = $this->member();
+
+        $this->actingAs($member, 'web')->get('/mypage/passkeys')->assertOk()->assertSee('ログインのパスワードを入力してください');
+
+        // 本人確認が済むまでは、登録に進めない
+        $this->actingAs($member, 'web')->getJson('/mypage/passkeys/options')->assertStatus(422);
+
+        $this->actingAs($member, 'web')->post('/mypage/passkeys/confirm', ['password' => 'wrong-password'])
+            ->assertSessionHasErrors('password');
+        $this->actingAs($member, 'web')->getJson('/mypage/passkeys/options')->assertStatus(422);
+
+        $this->actingAs($member, 'web')->post('/mypage/passkeys/confirm', ['password' => self::PASSWORD])
+            ->assertSessionHasNoErrors();
+        $this->actingAs($member, 'web')->getJson('/mypage/passkeys/options')->assertOk();
+    }
+
+    public function test_passkey_registration_asks_the_mailed_code_from_staff_with_email_method(): void
+    {
+        $this->useTwoFactorMethod(Staff::class, TwoFactorMethod::Email);
+        $staff = $this->staff();
+
+        $this->actingAs($staff, 'admin')->post('/admin/passkeys/code')->assertSessionHasNoErrors();
+        $this->assertSame(['hanako@example.com'], $this->recipientsOf($this->lastMail()));
+
+        $this->actingAs($staff, 'admin')->post('/admin/passkeys/confirm', ['code' => $this->lastVerificationCode()])
+            ->assertSessionHasNoErrors();
+        $this->actingAs($staff, 'admin')->getJson('/admin/passkeys/options')->assertOk();
+    }
+
+    public function test_passkey_registration_asks_the_authenticator_code_from_member_with_totp_method(): void
+    {
+        $this->useTwoFactorMethod(Member::class, TwoFactorMethod::Totp);
+        $member = $this->member();
+
+        // 認証アプリが未登録の間は、本人確認ができないので登録に進めない
+        $this->actingAs($member, 'web')->get('/mypage/passkeys')->assertOk()->assertSee('認証アプリ）の登録が必要です');
+
+        $secret = (new Google2FA())->generateSecretKey();
+        $member->forceFill(['totp_secret' => $secret, 'totp_confirmed_at' => now()])->save();
+
+        // 確認コードのメールは使わない
+        $this->actingAs($member, 'web')->post('/mypage/passkeys/code')->assertNotFound();
+
+        $this->actingAs($member, 'web')->post('/mypage/passkeys/confirm', ['code' => (new Google2FA())->getCurrentOtp($secret)])
+            ->assertSessionHasNoErrors();
+        $this->actingAs($member, 'web')->getJson('/mypage/passkeys/options')->assertOk();
+    }
 }

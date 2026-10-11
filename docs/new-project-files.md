@@ -46,8 +46,9 @@
 
 ### スタッフ（Staff）のモデルを名指ししているもの
 
-- `PasswordChange`・`TrustedDeviceManager`・`PasskeyManagement`（会員かスタッフかで、動きを分けている所）
-- `BackupCodeGenerator`
+- `PasswordChange`（お知らせのメールのテンプレートと文面を、会員かスタッフかで分けている所）
+
+2段階認証・信頼済み端末・パスキーの部品は、スタッフを名指ししていません。相手を、ログインする人の共通の型（`LoginAccount`）で受け取ります。スタッフのモデルの名前が違うサイトでも、そのモデルが `LoginAccount` を実装していれば使えます。
 
 ### モデルの種類ごとの一覧を持っているもの
 

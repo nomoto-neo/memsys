@@ -3,8 +3,8 @@
 namespace App\Support;
 
 use App\Enums\OperationLogAction;
+use App\Enums\TwoFactorMethod;
 use App\Models\Passkey;
-use App\Models\Staff;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -25,7 +25,8 @@ use Webauthn\PublicKeyCredentialCreationOptions;
  * ■ 登録の前の本人確認
  * パスキーを登録すると、それだけでログインできるようになる。ログイン中の画面を他人に
  * 使われたときにパスキーを足されないよう、登録の前に本人確認をする。確かめ方はその人の
- * ログインの2段階目と同じで、会員はメールの確認コード、スタッフは認証アプリのコード。
+ * ログインの2段階目の方式と同じで、メールの確認コードか、認証アプリのコード。2段階目が
+ * 「なし」の人は、パスワードの再入力で確かめる（App\Support\TwoFactorChallenge）。
  * 本人確認から決まった時間の間だけ登録でき、1件登録したら次の登録ではもう一度確かめる。
  * 削除はログインの手段が減るだけなので、本人確認なしでできる。
  *
@@ -34,9 +35,8 @@ use Webauthn\PublicKeyCredentialCreationOptions;
  *      private const PASSKEY_GUARD = 'web';                 // ログイン中の本人を取るガード
  *      private const PASSKEY_ROUTE = 'mypage.passkeys';     // 一覧画面のルート名
  *      private const PASSKEY_VIEW = 'mypage.passkeys';      // 一覧画面のビュー
- *      private const PASSKEY_THROTTLE_SCOPE = '...';        // 本人確認のコードの試行制限
  * 2. routes/web.phpに、PASSKEY_ROUTEと、その後ろに.code・.confirm・.options・.store・.destroyを
- *    付けた名前でルートを書く。.codeは会員だけ
+ *    付けた名前でルートを書く。.codeは確認コードの送信で、メールの方式のときだけ使う
  * 3. 一覧画面のビューは、resources/views/_passkeys.blade.phpを@includeする
  * 一覧画面への入口はルートがあるときだけ出すので、ルートを消せば入口も消える。
  */
@@ -53,25 +53,24 @@ trait PasskeyManagement
         return view(self::PASSKEY_VIEW, [
             'passkeys' => $owner->passkeys()->orderByDesc('id')->get(),
             'passkeyRoute' => self::PASSKEY_ROUTE,
-            // 本人確認の方法。_passkeys.blade.phpが入力欄の出し分けに使う
-            'confirmBy' => $owner instanceof Staff ? 'totp' : 'email',
+            // 本人確認の方法（email・totp・none）。_passkeys.blade.phpが入力欄の出し分けに使う
+            'confirmBy' => $owner::twoFactorMethod()->value,
             'identityConfirmed' => $this->passkeyIdentityConfirmed($request),
-            // 会員：確認コードを送って入力を待っているか
-            'codeSent' => $owner instanceof MemberAccount
-                && (new MemberVerificationCode($owner::class))->hasPending($request, MemberVerificationCode::PURPOSE_PASSKEY, $owner),
-            // スタッフ：2段階認証の認証アプリが未登録だと、本人確認ができない
-            'twoFactorMissing' => $owner instanceof Staff && ! $owner->hasTwoFactorConfirmed(),
+            // メールの方式：確認コードを送って入力を待っているか
+            'codeSent' => (new TwoFactorChallenge($owner))->hasSent($request, TwoFactorChallenge::PURPOSE_PASSKEY),
+            // 認証アプリの方式：認証アプリが未登録だと、本人確認ができない
+            'twoFactorMissing' => $owner::usesTotp() && ! $owner->hasTwoFactorConfirmed(),
         ]);
     }
 
-    /** 本人確認のための確認コードをメールで送る。会員だけで、スタッフは認証アプリで確かめる */
+    /** 本人確認のための確認コードをメールで送る。メールの方式の人だけが使う */
     public function passkeySendCode(Request $request): RedirectResponse
     {
         $owner = $this->passkeyOwner();
 
-        abort_unless($owner instanceof MemberAccount, 404);
+        abort_unless($owner::twoFactorMethod() === TwoFactorMethod::Email, 404);
 
-        if (! (new MemberVerificationCode($owner::class))->issue($request, $owner, MemberVerificationCode::PURPOSE_PASSKEY)) {
+        if (! (new TwoFactorChallenge($owner))->send($request, TwoFactorChallenge::PURPOSE_PASSKEY)) {
             return redirect()->route(self::PASSKEY_ROUTE)
                 ->with('error', '確認コードの送信に失敗しました。時間をおいて再度お試しください。');
         }
@@ -84,31 +83,37 @@ trait PasskeyManagement
     public function passkeyConfirm(Request $request): RedirectResponse
     {
         $owner = $this->passkeyOwner();
+        $challenge = new TwoFactorChallenge($owner);
+
+        // 入力するもの。2段階目が「なし」の人はパスワード、ほかは確認コード
+        $isPassword = $challenge->method() === TwoFactorMethod::None;
+        $field = $isPassword ? 'password' : 'code';
 
         $validated = $request->validate([
-            'code' => ['required', 'string'],
+            $field => ['required', 'string'],
         ]);
 
-        // 失敗回数による、IPごととアカウントごとの試行制限
-        $throttle = new LoginThrottle(self::PASSKEY_THROTTLE_SCOPE, $request->ip(), $owner->id);
+        // 失敗回数による試行制限。ログインの2段階目と同じカウンターで数える
+        // （App\Support\TwoFactorChallenge::throttle()）
+        $throttle = $challenge->throttle($request);
 
         if ($throttle->isBlocked()) {
             return redirect()->route(self::PASSKEY_ROUTE)
-                ->withErrors(['code' => $throttle->blockedMessage('確認コード')]);
+                ->withErrors([$field => $throttle->blockedMessage($isPassword ? 'パスワード' : '確認コード')]);
         }
 
-        if (! $this->passkeyVerifyIdentity($request, $owner, $validated['code'])) {
+        if (! $challenge->verify($request, TwoFactorChallenge::PURPOSE_PASSKEY, $validated[$field])) {
             $throttle->hit();
 
-            // 会員の確認コードには期限があるので、文言を分ける
-            if ($owner instanceof Staff) {
-                $message = '確認コードが正しくありません。';
-            } else {
-                $message = '確認コードが正しくないか、有効期限が切れています。';
-            }
+            // メールの確認コードには期限があるので、文言を分ける
+            $message = match ($challenge->method()) {
+                TwoFactorMethod::Email => '確認コードが正しくないか、有効期限が切れています。',
+                TwoFactorMethod::Totp => '確認コードが正しくありません。',
+                TwoFactorMethod::None => 'パスワードが正しくありません。',
+            };
 
             return redirect()->route(self::PASSKEY_ROUTE)
-                ->withErrors(['code' => $message]);
+                ->withErrors([$field => $message]);
         }
 
         $throttle->clear();
@@ -220,41 +225,27 @@ trait PasskeyManagement
     }
 
     /** ログイン中の本人 */
-    private function passkeyOwner(): MemberAccount|Staff
+    private function passkeyOwner(): LoginAccount
     {
         $owner = Auth::guard(self::PASSKEY_GUARD)->user();
 
-        abort_unless($owner instanceof MemberAccount || $owner instanceof Staff, 403);
+        abort_unless($owner instanceof LoginAccount, 403);
 
         return $owner;
     }
 
-    /** 本人確認のコードを照合する。確かめ方は、その人のログインの2段階目と同じ */
-    private function passkeyVerifyIdentity(Request $request, MemberAccount|Staff $owner, string $code): bool
-    {
-        if ($owner instanceof Staff) {
-            return $owner->hasTwoFactorConfirmed()
-                && (new TwoFactorAuthenticator())->verifyCode($owner->totp_secret, $code);
-        }
-
-        $verified = (new MemberVerificationCode($owner::class))
-            ->verify($request, MemberVerificationCode::PURPOSE_PASSKEY, $code);
-
-        return $verified !== null && $verified->id === $owner->id;
-    }
-
     /**
-     * 本人確認が済んでいて今パスキーを登録できるか。スタッフは本人確認の後に
-     * 2段階認証の登録を解除したときも登録できない。スタッフのパスキーは
-     * 認証アプリを登録してある間だけ持てる形にそろえているため。
+     * 本人確認が済んでいて今パスキーを登録できるか。認証アプリの方式の人は、本人確認の後に
+     * 認証アプリの登録を解除したときも登録できない。パスキーは、認証アプリを登録してある間だけ
+     * 持てる形にそろえているため。
      */
     private function passkeyIdentityConfirmed(Request $request): bool
     {
         $owner = $this->passkeyOwner();
         $confirmed = $request->session()->get($this->passkeyConfirmedSessionKey());
 
-        // 2段階認証を解除したスタッフは登録できない
-        if ($owner instanceof Staff && ! $owner->hasTwoFactorConfirmed()) {
+        // 認証アプリの方式で、登録を解除した人は登録できない
+        if ($owner::usesTotp() && ! $owner->hasTwoFactorConfirmed()) {
             return false;
         }
 

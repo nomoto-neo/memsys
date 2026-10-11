@@ -3,7 +3,8 @@
     コントローラー側はApp\Support\PasskeyManagementトレイトで、変数はそのpasskeyIndex()が渡す。
     - $passkeys：このアカウントのパスキー（新しい順）
     - $passkeyRoute：一覧画面のルート名。登録・削除などのルート名は、この後ろに.confirmなどを付けたもの
-    - $confirmBy：登録の前の本人確認の方法（'email'：メールの確認コード、'totp'：認証アプリ）
+    - $confirmBy：登録の前の本人確認の方法。その人のログインの2段階目の方式と同じ
+                  （'email'：メールの確認コード、'totp'：認証アプリ、'none'：パスワードの再入力）
     - $identityConfirmed：本人確認が済んでいて、今パスキーを登録できるか
     - $codeSent：（email）確認コードを送った後か
     - $twoFactorMissing：（totp）2段階認証が未登録で、本人確認ができないか
@@ -92,6 +93,20 @@
                 </div>
             </form>
         @endif
+    @elseif ($confirmBy === 'none')
+        {{-- ログインの2段階目が無いサイト。開いたままの画面を使った他人に足されないよう、パスワードで確かめる --}}
+        <p>本人確認のため、ログインのパスワードを入力してください。</p>
+        <form method="POST" action="{{ route($passkeyRoute.'.confirm') }}" class="row g-2 align-items-start">
+            @csrf
+            <div class="col-auto">
+                <input type="password" name="password" class="form-control"
+                       autocomplete="current-password" aria-label="パスワード">
+                <div class="invalid-feedback" data-item="password">{{ $errors->first('password') }}</div>
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-primary">確認する</button>
+            </div>
+        </form>
     @elseif ($codeSent)
         <p>本人確認のため、メールでお送りした確認コード（6桁）を入力してください。</p>
         <form method="POST" action="{{ route($passkeyRoute.'.confirm') }}" class="row g-2 align-items-start">

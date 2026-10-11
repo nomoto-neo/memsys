@@ -395,7 +395,7 @@ return [
 | 部品 | 今 | 変更の後 |
 |---|---|---|
 | `MemberVerificationCode` | `Member` を受け取る。テンプレートは固定 | `MemberAccount` を受け取る。セッションに種類と id を持つ。テンプレートは種類の名前から。初回のログインでの登録（2.7・2.8）の用途を足す |
-| `TrustedDeviceManager` | `forMember()`・`forStaff()` | `forStaff()` と、会員を渡す `forMember($account)`。Cookie の名前は種類の名前から |
+| `TrustedDeviceManager` | `forMember()`・`forStaff()` | 会員もスタッフも `for($account)`。Cookie の名前は種類の名前から（`docs/two-factor-spec.md`） |
 | `PasswordChange` | `Member|Staff`。ルートとテンプレートは固定 | `MemberAccount|Staff`。ルートとテンプレートは種類の名前から |
 | `PasskeyManagement`・`PasskeyLogin` | `Member|Staff` | `MemberAccount|Staff`。ガードは、今までどおりコントローラーの定数 |
 | `MemberProfileNotice` | `Member`。ルートとテンプレートは固定 | `MemberAccount`。種類の名前から |

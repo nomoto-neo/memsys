@@ -95,12 +95,6 @@ class StaffController extends Controller
     /** パスキーの一覧画面のビュー。 */
     private const PASSKEY_VIEW = 'admin.staff.passkeys';
 
-    /**
-     * 登録の前の本人確認（TOTPコード）の試行制限。ログインの2段階目などと同じ
-     * カウンターで数える。App\Support\TwoFactorChallenge::throttle()が作る名前と同じにしておく。
-     */
-    private const PASSKEY_THROTTLE_SCOPE = 'staff-two-factor';
-
     // ---- 2段階認証の管理（TwoFactorManagement）の設定 ----
 
     /** ログイン中のスタッフを取るガード。 */

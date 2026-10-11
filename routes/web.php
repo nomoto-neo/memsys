@@ -388,8 +388,12 @@ Route::prefix('admin')->name('admin.')->middleware('admin.ip')->group(function (
         Route::delete('/2fa', [AdminStaffController::class, 'selfReset'])->name('twoFactor.selfReset');
 
         // 本人によるパスキーの一覧・登録・削除（App\Support\PasskeyManagement）。
-        // 本人確認はTOTPで行うので、会員側の.code（確認コードの送信）は無い。
+        // 登録の前の本人確認は、ログインの2段階目の方式で行う。.code（確認コードの送信）は、
+        // メールの方式のときだけ使う。
         Route::get('/passkeys', [AdminStaffController::class, 'passkeyIndex'])->name('passkeys');
+        Route::post('/passkeys/code', [AdminStaffController::class, 'passkeySendCode'])
+            ->middleware('throttle:3,1,admin-passkey-code-send')
+            ->name('passkeys.code');
         Route::post('/passkeys/confirm', [AdminStaffController::class, 'passkeyConfirm'])->name('passkeys.confirm');
         Route::get('/passkeys/options', [AdminStaffController::class, 'passkeyRegistrationOptions'])->name('passkeys.options');
         Route::post('/passkeys', [AdminStaffController::class, 'passkeyStore'])->name('passkeys.store');
