@@ -182,13 +182,7 @@ class ContactController extends Controller
         if ($spam === SpamCheckResult::Failed) {
             // 人がたまたま失敗することもあるので、入力を残したまま入力画面に戻す
             return redirect()->route('contact.create')
-                ->withInput($request->except([
-                    '_token',
-                    // スパム対策の値は持ち越さない（入力画面を出し直すと新しい値になる）
-                    SpamGuard::HONEYPOT_FIELD,
-                    SpamGuard::STARTED_FIELD,
-                    SpamGuard::TURNSTILE_FIELD,
-                ]))
+                ->withInput($request->except('_token'))
                 ->with('error', 'ロボットによる送信ではないことを確認できませんでした。お手数ですが、もう一度「確認画面へ進む」を押してください。');
         }
 
