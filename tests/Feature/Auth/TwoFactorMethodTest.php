@@ -2,11 +2,14 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Enums\OperationLogAction;
 use App\Enums\StaffAcl;
 use App\Enums\TwoFactorMethod;
 use App\Models\Member;
+use App\Models\OperationLog;
 use App\Models\Passkey;
 use App\Models\Staff;
+use App\Support\BackupCodeGenerator;
 use App\Support\TrustedDeviceManager;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -235,6 +238,73 @@ class TwoFactorMethodTest extends TestCase
             ->assertRedirect(route('mypage.twoFactor'));
         $this->assertFalse($member->refresh()->hasTwoFactorConfirmed());
         $this->assertNull($member->totp_secret);
+
+        // 本人による解除は、操作ログに残る
+        $this->assertSame(1, OperationLog::where('action', OperationLogAction::TwoFactorReset)
+            ->where('operator_type', 'member')->where('operator_id', $member->id)->count());
+    }
+
+    public function test_member_can_reset_the_authenticator_by_a_backup_code(): void
+    {
+        $this->useTwoFactorMethod(Member::class, TwoFactorMethod::Totp);
+        $member = $this->member();
+        $member->forceFill(['totp_secret' => (new Google2FA())->generateSecretKey(), 'totp_confirmed_at' => now()])->save();
+        $backupCodes = (new BackupCodeGenerator())->generateFor($member);
+
+        // 間違ったバックアップコードでは解除できない
+        $this->actingAs($member, 'web')->delete('/mypage/two-factor', ['backup_code' => '0000-0000'])
+            ->assertSessionHasErrors('backup_code', errorBag: 'selfResetTwoFactor');
+        $this->assertTrue($member->refresh()->hasTwoFactorConfirmed());
+
+        // 認証アプリが手元に無くても、バックアップコードで解除できる
+        $this->actingAs($member, 'web')->delete('/mypage/two-factor', ['backup_code' => $backupCodes[0]])
+            ->assertRedirect(route('mypage.twoFactor'));
+        $this->assertFalse($member->refresh()->hasTwoFactorConfirmed());
+        $this->assertSame(0, $member->backupCodes()->count());
+    }
+
+    public function test_backup_code_is_not_accepted_for_regenerating_backup_codes(): void
+    {
+        $this->useTwoFactorMethod(Member::class, TwoFactorMethod::Totp);
+        $member = $this->member();
+        $member->forceFill(['totp_secret' => (new Google2FA())->generateSecretKey(), 'totp_confirmed_at' => now()])->save();
+        $backupCodes = (new BackupCodeGenerator())->generateFor($member);
+
+        // 作り直しは、今の認証アプリのコードだけで確かめる
+        $this->actingAs($member, 'web')->post('/mypage/two-factor/backup-codes/regenerate', ['backup_code' => $backupCodes[0]])
+            ->assertSessionHasErrors('code', errorBag: 'regenerateBackupCodes');
+        $this->assertSame(10, $member->backupCodes()->whereNull('used_at')->count());
+    }
+
+    public function test_staff_who_lost_the_phone_logs_in_and_resets_by_backup_codes(): void
+    {
+        // 見本のサイトの方式のまま（スタッフは認証アプリ）。管理者が1人だけでも、自分で解除できる
+        $staff = $this->staff();
+        $staff->forceFill(['totp_secret' => (new Google2FA())->generateSecretKey(), 'totp_confirmed_at' => now()])->save();
+        $backupCodes = (new BackupCodeGenerator())->generateFor($staff);
+
+        // バックアップコードでログインする
+        $this->post('/admin/login', ['login_id' => 'hanako', 'password' => self::PASSWORD]);
+        $this->post('/admin/login/verify', ['backup_code' => $backupCodes[0]])
+            ->assertRedirect(route('admin.dashboard'));
+        $this->assertAuthenticatedAs($staff, 'admin');
+
+        // 使ったコードは、もう使えない
+        $this->delete('/admin/2fa', ['backup_code' => $backupCodes[0]])
+            ->assertSessionHasErrors('backup_code', errorBag: 'selfResetTwoFactor');
+
+        // 別のバックアップコードで、自分の認証アプリの登録を解除する
+        $this->delete('/admin/2fa', ['backup_code' => $backupCodes[1]])
+            ->assertRedirect(route('admin.staff.show', $staff));
+        $this->assertFalse($staff->refresh()->hasTwoFactorConfirmed());
+        $this->assertSame(1, OperationLog::where('action', OperationLogAction::TwoFactorReset)
+            ->where('operator_type', 'staff')->where('operator_id', $staff->id)->count());
+
+        // 次のログインで、QRコードの登録を求められる
+        $this->post('/admin/logout');
+        $this->post('/admin/login', ['login_id' => 'hanako', 'password' => self::PASSWORD])
+            ->assertRedirect(route('admin.login.verify'));
+        $this->get('/admin/login/verify')->assertOk()->assertSee('QR');
     }
 
     public function test_staff_can_reset_the_authenticator_of_a_member(): void

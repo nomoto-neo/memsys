@@ -3,7 +3,8 @@
     登録の解除のボタンと、その確認の画面。スタッフの詳細と、会員の2段階認証の画面から@includeする。
     入口はApp\Support\TwoFactorManagementトレイト。
 
-    どちらも「今の認証アプリでもう一度コードを入力できる」ことが前提なので、本人が見ていて、
+    再発行は今の認証アプリのコードで確かめる。解除は、認証アプリのコードか、バックアップコードで
+    確かめる。端末を無くした人も、バックアップコードで自分で解除できる。本人が見ていて、
     登録が済んでいるときだけ@includeする。
 
     渡す変数：
@@ -63,7 +64,7 @@
                     <p>
                         2段階認証の登録を解除します。バックアップコード{{ Route::has($twoFactorRoutes['passkeys']) ? '・パスキー' : '' }}も全て無効になり、
                         次回ログイン時にQRコードから登録し直すことになります
-                        （スマートフォンの機種変更前に、古い端末側の紐づけを外しておきたい場合などにお使いください）。
+                        （スマートフォンの機種変更や、紛失のときなどにお使いください）。
                         よろしければ、認証アプリに表示されている6桁の数字を入力してください。
                     </p>
                     <div class="mb-3">
@@ -75,6 +76,18 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">キャンセル</button>
+
+                    {{-- 認証アプリの入った端末を無くした人のための入力欄。どちらか片方を入れれば通る。
+                         両方入っていたら、バックアップコードで確かめる --}}
+                    <p class="text-muted small mb-2">
+                        スマートフォンが手元に無い場合は、バックアップコードを入力してください。
+                    </p>
+                    <div class="mb-3">
+                        <label for="self_reset_backup_code" class="form-label">バックアップコード</label>
+                        <input id="self_reset_backup_code" type="text" name="backup_code"
+                               class="form-control" placeholder="0000-0000">
+                        <div class="invalid-feedback" data-item="backup_code">{{ $errors->selfResetTwoFactor->first('backup_code') }}</div>
+                    </div>
                     <button type="submit" class="btn btn-warning">解除する</button>
                 </div>
             </form>
