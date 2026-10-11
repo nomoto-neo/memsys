@@ -128,6 +128,12 @@ class FormHelpersTest extends TestCase
         $this->assertSame('東京都', code_labels('prefectures', [999, 13]));
         $this->assertSame('東京都', code_labels('prefectures', 13));
         $this->assertSame('', code_labels('prefectures', null));
+
+        // 名称が1つも無ければ、既定の値を返す。区切りをnullにすると「、」になる
+        $this->assertSame('（未設定）', code_labels('prefectures', null, default: '（未設定）'));
+        $this->assertSame('（未設定）', code_labels('prefectures', [999], null, '（未設定）'));
+        $this->assertSame('北海道、東京都', code_labels('prefectures', [1, 13], null, '（未設定）'));
+        $this->assertSame('北海道/東京都', code_labels('prefectures', [1, 13], '/', '（未設定）'));
     }
 
     // ---- 値の無い項目のキー ----

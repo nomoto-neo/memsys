@@ -826,7 +826,7 @@ public function viewFiles(Member|Staff|null $user, News $news, string $field): b
 | `code_table('prefectures')` | 選択肢の一覧（値 => 名称）。画面のセレクト、CSV の一覧 |
 | `code_keys('prefectures')` | 値の一覧。検証の `Rule::in(code_keys(...))` |
 | `code_label('prefectures', $value, '（未設定）')` | 名称1つ。画面の表示、メール |
-| `code_labels('prefectures', $values, '/')` | 複数選ばれた値の名称を、つなげて出す。区切りを省くと「、」 |
+| `code_labels('prefectures', $values, '/')` | 複数選ばれた値の名称を、つなげて出す。区切りを省くと「、」。1つも無いときに出す文字は、`default: '（未設定）'` または4番目の引数に書く |
 | `code_options('prefectures', $selected)` | プルダウンの `<option>` を並べた HTML。選ばれているものに `selected` が付く。2階層の配列を渡すと `<optgroup>` にまとめる |
 | `hit($value, $key)` | 入力値が、選択肢の値に当たっているか。`@checked()`・`@selected()` に渡す |
 

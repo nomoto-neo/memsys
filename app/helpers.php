@@ -58,11 +58,13 @@ if (! function_exists('code_labels')) {
     /**
      * 複数選ばれた値を、コード表の名称に変えてつなげて返す。チェックボックスの項目を、
      * 一覧や詳細に出すのに使う。コード表に無い値は飛ばす。値が1つでも、空でもよい。
+     * 区切りは、書かないかnullなら「、」。名称が1つも無ければ$defaultを返す。
      *
-     *   {{ code_labels('prefectures', $row->area_prefs) }}       東京都、神奈川県
-     *   {{ code_labels('prefectures', $row->area_prefs, '/') }}  東京都/神奈川県
+     *   {{ code_labels('prefectures', $row->area_prefs) }}                         東京都、神奈川県
+     *   {{ code_labels('prefectures', $row->area_prefs, '/') }}                    東京都/神奈川県
+     *   {{ code_labels('prefectures', $row->area_prefs, default: '（未設定）') }}   1つも無ければ（未設定）
      */
-    function code_labels(string $codeName, mixed $values, string $separator = '、'): string
+    function code_labels(string $codeName, mixed $values, ?string $separator = null, string $default = ''): string
     {
         $labels = [];
 
@@ -74,7 +76,11 @@ if (! function_exists('code_labels')) {
             }
         }
 
-        return implode($separator, $labels);
+        if ($labels === []) {
+            return $default;
+        }
+
+        return implode($separator ?? '、', $labels);
     }
 }
 
