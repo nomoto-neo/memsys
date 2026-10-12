@@ -1843,18 +1843,18 @@ OperationRecorder::record(OperationLogAction::Update, $company, ['status'], ['st
 
 毎朝8時に、前の日の操作ログの報告を管理者へ送ります（`routes/console.php`）。**気になる点があった日だけ**送ります。毎日届くと読まれなくなり、肝心の日に埋もれるためです。
 
-| 気になる点 | 目安（`OperationLogReport` の定数） |
+| 気になる点 | 目安（`config/logging.php` の `operation_report_thresholds`） |
 |---|---|
-| 1人が、1時間に詳細を開いた件数 | 50件以上（`VIEWS_PER_HOUR`） |
-| 1人が、1日に CSV をダウンロードした回数 | 5回以上（`CSV_DOWNLOADS_PER_DAY`） |
-| 1日のログインの失敗 | 10件以上（`LOGIN_FAILURES_PER_DAY`） |
+| 1人が、1時間に詳細を開いた件数 | 50件以上（`views_per_hour`） |
+| 1人が、1日に CSV をダウンロードした回数 | 5回以上（`csv_downloads_per_day`） |
+| 1日のログインの失敗 | 10件以上（`login_failures_per_day`） |
 | 管理画面の回数の制限に達した人 | 1人でもいれば |
 
 - **宛先**：`.env` の `OPERATION_REPORT_TO`（カンマ区切りで複数書けます）。空なら送りません。エラーの通知（`ERROR_NOTIFY_TO`）は開発者、こちらは管理者と、読む人が違うので分けています。
 - **件名**：`【要確認：サイト名】操作ログの報告（日付）`。頭は、エラーの通知と同じです。
 - **載せるもの**：気になる点、操作の種類ごとの件数、操作の多い人です。操作ログと同じく、氏名のほかの個人情報は載せません。
 - **手で動かす**：`php artisan app:report-operation-logs --date=2026-10-04 --always`。`--date` を書かなければ前の日、`--always` を付けると気になる点が無くても送ります。文面や宛先を確かめるときに使います。
-- 目安の数を変えるときは、`OperationLogReport` の定数を直します。
+- 目安の数は、サイトの規模（スタッフや会員の数、1日の操作の量）に合わせて、`config/logging.php` の `operation_report_thresholds` で決めます。0 にすると、その項目は見ません。
 
 ### 会員情報が変わったときのお知らせメール（MemberProfileNotice）
 

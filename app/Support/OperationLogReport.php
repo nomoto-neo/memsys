@@ -12,10 +12,11 @@ use Illuminate\Database\Eloquent\Builder;
  * 件数の多い時間帯や、ふだんと違う使われ方に、管理者が画面を開かなくても気付けるようにするため。
  *
  * ■ 気になる点
- * 次のどれかに当たるものを「気になる点」として挙げる。数は、このクラスの定数で決めている。
- * - 1人が、1時間に詳細をVIEWS_PER_HOUR件以上開いた
- * - 1人が、1日にCSVをCSV_DOWNLOADS_PER_DAY回以上ダウンロードした
- * - ログインの失敗が、1日にLOGIN_FAILURES_PER_DAY件以上あった
+ * 次のどれかに当たるものを「気になる点」として挙げる。目安の数は、サイトの規模で変わるので、
+ * config('logging.operation_report_thresholds')に持つ。0にした項目は見ない。
+ * - 1人が、1時間に詳細をviews_per_hour件以上開いた
+ * - 1人が、1日にCSVをcsv_downloads_per_day回以上ダウンロードした
+ * - ログインの失敗が、1日にlogin_failures_per_day件以上あった
  * - 回数の制限（AdminRequestLimit）に達した人がいた
  * メールは、気になる点があった日だけ送る。毎日届くと読まれなくなり、肝心の日に埋もれるため。
  *
@@ -25,15 +26,6 @@ use Illuminate\Database\Eloquent\Builder;
  */
 final class OperationLogReport
 {
-    /** 1人が1時間に開いた詳細の件数。これ以上なら気になる点にする */
-    private const VIEWS_PER_HOUR = 50;
-
-    /** 1人が1日にCSVをダウンロードした回数。これ以上なら気になる点にする */
-    private const CSV_DOWNLOADS_PER_DAY = 5;
-
-    /** 1日のログインの失敗の件数。これ以上なら気になる点にする */
-    private const LOGIN_FAILURES_PER_DAY = 10;
-
     /**
      * $dateの1日ぶんの報告を作る。メールのテンプレート（operation_log_report）に渡す値のうち、
      * 宛先などを除いた中身を返す。notableが空の文字なら、気になる点は無い。
@@ -63,21 +55,32 @@ final class OperationLogReport
         }
 
         // ---- 気になる点 ----
-        // 1時間に開いた詳細の件数が多い人と、1日のCSVのダウンロードが多い人。人と時間帯ごとに数える
-        $viewsByHour = $ofDay()->toBase()
-            ->where('action', OperationLogAction::View->value)
-            ->selectRaw('operator_type, operator_id, '.self::hourExpression($query).' as hour, count(*) as total')
-            ->groupBy('operator_type', 'operator_id', 'hour')
-            ->havingRaw('count(*) >= ?', [self::VIEWS_PER_HOUR])
-            ->orderBy('hour')
-            ->get();
+        // 目安の数。設定に無い項目と0の項目は、見ない
+        $viewsPerHour = self::threshold('views_per_hour');
+        $csvDownloadsPerDay = self::threshold('csv_downloads_per_day');
+        $loginFailuresPerDay = self::threshold('login_failures_per_day');
 
-        $csvByOperator = $ofDay()->toBase()
-            ->where('action', OperationLogAction::CsvDownload->value)
-            ->selectRaw('operator_type, operator_id, count(*) as total')
-            ->groupBy('operator_type', 'operator_id')
-            ->havingRaw('count(*) >= ?', [self::CSV_DOWNLOADS_PER_DAY])
-            ->get();
+        // 1時間に開いた詳細の件数が多い人と、1日のCSVのダウンロードが多い人。人と時間帯ごとに数える
+        $viewsByHour = collect();
+        if ($viewsPerHour > 0) {
+            $viewsByHour = $ofDay()->toBase()
+                ->where('action', OperationLogAction::View->value)
+                ->selectRaw('operator_type, operator_id, '.self::hourExpression($query).' as hour, count(*) as total')
+                ->groupBy('operator_type', 'operator_id', 'hour')
+                ->havingRaw('count(*) >= ?', [$viewsPerHour])
+                ->orderBy('hour')
+                ->get();
+        }
+
+        $csvByOperator = collect();
+        if ($csvDownloadsPerDay > 0) {
+            $csvByOperator = $ofDay()->toBase()
+                ->where('action', OperationLogAction::CsvDownload->value)
+                ->selectRaw('operator_type, operator_id, count(*) as total')
+                ->groupBy('operator_type', 'operator_id')
+                ->havingRaw('count(*) >= ?', [$csvDownloadsPerDay])
+                ->get();
+        }
 
         $throttled = $ofDay()->toBase()
             ->where('action', OperationLogAction::Throttled->value)
@@ -97,15 +100,15 @@ final class OperationLogReport
         $notable = [];
         foreach ($viewsByHour as $row) {
             $notable[] = '・'.$label($row).' が、'.((int) $row->hour).'時台に詳細を'.number_format($row->total)
-                .'件開いています（目安：1時間に'.self::VIEWS_PER_HOUR.'件）';
+                .'件開いています（目安：1時間に'.$viewsPerHour.'件）';
         }
         foreach ($csvByOperator as $row) {
             $notable[] = '・'.$label($row).' が、CSVを'.number_format($row->total)
-                .'回ダウンロードしています（目安：1日に'.self::CSV_DOWNLOADS_PER_DAY.'回）';
+                .'回ダウンロードしています（目安：1日に'.$csvDownloadsPerDay.'回）';
         }
         $loginFailures = $countsByAction[OperationLogAction::LoginFailed->value] ?? 0;
-        if ($loginFailures >= self::LOGIN_FAILURES_PER_DAY) {
-            $notable[] = '・ログインの失敗が'.number_format($loginFailures).'件あります（目安：1日に'.self::LOGIN_FAILURES_PER_DAY.'件）';
+        if ($loginFailuresPerDay > 0 && $loginFailures >= $loginFailuresPerDay) {
+            $notable[] = '・ログインの失敗が'.number_format($loginFailures).'件あります（目安：1日に'.$loginFailuresPerDay.'件）';
         }
         foreach ($throttled as $row) {
             $notable[] = '・'.$label($row).' が、管理画面の回数の制限に達しています';
@@ -130,6 +133,12 @@ final class OperationLogReport
             'counts' => implode("\n", $countLines),
             'operators' => $operatorLines !== [] ? implode("\n", $operatorLines) : '操作はありません。',
         ];
+    }
+
+    /** 気になる点の、目安の数。設定に無ければ0で、その項目は見ない */
+    private static function threshold(string $name): int
+    {
+        return (int) config('logging.operation_report_thresholds.'.$name);
     }
 
     /** 日時から「時」を取り出すSQL。書き方がDBによって違う */
