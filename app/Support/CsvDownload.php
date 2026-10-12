@@ -36,7 +36,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  *
  * ■ downloadCsv()の引数
  * - query          対象のモデルのクエリ。横展開などで使うリレーションはwith()で先に読んでおく
- * - name           CSVの名前。ファイル名は「名前_年月日_時分.csv」で、ダウンロードの記録の名前にもなる
+ * - name           CSVの名前。ファイル名は「{name}_年月日_時分.csv」で、ダウンロードの記録の名前にもなる
  * - encoding       CsvEncoding::Utf8BomかCsvEncoding::Sjis
  * - header         1行目に見出しを出すか。出さないときは、見出しが「:*」で終わる横展開の列は使えない
  * - escapeFormula  Excelで数式として動く値を無害にするか

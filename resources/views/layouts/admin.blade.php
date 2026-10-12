@@ -8,6 +8,9 @@
     @vite(['resources/js/app.js'])
 
 <style>
+{{-- 確認・詳細の画面で、_fieldsを読み取り専用で表示するときの見た目を整える。
+     readonlyの入力欄は枠線を消し、disabledのチェックボックス・ラジオボタンは、
+     選んだものを薄くせずに見せる。 --}}
 .form-control[readonly] {
     background-color: var(--bs-secondary-bg);
     border: 0;

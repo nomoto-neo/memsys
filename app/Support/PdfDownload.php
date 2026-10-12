@@ -34,7 +34,7 @@ use Symfony\Component\HttpFoundation\HeaderUtils;
  * ■ downloadPdf()の引数
  * - view         テンプレートの名前。resources/views/pdf/に置く
  * - data         テンプレートに渡す変数
- * - name         PDFの名前。ファイル名は「名前_年月日_時分.pdf」
+ * - name         PDFの名前。ファイル名は「{name}_年月日_時分.pdf」
  * - images       埋め込む画像。名前 => ['path' => サーバー上の場所, 'aspect' => [横, 縦]かnull]。
  *                aspectを書くと真ん中をその比で切り抜いてから埋め込む。mPDFはobject-fitを
  *                使えないので、決まった大きさの枠に写真をゆがめずに収めるため。
