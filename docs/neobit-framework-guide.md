@@ -50,18 +50,22 @@
 
 | 実例 | 使っている機能 |
 |---|---|
-| 管理画面：ニュース（`Admin\NewsController`） | 一覧・検索、登録・編集・確認画面、削除、アップロード（単数・複数）、WYSIWYG、CSVダウンロード・取り込み（追加あり）、記事の状態で見せ方の変わるファイル（一般公開・会員限定・非表示） |
-| 管理画面：会員（`Admin\MemberController`） | 一覧・検索、詳細・編集・確認画面、区分表（都道府県）、CSVダウンロード・取り込み（更新だけ）、`@名前` の列、ログインした人だけが見られるアップロード（顔写真）、PDF（履歴書） |
-| 管理画面：企業会員（`Admin\CompanyController`） | 一覧・検索、詳細・編集・確認画面、CSVダウンロード、列挙型の状態をボタンで変える操作（承認・却下・停止・再開）と、その操作ログ、お知らせのメール |
+| 訪問者向けニュース（`NewsController`） | ログイン不要の一覧・検索・詳細、会員限定の記事（ログイン中の会員にだけ見せる）、掲載期間（掲載開始日時・掲載終了日時。表示するたびに今の時刻と比べるので、スケジューラーは使わない）。条件は `News::visibleTo()`・`isVisibleTo()` にまとめてある |
+| 訪問者向け固定ページ（`PageController`） | URL の名前（`/aboutus`・`/service/price` のように、`/` を含む名前も使える）が、そのままパスになるページ。WYSIWYG で書いた本文の表示 |
+| お問い合わせ（`ContactController`） | 訪問者向けの入力・確認・送信、添付ファイル、メール送信、二重送信防止、スパム対策 |
+| 会員の認証まわり（`AuthSessionController` ほか） | ログイン、確認コード、パスワード再設定・変更、会員登録、退会、パスキー |
 | マイページ（`MypageController`） | 確認画面なしの編集（FormFlow）、ログインした人だけが見られるアップロード（顔写真）、PDF（履歴書）、退会、パスキー |
+| 企業会員（`app/Http/Controllers/Company/` の下） | 企業と担当者、企業ID・担当者ID でのログイン、登録と運営の承認、担当者の招待、既存のシステムから移したデータの初回のログイン（23章） |
+| 管理画面のログイン（`Admin\AuthSessionController` ほか） | TOTP・バックアップコード、信頼済み端末、パスキー |
+| 管理画面：ニュース（`Admin\NewsController`） | 一覧・検索、登録・編集・確認画面、削除、アップロード（単数・複数）、WYSIWYG、CSVダウンロード・取り込み（追加あり）、記事の状態で見せ方の変わるファイル（一般公開・会員限定・非表示） |
+| 管理画面：固定ページ（`Admin\PageController`） | 一覧・検索、登録・編集・確認画面、削除、WYSIWYG（SunEditor。ニュースは summernote）、本文に入れる画像のアップロード |
+| 管理画面：会員（`Admin\MemberController`） | 一覧・検索、詳細・編集・確認画面、区分表（都道府県）、CSVダウンロード・取り込み（更新だけ）、`@名前` の列、ログインした人だけが見られるアップロード（顔写真）、PDF（履歴書） |
+| 管理画面：企業会員（`Admin\CompanyController`・`Admin\CompanyUserController`） | 一覧・検索、詳細・編集・確認画面、CSVダウンロード、列挙型の状態をボタンで変える操作（承認・却下・停止・再開）と、その操作ログ、お知らせのメール、企業の詳細から入る担当者の確認・編集・削除（親の id を URL に持つコーナー） |
 | 管理画面：スタッフ（`Admin\StaffController`） | 一覧・検索、登録・編集、論理削除と取り消し、権限（Policy）、列挙型、パスワード |
 | 管理画面：カテゴリー（`Admin\CategoryController`） | 確認画面なしの登録・編集、並び替え、ページ分けしない一覧 |
 | 管理画面：項目見出し一覧（`Admin\CodeController`） | DBで管理する区分表の編集（複数行をまとめて保存、行の追加・削除・並び替え） |
-| お問い合わせ（`ContactController`） | 訪問者向けの入力・確認・送信、添付ファイル、メール送信、二重送信防止、スパム対策 |
-| 訪問者向けニュース（`NewsController`） | ログイン不要の一覧・検索・詳細、会員限定の記事（ログイン中の会員にだけ見せる）、掲載期間（掲載開始日時・掲載終了日時。表示するたびに今の時刻と比べるので、スケジューラーは使わない）。条件は `News::visibleTo()`・`isVisibleTo()` にまとめてある |
-| 企業会員（`app/Http/Controllers/Company/` の下） | 企業と担当者、企業ID・担当者ID でのログイン、登録と運営の承認、担当者の招待、既存のシステムから移したデータの初回のログイン（23章） |
-| 会員の認証まわり（`AuthSessionController` ほか） | ログイン、確認コード、パスワード再設定・変更、会員登録、退会、パスキー |
-| 管理画面のログイン（`Admin\AuthSessionController` ほか） | TOTP・バックアップコード、信頼済み端末、パスキー |
+| 管理画面：一斉メール（`Admin\BulkMailController`・`Admin\BulkMailTemplateController`・`app/Jobs/SendBulkMail.php`・`app/Services/MailUnsubscribe.php`） | キュー（宛先の数だけのジョブを1つのバッチにして積む、送る速さの制限、進み具合の表示）、宛先の CSV の読み込みと検証（`CsvReader`）、氏名の差し込み、添付ファイル、配信停止（21章） |
+| 管理画面：操作ログ（`Admin\OperationLogController`） | 登録・編集・削除の無い、見るだけの一覧。検索（日付の範囲・補足の中の語など、列と直接比べられない条件）、件数の棒グラフと、棒を押しての絞り込み、CSVダウンロード（22章） |
 
 ### 改版について
 
@@ -250,7 +254,6 @@ GRANT ALL PRIVILEGES ON memsys_testing.* TO 'memsys'@'localhost';
 | `app:reset-two-factor` | `app/Console/Commands/` | 2段階認証の登録を解除するコマンド（画面から解除できる人がいないときに使う） | 14 |
 | `app:set-next-id` | `app/Console/Commands/` | 新しく登録する行の id の始まりを決めるコマンド（サイトを開ける前に使う） | 16 |
 | `ErrorNotifyHandler` | `app/Support/` | ログに書いたエラーを開発者にメールで知らせる（レベル・宛先は .env、間隔は `config/logging.php`） | 20 |
-| `SendBulkMail` | `app/Jobs/` | 一斉メールを1通送るキューのジョブ（送る速さの制限・試し直し・バッチ） | 21 |
 | `OperationRecorder` | `app/Support/` | 操作ログ（誰が・いつ・どこから・何に・何をしたか）を書く | 22 |
 | `OperationLogStats`・`OperationLogReport` | `app/Support/` | 操作ログの件数の集計（一覧の上のグラフと表）と、1日ぶんの報告 | 22 |
 | `app:report-operation-logs` | `app/Console/Commands/` | 操作ログの報告のコマンド（スケジューラーから毎朝。気になる点があった日だけメールを送る） | 22 |
