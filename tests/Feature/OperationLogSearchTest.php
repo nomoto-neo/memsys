@@ -127,6 +127,40 @@ class OperationLogSearchTest extends TestCase
         $response->assertDontSee('個人会員ID:');
     }
 
+    public function test_daily_bars_follow_the_dates_of_the_search(): void
+    {
+        $this->travelTo('2026-10-12 10:00:00');
+
+        // [開始日, 終了日, 見出しに出る期間, 最初の棒の日, 最後の棒の日]
+        $cases = [
+            // どちらも無ければ、今日を最後にした30日
+            [null, null, '9/13 〜 10/12', '2026-09-13', '2026-10-12'],
+            // 開始日があれば、その日から30日。終了日は見ない
+            ['2026-08-01', '2026-08-10', '8/1 〜 8/30', '2026-08-01', '2026-08-30'],
+            // 開始日が今日の29日前より新しいときは、今日を最後にした30日
+            ['2026-10-05', null, '9/13 〜 10/12', '2026-09-13', '2026-10-12'],
+            // 終了日だけなら、その日を最後にした30日
+            [null, '2026-08-31', '8/2 〜 8/31', '2026-08-02', '2026-08-31'],
+            // 終了日が今日より先なら、今日を最後にした30日
+            [null, '2026-12-31', '9/13 〜 10/12', '2026-09-13', '2026-10-12'],
+        ];
+
+        $this->actingAs($this->manager(), 'admin');
+
+        foreach ($cases as [$from, $to, $period, $firstBar, $lastBar]) {
+            $response = $this->followingRedirects()
+                ->post(route('admin.operation-logs.search'), ['date_from' => $from, 'date_to' => $to])
+                ->assertOk()
+                ->assertSee($period.'（1日ごと）');
+
+            // 棒は、押した日を送るボタン。最初の日の前と、最後の日の後ろの棒は無い
+            $response->assertSee('name="day" value="'.$firstBar.'"', false)
+                ->assertSee('name="day" value="'.$lastBar.'"', false)
+                ->assertDontSee('name="day" value="'.date('Y-m-d', strtotime($firstBar.' -1 day')).'"', false)
+                ->assertDontSee('name="day" value="'.date('Y-m-d', strtotime($lastBar.' +1 day')).'"', false);
+        }
+    }
+
     public function test_migration_rewrites_escaped_japanese(): void
     {
         // キャストを変える前に書かれた行。日本語が\uの表記で入っている

@@ -107,7 +107,7 @@ class OperationLogController extends Controller
     /**
      * 一覧の上に出す集計。今の検索条件で数える。日付の条件だけは外し、期間は集計の側で決める。
      *
-     * @return array{hourly: array, daily: array, period: string, days: int, selectedDay: ?string, topOperators: Collection, topNames: array}
+     * @return array{hourly: array, daily: array, period: string, dailyPeriod: string, selectedDay: ?string, topOperators: Collection, topNames: array}
      */
     private function stats(array $filters): array
     {
@@ -128,17 +128,42 @@ class OperationLogController extends Controller
         // 操作の多い人は、1時間ごとの棒と同じ期間で数える
         $topOperators = OperationLogStats::topOperators($query, $hourlyFrom, $hourlyFrom->copy()->addHours(24));
 
+        // 1日ごとの棒は、検索の日付で決まる日からSTATS_DAYS日ぶん
+        $dailyFrom = $this->dailyFrom($filters);
+
         return [
             'hourly' => OperationLogStats::hourly($query, $hourlyFrom),
-            // 1日ごとの棒は、今日を最後にしたSTATS_DAYS日ぶん
-            'daily' => OperationLogStats::daily($query, today()->subDays(self::STATS_DAYS - 1), self::STATS_DAYS),
+            'daily' => OperationLogStats::daily($query, $dailyFrom, self::STATS_DAYS),
             // 1時間ごとの棒と、操作の多い人の表の、期間の呼び名
             'period' => $period,
-            'days' => self::STATS_DAYS,
+            // 1日ごとの棒の、期間の呼び名。例：9/13 〜 10/12
+            'dailyPeriod' => $dailyFrom->format('n/j').' 〜 '.$dailyFrom->copy()->addDays(self::STATS_DAYS - 1)->format('n/j'),
             'selectedDay' => $selectedDay?->format('Y-m-d'),
             'topOperators' => $topOperators,
             'topNames' => OperationLog::subjectNames($topOperators),
         ];
+    }
+
+    /**
+     * 1日ごとの棒の、最初の日。検索の日付に合わせて、棒の期間を動かす。
+     * - 開始日があれば、その日から。終了日は見ない
+     * - 開始日が無く終了日があれば、終了日を最後にした期間
+     * - どちらも無ければ、今日を最後にした期間
+     * 今日より先の日の棒は出さない。どの場合も、今日を最後にした期間より後ろへは動かさない。
+     */
+    private function dailyFrom(array $filters): Carbon
+    {
+        $latest = Carbon::today()->subDays(self::STATS_DAYS - 1);
+
+        if (! empty($filters['date_from'])) {
+            return Carbon::parse($filters['date_from'])->startOfDay()->min($latest);
+        }
+
+        if (! empty($filters['date_to'])) {
+            return Carbon::parse($filters['date_to'])->startOfDay()->subDays(self::STATS_DAYS - 1)->min($latest);
+        }
+
+        return $latest;
     }
 
     /**

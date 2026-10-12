@@ -132,7 +132,9 @@ button.stats-chart-col:hover .stats-chart-bar {
 {{--
     集計。1ページ目にだけ出す。今の検索条件で数える（日付の条件だけは外し、期間は下のとおり）。
     - 1時間ごと：直近の24時間。検索で1日だけに絞っているときは、その日の0時から24時間
-    - 1日ごと：今日までの$stats['days']日。棒を押すと、今の検索条件のまま、その1日に絞る
+    - 1日ごと：30日ぶん。検索に開始日があればその日から、終了日だけならその日まで、どちらも無ければ
+      今日まで。今日より先の日は出さない（OperationLogController::dailyFrom()）。
+      棒を押すと、今の検索条件のまま、その1日に絞る
     - 操作の多い人：1時間ごとの棒と同じ期間。スタッフと会員の上位と、訪問者
 --}}
 @if ($stats !== null)
@@ -149,7 +151,7 @@ button.stats-chart-col:hover .stats-chart-bar {
             @endforeach
         </div>
 
-        <h2 class="h6">直近{{ $stats['days'] }}日（1日ごと）　合計 {{ number_format(array_sum(array_column($stats['daily'], 'count'))) }}件</h2>
+        <h2 class="h6">{{ $stats['dailyPeriod'] }}（1日ごと）　合計 {{ number_format(array_sum(array_column($stats['daily'], 'count'))) }}件</h2>
         {{-- 棒は送信ボタン。押した日をdayで送る。今の検索条件は、日付のほかをhiddenで持ち越す --}}
         <form method="POST" action="{{ route('admin.operation-logs.day') }}" class="stats-chart mb-4">
             @csrf
