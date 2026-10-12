@@ -8,11 +8,11 @@ use App\Enums\OperationLogAction;
 use App\Http\Controllers\Controller;
 use App\Mail\TemplatedMail;
 use App\Models\Company;
-use App\Models\CompanyInvitation;
+use App\Models\TeamInvitation;
 use App\Models\CompanyUser;
 use App\Rules\KatakanaRule;
 use App\Rules\PhoneNumberRule;
-use App\Support\CompanyInvitationManager;
+use App\Support\TeamInvitationManager;
 use App\Support\CsvDownload;
 use App\Support\FormFlow;
 use App\Support\OperationRecorder;
@@ -41,7 +41,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  * 承認・却下・停止・再開のボタンで変える。
  * 企業の側に退会の画面は無い。退会の連絡を受けたら、ここで停止してから削除する。
  * 担当者を足すのは企業の側の役目だが、招待のメールを送ることだけは、ここからもできる。
- * 担当者が1人もいなくなった企業の立て直しに要るため（App\Support\CompanyInvitationManager）。
+ * 担当者が1人もいなくなった企業の立て直しに要るため（App\Support\TeamInvitationManager）。
  */
 class CompanyController extends Controller
 {
@@ -189,8 +189,8 @@ class CompanyController extends Controller
     {
         if ($company->wasRecentlyCreated) {
             // 新しく登録した企業の最初の担当者へ、招待のメールを送る
-            // （メールは保存が確定した後に送られる。App\Support\CompanyInvitationManager参照）。
-            CompanyInvitationManager::invite($company, $validated['invite_email']);
+            // （メールは保存が確定した後に送られる。App\Support\TeamInvitationManager参照）。
+            TeamInvitationManager::invite($company, $validated['invite_email']);
         }
     }
 
@@ -376,7 +376,7 @@ class CompanyController extends Controller
             'company' => $company,
             'input' => $this->formInput($company),
             'users' => $company->users()->orderBy('id')->get(),
-            'invitations' => CompanyInvitationManager::pending($company),
+            'invitations' => TeamInvitationManager::pending($company),
             'rejectRequired' => required_fields($this->rejectRules()),
             'invitationRequired' => required_fields($this->invitationRules()),
         ]);
@@ -534,25 +534,25 @@ class CompanyController extends Controller
             return $this->statusAlreadyChanged($company);
         }
 
-        CompanyInvitationManager::invite($company, $validated['email']);
+        TeamInvitationManager::invite($company, $validated['email']);
 
         return redirect()->route('admin.companies.show', $company)
             ->with('status', '招待のメールを送りました。');
     }
 
     /** 招待のメールを送り直す。リンクと期限が新しくなり、前のメールのリンクは使えなくなる */
-    public function resendInvitation(Company $company, CompanyInvitation $invitation): RedirectResponse
+    public function resendInvitation(Company $company, TeamInvitation $invitation): RedirectResponse
     {
-        CompanyInvitationManager::resend($invitation);
+        TeamInvitationManager::resend($invitation);
 
         return redirect()->route('admin.companies.show', $company)
             ->with('status', '招待のメールを送り直しました。');
     }
 
     /** 招待を取り消す */
-    public function cancelInvitation(Company $company, CompanyInvitation $invitation): RedirectResponse
+    public function cancelInvitation(Company $company, TeamInvitation $invitation): RedirectResponse
     {
-        CompanyInvitationManager::cancel($invitation);
+        TeamInvitationManager::cancel($invitation);
 
         return redirect()->route('admin.companies.show', $company)
             ->with('status', '招待を取り消しました。');

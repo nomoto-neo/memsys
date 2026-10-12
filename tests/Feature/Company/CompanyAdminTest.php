@@ -6,11 +6,11 @@ use App\Enums\CompanyStatus;
 use App\Enums\OperationLogAction;
 use App\Enums\StaffAcl;
 use App\Models\Company;
-use App\Models\CompanyInvitation;
+use App\Models\TeamInvitation;
 use App\Models\CompanyUser;
 use App\Models\OperationLog;
 use App\Models\Staff;
-use App\Support\CompanyInvitationManager;
+use App\Support\TeamInvitationManager;
 use App\Support\TrustedDeviceManager;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -208,7 +208,7 @@ class CompanyAdminTest extends TestCase
         $company = $this->company(CompanyStatus::Approved);
         $user = $this->user($company);
         TrustedDeviceManager::for($user)->remember($user);
-        CompanyInvitationManager::invite($company, 'guest@example.com');
+        TeamInvitationManager::invite($company, 'guest@example.com');
         $other = $this->company(CompanyStatus::Approved, 'other');
         $staff = $this->staff();
 
@@ -225,7 +225,7 @@ class CompanyAdminTest extends TestCase
         // 企業と、担当者・招待・信頼済みの端末を消す。ほかの企業は残る
         $this->assertSame([$other->id], Company::pluck('id')->all());
         $this->assertSame(0, CompanyUser::count());
-        $this->assertSame(0, CompanyInvitation::count());
+        $this->assertSame(0, TeamInvitation::count());
         $this->assertDatabaseCount('trusted_devices', 0);
 
         $log = OperationLog::where('action', OperationLogAction::Delete)->sole();
@@ -271,7 +271,11 @@ class CompanyAdminTest extends TestCase
         $this->assertSame(0, CompanyUser::count());
         $this->assertSame(['first@example.com'], $this->recipientsOf($this->lastMail()));
         $this->assertStringContainsString('/company/invitation/', $this->lastMail()->getTextBody());
-        $this->assertSame('first@example.com', CompanyInvitation::sole()->email);
+        $this->assertSame('first@example.com', TeamInvitation::sole()->email);
+
+        // スタッフが招待したときは、スタッフの氏名を出さず、運営からの招待として知らせる
+        $this->assertStringContainsString('の運営から、企業会員の担当者として招待されました。', $this->lastMail()->getTextBody());
+        $this->assertStringNotContainsString($staff->name, $this->lastMail()->getTextBody());
 
         // 詳細の招待中の一覧に出る
         $this->actingAs($staff, 'admin')->get("/admin/companies/{$company->id}")->assertOk()->assertSee('first@example.com');
@@ -288,8 +292,8 @@ class CompanyAdminTest extends TestCase
 
         $this->actingAs($staff, 'admin')->post("/admin/companies/{$company->id}/invitations", ['email' => 'new@example.com'])
             ->assertRedirect(route('admin.companies.show', $company));
-        $invitation = CompanyInvitation::sole();
-        $this->assertSame([$company->id, 'new@example.com'], [$invitation->company_id, $invitation->email]);
+        $invitation = TeamInvitation::sole();
+        $this->assertSame([$company->id, 'new@example.com'], [$invitation->team_id, $invitation->email]);
 
         // 操作ログには、送ったスタッフと、企業が残る
         $log = OperationLog::where('action', OperationLogAction::InvitationSend)->sole();
@@ -304,7 +308,7 @@ class CompanyAdminTest extends TestCase
 
         $this->actingAs($staff, 'admin')->delete("/admin/companies/{$company->id}/invitations/{$invitation->id}")
             ->assertRedirect(route('admin.companies.show', $company));
-        $this->assertSame(0, CompanyInvitation::count());
+        $this->assertSame(0, TeamInvitation::count());
     }
 
     public function test_pending_company_cannot_be_invited_from_the_admin(): void
@@ -314,7 +318,7 @@ class CompanyAdminTest extends TestCase
         $this->actingAs($this->staff(), 'admin')->post("/admin/companies/{$company->id}/invitations", ['email' => 'new@example.com'])
             ->assertSessionHas('error');
 
-        $this->assertSame(0, CompanyInvitation::count());
+        $this->assertSame(0, TeamInvitation::count());
         $this->assertCount(0, $this->sentMails());
     }
 

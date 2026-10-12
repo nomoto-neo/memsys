@@ -13,7 +13,7 @@
             <div class="card-header">担当者の登録</div>
             <div class="card-body">
                 <p class="text-muted">
-                    {{ $invitation->company->name }} の担当者として登録します。
+                    {{ $invitation->team->name }} の担当者として登録します。
                     担当者IDとパスワードを決めてください。
                 </p>
 
@@ -40,7 +40,7 @@
                                autocomplete="username"
                                value="{{ $input['login_id'] ?? '' }}">
                         <div class="form-text">
-                            ログインのときに、企業ID（{{ $invitation->company->code }}）と一緒に入力します。
+                            ログインのときに、企業ID（{{ $invitation->team->code }}）と一緒に入力します。
                             半角の英数字と記号（_ . -）が使えます。
                         </div>
                         <div class="invalid-feedback" data-item="login_id">{{ $errors->first('login_id') }}</div>

@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Enums\CompanyStatus;
+use App\Support\TeamInvitationOwner;
+use App\Support\TeamInvitationRelation;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -11,8 +13,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * 企業会員の企業。企業の情報だけを持ち、ログインはしない。
  * ログインするのは、この企業に属する担当者（CompanyUser）。設計は docs/member-types-spec.md。
  */
-class Company extends Model
+class Company extends Model implements TeamInvitationOwner
 {
+    // 担当者の招待の関連（invitations()）。App\Support\TeamInvitationManagerが使う
+    use TeamInvitationRelation;
+
     /** 操作ログで、変わった列に数えない列。最後に更新したスタッフのidは、入力とは関係なく変わるため */
     public const OPERATION_LOG_IGNORE = ['staff_id'];
 
@@ -63,10 +68,10 @@ class Company extends Model
         return $this->hasMany(CompanyUser::class);
     }
 
-    /** この企業の担当者の招待。期限の切れたものも含む（App\Support\CompanyInvitationManager） */
-    public function invitations(): HasMany
+    /** 招待から登録されるのは、担当者。招待のメールのテンプレートと、登録の画面のルートが決まる */
+    public static function invitedAccountClass(): string
     {
-        return $this->hasMany(CompanyInvitation::class);
+        return CompanyUser::class;
     }
 
     /**

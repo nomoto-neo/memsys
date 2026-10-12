@@ -1,7 +1,7 @@
 <?php
 
 use App\Services\InquiryCleanup;
-use App\Support\CompanyInvitationManager;
+use App\Support\TeamInvitationManager;
 
 return [
 
@@ -35,7 +35,7 @@ return [
             'days' => null,
         ],
         '期限の切れた担当者の招待' => [
-            'run' => [CompanyInvitationManager::class, 'deleteExpired'],
+            'run' => [TeamInvitationManager::class, 'deleteExpired'],
         ],
     ],
 

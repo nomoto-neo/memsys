@@ -231,7 +231,7 @@ GRANT ALL PRIVILEGES ON memsys_testing.* TO 'memsys'@'localhost';
 | `PasskeySuggestion` | `app/Support/` | パスワードでログインした人に、パスキーの登録を1回だけ勧める | 14 |
 | `LegacyPasswordUserProvider`・`LegacyPassword` | `app/Support/` | 既存のシステムから移した会員の、古い方式のパスワードの照合と、今の方式への置き換え | 14 |
 | `LoginIdMemory` | `app/Support/` | ログイン画面の入力（企業ID と担当者ID）を、ブラウザに覚えさせる | 14 |
-| `CompanyInvitationManager` | `app/Support/` | 企業会員の担当者の招待（リンクの発行・送り直し・取り消し・照合） | 14 |
+| `TeamInvitationManager`・`TeamInvitationOwner`・`TeamInvitationRelation` | `app/Support/` | 集団への招待（リンクの発行・送り直し・取り消し・照合）。企業会員の担当者の招待に使う。集団のモデルに、インターフェースとトレイトを付ける | 23 |
 | `LoginSession` | `app/Support/` | そのガードだけのログアウト（同じブラウザのほかのログインは残す） | 14 |
 | `LoginRedirect` | `app/Support/` | ログインの後の移動先（開こうとしていた画面へ戻す。戻り先は、ログインの種類ごとに覚える） | 14 |
 | `MemberVerificationCode` | `app/Support/` | メールで送る確認コード | 14 |
@@ -1569,7 +1569,7 @@ Schedule::command(CleanupTemporaryData::class)->hourly()->withoutOverlapping();
 | 片付け | 置き場所 | 消すもの |
 |---|---|---|
 | お問い合わせ（12章） | `t_inquiries` テーブルと添付ファイル | `tasks` の `days` に書いた日数より古い行と、その添付ファイル。`null` なら消さない（`App\Services\InquiryCleanup`） |
-| 企業会員の担当者の招待（14章） | `t_company_invitations` テーブル | 期限（`expires_at`）の切れた行（`CompanyInvitationManager::deleteExpired()`） |
+| 企業会員の担当者の招待（23章） | `team_invitations` テーブル | 期限（`expires_at`）の切れた行（`TeamInvitationManager::deleteExpired()`） |
 
 ```php
 // config/cleanup.php
@@ -1579,7 +1579,7 @@ Schedule::command(CleanupTemporaryData::class)->hourly()->withoutOverlapping();
         'days' => null,                                               // 残す日数。メソッドに引数で渡す
     ],
     '期限の切れた担当者の招待' => [
-        'run' => [CompanyInvitationManager::class, 'deleteExpired'],  // 行ごとに期限を持つものは、days を書かない
+        'run' => [TeamInvitationManager::class, 'deleteExpired'],     // 行ごとに期限を持つものは、days を書かない
     ],
 ],
 ```
@@ -1802,7 +1802,7 @@ Mail::send(new TemplatedMail('bulk_mail', [
 | ログインの失敗 | ログインのコントローラー（試行制限の回数を足すところ） | 無い |
 | パスワードの変更 | `PasswordChange::resetAndNotify()` | 無い |
 | パスキーの登録・削除 | `PasskeyManagement` | 無い |
-| 担当者の招待の送信・取り消し | `CompanyInvitationManager` | 無い |
+| 担当者の招待の送信・取り消し | `TeamInvitationManager` | 無い |
 | お知らせメールの配信停止 | `MailUnsubscribe`（メールの中の URL からの停止。21章） | 無い |
 | CSV のダウンロード・取り込み | `CsvDownload`・`CsvImport` | 無い |
 | 詳細の閲覧 | 個人情報を持つコーナーの `show()` | 1行書く |
@@ -1917,7 +1917,7 @@ private function afterSave(Member $member, array $validated, array $changedField
 
 <p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
 
-**ファイル**：`app/Support/MemberAccount.php`・`IsMemberAccount.php`・`TwoFactorLogin.php`・`CompanyInvitationManager.php`・`LoginIdMemory.php`、`config/members.php`、設計の詳細は「個人会員と企業会員を共存させる設計」（`docs/member-types-spec.md`）　**実例**：個人会員は `AuthSessionController` ほか、企業会員は `app/Http/Controllers/Company/` の下と `Admin\CompanyController`・`Admin\CompanyUserController`
+**ファイル**：`app/Support/MemberAccount.php`・`IsMemberAccount.php`・`TwoFactorLogin.php`・`TeamInvitationManager.php`・`TeamInvitationOwner.php`・`TeamInvitationRelation.php`・`LoginIdMemory.php`、`config/members.php`、設計の詳細は「個人会員と企業会員を共存させる設計」（`docs/member-types-spec.md`）　**実例**：個人会員は `AuthSessionController` ほか、企業会員は `app/Http/Controllers/Company/` の下と `Admin\CompanyController`・`Admin\CompanyUserController`
 
 訪問者側でログインする人は、個人会員と、企業の担当者の2種類です。ログインの仕組み（14章）は同じ共通部品を使い、画面・URL・コントローラーは種類ごとに分けて書きます。企業会員を使わないサイトは、企業会員のファイルを消します。
 
@@ -2023,8 +2023,24 @@ Route::prefix('company')->name('company.')->group(function () {
 - **担当者ID**（`t_company_users.login_id`）は、企業の中でだけ重ならなければよい値です。使える文字は `CompanyUser::LOGIN_ID_PATTERN` です。メールアドレスは、担当者どうしで重なっていて構いません。
 - **状態**（`CompanyStatus`）は、申請中・承認済み・停止の3つです。ログインできるのは、承認済みの企業の担当者だけです。企業の側が登録した企業は申請中、運営が管理画面で登録した企業は承認済みで作られます。
 - **企業の側に、退会の画面はありません**。退会の連絡を受けたら、運営が管理画面で停止してから削除します。削除できるのは、停止の企業だけです。承認済みの企業を、押し間違いで消さないようにするためです。削除すると、企業・担当者・招待の行と、担当者の信頼済み端末・パスキーが消えます。
-- **担当者は、招待のメールで足します**（`CompanyInvitationManager`）。招待する側が担当者ID やパスワードを決めて渡すことはしません。パスワードを本人のほかに知っている人を作らないためです。運営が企業を登録するときも、最初の担当者へ招待を送ります。
-- **招待のリンク**は7日間有効で、1回使うと消えます。DB には、リンクに入れた値のハッシュ値だけを持ちます（`t_company_invitations`）。期限の切れた招待は、後片付け（19章）が消します。
+- **担当者は、招待のメールで足します**（`TeamInvitationManager`）。招待する側が担当者ID やパスワードを決めて渡すことはしません。パスワードを本人のほかに知っている人を作らないためです。運営が企業を登録するときも、最初の担当者へ招待を送ります。
+- **招待のリンク**は7日間有効で、1回使うと消えます。DB には、リンクに入れた値のハッシュ値だけを持ちます（`team_invitations`）。期限の切れた招待は、後片付け（19章）が消します。
+- **招待のリンクを開いたとき、ほかの担当者のログインが残っていれば、終わらせます**。同じパソコンを複数の人で使っていて、前の人がログアウトしていなかった場合です。何も知らせずに、企業会員のログインだけを終わらせて、登録の画面を出します。管理画面や個人会員のログインは残します。終わらせるのは、使える招待のリンクのときだけです。期限切れや、でたらめな値のリンクでは、終わらせません（`Company\InvitationController`）。
+- **招待の部品は、企業に限りません**。`TeamInvitationManager` は、招待する集団を共通の型（`TeamInvitationOwner`）で受け取ります。集団のモデルに、インターフェースとトレイトを付け、`invitedAccountClass()` を書きます。招待のメールのテンプレート（`種類の名前_invitation`）と、登録の画面のルート（`種類の名前.invitation.show`）は、そのモデルの種類の名前から決まります。メールには、サイトの名前（`site_name`）と、招待した人の氏名（`inviter_name`）を渡します。招待した人は、その画面でログインしている人です。管理画面のスタッフが招待したときは、氏名を出さず、空で渡します。リンクから登録する画面は、項目が集団ごとに違うので、プロジェクトのコントローラーに書きます（実例：`Company\InvitationController`）。
+
+    ```php
+    class Company extends Model implements TeamInvitationOwner
+    {
+        use TeamInvitationRelation;                    // invitations() の関連
+
+        public static function invitedAccountClass(): string
+        {
+            return CompanyUser::class;                 // 招待から登録される人のモデル
+        }
+    }
+
+    TeamInvitationManager::invite($company, $email);   // 招待を作って、メールを送る
+    ```
 - **お知らせのメール**は、次のときに送ります。運営が管理画面から氏名やメールアドレスを変えたときは、送りません。
 
 | メール | テンプレート | 送るとき |
@@ -2058,8 +2074,8 @@ Route::prefix('company')->name('company.')->group(function () {
 | 場所 | 消すもの |
 |---|---|
 | `app/Http/Controllers/` | `Company/` の下の全部、`Admin/CompanyController.php`・`Admin/CompanyUserController.php` |
-| `app/Models/`・`app/Enums/` | `Company`・`CompanyUser`・`CompanyInvitation`、`CompanyStatus` |
-| `app/Support/`・`app/Http/Middleware/` | `CompanyInvitationManager`・`LoginIdMemory`、`EnsureCompanyIsApproved` |
+| `app/Models/`・`app/Enums/` | `Company`・`CompanyUser`、`CompanyStatus` |
+| `app/Support/`・`app/Http/Middleware/` | `LoginIdMemory`、`EnsureCompanyIsApproved` |
 | `resources/` | `views/company/`・`views/layouts/company.blade.php`・`views/admin/companies/`・`views/admin/company_users/`、`mail-templates/company_*.blade.php`、管理画面のトップのリンク |
 | `routes/web.php` | 企業会員のグループと、管理画面の企業会員管理のルート |
 | `config/` | `auth.php` の `company` のガードとプロバイダー、`members.php` の `company` |

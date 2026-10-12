@@ -228,8 +228,10 @@ Route::prefix('company')->name('company.')->group(function () {
         Route::get('/regist/thanks', [CompanyRegistrationController::class, 'thanks'])->name('regist.thanks');
 
         // 招待された人の、担当者としての登録。招待のメールのリンクから開く
-        // （App\Support\CompanyInvitationManager）。リンクの値を総当たりで探られないよう、回数を制限する
-        Route::middleware('throttle:20,1,company-invitation')->group(function () {
+        // （App\Support\TeamInvitationManager）。リンクの値を総当たりで探られないよう、回数を制限する。
+        // ログイン中の人が開いてもマイページへ移さないよう、guest:companyは外す。同じパソコンに
+        // 前の人のログインが残っていたときは、コントローラーがそのログインを終わらせる
+        Route::middleware('throttle:20,1,company-invitation')->withoutMiddleware('guest:company')->group(function () {
             Route::get('/invitation/{token}', [CompanyInvitationController::class, 'show'])->name('invitation.show');
             Route::post('/invitation/{token}', [CompanyInvitationController::class, 'store'])->name('invitation.store');
         });
@@ -458,7 +460,7 @@ Route::prefix('admin')->name('admin.')->middleware('admin.ip')->group(function (
         Route::patch('/companies/{company}/resume', [AdminCompanyController::class, 'resume'])->name('companies.resume');
         // 削除。停止の企業だけ。企業の側に退会の画面は無いので、退会の連絡を受けたときに使う
         Route::delete('/companies/{company}/delete', [AdminCompanyController::class, 'destroy'])->name('companies.destroy');
-        // 担当者の招待のメールの送信・送り直し・取り消し（App\Support\CompanyInvitationManager）。
+        // 担当者の招待のメールの送信・送り直し・取り消し（App\Support\TeamInvitationManager）。
         // scopeBindings()で、{invitation}をその{company}の招待に限る
         Route::post('/companies/{company}/invitations', [AdminCompanyController::class, 'storeInvitation'])->name('companies.invitations.store');
         Route::prefix('/companies/{company}/invitations/{invitation}')->name('companies.invitations.')->scopeBindings()->group(function () {

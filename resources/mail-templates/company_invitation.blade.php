@@ -1,8 +1,12 @@
 FROM: {!! $from_name !!} <{!! $from_mail !!}>
 TO: {!! $to_mail !!}
-SUBJECT: 【{!! $company_name !!}】企業会員の担当者へのご招待
+SUBJECT: 【{!! $site_name !!}】企業会員の担当者へのご招待
 
-{!! $company_name !!} の担当者として、当サイトの企業会員に招待されました。
+@if ($inviter_name !== '')
+{!! $inviter_name !!} 様から、{!! $site_name !!}の企業会員の担当者として招待されました。
+@else
+{!! $site_name !!}の運営から、企業会員の担当者として招待されました。
+@endif
 
 下記のリンクを開いて、担当者ID・お名前・パスワードを決めると、ログインできるようになります。
 

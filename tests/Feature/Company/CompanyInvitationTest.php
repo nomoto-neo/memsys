@@ -4,12 +4,15 @@ namespace Tests\Feature\Company;
 
 use App\Enums\CompanyStatus;
 use App\Enums\OperationLogAction;
+use App\Enums\StaffAcl;
 use App\Models\Company;
-use App\Models\CompanyInvitation;
+use App\Models\TeamInvitation;
 use App\Models\CompanyUser;
 use App\Models\OperationLog;
-use App\Support\CompanyInvitationManager;
+use App\Models\Staff;
+use App\Support\TeamInvitationManager;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Tests\Support\ReadsSentMail;
 use Tests\TestCase;
@@ -61,6 +64,8 @@ class CompanyInvitationTest extends TestCase
 
     public function test_invited_person_registers_from_the_link_and_is_logged_in(): void
     {
+        config(['app.site_name' => 'テストサイト']);
+
         $company = $this->company();
         $inviter = $this->user($company);
 
@@ -73,9 +78,13 @@ class CompanyInvitationTest extends TestCase
 
         $mail = $this->lastMail();
         $this->assertSame(['sato@example.com'], $this->recipientsOf($mail));
-        $this->assertSame('【株式会社acme】企業会員の担当者へのご招待', $mail->getSubject());
+        $this->assertSame('【テストサイト】企業会員の担当者へのご招待', $mail->getSubject());
+
+        // 招待した担当者の氏名を載せる。同じ企業の知り合いからの招待なので、企業名は添えない
+        $this->assertStringContainsString('山田 太郎 様から、テストサイトの企業会員の担当者として招待されました。', $mail->getTextBody());
+        $this->assertStringNotContainsString('株式会社acme', $mail->getTextBody());
         $url = $this->lastInvitationUrl();
-        $invitation = CompanyInvitation::sole();
+        $invitation = TeamInvitation::sole();
         $this->assertStringNotContainsString($invitation->token_hash, $url);
 
         // 招待中の一覧に出る。誰が招待したかは、操作ログに残る
@@ -94,7 +103,7 @@ class CompanyInvitationTest extends TestCase
         $this->assertAuthenticatedAs($user, 'company');
 
         // 招待は1回使ったら消える。同じリンクは、もう使えない
-        $this->assertSame(0, CompanyInvitation::count());
+        $this->assertSame(0, TeamInvitation::count());
         $this->app['auth']->guard('company')->logout();
         $this->get($url)->assertNotFound();
     }
@@ -124,19 +133,19 @@ class CompanyInvitationTest extends TestCase
 
         $this->actingAs($inviter, 'company')->post('/company/mypage/users/invite', ['email' => 'sato@example.com']);
         $first = $this->lastInvitationUrl();
-        $invitation = CompanyInvitation::sole();
+        $invitation = TeamInvitation::sole();
 
         // 送り直すと、リンクが新しくなり、前のリンクは使えなくなる
         $this->actingAs($inviter, 'company')->post("/company/mypage/users/invitations/{$invitation->id}/resend")
             ->assertRedirect(route('company.users.index'));
         $second = $this->lastInvitationUrl();
         $this->assertNotSame($first, $second);
-        $this->assertSame(1, CompanyInvitation::count());
+        $this->assertSame(1, TeamInvitation::count());
 
         // 取り消すと、送り直した方のリンクも使えなくなる
         $this->actingAs($inviter, 'company')->delete("/company/mypage/users/invitations/{$invitation->id}")
             ->assertRedirect(route('company.users.index'));
-        $this->assertSame(0, CompanyInvitation::count());
+        $this->assertSame(0, TeamInvitation::count());
         $this->assertSame(1, OperationLog::where('action', OperationLogAction::InvitationCancel)->count());
 
         $this->app['auth']->guard('company')->logout();
@@ -152,7 +161,7 @@ class CompanyInvitationTest extends TestCase
         $this->actingAs($inviter, 'company')->post('/company/mypage/users/invite', ['email' => 'sato@example.com']);
 
         // 同じ宛先にもう一度招待すると、前の招待を置き換える
-        $this->assertSame(1, CompanyInvitation::count());
+        $this->assertSame(1, TeamInvitation::count());
         $this->assertCount(2, $this->sentMails());
     }
 
@@ -165,7 +174,7 @@ class CompanyInvitationTest extends TestCase
         $this->app['auth']->guard('company')->logout();
 
         // 期限の直前までは使える
-        $this->travel(CompanyInvitationManager::VALID_DAYS)->days();
+        $this->travel(TeamInvitationManager::VALID_DAYS)->days();
         $this->travel(-1)->minutes();
         $this->get($url)->assertOk();
 
@@ -175,8 +184,8 @@ class CompanyInvitationTest extends TestCase
         $this->post($url, $this->registerInput())->assertNotFound();
         $this->assertSame(1, CompanyUser::count());
 
-        $this->assertSame(1, CompanyInvitationManager::deleteExpired());
-        $this->assertSame(0, CompanyInvitation::count());
+        $this->assertSame(1, TeamInvitationManager::deleteExpired());
+        $this->assertSame(0, TeamInvitation::count());
     }
 
     public function test_link_of_a_suspended_company_is_rejected(): void
@@ -242,8 +251,8 @@ class CompanyInvitationTest extends TestCase
         $me = $this->user($this->company('acme'));
         $otherCompany = $this->company('other');
         $otherUser = $this->user($otherCompany, 'sato', 'sato@example.com');
-        CompanyInvitationManager::invite($otherCompany, 'guest@example.com');
-        $invitation = CompanyInvitation::sole();
+        TeamInvitationManager::invite($otherCompany, 'guest@example.com');
+        $invitation = TeamInvitation::sole();
 
         $this->actingAs($me, 'company')->get('/company/mypage/users')->assertOk()
             ->assertDontSee('sato@example.com')->assertDontSee('guest@example.com');
@@ -254,7 +263,7 @@ class CompanyInvitationTest extends TestCase
         $this->actingAs($me, 'company')->delete("/company/mypage/users/invitations/{$invitation->id}")->assertNotFound();
 
         $this->assertSame('山田 太郎', $otherUser->fresh()->name);
-        $this->assertSame(1, CompanyInvitation::count());
+        $this->assertSame(1, TeamInvitation::count());
     }
 
     public function test_screens_need_a_company_login(): void
@@ -264,6 +273,40 @@ class CompanyInvitationTest extends TestCase
         }
 
         $this->post('/company/mypage/users/invite', ['email' => 'sato@example.com'])->assertRedirect(route('company.login'));
-        $this->assertSame(0, CompanyInvitation::count());
+        $this->assertSame(0, TeamInvitation::count());
+    }
+
+    public function test_opening_a_usable_link_logs_out_the_person_left_logged_in(): void
+    {
+        $company = $this->company();
+        $inviter = $this->user($company);
+
+        $this->actingAs($inviter, 'company')->post('/company/mypage/users/invite', ['email' => 'sato@example.com']);
+        $url = $this->lastInvitationUrl();
+
+        // 同じパソコンに、招待した人と、管理画面のスタッフのログインが残っている
+        $staff = Staff::create([
+            'name' => '管理 花子',
+            'login_id' => 'hanako',
+            'email' => 'hanako@example.com',
+            'password' => Hash::make('staff-password'),
+            'acl' => StaffAcl::Manager,
+        ]);
+        $this->actingAs($staff, 'admin');
+        $this->assertAuthenticatedAs($inviter, 'company');
+
+        // 使えないリンクでは、ログインを終わらせない
+        $this->get('/company/invitation/'.str_repeat('x', 64))->assertNotFound();
+        $this->assertAuthenticatedAs($inviter, 'company');
+
+        // 使えるリンクを開くと、マイページへは移さず、企業会員のログインを終わらせて登録の画面を出す。
+        // 管理画面のログインは残る
+        $this->get($url)->assertOk()->assertSee('sato@example.com');
+        $this->assertGuest('company');
+        $this->assertAuthenticatedAs($staff, 'admin');
+
+        // そのまま登録すると、招待された人としてログインする
+        $this->post($url, $this->registerInput())->assertRedirect(route('company.mypage'));
+        $this->assertSame('sato@example.com', Auth::guard('company')->user()->email);
     }
 }

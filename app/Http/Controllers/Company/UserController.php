@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Company;
 
 use App\Http\Controllers\Controller;
-use App\Models\CompanyInvitation;
+use App\Models\TeamInvitation;
 use App\Models\CompanyUser;
-use App\Support\CompanyInvitationManager;
+use App\Support\TeamInvitationManager;
 use App\Support\FormFlow;
 use App\Support\MemberProfileNotice;
 use Illuminate\Http\RedirectResponse;
@@ -18,7 +18,7 @@ use Illuminate\View\View;
  *
  * 担当者に権限の区別は無いので、どの担当者も、招待と、ほかの担当者の編集・削除ができる。
  * 誰が行ったかは、操作ログ（App\Support\OperationRecorder）に残る。
- * - 担当者は、招待のメールで足す（App\Support\CompanyInvitationManager）。ここで担当者IDや
+ * - 担当者は、招待のメールで足す（App\Support\TeamInvitationManager）。ここで担当者IDや
  *   パスワードを決めて作ることはしない
  * - ほかの担当者の編集は、氏名とメールアドレスだけ。担当者IDとパスワードは変えない
  * - 自分自身は削除できない。担当者が1人もいない企業を、企業の側の操作では作らないため
@@ -98,7 +98,7 @@ class UserController extends Controller
         return view('company.users.index', [
             'me' => $me,
             'users' => $me->company->users()->orderBy('id')->get(),
-            'invitations' => CompanyInvitationManager::pending($me->company),
+            'invitations' => TeamInvitationManager::pending($me->company),
         ]);
     }
 
@@ -111,7 +111,7 @@ class UserController extends Controller
             'input' => old(),
             'required' => required_fields($this->inviteRules()),
             // 案内文に出す、リンクの期限の日数
-            'validDays' => CompanyInvitationManager::VALID_DAYS,
+            'validDays' => TeamInvitationManager::VALID_DAYS,
         ]);
     }
 
@@ -120,7 +120,7 @@ class UserController extends Controller
     {
         $validated = $request->validate($this->inviteRules());
 
-        CompanyInvitationManager::invite($this->me()->company, $validated['email']);
+        TeamInvitationManager::invite($this->me()->company, $validated['email']);
 
         return redirect()->route('company.users.index')
             ->with('status', '招待のメールを送りました。');
@@ -130,22 +130,22 @@ class UserController extends Controller
      * 招待のメールを送り直す（POST /company/mypage/users/invitations/{invitation}/resend）。
      * リンクと期限が新しくなり、前のメールのリンクは使えなくなる
      */
-    public function resendInvitation(CompanyInvitation $invitation): RedirectResponse
+    public function resendInvitation(TeamInvitation $invitation): RedirectResponse
     {
-        $this->abortUnlessOwnCompany($invitation->company_id);
+        $this->abortUnlessOwnInvitation($invitation);
 
-        CompanyInvitationManager::resend($invitation);
+        TeamInvitationManager::resend($invitation);
 
         return redirect()->route('company.users.index')
             ->with('status', '招待のメールを送り直しました。');
     }
 
     /** 招待を取り消す（DELETE /company/mypage/users/invitations/{invitation}） */
-    public function cancelInvitation(CompanyInvitation $invitation): RedirectResponse
+    public function cancelInvitation(TeamInvitation $invitation): RedirectResponse
     {
-        $this->abortUnlessOwnCompany($invitation->company_id);
+        $this->abortUnlessOwnInvitation($invitation);
 
-        CompanyInvitationManager::cancel($invitation);
+        TeamInvitationManager::cancel($invitation);
 
         return redirect()->route('company.users.index')
             ->with('status', '招待を取り消しました。');
@@ -213,11 +213,17 @@ class UserController extends Controller
     }
 
     /**
-     * URLで指定された担当者や招待が、ログイン中の担当者と同じ企業のものでなければ404にする。
-     * ほかの企業のものがあるかどうかを、知らせないため
+     * URLで指定された担当者が、ログイン中の担当者と同じ企業の人でなければ404にする。
+     * ほかの企業の担当者がいるかどうかを、知らせないため
      */
     private function abortUnlessOwnCompany(int $companyId): void
     {
         abort_unless($companyId === $this->me()->company_id, 404);
+    }
+
+    /** URLで指定された招待が、ログイン中の担当者の企業への招待でなければ404にする */
+    private function abortUnlessOwnInvitation(TeamInvitation $invitation): void
+    {
+        abort_unless($this->me()->company->is($invitation->team), 404);
     }
 }
