@@ -2,8 +2,6 @@
 
 namespace App\Support;
 
-use App\Models\CompanyInvitation;
-use App\Models\Inquiry;
 use App\Models\OperationLog;
 use App\Models\TrustedDevice;
 use Illuminate\Support\Facades\DB;
@@ -24,18 +22,16 @@ use Illuminate\Support\Facades\Storage;
  * 「この端末を信頼する」の記録（trusted_devicesテーブル）
  *   消すもの：期限の切れた行
  *
- * 企業会員の担当者の招待（t_company_invitationsテーブル）
- *   消すもの：期限の切れた行
- *
  * 操作ログ（operation_logsテーブル）
- *   消すもの：config('logging.operation_log_days')の日数より古い行
- *
- * お問い合わせ（t_inquiriesテーブルと添付ファイル）
- *   消すもの：config('app.inquiry_keep_days')の日数より古い行と、その添付ファイル。
- *   日数を決めていなければ消さない
+ *   消すもの：config('cleanup.operation_log_days')の日数より古い行
  *
  * 送れなかったキューのジョブ（failed_jobsテーブル）
- *   消すもの：FAILED_JOB_KEEP_DAYSの日数より古い行
+ *   消すもの：config('cleanup.failed_job_days')の日数より古い行
+ *
+ * ■ プロジェクトの片付け
+ * 業務のデータの片付けは、このクラスには書かない。config/cleanup.phpのtasksに、
+ * 名前と呼ぶメソッドを書くと、all()が上の片付けの後に呼ぶ。お問い合わせや、担当者の招待が
+ * これに当たる。残す日数（days）を書いた片付けには、その日数を引数で渡す。
  *
  * ■ 呼ぶところ
  * - スケジューラーから1時間ごとに、app:cleanup-temporary-dataコマンドがall()を呼ぶ。
@@ -58,28 +54,26 @@ final class TemporaryDataCleaner
      */
     public const MAX_AGE_HOURS = 24;
 
-    /** 保存期間を過ぎたお問い合わせを、1回の問い合わせで読む件数 */
-    private const INQUIRY_CHUNK = 100;
-
-    /**
-     * 送れなかったキューのジョブを残す日数。この間なら、php artisan queue:retry allで送り直せる。
-     * 一斉メールのジョブには宛先の氏名とメールアドレスが入っているので、残し続けない。
-     */
-    public const FAILED_JOB_KEEP_DAYS = 7;
-
     /** すべての一時データを片付け、消した件数を名前 => 件数で返す。 */
     public static function all(): array
     {
-        return [
+        $counts = [
             'アップロードの一時ファイル' => self::uploadTmpFiles(),
             'CSV取り込みの作業用ファイル' => self::csvImportFiles(),
             '期限の切れたキャッシュ' => self::expiredCache(),
             '期限の切れた信頼済み端末' => self::expiredTrustedDevices(),
-            '期限の切れた担当者の招待' => self::expiredCompanyInvitations(),
             '保存期間を過ぎた操作ログ' => self::oldOperationLogs(),
-            '保存期間を過ぎたお問い合わせ' => self::oldInquiries(),
             '保存期間を過ぎた、送れなかったジョブ' => self::oldFailedJobs(),
         ];
+
+        // プロジェクトの片付け。残す日数を書いた片付けには、その日数を渡す
+        foreach ((array) config('cleanup.tasks') as $name => $task) {
+            $arguments = array_key_exists('days', $task) ? [$task['days']] : [];
+
+            $counts[$name] = (int) call_user_func_array($task['run'], $arguments);
+        }
+
+        return $counts;
     }
 
     /** UploadFilePath::TMP_DIRに置いた、アップロード直後の一時ファイルのうち古いもの。 */
@@ -121,69 +115,42 @@ final class TemporaryDataCleaner
         return TrustedDevice::query()->where('expires_at', '<=', now())->delete();
     }
 
-    /** 企業会員の担当者の招待（App\Support\CompanyInvitationManager）のうち、期限の切れた行。 */
-    public static function expiredCompanyInvitations(): int
-    {
-        return CompanyInvitation::query()->where('expires_at', '<=', now())->delete();
-    }
-
-    /** 操作ログ（App\Support\OperationRecorder）のうち、残す日数を過ぎた行。 */
+    /**
+     * 操作ログ（App\Support\OperationRecorder）のうち、config('cleanup.operation_log_days')の日数を過ぎた行。
+     * 日数が設定に無いときは何もしない。設定のキャッシュが古くて項目がまだ無いときに、
+     * 全部の行を消してしまわないようにするため。
+     */
     public static function oldOperationLogs(): int
     {
+        $days = (int) config('cleanup.operation_log_days');
+
+        if ($days <= 0) {
+            return 0;
+        }
+
         return OperationLog::query()
-            ->where('created_at', '<', now()->subDays(config('logging.operation_log_days')))
+            ->where('created_at', '<', now()->subDays($days))
             ->delete();
     }
 
     /**
-     * お問い合わせのうち、残す日数（.envのINQUIRY_KEEP_DAYS）を過ぎた行と、その添付ファイル。
-     * 個人情報を、要らなくなった後も持ち続けないようにするため。日数を決めていなければ、何も消さない。
-     * 1件ずつは操作ログに残さず、消した件数だけを返す。
-     */
-    public static function oldInquiries(): int
-    {
-        $days = config('app.inquiry_keep_days');
-
-        if ($days === null) {
-            return 0;
-        }
-
-        $deleted = 0;
-
-        Inquiry::query()
-            ->where('created_at', '<', now()->subDays($days))
-            ->chunkById(self::INQUIRY_CHUNK, function ($inquiries) use (&$deleted) {
-                foreach ($inquiries as $inquiry) {
-                    // 行を消してから、添付ファイルをレコードのディレクトリごと消す。先にファイルを消すと、
-                    // 行を消せなかったときに、添付ファイルの無いお問い合わせが残るため
-                    $inquiry->delete();
-
-                    $directory = UploadFilePath::directory(Inquiry::class, $inquiry->id);
-                    Storage::disk(UploadFilePath::PUBLIC_DISK)->deleteDirectory($directory);
-                    Storage::disk(UploadFilePath::PRIVATE_DISK)->deleteDirectory($directory);
-
-                    $deleted++;
-                }
-            });
-
-        return $deleted;
-    }
-
-    /**
-     * 試し直しても送れなかったキューのジョブ（failed_jobsテーブル）のうち、FAILED_JOB_KEEP_DAYSを過ぎた行。
-     * 失敗したジョブをDB以外に置いているときは何もしない。
+     * 試し直しても送れなかったキューのジョブ（failed_jobsテーブル）のうち、
+     * config('cleanup.failed_job_days')の日数を過ぎた行。
+     * 失敗したジョブをDB以外に置いているときと、日数が設定に無いときは何もしない。
      */
     public static function oldFailedJobs(): int
     {
         $failed = config('queue.failed');
 
-        if (! str_starts_with((string) ($failed['driver'] ?? ''), 'database')) {
+        $days = (int) config('cleanup.failed_job_days');
+
+        if ($days <= 0 || ! str_starts_with((string) ($failed['driver'] ?? ''), 'database')) {
             return 0;
         }
 
         return DB::connection($failed['database'] ?? null)
             ->table($failed['table'] ?? 'failed_jobs')
-            ->where('failed_at', '<', now()->subDays(self::FAILED_JOB_KEEP_DAYS))
+            ->where('failed_at', '<', now()->subDays($days))
             ->delete();
     }
 

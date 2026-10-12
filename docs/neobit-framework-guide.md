@@ -252,7 +252,7 @@ GRANT ALL PRIVILEGES ON memsys_testing.* TO 'memsys'@'localhost';
 | `_ajax_upload_block`・`_ajax_upload_group` | `resources/views/` | アップロード欄（単数・複数） | 7 |
 | `admin/csv_import/` | `resources/views/` | CSV 取り込みの画面（全コーナー共通） | 10 |
 | `_passkeys` | `resources/views/` | パスキーの一覧・本人確認・登録の画面の中身 | 14 |
-| `TemporaryDataCleaner` | `app/Support/` | 一時データの後片付け（一時ファイル・期限の切れたキャッシュと信頼済み端末・古い操作ログ） | 19 |
+| `TemporaryDataCleaner` | `app/Support/` | 一時データの後片付け（一時ファイル・期限の切れたキャッシュと信頼済み端末・古い操作ログ）。プロジェクトの片付けは `config/cleanup.php` に足す | 19 |
 | `app:cleanup-temporary-data` | `app/Console/Commands/` | 一時データの後片付けのコマンド（スケジューラーから1時間ごと） | 19 |
 | `app:reset-two-factor` | `app/Console/Commands/` | 2段階認証の登録を解除するコマンド（画面から解除できる人がいないときに使う） | 14 |
 | `app:set-next-id` | `app/Console/Commands/` | 新しく登録する行の id の始まりを決めるコマンド（サイトを開ける前に使う） | 16 |
@@ -1559,21 +1559,43 @@ Schedule::command(CleanupTemporaryData::class)->hourly()->withoutOverlapping();
 
 ### 一時データの後片付け（TemporaryDataCleaner）
 
+**ファイル**：`app/Support/TemporaryDataCleaner.php`（冒頭のコメント）・`config/cleanup.php`（残す日数と、プロジェクトの片付け）
+
+フレームワークが片付けるものは、次のとおりです。
+
 | 一時データ | 置き場所 | 消すもの |
 |---|---|---|
 | アップロード直後の一時ファイル | `storage/app/private/tmp` | 24時間（`MAX_AGE_HOURS`）より古いファイル |
 | CSV 取り込みの作業用ファイル | `storage/app/private/csv_import` | 24時間より古いファイル |
 | 試行制限の回数などのキャッシュ | `cache`・`cache_locks` テーブル | 期限の切れた行（キャッシュを database に置いているときだけ） |
 | 「この端末を信頼する」の記録 | `trusted_devices` テーブル | 期限（`expires_at`）の切れた行 |
-| 企業会員の担当者の招待（14章） | `t_company_invitations` テーブル | 期限（`expires_at`）の切れた行 |
-| 操作ログ（22章） | `operation_logs` テーブル | `OPERATION_LOG_DAYS`（既定は365日）より古い行 |
-| お問い合わせ（12章） | `t_inquiries` テーブルと添付ファイル | `INQUIRY_KEEP_DAYS` より古い行と、その添付ファイル。空なら消さない |
-| 送れなかったキューのジョブ（21章） | `failed_jobs` テーブル | 7日（`FAILED_JOB_KEEP_DAYS`）より古い行 |
+| 操作ログ（22章） | `operation_logs` テーブル | `config/cleanup.php` の `operation_log_days`（`.env` の `OPERATION_LOG_DAYS`。既定は365日）より古い行 |
+| 送れなかったキューのジョブ（21章） | `failed_jobs` テーブル | `config/cleanup.php` の `failed_job_days`（7日）より古い行 |
+
+業務のデータの片付けは、`TemporaryDataCleaner` には書かず、`config/cleanup.php` の `tasks` に足します。フレームワークの片付けの後に、同じ1時間ごとの片付けの中で呼ばれます。サンプルサイトでは、次の2つを足しています。
+
+| 片付け | 置き場所 | 消すもの |
+|---|---|---|
+| お問い合わせ（12章） | `t_inquiries` テーブルと添付ファイル | `.env` の `INQUIRY_KEEP_DAYS` より古い行と、その添付ファイル。空なら消さない（`App\Services\InquiryCleanup`） |
+| 企業会員の担当者の招待（14章） | `t_company_invitations` テーブル | 期限（`expires_at`）の切れた行（`CompanyInvitationManager::deleteExpired()`） |
+
+```php
+// config/cleanup.php
+'tasks' => [
+    '保存期間を過ぎたお問い合わせ' => [
+        'run' => [InquiryCleanup::class, 'deleteOld'],                // 呼ぶメソッド。消した件数を返す
+        'days' => ((int) env('INQUIRY_KEEP_DAYS', 0)) ?: null,        // 残す日数。メソッドに引数で渡す
+    ],
+    '期限の切れた担当者の招待' => [
+        'run' => [CompanyInvitationManager::class, 'deleteExpired'],  // 行ごとに期限を持つものは、days を書かない
+    ],
+],
+```
 
 - 一時ファイルは、アップロードと CSV 取り込みのたびにも同じ処理で消します。サーバーの cron が動いていなくても溜まり続けないようにするための控えです。
 - **お問い合わせは、日数を決めたサイトだけ消します**。`.env` の `INQUIRY_KEEP_DAYS` に残す日数を書くと、過ぎた行と添付ファイルを消します。空なら、消さずに残し続けます。個人情報を、要らなくなった後も持ち続けないようにするためです。日数は、サイトの運用で決めます。1件ずつは操作ログに残さず、消した件数だけをログ（`laravel.log`）に残します。スタッフに届いたお問い合わせのメールは、消えません。
 - 何かを消したときだけログに残し、何もしなかった回は残しません。同じ行が1時間ごとに並ばないようにするためです。
-- 新しい一時データ（使い終わっても残るファイルや行）を作ったら、このクラスにメソッドを足し、`all()` に加えます。
+- 新しい片付けを足すときは、消した件数を返すメソッドを `app/Services/` のクラスなどに書き、`config/cleanup.php` の `tasks` に1つ足します。残す日数があるものは `days` に書くと、メソッドに引数で渡されます。名前は、片付けのコマンドの表とログに出ます。
 
 ### サーバーの設定（cron）
 
@@ -1821,7 +1843,7 @@ OperationRecorder::record(OperationLogAction::Update, $company, ['status'], ['st
 - **変わった列は、本体のテーブルの列だけです**：多対多のような関連のテーブルの変更は、列の名前には出ません。「更新した」ことは残ります。
 - **変わった項目は、列の名前のまま出します**（`phone`・`disp_flg` など）。日本語の名前の対応表は持ちません。画面を足すたびに対応表も足すことになり、CSV の見出しなどと二重に持つことになるためです。
 - **`detail` に個人情報と入力値を入れません**。ログインの失敗のログイン ID は、どのアカウントが狙われたかを調べるために残しています。お知らせメールの配信停止は、そのアドレスの会員がいないときだけ、どのアドレスへの操作かが分かるようにメールアドレスを残しています（21章）。例外は、この2つだけです。
-- **残す期間**：`.env` の `OPERATION_LOG_DAYS`（既定は365日）。過ぎた行は、一時データの後片付け（19章）が消します。
+- **残す期間**：`.env` の `OPERATION_LOG_DAYS`（既定は365日。`config/cleanup.php` の `operation_log_days`）。過ぎた行は、一時データの後片付け（19章）が消します。
 
 ### 管理画面の回数の制限（AdminRequestLimit）
 
@@ -2059,7 +2081,7 @@ Route::prefix('company')->name('company.')->group(function () {
 - `AppServiceProvider` の `enforceMorphMap()` の `company`・`company_user`
 - `OperationLogSubject` の `Company`・`CompanyUser` と、`OperationLog::subjectNames()` の読み方
 - `OperationLogAction` の `InvitationSend`・`InvitationCancel`
-- `TemporaryDataCleaner::expiredCompanyInvitations()` と、`all()` の行
+- `config/cleanup.php` の `tasks` の「期限の切れた担当者の招待」
 
 ### 個人会員をログインID でログインさせるサイト
 

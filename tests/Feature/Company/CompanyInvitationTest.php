@@ -9,7 +9,6 @@ use App\Models\CompanyInvitation;
 use App\Models\CompanyUser;
 use App\Models\OperationLog;
 use App\Support\CompanyInvitationManager;
-use App\Support\TemporaryDataCleaner;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Tests\Support\ReadsSentMail;
@@ -176,7 +175,7 @@ class CompanyInvitationTest extends TestCase
         $this->post($url, $this->registerInput())->assertNotFound();
         $this->assertSame(1, CompanyUser::count());
 
-        $this->assertSame(1, TemporaryDataCleaner::expiredCompanyInvitations());
+        $this->assertSame(1, CompanyInvitationManager::deleteExpired());
         $this->assertSame(0, CompanyInvitation::count());
     }
 

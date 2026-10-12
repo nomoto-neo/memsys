@@ -30,7 +30,8 @@ use Illuminate\Support\Str;
  *
  * ■ 期限と片付け
  * 招待はVALID_DAYSの日数だけ有効。登録が済んだ招待と、取り消した招待は、行を消す。
- * 期限の切れた招待は使われず、TemporaryDataCleanerが消す。
+ * 期限の切れた招待は使われず、一時データの後片付けがdeleteExpired()を呼んで消す
+ * （config/cleanup.phpのtasks）。
  *
  * ■ 操作ログ
  * 招待の送信と取り消しを、企業を対象にして残す。宛先のメールアドレスは残さない。
@@ -118,6 +119,12 @@ final class CompanyInvitationManager
             ->where('expires_at', '>', now())
             ->orderBy('id')
             ->get();
+    }
+
+    /** 期限の切れた招待を消す。消した件数を返す */
+    public static function deleteExpired(): int
+    {
+        return CompanyInvitation::query()->where('expires_at', '<=', now())->delete();
     }
 
     /** リンクの値のハッシュ値。乱数なので、検索できる速いハッシュ値で足りる */

@@ -43,7 +43,7 @@ use Illuminate\Support\Facades\Auth;
  * 一覧の表示と検索は記録しない。
  *
  * ■ 片付け
- * config('logging.operation_log_days')の日数を過ぎた行は、TemporaryDataCleanerが消す。
+ * config('cleanup.operation_log_days')の日数を過ぎた行は、TemporaryDataCleanerが消す。
  */
 final class OperationRecorder
 {
