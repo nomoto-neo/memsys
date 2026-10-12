@@ -34,6 +34,9 @@ use Illuminate\Support\Facades\Storage;
  *   消すもの：config('app.inquiry_keep_days')の日数より古い行と、その添付ファイル。
  *   日数を決めていなければ消さない
  *
+ * 送れなかったキューのジョブ（failed_jobsテーブル）
+ *   消すもの：FAILED_JOB_KEEP_DAYSの日数より古い行
+ *
  * ■ 呼ぶところ
  * - スケジューラーから1時間ごとに、app:cleanup-temporary-dataコマンドがall()を呼ぶ。
  *   これが本来の片付け
@@ -58,6 +61,12 @@ final class TemporaryDataCleaner
     /** 保存期間を過ぎたお問い合わせを、1回の問い合わせで読む件数 */
     private const INQUIRY_CHUNK = 100;
 
+    /**
+     * 送れなかったキューのジョブを残す日数。この間なら、php artisan queue:retry allで送り直せる。
+     * 一斉メールのジョブには宛先の氏名とメールアドレスが入っているので、残し続けない。
+     */
+    public const FAILED_JOB_KEEP_DAYS = 7;
+
     /** すべての一時データを片付け、消した件数を名前 => 件数で返す。 */
     public static function all(): array
     {
@@ -69,6 +78,7 @@ final class TemporaryDataCleaner
             '期限の切れた担当者の招待' => self::expiredCompanyInvitations(),
             '保存期間を過ぎた操作ログ' => self::oldOperationLogs(),
             '保存期間を過ぎたお問い合わせ' => self::oldInquiries(),
+            '保存期間を過ぎた、送れなかったジョブ' => self::oldFailedJobs(),
         ];
     }
 
@@ -157,6 +167,24 @@ final class TemporaryDataCleaner
             });
 
         return $deleted;
+    }
+
+    /**
+     * 試し直しても送れなかったキューのジョブ（failed_jobsテーブル）のうち、FAILED_JOB_KEEP_DAYSを過ぎた行。
+     * 失敗したジョブをDB以外に置いているときは何もしない。
+     */
+    public static function oldFailedJobs(): int
+    {
+        $failed = config('queue.failed');
+
+        if (! str_starts_with((string) ($failed['driver'] ?? ''), 'database')) {
+            return 0;
+        }
+
+        return DB::connection($failed['database'] ?? null)
+            ->table($failed['table'] ?? 'failed_jobs')
+            ->where('failed_at', '<', now()->subDays(self::FAILED_JOB_KEEP_DAYS))
+            ->delete();
     }
 
     /** ディスクのディレクトリの直下にある、MAX_AGE_HOURSより古いファイルを消す。 */
