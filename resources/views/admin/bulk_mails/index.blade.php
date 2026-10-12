@@ -38,6 +38,6 @@
         </tbody>
     </table>
 
-    {{ $bulkMails->links() }}
+    {{ $bulkMails->links('pagination::bootstrap-5') }}
 @endif
 @endsection
