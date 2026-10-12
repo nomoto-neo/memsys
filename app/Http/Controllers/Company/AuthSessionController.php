@@ -113,8 +113,8 @@ class AuthSessionController extends Controller
         if ($user === null || ! $provider->validateCredentials($user, ['password' => $credentials['password']])) {
             $throttle->hit();
 
-            // 操作ログ。誰か分からないので、入力された企業IDと担当者IDを補足に残す
-            OperationRecorder::record(OperationLogAction::LoginFailed, detail: ['login_id' => $loginId]);
+            // 操作ログ。誰か分からないので、入力された企業IDと担当者IDを補足に、ログインの種類を対象に残す
+            OperationRecorder::record(OperationLogAction::LoginFailed, detail: ['login_id' => $loginId], targetClass: self::LOGIN_ACCOUNT);
 
             // 3つのうち、どれが違うかは伝えない。企業IDや担当者IDが実在するかを、調べられないようにする
             throw ValidationException::withMessages([

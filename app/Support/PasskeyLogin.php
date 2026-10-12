@@ -104,7 +104,8 @@ trait PasskeyLogin
                 'message' => $e->getMessage(),
             ]);
 
-            OperationRecorder::record(OperationLogAction::LoginFailed, detail: ['step' => 'パスキー']);
+            // 操作ログ。どのログイン画面での失敗かが分かるよう、ログインの種類を対象に残す
+            OperationRecorder::record(OperationLogAction::LoginFailed, detail: ['step' => 'パスキー'], targetClass: $ownerModel);
 
             throw ValidationException::withMessages([
                 'credential' => 'パスキーを確認できませんでした。もう一度お試しください。',

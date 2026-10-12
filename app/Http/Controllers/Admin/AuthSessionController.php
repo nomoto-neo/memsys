@@ -85,8 +85,8 @@ class AuthSessionController extends Controller
         if (! Auth::guard('admin')->validate($credentials)) {
             $throttle->hit();
 
-            // 操作ログ。誰か分からないので、入力されたログインIDを補足に残す
-            OperationRecorder::record(OperationLogAction::LoginFailed, detail: ['login_id' => $credentials['login_id']]);
+            // 操作ログ。誰か分からないので、入力されたログインIDを補足に、ログインの種類を対象に残す
+            OperationRecorder::record(OperationLogAction::LoginFailed, detail: ['login_id' => $credentials['login_id']], targetClass: self::LOGIN_ACCOUNT);
 
             return redirect()->route('admin.login')
                 ->withErrors(['login_id' => 'ログインIDまたはパスワードが正しくありません。'])

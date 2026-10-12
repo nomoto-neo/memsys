@@ -104,6 +104,29 @@ class OperationLogSearchTest extends TestCase
             ->assertDontSee('192.0.2.2');
     }
 
+    public function test_login_failures_are_narrowed_by_the_kind_of_login(): void
+    {
+        // ログインの失敗は、対象の種類だけが残る。どの1件かは分からないので、idは空
+        foreach (['member' => '192.0.2.1', 'staff' => '192.0.2.2'] as $type => $ip) {
+            OperationLog::create([
+                'action' => OperationLogAction::LoginFailed,
+                'target_type' => $type,
+                'detail' => ['login_id' => 'nobody'],
+                'ip' => $ip,
+            ]);
+        }
+
+        $response = $this->actingAs($this->manager(), 'admin')
+            ->followingRedirects()
+            ->post(route('admin.operation-logs.search'), ['target_type' => 'member'])
+            ->assertOk();
+
+        $response->assertSee('192.0.2.1')->assertDontSee('192.0.2.2');
+
+        // 対象の欄には、種類だけが出る。idの無い「ID:」は出さない
+        $response->assertDontSee('個人会員ID:');
+    }
+
     public function test_migration_rewrites_escaped_japanese(): void
     {
         // キャストを変える前に書かれた行。日本語が\uの表記で入っている

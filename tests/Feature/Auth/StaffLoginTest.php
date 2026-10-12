@@ -78,6 +78,10 @@ class StaffLoginTest extends TestCase
         $log = OperationLog::where('action', OperationLogAction::LoginFailed)->sole();
         $this->assertNull($log->operator_id);
         $this->assertSame(['login_id' => 'hanako'], $log->detail);
+
+        // どのログイン画面での失敗かは、対象の種類で分かる
+        $this->assertSame('staff', $log->target_type);
+        $this->assertNull($log->target_id);
     }
 
     public function test_wrong_authenticator_code_does_not_log_in(): void

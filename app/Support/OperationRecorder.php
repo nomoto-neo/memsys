@@ -22,11 +22,17 @@ use Illuminate\Support\Facades\Auth;
  * 2段階目の途中やパスワードの再設定のように、ログインはしていないが誰か分かっている人の
  * 操作は、呼ぶ側が$operatorで渡す。
  *
+ * ■ 対象
+ * 操作の対象の1件を、$targetで渡す。対象の欄には、その種類とidが残る。
+ * ログインの失敗のように、どの1件かは分からないが種類は分かるときは、$targetClassでモデルの
+ * クラスを渡す。対象の欄には種類だけが残り、どのログイン画面での失敗かを見分けられる。
+ *
  * ■ 記録するところ
  * - 登録・更新・削除      FormFlowのsaveData()・deleteData()。訪問者のお問い合わせも残す。
  *                         CSV取り込みの1件ずつは記録しない
  * - ログイン・ログアウト  AppServiceProviderが、Laravelのログイン・ログアウトのイベントで記録する
- * - ログインの失敗        ログインのコントローラーが、試行制限の回数を足すところで記録する
+ * - ログインの失敗        ログインのコントローラーが、試行制限の回数を足すところで記録する。
+ *                         誰の失敗か分からないときは、対象にログインの種類を残す
  * - 詳細の閲覧            個人情報を持つコーナーの詳細画面（会員・スタッフ・企業会員）
  * - CSV・PDF              CsvDownload・CsvImportと、PDFを出すコントローラー
  * - パスワードの変更      PasswordChange
@@ -57,6 +63,8 @@ final class OperationRecorder
      * @param  string[]  $changedFields  更新で値が変わった列の名前
      * @param  array  $detail  種類ごとの補足。個人情報と入力値は入れない
      * @param  Model|null  $operator  操作した人。nullなら、その画面のガードでログインしている人
+     * @param  class-string<Model>|null  $targetClass  対象の種類だけを残すときの、モデルのクラス。
+     *                                                 $targetを渡したときは使わない
      */
     public static function record(
         OperationLogAction $action,
@@ -64,8 +72,15 @@ final class OperationRecorder
         array $changedFields = [],
         array $detail = [],
         ?Model $operator = null,
+        ?string $targetClass = null,
     ): void {
         $operator ??= Auth::user();
+
+        // 対象の種類。1件が分かっていればその種類、種類だけ渡されたときはそのクラスの種類
+        $targetType = $target?->getMorphClass();
+        if ($target === null && $targetClass !== null) {
+            $targetType = (new $targetClass())->getMorphClass();
+        }
 
         // コマンドやキューから呼ばれたときは、IPアドレスも端末も無い
         $fromBrowser = ! app()->runningInConsole();
@@ -74,7 +89,7 @@ final class OperationRecorder
             'operator_type' => $operator?->getMorphClass(),
             'operator_id' => $operator?->getKey(),
             'action' => $action,
-            'target_type' => $target?->getMorphClass(),
+            'target_type' => $targetType,
             'target_id' => $target?->getKey(),
             'changed_fields' => $changedFields !== [] ? array_values($changedFields) : null,
             'detail' => $detail !== [] ? $detail : null,

@@ -104,6 +104,10 @@ class CompanyLoginTest extends TestCase
         $log = OperationLog::where('action', OperationLogAction::LoginFailed)->latest('id')->first();
         $this->assertNull($log->operator_id);
         $this->assertSame(['login_id' => 'acme/yamada'], $log->detail);
+
+        // どのログイン画面での失敗かは、対象の種類で分かる
+        $this->assertSame('company_user', $log->target_type);
+        $this->assertNull($log->target_id);
     }
 
     public function test_only_approved_company_can_log_in(): void

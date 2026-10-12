@@ -6,6 +6,7 @@
     操作した人と対象は「種類ID:番号　氏名」で出す。氏名は操作ログに残していないので、今の氏名を
     $names[種類][id]から引く。退会した会員のように、もう行が無いものは氏名が出ない。
     誰もログインしていない操作は、操作した人を「訪問者」と出す。
+    ログインの失敗のように、対象の種類だけが残っている行は、種類だけを出す。
     CSVのダウンロードと取り込みは、対象の欄にCSVの名前を出す。
     変わった項目は、列の名前のまま出す。
 
@@ -39,6 +40,8 @@
                 <td>
                     @if ($log->csvName() !== null)
                         {{ $log->csvName() }}
+                    @elseif ($log->target_type !== null && $log->target_id === null)
+                        {{ code_label('operation_log_subject', $log->target_type) }}
                     @elseif ($log->target_type !== null)
                         {{ code_label('operation_log_subject', $log->target_type) }}ID:{{ $log->target_id }}　{{ $names[$log->target_type][$log->target_id] ?? '' }}
                     @endif

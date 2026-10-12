@@ -62,6 +62,10 @@ class MemberLoginTest extends TestCase
         $log = OperationLog::where('action', OperationLogAction::LoginFailed)->sole();
         $this->assertNull($log->operator_id);
         $this->assertSame(['login_id' => 'taro@example.com'], $log->detail);
+
+        // どのログイン画面での失敗かは、対象の種類で分かる。どの1件かは分からないので、idは空
+        $this->assertSame('member', $log->target_type);
+        $this->assertNull($log->target_id);
     }
 
     public function test_wrong_verification_code_does_not_log_in(): void

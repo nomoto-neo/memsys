@@ -85,8 +85,8 @@ class AuthSessionController extends Controller
         if (! $guard->validate($credentials)) {
             $throttle->hit();
 
-            // 操作ログ。誰か分からないので、入力されたメールアドレスを補足に残す
-            OperationRecorder::record(OperationLogAction::LoginFailed, detail: ['login_id' => $credentials['email']]);
+            // 操作ログ。誰か分からないので、入力されたメールアドレスを補足に、ログインの種類を対象に残す
+            OperationRecorder::record(OperationLogAction::LoginFailed, detail: ['login_id' => $credentials['email']], targetClass: self::LOGIN_ACCOUNT);
 
             throw ValidationException::withMessages([
                 'email' => 'メールアドレスまたはパスワードが正しくありません。',
