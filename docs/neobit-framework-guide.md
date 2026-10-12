@@ -36,6 +36,7 @@
 | 第2版 | 2026-10-05 | ネオビットフレームワークの基本機能を実装 |
 | 第3版 | 2026-10-07 | 企業会員の概念の追加とセキュリティ面の強化 |
 | 第4版 | 2026-10-08 | WYSIWYG エディタ SunEditor に対応 |
+| 第5版 | 2026-10-13 | ログイン周り機能の汎用化 |
 
 ## 0. このガイドについて
 
@@ -64,7 +65,7 @@
 
 ### 改版について
 
-- 共通部品を足したり、使い方が変わったりしたら、このガイドの該当する章を直し、冒頭の版の表に1行足します。
+- 共通部品を足したり、使い方が変わったりしたら、このガイドの該当する章を直します。
 - 章を足したら、冒頭の目次にも1行足します。新しい章は、付録より前に置きます。目次のリンク先は、章の見出しの文言そのままで、空白だけを `%20` に変えたものです（`## 9. CSV ダウンロード（CsvDownload）` なら `#9.%20CSV%20ダウンロード（CsvDownload）`）。Obsidian で飛べる形です。章の見出しを変えたら、目次のリンクも同じ文言に直します。章の見出しのすぐ下には、右寄せの「目次へ戻る」のリンクを置きます。Markdown には右寄せの書き方が無いので、ほかの章と同じ HTML の1行（`<p align="right"><a href="#目次" ...>目次へ戻る</a></p>`）を写します。
 - 新しい機能の章を足すときは、「ファイル・実例 → コントローラーに書くもの → ルート → 画面 → 決まりごと」の順にそろえ、最後の章の後ろに足します。
 - 細かい仕様は各ファイルの冒頭のコメントに書き、このガイドには「どこを見て、どう組むか」だけを書きます（同じことを2か所に詳しく書くと、片方だけ直して食い違うため）。
@@ -78,7 +79,7 @@
 | 1 | `composer install --no-dev --optimize-autoloader` | `composer.json`・`composer.lock` を変えたとき |
 | 2 | `npm ci` | `package.json`・`package-lock.json` を変えたとき |
 | 3 | `npm run build` | `resources/js`・`resources/css`・`vite.config.js` を変えたとき |
-| 4 | `php artisan migrate --force` | マイグレーションを足したとき |
+| 4 | `php artisan migrate` | マイグレーションを足したとき |
 | 5 | `php artisan config:cache` | 毎回。`.env` か `config/` を変えたときは必ず |
 | 6 | `php artisan view:clear` | 毎回 |
 
@@ -223,8 +224,8 @@ GRANT ALL PRIVILEGES ON memsys_testing.* TO 'memsys'@'localhost';
 | `CsvReader` | `app/Support/` | CSV を読んで確かめる部分。自分の画面を持つ機能が、CSV の読み込みと検証だけを借りるときに使う | 10 |
 | `MailTemplate`・`TemplatedMail` | `app/Support/`・`app/Mail/` | テンプレートファイルによるメール送信 | 11 |
 | `LoginThrottle` | `app/Support/` | 認証の失敗回数による試行制限 | 14 |
-| `LoginAccount`・`IsLoginAccount` | `app/Support/` | ログインするモデル（個人会員・企業の担当者・スタッフ）の共通の型と、名前の決まり | 14 |
-| `LoginAccount`・`HasTwoFactor` | `app/Support/` | ログインするモデル（会員・スタッフ）の共通の型と、2段階認証にかかわるモデルの中身 | 14 |
+| `LoginAccount`・`IsLoginAccount`・`HasTwoFactor` | `app/Support/` | ログインするモデル（個人会員・企業の担当者・スタッフ）の共通の型と、名前の決まり、2段階認証にかかわるモデルの中身 | 14・23 |
+| `LoginIdType` | `app/Enums/` | ログインに使う値の種類（メールアドレス・ログインID・どちらでも）。モデルの定数で選ぶ | 23 |
 | `TwoFactorLogin` | `app/Support/` | ログインの、パスワードが合った後の流れ（2段階目・信頼済みの端末・ログインの確定）と、ログアウト | 14 |
 | `TwoFactorChallenge` | `app/Support/` | その人の2段階目の方式で、本人かどうかを確かめる | 14 |
 | `TwoFactorManagement` | `app/Support/` | ログイン中の本人による、バックアップコードの発行と、認証アプリの登録の解除 | 14 |
@@ -248,7 +249,7 @@ GRANT ALL PRIVILEGES ON memsys_testing.* TO 'memsys'@'localhost';
 | `app:cleanup-temporary-data` | `app/Console/Commands/` | 一時データの後片付けのコマンド（スケジューラーから1時間ごと） | 19 |
 | `app:reset-two-factor` | `app/Console/Commands/` | 2段階認証の登録を解除するコマンド（画面から解除できる人がいないときに使う） | 14 |
 | `app:set-next-id` | `app/Console/Commands/` | 新しく登録する行の id の始まりを決めるコマンド（サイトを開ける前に使う） | 16 |
-| `ErrorNotifyHandler` | `app/Support/` | ログに書いたエラーを開発者にメールで知らせる（レベル・宛先・間隔は .env） | 20 |
+| `ErrorNotifyHandler` | `app/Support/` | ログに書いたエラーを開発者にメールで知らせる（レベル・宛先は .env、間隔は `config/logging.php`） | 20 |
 | `SendBulkMail` | `app/Jobs/` | 一斉メールを1通送るキューのジョブ（送る速さの制限・試し直し・バッチ） | 21 |
 | `OperationRecorder` | `app/Support/` | 操作ログ（誰が・いつ・どこから・何に・何をしたか）を書く | 22 |
 | `OperationLogStats`・`OperationLogReport` | `app/Support/` | 操作ログの件数の集計（一覧の上のグラフと表）と、1日ぶんの報告 | 22 |
@@ -1094,7 +1095,7 @@ if ($spam === SpamCheckResult::Failed) {
 | | 個人会員 | 企業会員 | 管理画面 |
 |---|---|---|---|
 | ガード | `web`（`Member`、`t_members`） | `company`（`CompanyUser`、`t_company_users`） | `admin`（`Staff`、`t_staffs`） |
-| ログインに使う値 | メールアドレス | 企業ID・担当者ID | ログインID |
+| ログインに使う値 | メールアドレス | 企業ID と、担当者ID またはメールアドレス | ログインID |
 | ログインが要る画面 | `Route::middleware(['auth:web', 'auth.session'])` | `Route::middleware(['auth:company', 'auth.session', 'company.approved'])` | `Route::middleware(['auth:admin', 'auth.session'])` |
 | ログイン前だけの画面 | `guest`（`guest:web` と同じ） | `guest:company` | `guest:admin` |
 | 2段階目の方式 | メールの確認コード | 同じ | 認証アプリ（TOTP） |
@@ -1111,7 +1112,7 @@ if ($spam === SpamCheckResult::Failed) {
 
 ### ログインの流れ（会員・管理とも同じ形）
 
-1. ID・パスワードを `Auth::guard(...)->validate()` で確かめる（まだログインはしない）。ここまではコントローラーに書き、合ったら `continueAfterPassword()` を呼ぶ。
+1. ID・パスワードを `Auth::guard(...)->validate()` で確かめる（まだログインはしない）。ここまではコントローラーに書き、合ったら `continueAfterPassword()` を呼ぶ。入力された値で、どの列から人を探すかは、モデルの定数 `LOGIN_ID_TYPE` で決まる（`loginIdCondition()`。23章）。
 2. 2段階目の方式が「なし」なら、そのままログインを確定する。
 3. 信頼済み端末なら、そのままログインを確定する。
 4. そうでなければ「パスワード確認済み・2段階目が未完了」をセッションに置き、2段階目の画面へ。2段階目の画面は `guest` にも `auth` にも入れず、トレイトがセッションで守る。
@@ -1227,7 +1228,7 @@ private function twoFactorHomeUrl(): string                                     
 php artisan app:reset-two-factor staff yamada
 ```
 
-1つ目は種類の名前（`staff`・`member`・`company`）、2つ目はログインに使う値です。企業の担当者は `企業ID/ログインID` と書きます。対象の人を出して、確かめてから解除します。消えるものは、画面からの解除と同じです。
+1つ目は種類の名前（`staff`・`member`・`company_user`）、2つ目はログインに使う値です。企業の担当者は `企業ID/ログインID` と書きます。対象の人を出して、確かめてから解除します。消えるものは、画面からの解除と同じです。
 
 #### テストで方式を差し替える
 
@@ -1312,9 +1313,9 @@ if ($throttle->isBlocked()) {
 
 ### 確認コード（LoginVerificationCode）
 
-会員の種類は、作るときにモデルで渡します（`new LoginVerificationCode(Member::class)`）。メールのテンプレートとセッションのキーは、種類の名前から決まります。
+ログインする人の種類は、作るときにモデルで渡します（`new LoginVerificationCode(Member::class)`）。会員にも、スタッフにも使います。メールのテンプレートとセッションのキーは、種類の名前から決まります。
 
-用途（`PURPOSE_LOGIN`・`PURPOSE_PASSWORD_RESET`・`PURPOSE_MYPAGE_PASSWORD`・`PURPOSE_REGISTER`・`PURPOSE_PASSKEY`・`PURPOSE_FIRST_LOGIN`・`PURPOSE_EMAIL_CHANGE`）ごとにセッションで管理します。`issue()` で発行とメール送信、`verify()` で照合します。会員登録のようにまだ会員がいない場合と、初回のログインでの登録やメールアドレスの変更のようにメールアドレスがまだ保存されていない場合は、`issueForAddress()`・`verifyForAddress()` です。
+用途（`PURPOSE_LOGIN`・`PURPOSE_PASSWORD_RESET`・`PURPOSE_MYPAGE_PASSWORD`・`PURPOSE_REGISTER`・`PURPOSE_PASSKEY`・`PURPOSE_BACKUP_CODES`・`PURPOSE_FIRST_LOGIN`・`PURPOSE_EMAIL_CHANGE`）ごとにセッションで管理します。`issue()` で発行とメール送信、`verify()` で照合します。会員登録のようにまだ会員がいない場合と、初回のログインでの登録やメールアドレスの変更のようにメールアドレスがまだ保存されていない場合は、`issueForAddress()`・`verifyForAddress()` です。
 
 ### メールアドレスの変更の確認（EmailChange）
 
@@ -1363,7 +1364,7 @@ public function update(Request $request): RedirectResponse
 
 - `auth.session` が、パスワードを変えたときにほかの端末のログインと「ログイン状態を保持する」の Cookie を無効にします。
 - パスワードの更新は、必ず「ログイン中のユーザーのインスタンス」に対して行います（別のインスタンスを更新すると本人までログアウトされます）。別のインスタンスを保存した場合は `Auth::guard(...)->setUser($record)` で差し替えます（実例：`StaffController::afterSave()`）。
-- パスワードを変えたら、保存の直後に `PasswordChange::resetAndNotify($record, changedBy: 管理画面から変えたスタッフ)` を呼びます（トランザクションの中でよい）。信頼済み端末とパスキーをすべて無効にし、確定後に登録されているメールアドレスへお知らせを送ります（テンプレートは `member_password_changed`・`company_password_changed`・`staff_password_changed`）。スタッフの2段階認証（TOTP）は消しません。戻り値は削除したパスキーの件数で、画面のメッセージに使えます。お問い合わせの画面のように、サイトごとに違う案内の URL は、テンプレートの中に `{!! route('contact.create') !!}` のように書きます。
+- パスワードを変えたら、保存の直後に `PasswordChange::resetAndNotify($record, changedBy: 管理画面から変えたスタッフ)` を呼びます（トランザクションの中でよい）。信頼済み端末とパスキーをすべて無効にし、確定後に登録されているメールアドレスへお知らせを送ります（テンプレートは `member_password_changed`・`company_user_password_changed`・`staff_password_changed`）。スタッフの2段階認証（TOTP）は消しません。戻り値は削除したパスキーの件数で、画面のメッセージに使えます。お問い合わせの画面のように、サイトごとに違う案内の URL は、テンプレートの中に `{!! route('contact.create') !!}` のように書きます。
 
 ### 認証まわりのテーブル
 
@@ -1941,12 +1942,17 @@ private function afterSave(Member $member, array $validated, array $changedField
 class CompanyUser extends Authenticatable implements LoginAccount, PasskeyUser
 {
     use HasPasskeys;        // パスキー（14章）
-    use IsLoginAccount;    // 名前の決まり
+    use HasTwoFactor;       // 2段階認証・バックアップコード・信頼済み端末（14章）
+    use IsLoginAccount;     // 名前の決まり
 
     // 種類の名前（company_user）は、モデルの短い名前から決まるので、書かない。
     // ガードとルートの頭は、企業会員の画面の名前（/company/…）に合わせている
     public const LOGIN_GUARD = 'company';
     public const LOGIN_ROUTE_PREFIX = 'company.';
+
+    public const LOGIN_ID_TYPE = LoginIdType::Either;            // ログインに使う値。書かなければメールアドレス
+    public const TWO_FACTOR_METHOD = TwoFactorMethod::Email;     // 2段階目の方式
+    public const BACKUP_CODES = true;                            // バックアップコードを使うか
 
     /** 画面やメールに出す名前 */
     public function displayName(): string { ... }
@@ -1956,8 +1962,6 @@ class CompanyUser extends Authenticatable implements LoginAccount, PasskeyUser
 
     /** ログインに使う値。メールアドレスでログインする会員は、書かなくてよい */
     public function loginId(): string { ... }
-
-    public function trustedDevices(): MorphMany { ... }
 }
 ```
 
@@ -1991,7 +1995,12 @@ return $this->continueAfterPassword($request, $user, $request->boolean('remember
 
 ```php
 Route::prefix('company')->name('company.')->group(function () {
-    Route::middleware('guest:company')->group(function () { /* 登録・ログイン・パスワードの再設定・招待された人の登録 */ });
+    Route::middleware('guest:company')->group(function () {
+        /* 登録・ログイン・パスワードの再設定 */
+
+        // 招待された人の登録。ログイン中の人が開いてもマイページへ移さないよう、guest:companyを外す
+        Route::middleware('throttle:20,1,company-invitation')->withoutMiddleware('guest:company')->group(function () { /* ... */ });
+    });
 
     // 2段階目と、初回のログインでの登録。1段階目の後の中間の状態なので、ミドルウェアでは守らない
     Route::get('/login/verify', ...);
@@ -2080,13 +2089,15 @@ Route::prefix('company')->name('company.')->group(function () {
 |---|---|
 | `app/Http/Controllers/` | `Company/` の下の全部、`Admin/CompanyController.php`・`Admin/CompanyUserController.php` |
 | `app/Models/`・`app/Enums/` | `Company`・`CompanyUser`、`CompanyStatus` |
-| `app/Support/`・`app/Http/Middleware/` | `LoginIdMemory`、`EnsureCompanyIsApproved` |
+| `app/Http/Middleware/` | `EnsureCompanyIsApproved` |
 | `resources/` | `views/company/`・`views/layouts/company.blade.php`・`views/admin/companies/`・`views/admin/company_users/`、`mail-templates/company_*.blade.php`、管理画面のトップのリンク |
 | `routes/web.php` | 企業会員のグループと、管理画面の企業会員管理のルート |
 | `config/` | `auth.php` の `company` のガードとプロバイダー、`login.php` の `company_user` |
 | `bootstrap/app.php` | 移動先の `company.*` の行、`company.approved` の短い名前 |
-| `database/` | 企業会員の3つのテーブルのマイグレーション、`CompanySeeder` と、`DatabaseSeeder` の呼び出し |
+| `database/` | 企業（`t_companies`）と担当者（`t_company_users`）のテーブルのマイグレーション、`CompanySeeder` と、`DatabaseSeeder` の呼び出し。招待のテーブル（`team_invitations`）は、共通のテーブルなので残す |
 | `tests/Feature/Company/` | 全部 |
+
+`app/Support/` の共通部品は、消しません。`LoginIdMemory`（ログイン画面の入力の記憶）や、招待の部品（`TeamInvitationManager` ほか）は、今は企業会員だけが使っていますが、企業に限らない部品です。
 
 共通部品の中にも、企業会員の名前を書いた行があります。残しておいても動きますが、消すなら次の所です。
 
