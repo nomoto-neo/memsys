@@ -405,7 +405,7 @@ return [
 | `HasPasskeys` | パスキーの表示名にメールアドレスを使う | `loginId()` を使う |
 | `OperationLog`・`OperationLogReport`・`OperationLogStats` | 氏名を引く相手が、スタッフと `Member` | スタッフ・個人会員・企業の担当者。名前は `displayName()` |
 | `OperationLogSubject` | 操作した人になれるのは、スタッフと会員 | 企業の担当者を足す |
-| `ErrorNotifyHandler` | ログイン中の人を、`admin` と `web` のガードから取る | `company` のガードも見る |
+| `ErrorNotifyHandler` | ログイン中の人を、`admin` と `web` のガードから取る | 設定（`config/auth.php`）にあるガードを全部見る。呼び名は、操作ログの「操作した人」と同じ |
 | ユーザープロバイダー | Laravel の標準 | 古い方式のパスワードの置き換え（2.9）と、企業ID での絞り込み（2.3）を足したものに差し替える |
 | 各種類のログアウト | セッションを丸ごと捨てる | そのガードのログインだけを消す（2.10） |
 

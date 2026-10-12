@@ -172,6 +172,18 @@ final class ErrorNotifyHandler extends AbstractProcessingHandler
         return $variables;
     }
 
+    /**
+     * そのプロバイダーでログインする人の呼び名。操作ログの「操作した人」と同じ名前（スタッフ・会員など）。
+     * プロバイダーのモデルの種類の名前で、コード表operation_log_subjectを引く。無ければ種類の名前のまま
+     */
+    private function subjectLabel(?string $provider): string
+    {
+        $model = config("auth.providers.{$provider}.model");
+        $type = $model !== null ? (new $model())->getMorphClass() : (string) $provider;
+
+        return code_label('operation_log_subject', $type, $type);
+    }
+
     /** どこで起きたか。画面ならメソッドとURLとIPとログイン中の人、コマンドならそのコマンド */
     private function whereItHappened(): string
     {
@@ -183,16 +195,15 @@ final class ErrorNotifyHandler extends AbstractProcessingHandler
         $request = request();
         $lines = [$request->method().' '.$request->url(), 'IP：'.$request->ip()];
 
-        // ログイン中の人。セッションが読めないなどで分からなければ書かない
+        // ログイン中の人。設定にあるガードを全部見る。セッションが読めないなどで分からなければ書かない
         try {
-            if (auth('admin')->id() !== null) {
-                $lines[] = 'スタッフ：'.auth('admin')->id();
-            }
-            if (auth('web')->id() !== null) {
-                $lines[] = '会員：'.auth('web')->id();
-            }
-            if (auth('company')->id() !== null) {
-                $lines[] = '企業の担当者：'.auth('company')->id();
+            foreach (config('auth.guards') as $guard => $settings) {
+                // idはセッションから読む。DBは読まないので、DBが落ちているときにも書ける
+                $id = auth($guard)->id();
+
+                if ($id !== null) {
+                    $lines[] = $this->subjectLabel($settings['provider'] ?? null).'：'.$id;
+                }
             }
         } catch (Throwable) {
         }

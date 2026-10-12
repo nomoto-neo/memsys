@@ -2060,7 +2060,6 @@ Route::prefix('company')->name('company.')->group(function () {
 - `OperationLogSubject` の `Company`・`CompanyUser` と、`OperationLog::subjectNames()` の読み方
 - `OperationLogAction` の `InvitationSend`・`InvitationCancel`
 - `TemporaryDataCleaner::expiredCompanyInvitations()` と、`all()` の行
-- `ErrorNotifyHandler` の `company` のガードを見る行
 
 ### 個人会員をログインID でログインさせるサイト
 
@@ -2090,8 +2089,7 @@ Route::prefix('company')->name('company.')->group(function () {
 3. `AppServiceProvider` の `enforceMorphMap()` と、`OperationLogSubject`（`OPERATORS` にも）、`OperationLog::subjectNames()` に足す。
 4. `bootstrap/app.php` の、ログインしていないときの移動先に足す。
 5. メールのテンプレートを、種類の名前を頭に付けて用意する（`種類の名前_verification_code`・`_password_changed`・`_profile_changed`）。
-6. `ErrorNotifyHandler` の、ログイン中の人を見る所に足す。
-7. `config/members.php` に、種類の名前のキーを足す。
+6. `config/members.php` に、種類の名前のキーを足す。
 
 ## 付録. フレームワーク外で考慮すべきセキュリティ対策
 

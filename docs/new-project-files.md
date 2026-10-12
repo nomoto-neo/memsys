@@ -58,7 +58,6 @@
 | `AppServiceProvider`（`enforceMorphMap()`） | モデルの短い名前 |
 | `OperationLogSubject` | 操作ログに残すモデルの種類と、操作した人になれる種類 |
 | `OperationLog::subjectNames()` | 画面に出す名前の読み方（スタッフ・個人会員・企業・企業の担当者） |
-| `ErrorNotifyHandler` | ログイン中の人を見るガードの名前（`admin`・`web`・`company`） |
 | `CompanyInvitationManager`・`TemporaryDataCleaner` | 企業会員の招待（`Company`・`CompanyUser`・`CompanyInvitation`） |
 
 ### ルートやビューの名前を直接書いているもの
