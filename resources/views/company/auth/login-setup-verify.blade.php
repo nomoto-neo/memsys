@@ -22,7 +22,7 @@
                         <label for="code" class="form-label">確認コード</label>
                         <input id="code" type="text" name="code"
                                class="form-control"
-                               inputmode="numeric" autocomplete="one-time-code" autofocus>
+                               inputmode="numeric" autocomplete="one-time-code" autofocus placeholder="000000">
                         <div class="invalid-feedback" data-item="code">{{ $errors->first('code') }}</div>
                     </div>
 

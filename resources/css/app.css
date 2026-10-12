@@ -1,1 +1,10 @@
 /* 画面の CSS は Bootstrap（レイアウトで CDN から読み込み）を使う。このファイルには、Bootstrap で足りない分だけを書く */
+
+/*
+ * 入力欄の見本の文字（placeholder）。入力した値と見分けやすいよう、薄くする。
+ * Bootstrapが「.form-control::placeholder」で濃さを決めていて、それより強く効かせるために
+ * !importantを付けている。Bootstrapのクラスの無い入力欄にも、同じ濃さで効く。
+ */
+::placeholder {
+    opacity: 0.5 !important;
+}

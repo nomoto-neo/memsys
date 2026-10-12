@@ -85,7 +85,7 @@
                 @csrf
                 <div class="col-auto">
                     <input type="text" name="code" class="form-control" inputmode="numeric"
-                           autocomplete="one-time-code" aria-label="確認コード">
+                           autocomplete="one-time-code" aria-label="確認コード" placeholder="000000">
                     <div class="invalid-feedback" data-item="code">{{ $errors->first('code') }}</div>
                 </div>
                 <div class="col-auto">
@@ -113,7 +113,7 @@
             @csrf
             <div class="col-auto">
                 <input type="text" name="code" class="form-control" inputmode="numeric"
-                       autocomplete="one-time-code" aria-label="確認コード">
+                       autocomplete="one-time-code" aria-label="確認コード" placeholder="000000">
                 <div class="invalid-feedback" data-item="code">{{ $errors->first('code') }}</div>
             </div>
             <div class="col-auto">

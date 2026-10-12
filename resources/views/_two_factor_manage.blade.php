@@ -55,7 +55,7 @@
             @csrf
             <div class="col-auto">
                 <input type="text" name="code" class="form-control" inputmode="numeric"
-                       autocomplete="one-time-code" aria-label="確認コード">
+                       autocomplete="one-time-code" aria-label="確認コード" placeholder="000000">
                 <div class="invalid-feedback" data-item="code">{{ $errors->regenerateBackupCodes->first('code') }}</div>
             </div>
             <div class="col-auto">
@@ -113,7 +113,7 @@
                             <div class="mb-3">
                                 <label for="regenerate_code" class="form-label">確認コード</label>
                                 <input id="regenerate_code" type="text" name="code"
-                                       class="form-control" inputmode="numeric" autocomplete="one-time-code">
+                                       class="form-control" inputmode="numeric" autocomplete="one-time-code" placeholder="000000">
                                 <div class="invalid-feedback" data-item="code">{{ $errors->regenerateBackupCodes->first('code') }}</div>
                             </div>
                         </div>
@@ -150,7 +150,7 @@
                         <div class="mb-3">
                             <label for="self_reset_code" class="form-label">確認コード</label>
                             <input id="self_reset_code" type="text" name="code"
-                                   class="form-control" inputmode="numeric" autocomplete="one-time-code">
+                                   class="form-control" inputmode="numeric" autocomplete="one-time-code" placeholder="000000">
                             <div class="invalid-feedback" data-item="code">{{ $errors->selfResetTwoFactor->first('code') }}</div>
                         </div>
 
