@@ -21,7 +21,8 @@ use Symfony\Component\HttpFoundation\Response;
  * 読み直しも1回に数える。
  *
  * ■ 超えたとき
- * その回は処理せずに、少し待つよう案内する画面を返す。あわせて、操作ログに「回数の制限」を残し、
+ * その回は処理せずに、少し待つよう案内する画面を返す。案内の文は、
+ * config('app.admin_requests_exceeded_message')。あわせて、操作ログに「回数の制限」を残し、
  * warningのログを書く。ERROR_NOTIFY_LEVELがwarningなら、エラーの通知のメールが届く。
  * 続けて取り出そうとすると、超えた回数だけ記録が増えてしまうので、操作ログとログは、
  * スタッフごとにNOTIFY_INTERVAL_SECONDSに1回までにする。
@@ -30,6 +31,9 @@ final class AdminRequestLimit
 {
     /** 設定が無いときの、1分に送れる回数。設定のキャッシュが古くて項目がまだ無いときにも使う */
     private const DEFAULT_PER_MINUTE = 120;
+
+    /** 設定が無いときの、案内の文。設定のキャッシュが古くて項目がまだ無いときに使う */
+    private const DEFAULT_MESSAGE = '操作の回数が上限を超えました。しばらく待ってから、もう一度お試しください。';
 
     /** 超えたことを、操作ログとログに残す間隔（秒）。この間に何度超えても、残すのは1回 */
     private const NOTIFY_INTERVAL_SECONDS = 60;
@@ -68,7 +72,7 @@ final class AdminRequestLimit
             ]);
         }
 
-        $message = '操作の回数が上限を超えました。1分ほど待ってから、もう一度お試しください。';
+        $message = config('app.admin_requests_exceeded_message') ?: self::DEFAULT_MESSAGE;
 
         // アップロードのように、JavaScriptからの送信にはJSONで返す
         if ($request->expectsJson()) {
