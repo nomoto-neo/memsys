@@ -1,6 +1,5 @@
-FROM_MAIL: {!! $from_mail !!}
-FROM_NAME: {!! $from_name !!}
-TO_MAIL: {!! $to !!}
+FROM: {!! $from_name !!} <{!! $from_mail !!}>
+TO: {!! $to !!}
 SUBJECT: 【要確認：{!! $app_name !!}】{!! $level !!}：{!! $title !!}
 
 {!! $app_name !!}（{!! $app_env !!}）で、注意すべきログが記録されました。

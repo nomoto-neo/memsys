@@ -993,9 +993,8 @@ Route::post('/members/csv-import/execute', [AdminMemberController::class, 'csvIm
 
 ```text
 {{-- resources/mail-templates/contact_staff.blade.php --}}
-FROM_MAIL: {!! $from_mail !!}
-FROM_NAME: {!! $from_name !!}
-TO_MAIL: {!! $staff_mail !!}
+FROM: {!! $from_name !!} <{!! $from_mail !!}>
+TO: {!! $staff_mail !!}
 REPLY_TO: {!! $email !!}
 SUBJECT: 【お問い合わせ】{!! $name !!} 様より
 
@@ -1014,7 +1013,12 @@ Mail::send(new TemplatedMail('contact_staff', [
 ]));
 ```
 
-- 見出し行は `FROM_MAIL`・`FROM_NAME`・`TO_MAIL`・`CC_MAIL`・`BCC_MAIL`・`SUBJECT`・`REPLY_TO`。宛先はカンマ区切りで複数書けます。最初の空行の後が本文です。
+- 決まった見出し行は `FROM`・`TO`・`CC`・`BCC`・`REPLY_TO`・`SUBJECT` です。最初の空行の後が本文です。
+    - `FROM` は、`名前 <アドレス>` か、アドレスだけを書きます。名前の符号化は、送るときに自動で行います。
+    - `TO`・`CC`・`BCC`・`REPLY_TO` は、アドレスだけを書きます。カンマ区切りで複数書けます。名前は書けません。
+- そのほかの見出し行は、メールのヘッダーとして付きます。名前は、`_` を `-` に変えて、語の頭だけを大文字にします。`LIST_UNSUBSCRIBE: <...>` と書くと、`List-Unsubscribe: <...>` になります（実例：`bulk_mail.blade.php`）。値が空の行は付けません。
+    - `FROM_MAIL`・`TO_MAIL` のように決まった見出しと紛らわしい名前と、`CONTENT_TYPE` のようにメールの形を壊す名前は、例外にして送信を止めます。
+    - テンプレートでは書けないヘッダーは、`TemplatedMail` の4つ目の引数に、ヘッダーの名前 => 値の配列で渡せます。
 - 同じ名前に `_html` を付けたファイル（`contact_staff_html.blade.php`、本文だけ）を置くと、HTML とテキストのマルチパートになります。
 - テキスト版は `{!! !!}`、HTML 版の利用者の入力値は `{{ }}` で埋め込みます。条件分岐や繰り返しは Blade の `@if`・`@foreach` が使えます。
 - `Mail::to()` は使わず `Mail::send()` で送ります（宛先はテンプレートが持つため）。
@@ -1699,7 +1703,7 @@ class SendBulkMail implements ShouldQueue
 
 - **宛先の CSV の作り方**：会員の一覧を「受け取る」で絞ってから、CSV をダウンロードして加工します。
 - **「受け取らない」の会員には送れません**：宛先の CSV に、「受け取らない」の会員のアドレスがあると、確認画面でその行がエラーになり、送信のボタンが出ません。抽出した後に停止した人や、古い CSV の使い回しに備えるためです。会員ではないアドレスは、そのまま送れます。
-- **配信停止の URL は、自動で付きます**：本文の末尾に、宛先ごとの URL が付きます。付ける文は、テンプレート（`resources/mail-templates/bulk_mail.blade.php`）にあります。メールソフトの「登録解除」のボタン用のヘッダー（`List-Unsubscribe`・`List-Unsubscribe-Post`）も付きます。
+- **配信停止の URL は、自動で付きます**：本文の末尾に、宛先ごとの URL が付きます。メールソフトの「登録解除」のボタン用のヘッダー（`List-Unsubscribe`・`List-Unsubscribe-Post`）も付きます。付ける文とヘッダーは、どちらもテンプレート（`resources/mail-templates/bulk_mail.blade.php`）にあります。
 - **URL は署名付きです**：宛先のメールアドレスを入れて、署名を付けます。アドレスを他人のものに書き換えた URL では、停止できません。期限はありません。`APP_KEY` を変えると、それまでに送ったメールの URL は使えなくなります。
 - **URL のドメインは `APP_URL` です**：メールはキューのワーカーが送るので、`.env` の `APP_URL` が、訪問者の開く URL（`https://` から）になっている必要があります。
 - **開いただけでは停止しません**：URL を開くと「配信を停止する」のボタンの画面が出て、押すと停止します。受信側のウイルス検査やプレビューが、メールの中の URL を自動で開くことがあるためです。
@@ -1710,15 +1714,22 @@ class SendBulkMail implements ShouldQueue
 - 対象は個人会員だけです。企業会員の担当者には、この項目はありません。
 - 確認コードやパスワードの変更のお知らせのように、本人の操作に応えて送るメールは、この項目に関係なく送ります。
 
-テンプレートの見出しの行では書けないヘッダーは、`TemplatedMail` の4つ目の引数で足します。
+配信停止のヘッダーは、テンプレートの見出しの行に書いてあります（11章）。呼ぶ側は、配信停止の URL を変数で渡すだけです。
+
+```text
+{{-- resources/mail-templates/bulk_mail.blade.php --}}
+FROM: {!! $from_name !!} <{!! $from_mail !!}>
+TO: {!! $email !!}
+SUBJECT: {!! $subject !!}
+LIST_UNSUBSCRIBE: <{!! $unsubscribe_url !!}>
+LIST_UNSUBSCRIBE_POST: List-Unsubscribe=One-Click
+```
 
 ```php
-$url = MailUnsubscribe::url($email);
-
 Mail::send(new TemplatedMail('bulk_mail', [
     // ...
-    'unsubscribe_url' => $url,
-], $attachments, MailUnsubscribe::headers($url)));
+    'unsubscribe_url' => MailUnsubscribe::url($email),
+], $attachments));
 ```
 
 ## 22. 操作ログ（OperationRecorder）

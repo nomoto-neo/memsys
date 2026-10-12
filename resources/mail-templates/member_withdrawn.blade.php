@@ -1,6 +1,5 @@
-FROM_MAIL: {!! $from_mail !!}
-FROM_NAME: {!! $from_name !!}
-TO_MAIL: {!! $to_mail !!}
+FROM: {!! $from_name !!} <{!! $from_mail !!}>
+TO: {!! $to_mail !!}
 SUBJECT: 退会手続き完了のお知らせ
 
 {!! $member_name !!} 様

@@ -1,7 +1,8 @@
-FROM_MAIL: {!! $from_mail !!}
-FROM_NAME: {!! $from_name !!}
-TO_MAIL: {!! $email !!}
+FROM: {!! $from_name !!} <{!! $from_mail !!}>
+TO: {!! $email !!}
 SUBJECT: {!! $subject !!}
+LIST_UNSUBSCRIBE: <{!! $unsubscribe_url !!}>
+LIST_UNSUBSCRIBE_POST: List-Unsubscribe=One-Click
 
 {!! $body !!}
 

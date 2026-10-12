@@ -1,6 +1,5 @@
-FROM_MAIL: {!! $from_mail !!}
-FROM_NAME: {!! $from_name !!}
-TO_MAIL: {!! $to_mail !!}
+FROM: {!! $from_name !!} <{!! $from_mail !!}>
+TO: {!! $to_mail !!}
 SUBJECT: 企業会員登録の承認のお知らせ
 
 {!! $name !!} 様

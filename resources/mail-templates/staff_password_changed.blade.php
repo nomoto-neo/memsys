@@ -1,6 +1,5 @@
-FROM_MAIL: {!! $from_mail !!}
-FROM_NAME: {!! $from_name !!}
-TO_MAIL: {!! $to_mail !!}
+FROM: {!! $from_name !!} <{!! $from_mail !!}>
+TO: {!! $to_mail !!}
 SUBJECT: 【管理画面】パスワード変更のお知らせ
 
 {!! $name !!} 様

@@ -22,9 +22,9 @@ use Illuminate\Support\Facades\Mail;
  * 止められたり、迷惑メールと判定されたりしないため。
  *
  * ■ 配信停止
- * 本文の末尾に、この宛先の配信停止のURLを付ける。付ける文はテンプレート
- * （resources/mail-templates/bulk_mail.blade.php）にある。メールソフトの「登録解除」のボタン用の
- * ヘッダーも付ける（App\Support\MailUnsubscribe）。
+ * 本文の末尾に、この宛先の配信停止のURL（App\Support\MailUnsubscribe）を付ける。メールソフトの
+ * 「登録解除」のボタン用のヘッダーも付ける。付ける文とヘッダーは、どちらもテンプレート
+ * （resources/mail-templates/bulk_mail.blade.php）にある。
  *
  * ■ 送れなかったとき
  * 例外が起きたら、backoffの秒数を空けて試し直す。maxExceptionsの回数を超えたら失敗にし、
@@ -82,15 +82,13 @@ class SendBulkMail implements ShouldQueue
             ];
         }
 
-        $unsubscribeUrl = MailUnsubscribe::url($this->email);
-
         Mail::send(new TemplatedMail('bulk_mail', [
             'from_mail' => config('mail.from.address'),
             'from_name' => config('mail.from.name'),
             'email' => $this->email,
             'subject' => BulkMail::fillName($bulkMail->subject, $this->name),
             'body' => BulkMail::fillName($bulkMail->body, $this->name),
-            'unsubscribe_url' => $unsubscribeUrl,
-        ], $attachments, MailUnsubscribe::headers($unsubscribeUrl)));
+            'unsubscribe_url' => MailUnsubscribe::url($this->email),
+        ], $attachments));
     }
 }

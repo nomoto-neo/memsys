@@ -1,6 +1,5 @@
-FROM_MAIL: {!! $from_mail !!}
-FROM_NAME: {!! $from_name !!}
-TO_MAIL: {!! $staff_mail !!}
+FROM: {!! $from_name !!} <{!! $from_mail !!}>
+TO: {!! $staff_mail !!}
 REPLY_TO: {!! $email !!}
 SUBJECT: 【お問い合わせ】{!! $name !!} 様より
 

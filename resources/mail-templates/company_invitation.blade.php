@@ -1,6 +1,5 @@
-FROM_MAIL: {!! $from_mail !!}
-FROM_NAME: {!! $from_name !!}
-TO_MAIL: {!! $to_mail !!}
+FROM: {!! $from_name !!} <{!! $from_mail !!}>
+TO: {!! $to_mail !!}
 SUBJECT: 【{!! $company_name !!}】企業会員の担当者へのご招待
 
 {!! $company_name !!} の担当者として、当サイトの企業会員に招待されました。

@@ -86,11 +86,11 @@ grep -rnE "->intended\(|redirect\(\\\$|redirect\(\)->to\(\\\$|url\(\)->previous|
 ### 9. メールの見出しに、入力の値が入らないか
 
 ```bash
-for f in resources/mail-templates/*.blade.php; do awk 'NF==0{exit} {print FILENAME": "$0}' "$f"; done | grep -v "FROM_MAIL\|FROM_NAME"
+for f in resources/mail-templates/*.blade.php; do awk 'NF==0{exit} {print FILENAME": "$0}' "$f"; done | grep -v ": FROM:"
 ```
 
-- **見るところ**：見出しの行（`TO_MAIL:`・`SUBJECT:` など）に入る変数です。訪問者の入力が入るものを拾います。
-- 見出しに入る値の改行は、`MailTemplate` が除きます。宛先の行（`TO_MAIL:`・`REPLY_TO:` など）は、カンマで複数書けるので、宛先に入れる値は、呼ぶ側で `email` のルールで検証していることを確かめます。
+- **見るところ**：見出しの行（`TO:`・`SUBJECT:` など）に入る変数です。訪問者の入力が入るものを拾います。
+- 見出しに入る値の改行は、`MailTemplate` が除きます。宛先の行（`TO:`・`REPLY_TO:` など）は、カンマで複数書けるので、宛先に入れる値は、呼ぶ側で `email` のルールで検証していることを確かめます。
 
 ### 10. ログインまわり
 
@@ -183,7 +183,7 @@ grep -rnE "\b(eval|exec|shell_exec|system|passthru|proc_open|popen|unserialize|e
 grep -rnE '\$request->all\(\)|->fill\(\$request|::create\(\$request|->update\(\$request|\$guarded|forceFill|->intended\(|redirect\(\$|redirect\(\)->to\(\$|url\(\)->previous|redirect\(\)->away' app
 
 # 観点9：見出しの行に入る変数
-for f in resources/mail-templates/*.blade.php; do awk 'NF==0{exit} {print FILENAME": "$0}' "$f"; done | grep -v "FROM_MAIL\|FROM_NAME"
+for f in resources/mail-templates/*.blade.php; do awk 'NF==0{exit} {print FILENAME": "$0}' "$f"; done | grep -v ": FROM:"
 
 # 観点10・12
 grep -rnE "regenerate\(|regenerateToken\(|invalidate\(" app

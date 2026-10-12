@@ -27,6 +27,8 @@ use Illuminate\Support\Facades\URL;
  * 会員がいなくても、URLが正しくなくても、画面の表示は同じにする。そのアドレスの会員が
  * いるかどうかを、外から確かめられないようにするため。
  * メールソフトの「登録解除」のボタン（List-Unsubscribeのヘッダー）からは、同じURLへPOSTが届く。
+ * このヘッダーは、一斉メールのテンプレート（resources/mail-templates/bulk_mail.blade.php）の
+ * 見出しの行に書いてある。
  *
  * ■ 操作ログ
  * 停止の操作は、結果に関係なく全部を残す。会員がいたときは、対象を会員の種類とidで持つ。
@@ -46,20 +48,6 @@ final class MailUnsubscribe
     public static function url(string $email): string
     {
         return url(URL::signedRoute(self::ROUTE, ['email' => $email], absolute: false));
-    }
-
-    /**
-     * メールに付けるヘッダー。メールソフトが「登録解除」のボタンを出すのに使う。
-     *
-     * @return array<string, string>
-     */
-    public static function headers(string $url): array
-    {
-        return [
-            'List-Unsubscribe' => "<{$url}>",
-            // ボタンを押したときに、メールソフトが確認の画面を挟まずにPOSTしてよい印
-            'List-Unsubscribe-Post' => 'List-Unsubscribe=One-Click',
-        ];
     }
 
     /**

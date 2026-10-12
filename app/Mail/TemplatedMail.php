@@ -30,7 +30,7 @@ class TemplatedMail extends Mailable
 {
     use Queueable, SerializesModels;
 
-    /** @var array{from_mail: ?string, from_name: ?string, to: string[], cc: string[], bcc: string[], reply_to: string[], subject: ?string, body: string} */
+    /** @var array{from_mail: ?string, from_name: ?string, to: string[], cc: string[], bcc: string[], reply_to: string[], subject: ?string, headers: array<string, string>, body: string} */
     private array $parsed;
 
     /**
@@ -41,8 +41,8 @@ class TemplatedMail extends Mailable
      *         pathはサーバー上のファイルの場所、nameはメールに付けるときのファイル名。
      *         $attachmentsという名前は、親クラスのMailableがすでに持っているので使えない。
      * @param  array<string, string>  $headerLines  メールに足すヘッダー。ヘッダーの名前 => 値。
-     *         一斉メールの配信停止のヘッダー（App\Support\MailUnsubscribe）のように、
-     *         テンプレートの見出しの行では書けないものに使う。
+     *         ヘッダーは、ふつうはテンプレートの見出しの行に書く（App\Support\MailTemplateParser参照）。
+     *         テンプレートでは書けないときにだけ、ここで渡す。同じ名前があれば、こちらを使う。
      */
     public function __construct(
         string $templateName,
@@ -69,10 +69,10 @@ class TemplatedMail extends Mailable
         );
     }
 
-    /** 呼び出し側が足したヘッダー */
+    /** テンプレートの見出しの行に書いたヘッダーと、呼び出し側が足したヘッダー */
     public function headers(): Headers
     {
-        return new Headers(text: $this->headerLines);
+        return new Headers(text: $this->headerLines + $this->parsed['headers']);
     }
 
     /**
