@@ -132,7 +132,7 @@ return [
 
     // ログイン後の管理画面で、1人のスタッフが1分に送れる回数（App\Support\AdminRequestLimit）。
     // 超えた回は処理せず、操作ログとwarningのログに残す。人が普通に使って届かない数にする
-    'admin_requests_per_minute' => (int) env('ADMIN_REQUESTS_PER_MINUTE', 120),
+    'admin_requests_per_minute' => 120,
 
     // 上の回数を超えたときに出す、案内の文。画面と、アップロードのようなJavaScriptからの送信に
     // 返すJSONの両方に、この文をそのまま出す。タグは書けない

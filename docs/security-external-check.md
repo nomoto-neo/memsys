@@ -85,7 +85,7 @@ curl -sS -o /dev/null -D - -u $A $B/ | grep -i "^set-cookie" | sed -E 's/=[^;]{2
 ### 5. 公開されてはいけないファイルが見えないか
 
 ```bash
-for p in /.env /.env.example /.git/HEAD /.git/config /.gitignore /composer.json /composer.lock \
+for p in /.env /.env.example /.env.unused /.git/HEAD /.git/config /.gitignore /composer.json /composer.lock \
          /package.json /artisan /CLAUDE.md /docs/security-issues.md /storage/logs/laravel.log \
          /storage/app/private/ /vendor/autoload.php /config/app.php /bootstrap/cache/config.php \
          /database/ /tools/table2rules.php /code/prefectures.csv /phpinfo.php /info.php \

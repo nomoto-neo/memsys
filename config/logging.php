@@ -87,7 +87,8 @@ return [
             'level' => env('ERROR_NOTIFY_LEVEL') ?: 'critical',
             'handler_with' => [
                 'to' => (string) env('ERROR_NOTIFY_TO', ''),
-                'intervalMinutes' => (int) env('ERROR_NOTIFY_INTERVAL', 10),
+                // 同じ内容の通知を間引く間隔（分）。0なら間引かない
+                'intervalMinutes' => 10,
             ],
             'replace_placeholders' => true,
         ],
@@ -103,7 +104,8 @@ return [
             'driver' => 'daily',
             'path' => storage_path('logs/laravel.log'),
             'level' => env('LOG_LEVEL', 'debug'),
-            'max_files' => env('LOG_DAILY_DAYS', 14),
+            // 残す日数。過ぎた日のファイルは消える
+            'max_files' => 90,
             'replace_placeholders' => true,
         ],
 

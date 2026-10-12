@@ -16,7 +16,7 @@ use Symfony\Component\HttpFoundation\Response;
  * throttle:admin-screenで使う。
  *
  * ■ 回数
- * .envのADMIN_REQUESTS_PER_MINUTE（config('app.admin_requests_per_minute')）。
+ * config('app.admin_requests_per_minute')。
  * 人が普通に使って届かない数にする。画面の表示のほか、アップロードや、送信中の画面の
  * 読み直しも1回に数える。
  *

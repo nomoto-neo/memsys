@@ -119,6 +119,7 @@ MAIL_FROM_NAME="${SITE_NAME}"
 - **`APP_NAME` を日本語にしてはいけません**。Laravel は、`APP_NAME` から英数字だけを残して、Cookie とキャッシュの名前を作ります。日本語だけだと全部が消えて、Cookie の名前が `-session` になります。同じドメインに置いたほかの Laravel のサイトと名前が重なり、片方にログインすると、もう片方がログアウトします。
 - **`SITE_NAME` を書かなければ、名前は出ません**。空のままになり、`APP_NAME` を代わりに出すことはありません。`APP_NAME` は処理の中で使う識別名で、人に見せる名前ではないためです。サイトを設置するときに、必ず `SITE_NAME` を書きます。
 - **画面では `config('app.site_name')` で出します**。レイアウト（`layouts/app.blade.php`・`admin.blade.php`・`company.blade.php`）が、メニューと題名に使っています。メンテナンス中の画面（`maintenance.blade.php`）だけは、設定に頼らない1枚の HTML なので、名前を直接書いてあります。
+- **`.env` に書くのは、サーバーごとに違う値と、秘密の値だけです**。接続先・宛先・鍵などです。残す日数や回数のように、どのサーバーでも同じ値（サイトの決まりごと）は、`config/` のファイルに書きます。Git に記録されるので、いつ変えたかを追えて、サーバーごとに値がずれません。Laravel の標準の項目のうち、このサイトの `.env` に書いていないものは、控えとして `.env.unused` にあります。Laravel は、このファイルを読みません。
 - **`.env` を変えたら `php artisan config:cache` をやり直します**。`APP_NAME` を変えると Cookie の名前が変わるので、ログイン中の人は、ログインし直しになります。
 
 ### サーバーの前にプロキシを置くとき（TRUSTED_PROXIES）
@@ -1569,14 +1570,14 @@ Schedule::command(CleanupTemporaryData::class)->hourly()->withoutOverlapping();
 | CSV 取り込みの作業用ファイル | `storage/app/private/csv_import` | 24時間より古いファイル |
 | 試行制限の回数などのキャッシュ | `cache`・`cache_locks` テーブル | 期限の切れた行（キャッシュを database に置いているときだけ） |
 | 「この端末を信頼する」の記録 | `trusted_devices` テーブル | 期限（`expires_at`）の切れた行 |
-| 操作ログ（22章） | `operation_logs` テーブル | `config/cleanup.php` の `operation_log_days`（`.env` の `OPERATION_LOG_DAYS`。既定は365日）より古い行 |
+| 操作ログ（22章） | `operation_logs` テーブル | `config/cleanup.php` の `operation_log_days`（365日）より古い行 |
 | 送れなかったキューのジョブ（21章） | `failed_jobs` テーブル | `config/cleanup.php` の `failed_job_days`（7日）より古い行 |
 
 業務のデータの片付けは、`TemporaryDataCleaner` には書かず、`config/cleanup.php` の `tasks` に足します。フレームワークの片付けの後に、同じ1時間ごとの片付けの中で呼ばれます。サンプルサイトでは、次の2つを足しています。
 
 | 片付け | 置き場所 | 消すもの |
 |---|---|---|
-| お問い合わせ（12章） | `t_inquiries` テーブルと添付ファイル | `.env` の `INQUIRY_KEEP_DAYS` より古い行と、その添付ファイル。空なら消さない（`App\Services\InquiryCleanup`） |
+| お問い合わせ（12章） | `t_inquiries` テーブルと添付ファイル | `tasks` の `days` に書いた日数より古い行と、その添付ファイル。`null` なら消さない（`App\Services\InquiryCleanup`） |
 | 企業会員の担当者の招待（14章） | `t_company_invitations` テーブル | 期限（`expires_at`）の切れた行（`CompanyInvitationManager::deleteExpired()`） |
 
 ```php
@@ -1584,7 +1585,7 @@ Schedule::command(CleanupTemporaryData::class)->hourly()->withoutOverlapping();
 'tasks' => [
     '保存期間を過ぎたお問い合わせ' => [
         'run' => [InquiryCleanup::class, 'deleteOld'],                // 呼ぶメソッド。消した件数を返す
-        'days' => ((int) env('INQUIRY_KEEP_DAYS', 0)) ?: null,        // 残す日数。メソッドに引数で渡す
+        'days' => null,                                               // 残す日数。メソッドに引数で渡す
     ],
     '期限の切れた担当者の招待' => [
         'run' => [CompanyInvitationManager::class, 'deleteExpired'],  // 行ごとに期限を持つものは、days を書かない
@@ -1593,7 +1594,7 @@ Schedule::command(CleanupTemporaryData::class)->hourly()->withoutOverlapping();
 ```
 
 - 一時ファイルは、アップロードと CSV 取り込みのたびにも同じ処理で消します。サーバーの cron が動いていなくても溜まり続けないようにするための控えです。
-- **お問い合わせは、日数を決めたサイトだけ消します**。`.env` の `INQUIRY_KEEP_DAYS` に残す日数を書くと、過ぎた行と添付ファイルを消します。空なら、消さずに残し続けます。個人情報を、要らなくなった後も持ち続けないようにするためです。日数は、サイトの運用で決めます。1件ずつは操作ログに残さず、消した件数だけをログ（`laravel.log`）に残します。スタッフに届いたお問い合わせのメールは、消えません。
+- **お問い合わせは、日数を決めたサイトだけ消します**。`config/cleanup.php` の `tasks` の `days` に残す日数を書くと、過ぎた行と添付ファイルを消します。`null` なら、消さずに残し続けます。個人情報を、要らなくなった後も持ち続けないようにするためです。日数は、サイトの運用で決めます。1件ずつは操作ログに残さず、消した件数だけをログ（`laravel.log`）に残します。スタッフに届いたお問い合わせのメールは、消えません。
 - 何かを消したときだけログに残し、何もしなかった回は残しません。同じ行が1時間ごとに並ばないようにするためです。
 - 新しい片付けを足すときは、消した件数を返すメソッドを `app/Services/` のクラスなどに書き、`config/cleanup.php` の `tasks` に1つ足します。残す日数があるものは `days` に書くと、メソッドに引数で渡されます。名前は、片付けのコマンドの表とログに出ます。
 
@@ -1632,14 +1633,13 @@ Log::error('想定外の値が検出されました。', ['status' => $status]);
 ```
 ERROR_NOTIFY_LEVEL=error
 ERROR_NOTIFY_TO=dev1@example.com,dev2@example.com
-ERROR_NOTIFY_INTERVAL=10
 ```
 
 | 項目 | 意味 |
 |---|---|
 | `ERROR_NOTIFY_LEVEL` | 知らせる最低のレベル。空なら知らせない。手元の開発は空にする |
 | `ERROR_NOTIFY_TO` | 宛先。カンマで区切って複数書ける |
-| `ERROR_NOTIFY_INTERVAL` | 同じ内容のものを送る間隔（分）。間隔の中の2回目からは送らずに数え、次の通知に件数を添える。0なら間引かない |
+| （`config/logging.php` の `error_notify` の `intervalMinutes`） | 同じ内容のものを送る間隔（分）。間隔の中の2回目からは送らずに数え、次の通知に件数を添える。0なら間引かない。値は10 |
 
 開発環境かどうかで切り替えるのではなく、`ERROR_NOTIFY_LEVEL` だけで切り替えます。調べものの間だけ `warning` に下げる、という使い方もできます。
 
@@ -1670,9 +1670,9 @@ ERROR_NOTIFY_INTERVAL=10
 | `LOG_STACK` | ファイル | 古いログ | 使うところ |
 |---|---|---|---|
 | `single` | `laravel.log` の1つ | 消さない。書き足し続ける | 手元の開発 |
-| `daily` | `laravel-2026-10-04.log` のように1日1ファイル | `LOG_DAILY_DAYS` の日数を過ぎたものを自動で消す | サーバー |
+| `daily` | `laravel-2026-10-04.log` のように1日1ファイル | `config/logging.php` の `daily` の `max_files`（90日）を過ぎたものを自動で消す | サーバー |
 
-- サーバーは `LOG_STACK=daily`・`LOG_DAILY_DAYS=90` を推奨します。
+- サーバーは `LOG_STACK=daily` を推奨します。
 - 残す日数は、障害に気付いてから見に行くまでの間を考えて、長めにします。週ごとやサイズでの区切りはありません。区切れるのは1日ごとなので、後から見られるかどうかは日数で決まります。
 - 独自の区切りでローテーションさせたい場合は、`LOG_STACK=single` にして、logrotate で独自に設定してください。
 - `.env` を変えたら `php artisan config:cache` をやり直します（0章）。
@@ -1843,7 +1843,7 @@ OperationRecorder::record(OperationLogAction::Update, $company, ['status'], ['st
 - **変わった列は、本体のテーブルの列だけです**：多対多のような関連のテーブルの変更は、列の名前には出ません。「更新した」ことは残ります。
 - **変わった項目は、列の名前のまま出します**（`phone`・`disp_flg` など）。日本語の名前の対応表は持ちません。画面を足すたびに対応表も足すことになり、CSV の見出しなどと二重に持つことになるためです。
 - **`detail` に個人情報と入力値を入れません**。ログインの失敗のログイン ID は、どのアカウントが狙われたかを調べるために残しています。お知らせメールの配信停止は、そのアドレスの会員がいないときだけ、どのアドレスへの操作かが分かるようにメールアドレスを残しています（21章）。例外は、この2つだけです。
-- **残す期間**：`.env` の `OPERATION_LOG_DAYS`（既定は365日。`config/cleanup.php` の `operation_log_days`）。過ぎた行は、一時データの後片付け（19章）が消します。
+- **残す期間**：`config/cleanup.php` の `operation_log_days`（365日）。過ぎた行は、一時データの後片付け（19章）が消します。
 
 ### 管理画面の回数の制限（AdminRequestLimit）
 
@@ -1851,7 +1851,7 @@ OperationRecorder::record(OperationLogAction::Update, $company, ['status'], ['st
 
 ログイン後の管理画面の全体に、スタッフごとの回数の制限を掛けています。一覧や詳細を、プログラムで続けて開いてデータを取り出す動きを止めるためです。
 
-- **回数**：`.env` の `ADMIN_REQUESTS_PER_MINUTE`（既定は1分に120回）。人が普通に使って届かない数にします。画面の表示のほか、アップロードや、送信中の画面の読み直しも1回に数えます。
+- **回数**：`config/app.php` の `admin_requests_per_minute`（1分に120回）。人が普通に使って届かない数にします。画面の表示のほか、アップロードや、送信中の画面の読み直しも1回に数えます。
 - **数える単位**：操作しているスタッフの id です。同じ事務所から複数の人が使っても、互いに影響しません。
 - **超えたとき**：その回は処理せず、少し待つよう案内する画面（`admin/too_many_requests.blade.php`）を返します。案内の文は、`config/app.php` の `admin_requests_exceeded_message` に書きます。アップロードのような JavaScript からの送信には、同じ文を JSON で返します。操作ログに「回数の制限」を残し、`warning` のログも書きます。`ERROR_NOTIFY_LEVEL` が `warning` なら、エラーの通知のメール（20章）が届きます。件名は `【要確認：サイト名】WARNING：管理画面の操作が上限を超えました（スタッフID:3）` です。
 - **記録は、スタッフごとに1分に1回まで**：続けて取り出そうとすると、超えた回数だけ記録が増えてしまうためです。

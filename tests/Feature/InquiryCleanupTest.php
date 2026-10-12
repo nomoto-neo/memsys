@@ -63,7 +63,7 @@ class InquiryCleanupTest extends TestCase
 
     public function test_cleanup_runs_the_tasks_in_config_with_their_days(): void
     {
-        // 設定のとおりなら、お問い合わせの日数は.envのINQUIRY_KEEP_DAYS。テストでは空なので、消さない
+        // 残す日数がnullなら、消さない
         $this->inquiry(daysAgo: 1000);
         $this->assertSame(0, TemporaryDataCleaner::all()['保存期間を過ぎたお問い合わせ']);
 

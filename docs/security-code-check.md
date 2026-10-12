@@ -115,7 +115,7 @@ grep -rn "escapeFormula:" app
 grep -rnE 'href="\{\{ \$' resources/views
 ```
 
-- **秘密の値**：Git に入っているのが `.env.example` だけであること。
+- **秘密の値**：Git に入っているのが `.env.example` と `.env.unused`（どちらも見本で、秘密の値は無い）だけであること。
 - **CSV の数式**：ダウンロードと取り込みで、`escapeFormula: true` になっていること。
 - **リンクの URL**：入力の値を `href` に出す所は、検証が `url` のルールで、`javascript:` などを断っていること。
 

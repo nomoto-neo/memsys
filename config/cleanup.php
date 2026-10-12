@@ -17,7 +17,7 @@ return [
     */
 
     // 操作ログ（operation_logs。App\Support\OperationRecorder）を残す日数
-    'operation_log_days' => (int) env('OPERATION_LOG_DAYS', 365),
+    'operation_log_days' => 365,
 
     // 試し直しても送れなかったキューのジョブ（failed_jobs）を残す日数。この間なら、
     // php artisan queue:retry all で送り直せる。一斉メールのジョブには宛先の氏名と
@@ -31,8 +31,8 @@ return [
     'tasks' => [
         '保存期間を過ぎたお問い合わせ' => [
             'run' => [InquiryCleanup::class, 'deleteOld'],
-            // .envのINQUIRY_KEEP_DAYS。空か0なら、消さずに残し続ける
-            'days' => ((int) env('INQUIRY_KEEP_DAYS', 0)) ?: null,
+            // nullなら、消さずに残し続ける。日数は、サイトの運用で決める
+            'days' => null,
         ],
         '期限の切れた担当者の招待' => [
             'run' => [CompanyInvitationManager::class, 'deleteExpired'],
