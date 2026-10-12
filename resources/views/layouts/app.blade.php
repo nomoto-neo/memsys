@@ -6,24 +6,6 @@
     <title>@yield('title', config('app.site_name'))</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-
-<style>
-{{-- WYSIWYGエディタで作った本文の表示。挿入した画像は保存時に横幅を
-   縮めているが、表示欄の幅より大きいことがあるので、欄の幅に収める。 --}}
-.wysiwyg-content img {
-    max-width: 100%;
-    height: auto;
-}
-{{-- エラー欄（.invalid-feedback）は、中身が空でなければ表示する。
-     Bootstrapの標準では、直前の入力欄にis-invalidが付いたときだけ表示される。
-     JavaScriptが動かない環境でもサーバー側のエラー文言を出すため、ここはCSSで行う。
-     （:emptyは空白や改行も「中身あり」とみなすので、エラー欄の<div>と{{ }}の間に
-     改行や空白を入れないこと。例：
-     <div class="invalid-feedback" data-item="項目名">{{ $errors->first('項目名') }}</div>） --}}
-.invalid-feedback:not(:empty) {
-    display: block;
-}
-</style>
 {{-- jQuery。使うときはこのBladeコメントを外す（summernoteを使う場合は必須）。
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js" integrity="sha384-1H217gwSVyLSIfaLxHbE7dRb3v4mYCKbpQvzx0cegeju1MVsGrX5xXxAvs/HgeFs" crossorigin="anonymous"></script>
 --}}

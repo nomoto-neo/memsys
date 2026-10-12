@@ -464,7 +464,7 @@ Route::post('/members', [AdminMemberController::class, 'storeSearchCondition'])-
 - 検索フォームは `route('admin.xxx.search')` へ POST。値は `$filters['項目名']` から出す（配列の項目は文字列の配列）。
 - 並び順のプルダウンは `$orderOptions` をそのまま並べ、`$selectedOrder` を選択状態にする。
 - ページ送りは `{{ $list->links('pagination::bootstrap-5') }}`。
-- 削除済み（論理削除）の行は `<tr @class(['row-deleted' => $row->trashed()])>` で赤字になります（CSS はレイアウトにあります）。
+- 削除済み（論理削除）の行は `<tr @class(['row-deleted' => $row->trashed()])>` で赤字になります（CSS は `resources/css/app.css` にあります）。
 
 ページ分けしない一覧（並び替えのためにすべて並べるカテゴリーなど）は、`SearchableList` を使わず `index()` で普通に取得します。
 
@@ -1452,7 +1452,7 @@ php artisan app:set-next-id t_members 100001
 
 - **レイアウト**：`layouts/` ディレクトリに置かれたテンプレートが、ページ全体の外枠になります。処理結果のメッセージは `->with('status', '...')`（緑）・`->with('error', '...')`（赤）で渡すと、レイアウトが表示します。
 - **画面ごとのスクリプト**：その画面だけで使うもの（アップロード、WYSIWYG、並び替えなど）を head タグ内に差し込むときは、`@push('head-extra')` に書きます。body の終わりに差し込むときは、`@push('scripts')` に書きます。全画面で使うものは `resources/js/app.js` に書きます。
-- **全体で使う CSS**：`resources/css/app.css` に書きます。3つのレイアウトが読み込んでいるので、どの画面にも効きます。画面の CSS は Bootstrap を使い、このファイルには、Bootstrap で足りない分だけを書きます。変えたら、`npm run build` をやり直します。
+- **全体で使う CSS**：`resources/css/app.css` に書きます。3つのレイアウトが読み込んでいるので、どの画面にも効きます。画面の CSS は Bootstrap を使い、このファイルには、Bootstrap で足りない分だけを書きます。今あるのは、見本の文字の濃さ、エラー欄の表示、読み取り専用の表示、WYSIWYG の本文の表示、削除済みの行の色です。変えたら、`npm run build` をやり直します。その画面だけで使う CSS は、その画面の `@push('head-extra')` に書きます。
 - **入力欄の見本の文字（placeholder）**：濃さは、`app.css` で全体を `opacity: 0.5` にそろえています。入力した値と見分けやすくするためです。確認コード（6桁）の入力欄には、`placeholder="000000"` を付けます。バックアップコードの入力欄は `0000-0000` です。
 - **フォームの補助（app.js）**：必須マーク（`.required-mark`）の付いたラベルの `for` の欄に `required` 属性を付ける、エラー欄（`.invalid-feedback[data-item]`）に文言があれば同じ名前の欄を赤くする、ブラウザの入力チェックの結果を同じエラー欄に出す、入力し直したらエラー表示を消す、エラーのあるモーダルを開く、クラス名 `ajax_submit` の付いたフォームを画面を読み直さずに送る、フォームを送っている間は二重の送信を止めて処理中の表示を出す。画面ごとの設定は要りません。ラベルの `for` と入力欄の `id` を必ず対応させてください。
 - **フォームの送信中の表示（app.js）**：どのフォームも、送信した瞬間から2回目の送信を止めます。0.3秒経っても画面が切り替わらなければ、画面全体を覆って処理中であることを見せます。目印は要りません。確認コードのメールが2通届く、登録が2件できる、といったことを防ぐためです。すぐ切り替わる画面では、表示は出ません。リンクでの移動には出しません。読み込みを Esc キーで止めたときと、ブラウザの「戻る」で画面が復元されたときは、送信できる状態に戻ります。
@@ -1463,7 +1463,7 @@ php artisan app:set-next-id t_members 100001
     - JavaScript が動かなかったときは、ふつうの送信になります。そのときは、エラーのあるモーダルを `app.js` が自動で開きます。
     - モーダルを使う画面には、Bootstrap の JavaScript が要ります。管理画面のレイアウトは読み込んでいますが、訪問者向けと企業会員のレイアウトは読み込んでいないので、その画面の `@push('head-extra')` で読み込みます（例：`mypage/two-factor.blade.php`）。
 - **クラス名と `data-` の使い分け**：JavaScript に「この要素はこの機能で動かす」と伝えるのは、クラス名です（`ajax_upload_block`・`wysiwyg`・`ajax_submit`）。その機能に値を渡すときに、`data-` の属性を使います（`data-upload-url`・`data-item`・`data-confirm`）。
-- **読み取り専用の表示**：管理画面の確認・詳細画面は、入力画面と同じ `_fields` を共有して表示します。`$readonly = ' readonly'`・`$disabled = ' disabled'` を入力欄に展開して、入力できない表示にします。項目が増減したときに、それぞれの画面を書き直さずに済みます。見た目は、管理画面のレイアウトの CSS で整えています。訪問者向けの画面でも同じ仕組みを使えます。そのときは、同じ CSS をそのレイアウトに足します（参考：`layouts/admin.blade.php`）。
+- **読み取り専用の表示**：管理画面の確認・詳細画面は、入力画面と同じ `_fields` を共有して表示します。`$readonly = ' readonly'`・`$disabled = ' disabled'` を入力欄に展開して、入力できない表示にします。項目が増減したときに、それぞれの画面を書き直さずに済みます。見た目は、全体で使う CSS（`resources/css/app.css`）で整えています。訪問者向けや企業会員の画面でも、同じ仕組みをそのまま使えます。
 - **一覧**：削除済みの行は `row-deleted`、ページ送りは `pagination::bootstrap-5`（Bootstrap v5 のデザインで表示）。
 - ページ送りで、今のページの左右に展開するページの数は、3つずつです。左右4つずつに増やしたいときは、`onEachSide()` を付けます。
 
