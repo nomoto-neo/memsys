@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\LoginIdType;
 use App\Enums\TwoFactorMethod;
 use App\Support\HasPasskeys;
 use App\Support\HasTwoFactor;
@@ -36,6 +37,12 @@ class CompanyUser extends Authenticatable implements MemberAccount, PasskeyUser
     public const MEMBER_TYPE = 'company';
 
     /**
+     * ログインに使う値。担当者IDでも、メールアドレスでもよい。どちらも、同じ企業の中で重ならない。
+     * 企業IDは、どちらの場合も一緒に入力させる
+     */
+    public const LOGIN_ID_TYPE = LoginIdType::Either;
+
+    /**
      * ログインの2段階目の方式。メールで送る確認コード。
      * 変えるときは docs/two-factor-spec.md を読む
      */
@@ -46,7 +53,8 @@ class CompanyUser extends Authenticatable implements MemberAccount, PasskeyUser
 
     /**
      * 担当者IDに使える文字。半角の英数字と、記号の「_」「.」「-」。
-     * 企業IDと「/」でつないで1人を決めるので、「/」は使わせない
+     * 企業IDと「/」でつないで1人を決めるので、「/」は使わせない。
+     * ログインの入力がメールアドレスか担当者IDかを「@」で見分けるので、「@」も使わせない
      */
     public const LOGIN_ID_PATTERN = '/^[A-Za-z0-9_.\-]+$/';
 

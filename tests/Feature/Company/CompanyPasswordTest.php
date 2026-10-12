@@ -49,7 +49,7 @@ class CompanyPasswordTest extends TestCase
 
     private function forgotInput(array $override = []): array
     {
-        return $override + ['company_code' => 'acme', 'login_id' => 'yamada', 'email' => 'yamada@example.com'];
+        return $override + ['company_code' => 'acme', 'email' => 'yamada@example.com'];
     }
 
     public function test_change_in_mypage(): void
@@ -121,12 +121,12 @@ class CompanyPasswordTest extends TestCase
         $this->assertSame(['company_user', $user->id], [$log->operator_type, $log->operator_id]);
     }
 
-    public function test_forgot_needs_all_three_inputs_to_match(): void
+    public function test_forgot_needs_both_inputs_to_match(): void
     {
         $this->user($this->company());
 
-        // 企業ID・担当者ID・メールアドレスのどれが違っても、同じ画面へ進む。メールは送らない
-        foreach ([['company_code' => 'nobody'], ['login_id' => 'nobody'], ['email' => 'nobody@example.com']] as $wrong) {
+        // 企業IDとメールアドレスのどちらが違っても、同じ画面へ進む。メールは送らない
+        foreach ([['company_code' => 'nobody'], ['email' => 'nobody@example.com']] as $wrong) {
             $this->post('/company/password/forgot', $this->forgotInput($wrong))->assertRedirect(route('company.password.reset'));
         }
 
@@ -135,7 +135,7 @@ class CompanyPasswordTest extends TestCase
 
     public function test_forgot_picks_one_user_even_if_the_address_is_used_in_another_company(): void
     {
-        // 同じメールアドレスを、別の企業の同じ担当者IDの人が使っている。同じ企業の中では、重ならない
+        // 同じメールアドレスを、別の企業の担当者が使っている。同じ企業の中では、重ならない
         $company = $this->company('acme');
         $yamada = $this->user($company, 'yamada', 'info@example.com');
         $sato = $this->user($company, 'sato', 'sato@example.com');
@@ -145,7 +145,7 @@ class CompanyPasswordTest extends TestCase
         $this->assertCount(1, $this->sentMails());
         $this->post('/company/password/reset', $this->newPassword($this->lastVerificationCode()));
 
-        // 企業IDと担当者IDで決まる1人だけが変わる
+        // 企業IDとメールアドレスで決まる1人だけが変わる
         $this->assertTrue(Hash::check(self::NEW_PASSWORD, $yamada->fresh()->password));
         $this->assertTrue(Hash::check(self::OLD_PASSWORD, $sato->fresh()->password));
         $this->assertTrue(Hash::check(self::OLD_PASSWORD, $other->fresh()->password));

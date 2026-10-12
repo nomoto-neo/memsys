@@ -33,4 +33,12 @@ interface MemberAccount extends LoginAccount
 
     /** この種類のメールのテンプレートの名前。$nameは頭を付ける前の名前。例：'verification_code' */
     public static function memberMailTemplate(string $name): string;
+
+    /**
+     * ログイン画面で入力された値で、会員を探す条件。[列の名前 => 値]で返すので、そのままwhere()に渡せる。
+     * どの列で探すかは、モデルの定数 LOGIN_ID_TYPE（App\Enums\LoginIdType）で決まる。
+     *
+     * @return array<string, string>
+     */
+    public static function loginIdCondition(string $value): array;
 }

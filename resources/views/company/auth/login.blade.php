@@ -23,7 +23,7 @@
         </div>
 
         <div class="mb-3">
-            <label for="login_id" class="form-label">担当者ID</label>
+            <label for="login_id" class="form-label">担当者ID またはメールアドレス</label>
             <input id="login_id" type="text" name="login_id" value="{{ $input['login_id'] }}"
                    class="form-control" autocomplete="username">
             <div class="invalid-feedback" data-item="login_id">{{ $errors->first('login_id') }}</div>

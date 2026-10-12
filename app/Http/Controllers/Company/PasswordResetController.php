@@ -17,9 +17,10 @@ use Illuminate\View\View;
 /**
  * パスワードを忘れた担当者のための再設定。ログインしていない状態から使う。
  *
- * 企業ID・担当者ID・メールアドレスの3つを入力させ、全部が合う担当者に確認コードを送る。
- * メールアドレスはほかの担当者と重なっていてもよいので、企業IDと担当者IDで1人に決める。
- * 3つが合ったかどうかは、案内の文で区別しない。区別すると、第三者が値を試すだけで、
+ * 企業IDとメールアドレスの2つを入力させ、両方が合う担当者に確認コードを送る。
+ * メールアドレスは、同じ企業の中で重ならないので、この2つで1人に決まる。担当者IDを
+ * 忘れた人も、再設定できる。
+ * 2つが合ったかどうかは、案内の文で区別しない。区別すると、第三者が値を試すだけで、
  * 担当者がいるかどうかを調べられてしまうため。
  * 再設定できたら、そのままログインさせる。承認済みでない企業の担当者は、ログインさせない。
  */
@@ -39,17 +40,16 @@ class PasswordResetController extends Controller
         ];
     }
 
-    /** 確認コードの送り先を決める入力（企業ID・担当者ID・メールアドレス）のバリデーションルール。 */
+    /** 確認コードの送り先を決める入力（企業ID・メールアドレス）のバリデーションルール。 */
     private function forgotRules(): array
     {
         return [
             'company_code' => ['required', 'string'],
-            'login_id' => ['required', 'string'],
             'email' => ['required', 'string', 'email'],
         ];
     }
 
-    /** 企業ID・担当者ID・メールアドレスの入力画面 */
+    /** 企業ID・メールアドレスの入力画面 */
     public function create(): View
     {
         return view('company.auth.password-forgot', [
@@ -62,9 +62,8 @@ class PasswordResetController extends Controller
     {
         $validated = $request->validate($this->forgotRules());
 
-        // 企業IDで企業を決めてから、その企業の担当者を、担当者IDとメールアドレスで探す
+        // 企業IDで企業を決めてから、その企業の担当者を、メールアドレスで探す
         $user = CompanyUser::query()
-            ->where('login_id', $validated['login_id'])
             ->where('email', $validated['email'])
             ->whereIn('company_id', Company::query()->where('code', $validated['company_code'])->select('id'))
             ->first();

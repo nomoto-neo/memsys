@@ -2006,11 +2006,11 @@ Route::prefix('company')->name('company.')->group(function () {
 | 画面 | コントローラー | 中身 |
 |---|---|---|
 | 登録 | `Company\RegistrationController` | 企業と最初の担当者を「申請中」で作る。確認コードでメールアドレスを確かめ、運営へメールで知らせる |
-| ログイン | `Company\AuthSessionController` | 企業ID・担当者ID・パスワード。「企業ID と担当者ID を記憶する」（`LoginIdMemory`） |
+| ログイン | `Company\AuthSessionController` | 企業ID・担当者ID・パスワード。担当者ID の欄には、メールアドレスを入れてもよい（`CompanyUser::LOGIN_ID_TYPE`）。「企業ID と担当者ID を記憶する」（`LoginIdMemory`） |
 | 初回のログインでの登録 | `Company\FirstLoginSetupController` | 既存のシステムから移した企業だけ。企業の情報を1つ照合して、氏名・メールアドレス・担当者ID・パスワードを決める |
 | マイページ・企業の情報の変更 | `Company\MypageController` | どの担当者も変えられる。パスキーの管理も持つ |
 | 自分の情報の変更 | `Company\ProfileController` | 氏名とメールアドレス。メールアドレスが変わるときは、新しいアドレスへの確認コードの入力を挟む（`EmailChange`） |
-| パスワードの変更・再設定 | `Company\AuthPasswordController`・`Company\PasswordResetController` | 再設定は、企業ID・担当者ID・メールアドレスの3つが合う人に確認コードを送る |
+| パスワードの変更・再設定 | `Company\AuthPasswordController`・`Company\PasswordResetController` | 再設定は、企業ID とメールアドレスの2つが合う人に確認コードを送る。担当者ID を忘れた人も、再設定できる |
 | 担当者の管理 | `Company\UserController` | 一覧・招待・ほかの担当者の編集と削除 |
 | 招待された人の登録 | `Company\InvitationController` | 招待のメールのリンクから、担当者ID・氏名・パスワードを決める |
 | 管理画面：企業会員 | `Admin\CompanyController` | 一覧・登録・詳細・編集・CSV、承認・却下・停止・再開・削除、招待のメールの送信 |
@@ -2095,13 +2095,13 @@ Route::prefix('company')->name('company.')->group(function () {
 
 ### 個人会員をログインID でログインさせるサイト
 
-見本のサイトの個人会員は、メールアドレスでログインします。ログインID に切り替える設定は、持っていません。設定で切り替える形にすると、見本のサイトが使わない形のために、ログイン・パスワードの再設定・会員登録・マイページの全部に分岐が入るためです。ログインID でログインさせるサイトでは、企業会員のものを写して、個人会員のものを書き換えます。企業ID の入力が要らない分、企業会員より簡単になります。
+ログインに使う値は、モデルの定数 `LOGIN_ID_TYPE`（`App\Enums\LoginIdType`）で選びます。見本のサイトでは、個人会員はメールアドレス（`Email`）、企業の担当者は、担当者ID でもメールアドレスでも入れる形（`Either`）です。ログインのコントローラーは、`Member::loginIdCondition($入力された値)` で、探す条件（`[列の名前 => 値]`）をモデルに聞きます。定数を変えれば、探す列が切り替わります。個人会員をログインID でログインさせるには、定数のほかに、ログインID の列と、入力させる画面が要ります。直す所は、次のとおりです。
 
 | 直す所 | 中身 | 写す元 |
 |---|---|---|
 | `t_members` | `login_id` の列を足し、重ならない制約を付ける。メールアドレスの重ならない制約は、そのまま残す | `t_company_users` |
-| `Member` | `loginId()` を書いて `login_id` を返す | `CompanyUser` |
-| ログイン | `login_id` で会員を探す。試行制限のアカウントも `login_id` にする | `Company\AuthSessionController::store()` |
+| `Member` | 定数 `LOGIN_ID_TYPE` を、`LoginIdType::LoginId`（ログインID だけ）か `LoginIdType::Either`（ログインID でもメールアドレスでも）にする。`loginId()` を書いて `login_id` を返す | `CompanyUser` |
+| ログイン | 入力欄の名前と検証を、ログインID に合わせる。会員を探す列は、`Member::loginIdCondition()` が定数から決めるので、書き換えない | `Company\AuthSessionController::store()` |
 | パスワードの再設定 | メールアドレスだけで本人が決まるので、今の画面のままでよい。ログインID も入力させる形にするなら、写す元を見る | `Company\PasswordResetController` |
 | 会員登録 | ログインID を入力させ、重なりを確かめる。メールアドレスの重なりも、今までどおり確かめる | `Company\RegistrationController` |
 | マイページ・管理画面の会員 | ログインID を変えさせるかを決める。メールアドレスの重なりの検証は、そのまま残す | `Company\ProfileController` |
@@ -2109,7 +2109,7 @@ Route::prefix('company')->name('company.')->group(function () {
 
 - ログインID は、個人会員の中で重ならないようにします。**メールアドレスも、今までどおり重ならないようにします**。確認コードとパスワードの再設定のメールが、本人だけに届くようにするためです。既存のシステムのデータに、同じアドレスの会員がいるとき（家族で1つのアドレスを使っている、など）は、持ち込む前に直します。1人を残して、ほかの人の分を空にしておけば、その人たちは初回のログインで自分のアドレスを登録します。
 - 「メールアドレスでログインする人」と「ログインID でログインする人」が混ざるデータは、ログインID の列にそろえます。メールアドレスでログインしていた人には、メールアドレスをログインID として入れ、入力欄は「ログインID またはメールアドレス」の1つにします。
-- 2つの列のどちらかに一致すれば通す、という形にはしません。ある人のログインID と、別の人のメールアドレスが同じ文字列だったときに、どちらの人かを決められないためです。
+- **`LoginIdType::Either` は、入力に `@` があればメールアドレス、無ければログインID として探します**。2つの列を「または」でつないで探すことは、しません。ある人のログインID と、別の人のメールアドレスが同じ文字列だったときに、どちらの人かを決められないためです。そのため、ログインID には `@` を使わせません（企業の担当者ID は `CompanyUser::LOGIN_ID_PATTERN`）。
 
 ### 会員の種類をもう1つ足すとき
 

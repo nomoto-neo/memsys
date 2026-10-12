@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\NoticeMail;
+use App\Enums\LoginIdType;
 use App\Enums\TwoFactorMethod;
 use App\Support\HasPasskeys;
 use App\Support\HasTwoFactor;
@@ -46,6 +47,12 @@ class Member extends Authenticatable implements MemberAccount, PasskeyUser
     public const MEMBER_GUARD = 'web';
 
     public const MEMBER_ROUTE_PREFIX = '';
+
+    /**
+     * ログインに使う値。メールアドレス。ログインIDでログインさせるサイトでは、ここを変える
+     * （利用ガイドの23章）
+     */
+    public const LOGIN_ID_TYPE = LoginIdType::Email;
 
     /**
      * ログインの2段階目の方式。メールで送る確認コード。

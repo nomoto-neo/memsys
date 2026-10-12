@@ -79,10 +79,15 @@ class AuthSessionController extends Controller
             ]);
         }
 
-        // メールアドレス・パスワードの確認だけ行う（まだログインはしない）
+        // メールアドレス・パスワードの確認だけ行う（まだログインはしない）。
+        // 入力された値で、どの列から会員を探すかは、モデルが決める（Member::LOGIN_ID_TYPE）
         $guard = Auth::guard(self::LOGIN_ACCOUNT::loginGuard());
 
-        if (! $guard->validate($credentials)) {
+        $found = $guard->validate(
+            self::LOGIN_ACCOUNT::loginIdCondition($credentials['email']) + ['password' => $credentials['password']]
+        );
+
+        if (! $found) {
             $throttle->hit();
 
             // 操作ログ。誰か分からないので、入力されたメールアドレスを補足に、ログインの種類を対象に残す

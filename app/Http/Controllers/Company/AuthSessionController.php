@@ -79,7 +79,10 @@ class AuthSessionController extends Controller
         ]);
     }
 
-    /** ログイン（1段階目：企業ID・担当者ID・パスワード） */
+    /**
+     * ログイン（1段階目：企業ID・担当者ID・パスワード）。担当者IDの欄には、メールアドレスを
+     * 入れてもよい（CompanyUser::LOGIN_ID_TYPE）
+     */
     public function store(Request $request): RedirectResponse
     {
         $credentials = $request->validate([
@@ -100,9 +103,10 @@ class AuthSessionController extends Controller
             ]);
         }
 
-        // 企業IDで企業を決めてから、その企業の担当者を探す
+        // 企業IDで企業を決めてから、その企業の担当者を探す。入力された値が担当者IDか
+        // メールアドレスかで、探す列が変わる
         $user = CompanyUser::query()
-            ->where('login_id', $credentials['login_id'])
+            ->where(CompanyUser::loginIdCondition($credentials['login_id']))
             ->whereIn('company_id', Company::query()->where('code', $credentials['company_code'])->select('id'))
             ->first();
 
@@ -118,7 +122,7 @@ class AuthSessionController extends Controller
 
             // 3つのうち、どれが違うかは伝えない。企業IDや担当者IDが実在するかを、調べられないようにする
             throw ValidationException::withMessages([
-                'company_code' => '企業ID・担当者ID・パスワードのいずれかが正しくありません。',
+                'company_code' => '企業ID・担当者ID（またはメールアドレス）・パスワードのいずれかが正しくありません。',
             ]);
         }
 

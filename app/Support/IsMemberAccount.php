@@ -2,6 +2,8 @@
 
 namespace App\Support;
 
+use App\Enums\LoginIdType;
+
 /**
  * MemberAccount（訪問者側でログインするモデルの共通の型）の、決まった中身。
  * 種類の名前から、ガード・ルート・メールのテンプレート・Cookieの名前を作る。
@@ -10,6 +12,10 @@ namespace App\Support;
  * - 定数 MEMBER_TYPE          種類の名前。例：'company'
  * - displayName()             画面やメールに出す名前
  * - notificationEmail()       お知らせを送るメールアドレス
+ *
+ * ■ ログインに使う値を変えるときに書くもの
+ * - 定数 LOGIN_ID_TYPE        ログインに使う値の種類（App\Enums\LoginIdType）。メールアドレス・
+ *                             ログインID・どちらでも、から選ぶ。書かなければメールアドレス
  *
  * ■ 決まりと違う名前にするときだけ書くもの
  * - 定数 MEMBER_GUARD         ガードの名前。書かなければ種類の名前
@@ -38,6 +44,20 @@ trait IsMemberAccount
     public static function memberMailTemplate(string $name): string
     {
         return static::MEMBER_TYPE.'_'.$name;
+    }
+
+    public static function loginIdCondition(string $value): array
+    {
+        $type = defined(static::class.'::LOGIN_ID_TYPE') ? static::LOGIN_ID_TYPE : LoginIdType::Email;
+
+        $column = match ($type) {
+            LoginIdType::Email => 'email',
+            LoginIdType::LoginId => 'login_id',
+            // ログインIDには「@」を使わせないので、あればメールアドレス
+            LoginIdType::Either => str_contains($value, '@') ? 'email' : 'login_id',
+        };
+
+        return [$column => $value];
     }
 
     public static function trustedDeviceCookie(): string

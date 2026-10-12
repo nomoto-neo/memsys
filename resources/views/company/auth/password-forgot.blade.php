@@ -4,7 +4,7 @@
 
 {{--
     パスワードを忘れた担当者が、確認コードの送り先を決めるための入力。
-    企業ID・担当者ID・メールアドレスの3つが、登録の内容と合ったときだけ、確認コードを送る。
+    企業IDとメールアドレスの2つが、登録の内容と合ったときだけ、確認コードを送る。
 --}}
 @section('content')
 <div class="row justify-content-center">
@@ -13,7 +13,7 @@
             <div class="card-header">パスワードをお忘れの方</div>
             <div class="card-body">
                 <p>
-                    企業ID・担当者IDと、ご登録のメールアドレスを入力してください。
+                    企業IDと、ご登録のメールアドレスを入力してください。
                     確認コードを記載したメールをお送りします。
                 </p>
 
@@ -25,13 +25,6 @@
                         <input id="company_code" type="text" name="company_code" value="{{ old('company_code') }}"
                                class="form-control" autocomplete="organization" autofocus>
                         <div class="invalid-feedback" data-item="company_code">{{ $errors->first('company_code') }}</div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="login_id" class="form-label">担当者ID {!! $required['login_id'] !!}</label>
-                        <input id="login_id" type="text" name="login_id" value="{{ old('login_id') }}"
-                               class="form-control" autocomplete="username">
-                        <div class="invalid-feedback" data-item="login_id">{{ $errors->first('login_id') }}</div>
                     </div>
 
                     <div class="mb-3">

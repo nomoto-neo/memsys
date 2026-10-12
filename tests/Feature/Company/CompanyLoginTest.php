@@ -88,6 +88,39 @@ class CompanyLoginTest extends TestCase
         $this->assertFalse($acme->is(auth('company')->user()));
     }
 
+    public function test_email_can_be_used_in_place_of_the_user_id(): void
+    {
+        // 同じメールアドレスの担当者が、別の企業にもいる。企業IDで、どちらの人かが決まる
+        $acme = $this->user($this->company());
+        $other = CompanyUser::create([
+            'company_id' => $this->company('other')->id,
+            'login_id' => 'suzuki',
+            'name' => '鈴木 次郎',
+            'email' => $acme->email,
+            'password' => Hash::make(self::PASSWORD),
+        ]);
+
+        // 担当者IDの欄に、メールアドレスを入れてもログインできる
+        $this->post('/company/login', $this->credentials(['login_id' => $acme->email]))
+            ->assertRedirect(route('company.login.verify'));
+        $this->post('/company/login/verify', ['code' => $this->lastVerificationCode()])
+            ->assertRedirect(route('company.mypage'));
+
+        $this->assertTrue($acme->is(auth('company')->user()));
+        $this->assertFalse($other->is(auth('company')->user()));
+    }
+
+    public function test_user_id_is_not_searched_in_the_email_column(): void
+    {
+        $this->user($this->company(), 'yamada', 'taro@example.com');
+
+        // 「@」の無い値は担当者IDとして、「@」のある値はメールアドレスとして探す。
+        // メールアドレスの「@」より前だけを入れても、担当者IDとして探すので、ログインできない
+        $this->post('/company/login', $this->credentials(['login_id' => 'taro']))
+            ->assertSessionHasErrors('company_code');
+        $this->assertGuest('company');
+    }
+
     public function test_wrong_input_is_rejected_without_telling_which(): void
     {
         $this->user($this->company());
@@ -95,7 +128,7 @@ class CompanyLoginTest extends TestCase
         // 企業ID・担当者ID・パスワードのどれが違っても、同じ文言で断る
         foreach ([['company_code' => 'nobody'], ['login_id' => 'nobody'], ['password' => 'wrong-password']] as $wrong) {
             $response = $this->post('/company/login', $this->credentials($wrong));
-            $response->assertSessionHasErrors(['company_code' => '企業ID・担当者ID・パスワードのいずれかが正しくありません。']);
+            $response->assertSessionHasErrors(['company_code' => '企業ID・担当者ID（またはメールアドレス）・パスワードのいずれかが正しくありません。']);
         }
         $this->assertGuest('company');
         $this->assertCount(0, $this->sentMails());
