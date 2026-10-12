@@ -258,7 +258,6 @@ GRANT ALL PRIVILEGES ON memsys_testing.* TO 'memsys'@'localhost';
 | `app:set-next-id` | `app/Console/Commands/` | 新しく登録する行の id の始まりを決めるコマンド（サイトを開ける前に使う） | 16 |
 | `ErrorNotifyHandler` | `app/Support/` | ログに書いたエラーを開発者にメールで知らせる（レベル・宛先・間隔は .env） | 20 |
 | `SendBulkMail` | `app/Jobs/` | 一斉メールを1通送るキューのジョブ（送る速さの制限・試し直し・バッチ） | 21 |
-| `MailUnsubscribe` | `app/Support/` | お知らせメール（一斉メール）の配信停止。メールに載せる URL を作り、その URL からの停止を受け付ける | 21 |
 | `OperationRecorder` | `app/Support/` | 操作ログ（誰が・いつ・どこから・何に・何をしたか）を書く | 22 |
 | `OperationLogStats`・`OperationLogReport` | `app/Support/` | 操作ログの件数の集計（一覧の上のグラフと表）と、1日ぶんの報告 | 22 |
 | `app:report-operation-logs` | `app/Console/Commands/` | 操作ログの報告のコマンド（スケジューラーから毎朝。気になる点があった日だけメールを送る） | 22 |
@@ -1717,7 +1716,7 @@ class SendBulkMail implements ShouldQueue
 
 ### お知らせメールの配信停止（MailUnsubscribe）
 
-**ファイル**：`app/Support/MailUnsubscribe.php`（冒頭のコメント）・`app/Enums/NoticeMail.php`　**実例**：`MailUnsubscribeController`、画面は `mail_unsubscribe/show.blade.php`・`done.blade.php`
+**ファイル**：`app/Services/MailUnsubscribe.php`（冒頭のコメント）・`app/Enums/NoticeMail.php`　**実例**：`MailUnsubscribeController`、画面は `mail_unsubscribe/show.blade.php`・`done.blade.php`
 
 広告のメールには、配信停止の方法を載せる決まりがあります（特定電子メール法）。Gmail なども、大量に送る相手に、ワンクリックで解除できることを求めています。個人会員は、お知らせメール（一斉メール）を受け取るかどうかを持ちます。
 

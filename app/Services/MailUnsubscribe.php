@@ -1,10 +1,11 @@
 <?php
 
-namespace App\Support;
+namespace App\Services;
 
 use App\Enums\NoticeMail;
 use App\Enums\OperationLogAction;
 use App\Models\Member;
+use App\Support\OperationRecorder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\URL;

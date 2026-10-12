@@ -4,7 +4,7 @@ namespace App\Jobs;
 
 use App\Mail\TemplatedMail;
 use App\Models\BulkMail;
-use App\Support\MailUnsubscribe;
+use App\Services\MailUnsubscribe;
 use DateTimeInterface;
 use Illuminate\Bus\Batchable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -22,7 +22,7 @@ use Illuminate\Support\Facades\Mail;
  * 止められたり、迷惑メールと判定されたりしないため。
  *
  * ■ 配信停止
- * 本文の末尾に、この宛先の配信停止のURL（App\Support\MailUnsubscribe）を付ける。メールソフトの
+ * 本文の末尾に、この宛先の配信停止のURL（App\Services\MailUnsubscribe）を付ける。メールソフトの
  * 「登録解除」のボタン用のヘッダーも付ける。付ける文とヘッダーは、どちらもテンプレート
  * （resources/mail-templates/bulk_mail.blade.php）にある。
  *

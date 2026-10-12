@@ -51,7 +51,7 @@ use Throwable;
  * お知らせメールを「受け取らない」にしている会員のアドレスがCSVにあれば、その行をエラーにして
  * 送らせない。会員の一覧から抽出した後に停止した人や、古いCSVの使い回しに備えるため。
  * 会員ではないアドレスは、そのまま送る。本文の末尾には、配信停止のURLが宛先ごとに付く
- * （App\Jobs\SendBulkMail・App\Support\MailUnsubscribe）。
+ * （App\Jobs\SendBulkMail・App\Services\MailUnsubscribe）。
  *
  * ■ 二重の送信
  * 送信中の一斉メールがあるあいだは、入力画面を開いてもその状況の画面に回し、新しく送らせない。

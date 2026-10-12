@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Support\MailUnsubscribe;
+use App\Services\MailUnsubscribe;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 

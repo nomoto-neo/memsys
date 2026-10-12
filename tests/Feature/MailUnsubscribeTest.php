@@ -11,7 +11,7 @@ use App\Models\BulkMail;
 use App\Models\Member;
 use App\Models\OperationLog;
 use App\Models\Staff;
-use App\Support\MailUnsubscribe;
+use App\Services\MailUnsubscribe;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
@@ -20,7 +20,7 @@ use Tests\TestCase;
 
 /**
  * お知らせメール（一斉メール）の配信停止。会員は「受け取る・受け取らない」を持ち、
- * メールの中のURLからも、ログインせずに停止できる（App\Support\MailUnsubscribe）。
+ * メールの中のURLからも、ログインせずに停止できる（App\Services\MailUnsubscribe）。
  * 「受け取らない」の会員のアドレスが宛先のCSVにあれば、一斉メールは送れない。
  */
 class MailUnsubscribeTest extends TestCase

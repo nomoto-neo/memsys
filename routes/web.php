@@ -62,7 +62,7 @@ Route::post('/contact/store', [ContactController::class, 'store'])
     ->name('contact.store');
 Route::get('/contact/thanks', [ContactController::class, 'thanks'])->name('contact.thanks');
 
-// お知らせメールの配信停止（App\Support\MailUnsubscribe）。メールの中のURLから開くので、ログインは要らない。
+// お知らせメールの配信停止（App\Services\MailUnsubscribe）。メールの中のURLから開くので、ログインは要らない。
 // 停止の操作は全部を操作ログに残すので、回数を制限する
 Route::get('/mail/unsubscribe', [MailUnsubscribeController::class, 'show'])->name('mail.unsubscribe');
 Route::post('/mail/unsubscribe', [MailUnsubscribeController::class, 'store'])

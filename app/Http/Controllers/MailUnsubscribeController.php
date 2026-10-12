@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Support\MailUnsubscribe;
+use App\Services\MailUnsubscribe;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -10,7 +10,7 @@ use Illuminate\View\View;
  * お知らせメールの配信停止の画面。メールの中のURLから開くので、ログインは要らない。
  *
  * どちらの画面も、URLが正しいかや、そのアドレスの会員がいるかに関係なく、同じ表示にする。
- * 停止の中身と、そうする理由は、App\Support\MailUnsubscribeにある。
+ * 停止の中身と、そうする理由は、App\Services\MailUnsubscribeにある。
  */
 class MailUnsubscribeController extends Controller
 {

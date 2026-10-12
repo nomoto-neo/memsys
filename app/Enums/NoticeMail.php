@@ -10,7 +10,7 @@ namespace App\Enums;
  * 本人の操作に応えて送るメールは、この値に関係なく送る。
  * 「受け取らない」の会員のアドレスが宛先のCSVにあると、一斉メールは送れない
  * （Admin\BulkMailController）。メールの中の配信停止のURLからも「受け取らない」に変わる
- * （App\Support\MailUnsubscribe）。
+ * （App\Services\MailUnsubscribe）。
  */
 enum NoticeMail: int implements CodeTableEnum
 {
