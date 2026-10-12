@@ -295,9 +295,30 @@ class CompanyAdminTest extends TestCase
         $invitation = TeamInvitation::sole();
         $this->assertSame([$company->id, 'new@example.com'], [$invitation->team_id, $invitation->email]);
 
-        // 操作ログには、送ったスタッフと、企業が残る
+        // 招待した人として、送ったスタッフが行に残る。詳細の招待中の一覧には、スタッフの氏名も出る
+        $this->assertSame(['staff', $staff->id], [$invitation->inviter_type, $invitation->inviter_id]);
+        $this->actingAs($staff, 'admin')->get("/admin/companies/{$company->id}")
+            ->assertOk()->assertSee('スタッフID:'.$staff->id)->assertSee('管理 花子');
+
+        // 操作ログには、送ったスタッフと、企業と、招待の番号が残る
         $log = OperationLog::where('action', OperationLogAction::InvitationSend)->sole();
         $this->assertSame(['staff', $staff->id, 'company', $company->id], [$log->operator_type, $log->operator_id, $log->target_type, $log->target_id]);
+        $this->assertSame(['invitation' => '招待ID:'.$invitation->id], $log->detail);
+
+        // 送り直せるのは、招待した本人だけ。ほかのスタッフは、URLを直接送っても送り直せない
+        $otherStaff = Staff::create([
+            'name' => '運営 二郎',
+            'login_id' => 'jiro',
+            'email' => 'jiro@example.com',
+            // 同じテストの中で2人を切り替えるので、パスワードのハッシュ値を同じにしておく。
+            // 違うと、auth.sessionが「パスワードが変わった」と見て、ログアウトさせる
+            'password' => $staff->password,
+            'acl' => StaffAcl::Staff,
+        ]);
+        $this->actingAs($otherStaff, 'admin')->post("/admin/companies/{$company->id}/invitations/{$invitation->id}/resend")->assertNotFound();
+        $this->actingAs($otherStaff, 'admin')->get("/admin/companies/{$company->id}")
+            ->assertOk()->assertDontSee("/invitations/{$invitation->id}/resend", false);
+        $this->assertCount(1, $this->sentMails());
 
         // URLの企業と、招待の企業が違えば、扱えない
         $this->actingAs($staff, 'admin')->delete("/admin/companies/{$other->id}/invitations/{$invitation->id}")->assertNotFound();
@@ -342,5 +363,15 @@ class CompanyAdminTest extends TestCase
         $this->patch("/admin/companies/{$company->id}/approve")->assertRedirect(route('admin.login'));
 
         $this->assertSame(CompanyStatus::Pending, $company->fresh()->status);
+    }
+
+    public function test_staff_cannot_invite_an_address_already_used_in_the_company(): void
+    {
+        $company = $this->company(CompanyStatus::Approved);
+        $this->user($company);
+
+        $this->actingAs($this->staff(), 'admin')->post("/admin/companies/{$company->id}/invitations", ['email' => 'yamada@example.com'])
+            ->assertSessionHasErrorsIn('invitation', ['email' => 'このメールアドレスは、すでにほかの担当者が使っています。']);
+        $this->assertSame(0, TeamInvitation::count());
     }
 }

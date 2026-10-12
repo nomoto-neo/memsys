@@ -163,4 +163,25 @@ class CompanyUserAdminTest extends TestCase
 
         $this->assertSame(1, CompanyUser::count());
     }
+
+    public function test_staff_cannot_set_an_address_used_by_another_user_in_the_company(): void
+    {
+        $company = $this->company();
+        $user = $this->user($company);
+        $other = CompanyUser::create([
+            'company_id' => $company->id,
+            'login_id' => 'sato',
+            'name' => '佐藤 花子',
+            'email' => 'sato@example.com',
+            'password' => Hash::make(self::PASSWORD),
+        ]);
+
+        // 同じ企業のほかの担当者が使っているアドレスには、変えられない
+        $this->actingAs($this->staff(), 'admin')->patch($this->url($user, '/update'), [
+            'name' => '山田 太郎',
+            'email' => $other->email,
+        ])->assertSessionHasErrors(['email' => 'このメールアドレスは、すでにほかの担当者が使っています。']);
+
+        $this->assertSame('yamada@example.com', $user->fresh()->email);
+    }
 }

@@ -150,11 +150,14 @@ class CompanyController extends Controller
         ];
     }
 
-    /** 招待の宛先の検証ルール。詳細画面の招待のフォームで使う */
-    private function invitationRules(): array
+    /**
+     * 招待の宛先の検証ルール。詳細画面の招待のフォームで使う。
+     * その企業の担当者が、すでに使っているアドレスには、招待を送れない
+     */
+    private function invitationRules(Company $company): array
     {
         return [
-            'email' => ['required', 'string', 'email', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', CompanyUser::emailNotUsedInCompany($company->id)],
         ];
     }
 
@@ -378,7 +381,7 @@ class CompanyController extends Controller
             'users' => $company->users()->orderBy('id')->get(),
             'invitations' => TeamInvitationManager::pending($company),
             'rejectRequired' => required_fields($this->rejectRules()),
-            'invitationRequired' => required_fields($this->invitationRules()),
+            'invitationRequired' => required_fields($this->invitationRules($company)),
         ]);
     }
 
@@ -528,7 +531,7 @@ class CompanyController extends Controller
     public function storeInvitation(Request $request, Company $company): RedirectResponse
     {
         // 招待のフォームは詳細画面の下の方にあるので、エラーは名前を分けて持つ
-        $validated = $request->validateWithBag('invitation', $this->invitationRules());
+        $validated = $request->validateWithBag('invitation', $this->invitationRules($company));
 
         if ($company->isPending()) {
             return $this->statusAlreadyChanged($company);
@@ -540,16 +543,21 @@ class CompanyController extends Controller
             ->with('status', '招待のメールを送りました。');
     }
 
-    /** 招待のメールを送り直す。リンクと期限が新しくなり、前のメールのリンクは使えなくなる */
-    public function resendInvitation(Company $company, TeamInvitation $invitation): RedirectResponse
+    /**
+     * 招待のメールを送り直す。リンクと期限が新しくなり、前のメールのリンクは使えなくなる。
+     * 送り直せるのは、招待した本人だけ。ほかのスタッフは、新しく招待する
+     */
+    public function resendInvitation(Request $request, Company $company, TeamInvitation $invitation): RedirectResponse
     {
+        abort_unless($invitation->isSentBy($request->user()), 404);
+
         TeamInvitationManager::resend($invitation);
 
         return redirect()->route('admin.companies.show', $company)
             ->with('status', '招待のメールを送り直しました。');
     }
 
-    /** 招待を取り消す */
+    /** 招待を取り消す。招待した本人でなくても取り消せる */
     public function cancelInvitation(Company $company, TeamInvitation $invitation): RedirectResponse
     {
         TeamInvitationManager::cancel($invitation);

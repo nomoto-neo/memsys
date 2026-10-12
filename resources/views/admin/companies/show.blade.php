@@ -121,6 +121,7 @@
         <thead>
             <tr>
                 <th>メールアドレス</th>
+                <th>招待した人</th>
                 <th>リンクの期限</th>
                 <th></th>
             </tr>
@@ -129,12 +130,21 @@
             @forelse ($invitations as $invitation)
                 <tr>
                     <td>{{ $invitation->email }}</td>
+                    <td>
+                        {{-- 種類とidと、今の氏名。もういない人は氏名が出ない --}}
+                        @if ($invitation->inviter_type !== null)
+                            {{ code_label('operation_log_subject', $invitation->inviter_type) }}ID:{{ $invitation->inviter_id }}　{{ $invitation->inviter?->name }}
+                        @endif
+                    </td>
                     <td>{{ $invitation->expires_at->format('Y年n月j日 H:i') }}</td>
                     <td class="text-end">
-                        <form method="POST" action="{{ route('admin.companies.invitations.resend', [$company, $invitation]) }}" class="d-inline">
-                            @csrf
-                            <button type="submit" class="btn btn-sm btn-outline-primary">送り直す</button>
-                        </form>
+                        {{-- 送り直せるのは、招待した本人だけ。ほかのスタッフは、新しく招待する --}}
+                        @if ($invitation->isSentBy(auth('admin')->user()))
+                            <form method="POST" action="{{ route('admin.companies.invitations.resend', [$company, $invitation]) }}" class="d-inline">
+                                @csrf
+                                <button type="submit" class="btn btn-sm btn-outline-primary">送り直す</button>
+                            </form>
+                        @endif
                         <form method="POST" action="{{ route('admin.companies.invitations.cancel', [$company, $invitation]) }}" class="d-inline">
                             @csrf
                             @method('DELETE')
@@ -144,7 +154,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="3" class="text-center text-muted">招待中の人はいません。</td>
+                    <td colspan="4" class="text-center text-muted">招待中の人はいません。</td>
                 </tr>
             @endforelse
         </tbody>

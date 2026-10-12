@@ -309,4 +309,142 @@ class CompanyInvitationTest extends TestCase
         $this->post($url, $this->registerInput())->assertRedirect(route('company.mypage'));
         $this->assertSame('sato@example.com', Auth::guard('company')->user()->email);
     }
+
+    public function test_only_the_inviter_can_resend_but_anyone_in_the_company_can_cancel(): void
+    {
+        $company = $this->company();
+        $inviter = $this->user($company);
+        $colleague = CompanyUser::create([
+            'company_id' => $company->id,
+            'login_id' => 'suzuki',
+            'name' => '鈴木 次郎',
+            'email' => 'suzuki@example.com',
+            // 同じテストの中で2人を切り替えるので、パスワードのハッシュ値を同じにしておく。
+            // 違うと、auth.sessionが「パスワードが変わった」と見て、ログアウトさせる
+            'password' => $inviter->password,
+        ]);
+
+        $this->actingAs($inviter, 'company')->post('/company/mypage/users/invite', ['email' => 'sato@example.com']);
+        $invitation = TeamInvitation::sole();
+
+        // 招待した人が、行に残る
+        $this->assertSame(['company_user', $inviter->id], [$invitation->inviter_type, $invitation->inviter_id]);
+
+        // 一覧には、招待した人の氏名が出る。送り直すボタンは、招待した本人にだけ出る
+        $resendUrl = route('company.users.invitations.resend', $invitation);
+        $this->actingAs($inviter, 'company')->get('/company/mypage/users')
+            ->assertSee('招待した人')->assertSee($resendUrl, false);
+        $this->actingAs($colleague, 'company')->get('/company/mypage/users')
+            ->assertSee('山田 太郎')->assertDontSee($resendUrl, false);
+
+        // ほかの担当者は、URLを直接送っても送り直せない
+        $this->actingAs($colleague, 'company')->post($resendUrl)->assertNotFound();
+        $this->assertCount(1, $this->sentMails());
+
+        // ほかの担当者が同じ宛先を招くと、前の招待は消えて、新しい番号の招待になる。招待した人も変わる
+        $this->actingAs($colleague, 'company')->post('/company/mypage/users/invite', ['email' => 'sato@example.com']);
+        $replaced = TeamInvitation::sole();
+        $this->assertNotSame($invitation->id, $replaced->id);
+        $this->assertSame($colleague->id, $replaced->inviter_id);
+        $this->assertStringContainsString('鈴木 次郎 様から', $this->lastMail()->getTextBody());
+
+        // 取り消しは、招待した本人でなくてもできる
+        $this->actingAs($inviter, 'company')->delete("/company/mypage/users/invitations/{$replaced->id}")
+            ->assertRedirect(route('company.users.index'));
+        $this->assertSame(0, TeamInvitation::count());
+    }
+
+    public function test_operation_logs_keep_the_invitation_number(): void
+    {
+        $company = $this->company();
+        $inviter = $this->user($company);
+
+        $this->actingAs($inviter, 'company')->post('/company/mypage/users/invite', ['email' => 'sato@example.com']);
+        $invitation = TeamInvitation::sole();
+        $url = $this->lastInvitationUrl();
+
+        // 招待の送信の記録に、招待の番号が残る。宛先のメールアドレスは残らない
+        $sent = OperationLog::where('action', OperationLogAction::InvitationSend)->sole();
+        $this->assertSame(['invitation' => '招待ID:'.$invitation->id], $sent->detail);
+
+        // 招待から登録した記録にも、同じ番号が残る。誰が送った招待から、誰が登録したかをたどれる
+        $this->post($url, $this->registerInput())->assertRedirect(route('company.mypage'));
+        $created = OperationLog::where('action', OperationLogAction::Create)->where('target_type', 'company_user')->latest('id')->first();
+        $this->assertSame(['invitation' => '招待ID:'.$invitation->id], $created->detail);
+    }
+
+    public function test_an_invitation_from_the_staff_is_shown_as_from_the_operator(): void
+    {
+        $company = $this->company();
+        $me = $this->user($company);
+        $staff = Staff::create([
+            'name' => '管理 花子',
+            'login_id' => 'hanako',
+            'email' => 'hanako@example.com',
+            'password' => Hash::make('staff-password'),
+            'acl' => StaffAcl::Manager,
+        ]);
+
+        $this->actingAs($staff, 'admin')->post("/admin/companies/{$company->id}/invitations", ['email' => 'sato@example.com']);
+        $invitation = TeamInvitation::sole();
+        $this->assertSame(['staff', $staff->id], [$invitation->inviter_type, $invitation->inviter_id]);
+
+        // 企業の側の画面には、スタッフの氏名を出さず「運営」と出す。担当者は送り直せないが、取り消せる
+        $this->actingAs($me, 'company')->get('/company/mypage/users')
+            ->assertSee('運営')
+            ->assertDontSee('管理 花子')
+            ->assertDontSee(route('company.users.invitations.resend', $invitation), false);
+        $this->actingAs($me, 'company')->post(route('company.users.invitations.resend', $invitation))->assertNotFound();
+        $this->actingAs($me, 'company')->delete("/company/mypage/users/invitations/{$invitation->id}")
+            ->assertRedirect(route('company.users.index'));
+        $this->assertSame(0, TeamInvitation::count());
+    }
+
+    public function test_address_already_used_in_the_company_cannot_be_invited_or_given_to_a_colleague(): void
+    {
+        $company = $this->company();
+        $me = $this->user($company);
+        $colleague = CompanyUser::create([
+            'company_id' => $company->id,
+            'login_id' => 'suzuki',
+            'name' => '鈴木 次郎',
+            'email' => 'suzuki@example.com',
+            'password' => $me->password,
+        ]);
+        $this->user($this->company('other'), 'sato', 'elsewhere@example.com');
+        $error = ['email' => 'このメールアドレスは、すでにほかの担当者が使っています。'];
+
+        // すでに担当者が使っているアドレスには、招待を送れない
+        $this->actingAs($me, 'company')->post('/company/mypage/users/invite', ['email' => 'suzuki@example.com'])
+            ->assertSessionHasErrors($error);
+        $this->assertSame(0, TeamInvitation::count());
+
+        // 別の企業の担当者と同じアドレスには、送れる
+        $this->actingAs($me, 'company')->post('/company/mypage/users/invite', ['email' => 'elsewhere@example.com'])
+            ->assertSessionHasNoErrors();
+        $this->assertSame(1, TeamInvitation::count());
+
+        // ほかの担当者のアドレスを、すでに使われているアドレスには変えられない
+        $this->actingAs($me, 'company')
+            ->patch("/company/mypage/users/{$colleague->id}", ['name' => '鈴木 次郎', 'email' => 'yamada@example.com'])
+            ->assertSessionHasErrors($error);
+        $this->assertSame('suzuki@example.com', $colleague->fresh()->email);
+    }
+
+    public function test_link_cannot_be_used_once_the_address_is_registered_in_the_company(): void
+    {
+        $company = $this->company();
+        $inviter = $this->user($company);
+
+        $this->actingAs($inviter, 'company')->post('/company/mypage/users/invite', ['email' => 'sato@example.com']);
+        $url = $this->lastInvitationUrl();
+        $this->post(route('company.logout'));
+
+        // 招待を送った後に、同じアドレスの担当者ができた
+        $this->user($company, 'sato', 'sato@example.com');
+
+        $this->get($url)->assertNotFound();
+        $this->post($url, $this->registerInput(['login_id' => 'sato2']))->assertNotFound();
+        $this->assertSame(2, CompanyUser::count());
+    }
 }

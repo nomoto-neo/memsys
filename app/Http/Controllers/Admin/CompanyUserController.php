@@ -37,14 +37,17 @@ class CompanyUserController extends Controller
     // ---- このコーナーの項目の定義 ----
 
     /**
-     * 入力バリデーションルール。メールアドレスは、ほかの担当者と重なっていてもよい
-     * （企業の代表アドレスを、複数の担当者が使っていることがあるため）。
+     * 入力バリデーションルール。メールアドレスは、同じ企業のほかの担当者と重ならないこと
+     * （CompanyUser::emailNotUsedInCompany()）。
      */
     private function rules(?CompanyUser $user): array
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255'],
+            'email' => [
+                'required', 'string', 'email', 'max:255',
+                ...($user !== null ? [CompanyUser::emailNotUsedInCompany($user->company_id, $user)] : []),
+            ],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
         ];
     }

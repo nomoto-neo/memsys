@@ -34,9 +34,19 @@ use Illuminate\Support\Str;
  * 期限の切れた招待は使われず、一時データの後片付けがdeleteExpired()を呼んで消す
  * （config/cleanup.phpのtasks）。
  *
+ * ■ 招待した人
+ * 招待を作ったときに、その画面でログインしている人を、招待した人として行に残す。仲間のことも、
+ * 管理画面のスタッフのこともある。その後は変えない。
+ * 送り直せるのは、招待した本人だけ（TeamInvitation::isSentBy()。呼ぶ側のコントローラーが確かめる）。
+ * ほかの人が同じ宛先を招きたいときは、新しく招待する。前の招待は消えて、新しい番号の招待になり、
+ * 新しく送った人が、招待した人になる。取り消しは、本人でなくてもできる。宛先を間違えた招待を、
+ * 送った人がいないときにも止められるようにするため。
+ *
  * ■ 操作ログ
  * 招待の送信と取り消しを、集団を対象にして残す。宛先のメールアドレスは残さない。
- * 操作した人は、その画面のガードでログインしている人。
+ * 操作した人は、その画面のガードでログインしている人。補足に、招待の番号を「招待ID:12」の形で
+ * 残す（logDetail()）。招待から登録したときの記録にも同じ番号を残すと、誰が送った招待から
+ * 誰が登録したかを、操作ログの補足の検索でたどれる。
  *
  * ■ メール
  * テンプレートは、招待から登録される人の種類の「種類の名前_invitation」。登録の画面のルートは
@@ -44,8 +54,7 @@ use Illuminate\Support\Str;
  * invitedAccountClass()から決まる。
  * テンプレートに渡す値：
  * - site_name     サイトの名前
- * - inviter_name  招待した人の氏名。その画面でログインしている人で、送り直したときは送り直した人。
- *                 招待から登録される人と同じ種類の人（仲間）が招待したときだけ入る。
+ * - inviter_name  招待した人の氏名。招待から登録される人と同じ種類の人（仲間）が招待したときだけ入る。
  *                 管理画面のスタッフが招待したときは空。スタッフの氏名を、外の人へのメールに出さないため
  * - url           登録の画面のURL
  * - expires_at    リンクの期限
@@ -73,20 +82,27 @@ final class TeamInvitationManager
 
             $token = Str::random(self::TOKEN_LENGTH);
 
+            // 招待した人は、その画面でログインしている人
+            $inviter = Auth::user();
+
             $invitation = $team->invitations()->create([
                 'email' => $email,
                 'token_hash' => self::hashOf($token),
                 'expires_at' => now()->addDays(self::VALID_DAYS),
+                'inviter_type' => $inviter?->getMorphClass(),
+                'inviter_id' => $inviter?->getKey(),
             ]);
 
-            OperationRecorder::record(OperationLogAction::InvitationSend, $team);
+            OperationRecorder::record(OperationLogAction::InvitationSend, $team, detail: self::logDetail($invitation));
 
-            $inviterName = self::inviterName($team);
-            DB::afterCommit(fn () => self::sendMail($invitation, $token, $inviterName));
+            DB::afterCommit(fn () => self::sendMail($invitation, $token));
         });
     }
 
-    /** 招待のメールを送り直す。リンクの値と期限を新しくするので、前のリンクは使えなくなる */
+    /**
+     * 招待のメールを送り直す。リンクの値と期限を新しくするので、前のリンクは使えなくなる。
+     * 招待の番号と、招待した人は変わらない。招待した本人かどうかは、呼ぶ側が確かめておく
+     */
     public static function resend(TeamInvitation $invitation): void
     {
         DB::transaction(function () use ($invitation) {
@@ -97,10 +113,9 @@ final class TeamInvitationManager
                 'expires_at' => now()->addDays(self::VALID_DAYS),
             ]);
 
-            OperationRecorder::record(OperationLogAction::InvitationSend, $invitation->team);
+            OperationRecorder::record(OperationLogAction::InvitationSend, $invitation->team, detail: self::logDetail($invitation));
 
-            $inviterName = self::inviterName($invitation->team);
-            DB::afterCommit(fn () => self::sendMail($invitation, $token, $inviterName));
+            DB::afterCommit(fn () => self::sendMail($invitation, $token));
         });
     }
 
@@ -110,7 +125,7 @@ final class TeamInvitationManager
         DB::transaction(function () use ($invitation) {
             $invitation->delete();
 
-            OperationRecorder::record(OperationLogAction::InvitationCancel, $invitation->team);
+            OperationRecorder::record(OperationLogAction::InvitationCancel, $invitation->team, detail: self::logDetail($invitation));
         });
     }
 
@@ -131,6 +146,7 @@ final class TeamInvitationManager
     public static function pending(TeamInvitationOwner $team): Collection
     {
         return $team->invitations()
+            ->with('inviter')
             ->where('expires_at', '>', now())
             ->orderBy('id')
             ->get();
@@ -149,24 +165,25 @@ final class TeamInvitationManager
     }
 
     /**
-     * 招待のメールに載せる、招待した人の氏名。その画面でログインしている人が、招待から登録される人と
-     * 同じ種類の人（仲間）のときだけ返す。スタッフのように、ほかの種類の人なら空の文字。
-     * 表示名（displayName()）ではなく氏名を使うのは、同じ集団の知り合いからの招待なので、
-     * 集団の名前を添えなくても誰か分かるため。
+     * 操作ログの補足に残す、招待の番号。招待の送信・取り消しと、招待からの登録の記録に、同じ形で残す。
+     *
+     * @return array{invitation: string}
      */
-    private static function inviterName(TeamInvitationOwner $team): string
+    public static function logDetail(TeamInvitation $invitation): array
     {
-        $inviter = Auth::user();
-        $account = $team::invitedAccountClass();
-
-        return $inviter instanceof $account ? (string) $inviter->name : '';
+        return ['invitation' => '招待ID:'.$invitation->id];
     }
 
-    /** 招待のメール。招待した人の氏名と、登録の画面へのリンクと、期限を載せる */
-    private static function sendMail(TeamInvitation $invitation, string $token, string $inviterName): void
+    /**
+     * 招待のメール。招待した人の氏名と、登録の画面へのリンクと、期限を載せる。
+     * 氏名を載せるのは、仲間が招待したときだけ。表示名（displayName()）ではなく氏名を使うのは、
+     * 同じ集団の知り合いからの招待なので、集団の名前を添えなくても誰か分かるため。
+     */
+    private static function sendMail(TeamInvitation $invitation, string $token): void
     {
         try {
             $account = $invitation->team::invitedAccountClass();
+            $inviterName = $invitation->isSentByPeer() ? (string) $invitation->inviter?->name : '';
 
             Mail::send(new TemplatedMail($account::loginMailTemplate(self::TEMPLATE), [
                 'from_mail' => config('mail.from.address'),

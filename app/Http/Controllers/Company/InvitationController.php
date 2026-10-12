@@ -97,7 +97,8 @@ class InvitationController extends Controller
 
                 $invitation->delete();
 
-                OperationRecorder::record(OperationLogAction::Create, $user, operator: $user);
+                // 補足に招待の番号を残す。誰が送った招待から登録したかを、操作ログでたどれるようにする
+                OperationRecorder::record(OperationLogAction::Create, $user, detail: TeamInvitationManager::logDetail($invitation), operator: $user);
 
                 return $user;
             });
@@ -115,14 +116,20 @@ class InvitationController extends Controller
 
     /**
      * リンクの値から、使える招待を探す。期限内で、企業への招待で、企業が承認済みのものだけ。
-     * 止めた企業や申請中の企業には、担当者を足させない
+     * 止めた企業や申請中の企業には、担当者を足させない。
+     * 招待を送った後に、その企業に同じメールアドレスの担当者ができていれば、使えない。
+     * 同じ企業の中で、メールアドレスを重ねないため
      */
     private function usableInvitation(string $token): ?TeamInvitation
     {
         $invitation = TeamInvitationManager::find($token);
         $company = $invitation?->team;
 
-        return $company instanceof Company && $company->isApproved() ? $invitation : null;
+        if (! $company instanceof Company || ! $company->isApproved()) {
+            return null;
+        }
+
+        return $company->users()->where('email', $invitation->email)->exists() ? null : $invitation;
     }
 
     /**

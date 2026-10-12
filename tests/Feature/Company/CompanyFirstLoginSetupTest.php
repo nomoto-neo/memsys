@@ -218,4 +218,23 @@ class CompanyFirstLoginSetupTest extends TestCase
         $this->login()->assertRedirect(route('company.login.verify'));
         $this->get('/company/login/setup')->assertRedirect(route('company.login'));
     }
+
+    public function test_address_of_another_user_in_the_company_cannot_be_registered(): void
+    {
+        $user = $this->migratedUser();
+        CompanyUser::create([
+            'company_id' => $user->company_id,
+            'login_id' => 'sato',
+            'name' => '佐藤 花子',
+            'email' => 'yamada@example.com',
+            'password' => Hash::make('other-password'),
+        ]);
+
+        $this->login();
+
+        // 同じ企業のほかの担当者が使っているアドレスは、登録できない
+        $this->post('/company/login/setup', $this->setupInput())
+            ->assertSessionHasErrors(['email' => 'このメールアドレスは、すでにほかの担当者が使っています。']);
+        $this->assertNull($user->fresh()->email);
+    }
 }

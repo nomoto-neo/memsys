@@ -152,13 +152,25 @@ class CompanyMypageTest extends TestCase
         $this->assertSame(['company_user', $user->id, 'company_user', $user->id, ['name', 'email']], [$log->operator_type, $log->operator_id, $log->target_type, $log->target_id, $log->changed_fields]);
     }
 
-    public function test_same_address_as_another_user_is_allowed(): void
+    public function test_address_of_another_user_in_the_company_cannot_be_used(): void
     {
         $company = $this->company();
         $this->user($company, 'sato', 'info@example.com');
         $user = $this->user($company, 'yamada', 'old@example.com');
 
-        // 企業の代表アドレスを、複数の担当者が使ってもよい
+        // 同じ企業のほかの担当者が使っているアドレスには、変えられない
+        $this->actingAs($user, 'company')
+            ->patch('/company/mypage/profile', ['name' => '山田 太郎', 'email' => 'info@example.com'])
+            ->assertSessionHasErrors(['email' => 'このメールアドレスは、すでにほかの担当者が使っています。']);
+        $this->assertSame('old@example.com', $user->fresh()->email);
+    }
+
+    public function test_address_of_a_user_in_another_company_can_be_used(): void
+    {
+        $this->user($this->company('other'), 'sato', 'info@example.com');
+        $user = $this->user($this->company(), 'yamada', 'old@example.com');
+
+        // 別の企業の担当者と同じアドレスは、使ってよい。2つの企業の担当者を兼ねる人がいるため
         $this->actingAs($user, 'company')
             ->patch('/company/mypage/profile', ['name' => '山田 太郎', 'email' => 'info@example.com'])
             ->assertSessionHasNoErrors();
@@ -167,6 +179,20 @@ class CompanyMypageTest extends TestCase
             ->assertSessionHasNoErrors();
 
         $this->assertSame('info@example.com', $user->fresh()->email);
+    }
+
+    public function test_user_sharing_an_address_can_save_without_changing_it(): void
+    {
+        // 既存のシステムから移したデータには、同じアドレスの担当者がいることがある
+        $company = $this->company();
+        $this->user($company, 'sato', 'info@example.com');
+        $user = $this->user($company, 'yamada', 'info@example.com');
+
+        // アドレスを変えていなければ、氏名だけを直せる
+        $this->actingAs($user, 'company')
+            ->patch('/company/mypage/profile', ['name' => '山田 次郎', 'email' => 'info@example.com'])
+            ->assertSessionHasNoErrors();
+        $this->assertSame('山田 次郎', $user->fresh()->name);
     }
 
     public function test_own_email_is_not_changed_without_the_right_code(): void

@@ -60,6 +60,7 @@
     <thead>
         <tr>
             <th>メールアドレス</th>
+            <th>招待した人</th>
             <th>リンクの期限</th>
             <th></th>
         </tr>
@@ -68,12 +69,23 @@
         @forelse ($invitations as $invitation)
             <tr>
                 <td>{{ $invitation->email }}</td>
+                <td>
+                    {{-- 運営（管理画面のスタッフ）が送った招待は、スタッフの氏名を出さない --}}
+                    @if ($invitation->isSentByPeer())
+                        {{ $invitation->inviter?->name ?? '削除された担当者' }}
+                    @else
+                        運営
+                    @endif
+                </td>
                 <td>{{ $invitation->expires_at->format('Y年n月j日 H:i') }}</td>
                 <td class="text-end">
-                    <form method="POST" action="{{ route('company.users.invitations.resend', $invitation) }}" class="d-inline">
-                        @csrf
-                        <button type="submit" class="btn btn-sm btn-outline-primary">送り直す</button>
-                    </form>
+                    {{-- 送り直せるのは、招待した本人だけ。ほかの担当者は、新しく招待する --}}
+                    @if ($invitation->isSentBy($me))
+                        <form method="POST" action="{{ route('company.users.invitations.resend', $invitation) }}" class="d-inline">
+                            @csrf
+                            <button type="submit" class="btn btn-sm btn-outline-primary">送り直す</button>
+                        </form>
+                    @endif
                     <form method="POST" action="{{ route('company.users.invitations.cancel', $invitation) }}" class="d-inline">
                         @csrf
                         @method('DELETE')
@@ -83,7 +95,7 @@
             </tr>
         @empty
             <tr>
-                <td colspan="3" class="text-center text-muted">招待中の人はいません。</td>
+                <td colspan="4" class="text-center text-muted">招待中の人はいません。</td>
             </tr>
         @endforelse
     </tbody>

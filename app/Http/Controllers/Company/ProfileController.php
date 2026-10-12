@@ -56,14 +56,17 @@ class ProfileController extends Controller
     // ---- 担当者の情報の項目の定義 ----
 
     /**
-     * 担当者の情報の検証ルール。メールアドレスは、ほかの担当者と重なっていてもよい
-     * （企業の代表アドレスを、複数の担当者が使っていることがあるため）。
+     * 担当者の情報の検証ルール。メールアドレスは、同じ企業のほかの担当者と重ならないこと
+     * （CompanyUser::emailNotUsedInCompany()）。
      */
     private function rules(?CompanyUser $user = null): array
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255'],
+            'email' => [
+                'required', 'string', 'email', 'max:255',
+                ...($user !== null ? [CompanyUser::emailNotUsedInCompany($user->company_id, $user)] : []),
+            ],
         ];
     }
 

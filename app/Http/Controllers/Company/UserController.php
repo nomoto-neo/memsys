@@ -36,22 +36,22 @@ class UserController extends Controller
     // ---- 担当者の情報の項目の定義 ----
 
     /**
-     * 担当者の情報の検証ルール。メールアドレスは、ほかの担当者と重なっていてもよい
-     * （企業の代表アドレスを、複数の担当者が使っていることがあるため）。
+     * 担当者の情報の検証ルール。メールアドレスは、同じ企業のほかの担当者と重ならないこと
+     * （CompanyUser::emailNotUsedInCompany()）。
      */
     private function rules(?CompanyUser $user = null): array
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', CompanyUser::emailNotUsedInCompany($this->me()->company_id, $user)],
         ];
     }
 
-    /** 招待のフォームの検証ルール */
+    /** 招待のフォームの検証ルール。すでに担当者が使っているアドレスには、招待を送れない */
     private function inviteRules(): array
     {
         return [
-            'email' => ['required', 'string', 'email', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', CompanyUser::emailNotUsedInCompany($this->me()->company_id)],
         ];
     }
 
@@ -128,11 +128,14 @@ class UserController extends Controller
 
     /**
      * 招待のメールを送り直す（POST /company/mypage/users/invitations/{invitation}/resend）。
-     * リンクと期限が新しくなり、前のメールのリンクは使えなくなる
+     * リンクと期限が新しくなり、前のメールのリンクは使えなくなる。招待した本人だけができる
      */
     public function resendInvitation(TeamInvitation $invitation): RedirectResponse
     {
         $this->abortUnlessOwnInvitation($invitation);
+
+        // 送り直せるのは、招待した本人だけ。ほかの担当者は、新しく招待する
+        abort_unless($invitation->isSentBy($this->me()), 404);
 
         TeamInvitationManager::resend($invitation);
 
@@ -140,7 +143,10 @@ class UserController extends Controller
             ->with('status', '招待のメールを送り直しました。');
     }
 
-    /** 招待を取り消す（DELETE /company/mypage/users/invitations/{invitation}） */
+    /**
+     * 招待を取り消す（DELETE /company/mypage/users/invitations/{invitation}）。
+     * 招待した本人でなくても、同じ企業の担当者なら取り消せる
+     */
     public function cancelInvitation(TeamInvitation $invitation): RedirectResponse
     {
         $this->abortUnlessOwnInvitation($invitation);
