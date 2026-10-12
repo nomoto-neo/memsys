@@ -20,13 +20,13 @@ class EnsureCompanyIsApproved
 {
     public function handle(Request $request, Closure $next): Response
     {
-        $user = Auth::guard(CompanyUser::memberGuard())->user();
+        $user = Auth::guard(CompanyUser::loginGuard())->user();
 
         if (! $user->company->isApproved()) {
             // 企業会員のログインだけを終わらせる（App\Support\LoginSession）
-            LoginSession::logout($request, CompanyUser::memberGuard());
+            LoginSession::logout($request, CompanyUser::loginGuard());
 
-            return redirect()->route(CompanyUser::memberRoute('login'))
+            return redirect()->route(CompanyUser::loginRoute('login'))
                 ->with('error', 'この企業会員は、現在ご利用いただけません。');
         }
 

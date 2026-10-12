@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Support;
+namespace App\Services;
 
+use App\Support\LoginAccount;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -16,7 +17,7 @@ use Illuminate\Support\Facades\Log;
 class MemberActivityLog
 {
     /** 会員登録 */
-    public static function registered(MemberAccount $member, Request $request): void
+    public static function registered(LoginAccount $member, Request $request): void
     {
         Log::channel('member')->info('会員登録', [
             'member_type' => $member->getMorphClass(),
@@ -26,7 +27,7 @@ class MemberActivityLog
     }
 
     /** 退会。delete()の後でもidなどは読めるので、行を消した後の$memberを渡してよい */
-    public static function withdrawn(MemberAccount $member, Request $request): void
+    public static function withdrawn(LoginAccount $member, Request $request): void
     {
         Log::channel('member')->info('会員退会', [
             'member_type' => $member->getMorphClass(),

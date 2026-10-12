@@ -98,13 +98,13 @@
 
 ## 2. 仕組み
 
-### 2.1 会員のモデルの共通の型と、名前の決まり
+### 2.1 ログインするモデルの共通の型と、名前の決まり
 
-ログインするモデル（`Member`・`CompanyUser`）は、共通の型 `App\Support\MemberAccount`（インターフェース）を実装する。共通部品は、`Member` と書いていた所を、この型で受け取る。
+ログインするモデル（`Member`・`CompanyUser`・`Staff`）は、共通の型 `App\Support\LoginAccount`（インターフェース）を実装し、トレイト `IsLoginAccount` を付ける。共通部品は、`Member` や `Staff` と書いていた所を、この型で受け取る。会員とスタッフで、型と定数の名前を分けない。
 
 | メソッド | 返すもの | 使う所 |
 |---|---|---|
-| `memberType()` | 種類の名前。個人会員は `member`、企業の担当者は `company` | 下の表の名前を作る |
+| `loginType()` | 種類の名前。モデルの短い名前（`enforceMorphMap()` に書いた名前）で、個人会員は `member`、企業の担当者は `company_user`。ログインするのは担当者で、企業はその集まりなので、`company` ではない | 下の表の名前を作る |
 | `displayName()` | 画面やメールに出す名前。個人なら氏名、企業なら「企業名　担当者の氏名」 | お知らせのメールの宛名、操作ログの一覧 |
 | `notificationEmail()` | お知らせを送るメールアドレス。未登録なら null | お知らせのメール、確認コード |
 | `loginId()` | ログインに使う値。企業の担当者なら「企業ID と担当者ID」 | 試行制限、パスキーの表示名 |
@@ -113,16 +113,16 @@
 
 | もの | 決まり | 個人会員 | 企業の担当者 |
 |---|---|---|---|
-| ガード | 種類の名前。個人会員だけは `web` | `web` | `company` |
-| ルート | 頭に「種類の名前.」。個人会員だけは付けない | `login`・`mypage`・`password.forgot` | `company.login`・`company.mypage`・`company.password.forgot` |
-| メールのテンプレート | 頭に「種類の名前_」 | `member_verification_code` ほか | `company_verification_code` ほか |
-| 信頼済み端末の Cookie | 「種類の名前_trusted_device」 | `member_trusted_device` | `company_trusted_device` |
+| ガード | 種類の名前。画面の名前に合わせるときは、モデルの定数で決める | `web` | `company` |
+| ルート | 頭に「種類の名前.」。画面の名前に合わせるときは、モデルの定数で決める | `login`・`mypage`・`password.forgot` | `company.login`・`company.mypage`・`company.password.forgot` |
+| メールのテンプレート | 頭に「種類の名前_」 | `member_verification_code` ほか | `company_user_verification_code` ほか |
+| 信頼済み端末の Cookie | 「種類の名前_trusted_device」 | `member_trusted_device` | `company_user_trusted_device` |
 
-個人会員のガードとルートに頭を付けないのは、今の URL とルートの名前を変えないためである。
+ガードとルートは、画面の側の名前なので、種類の名前とは別に決められる。個人会員は、今の URL とルートの名前を変えないよう、ガードを `web`、ルートの頭を無しにしている。企業の担当者は、企業会員の画面の URL（`/company/…`）に合わせて、ガードを `company`、ルートの頭を `company.` にしている。
 
-決まった中身（名前を作る、ログインの列から値を取る）は、トレイト `IsMemberAccount` に用意する。モデルに書くのは、種類の名前と、`displayName()`・`notificationEmail()` になる。共通部品は、渡されたモデルに種類の名前を聞くだけで、個人か企業かの場合分けを持たない。
+決まった中身（名前を作る、ログインの列から値を取る）は、トレイト `IsLoginAccount` に用意する。モデルに書くのは、種類の名前と、`displayName()`・`notificationEmail()` になる。共通部品は、渡されたモデルに種類の名前を聞くだけで、個人か企業かの場合分けを持たない。
 
-**設定ファイル（config/members.php）に書くのは、サイトごとに変わるものだけ**にする。
+**設定ファイル（config/login.php）に書くのは、サイトごとに変わるものだけ**にする。
 
 ```php
 return [
@@ -394,12 +394,12 @@ return [
 
 | 部品 | 今 | 変更の後 |
 |---|---|---|
-| `MemberVerificationCode` | `Member` を受け取る。テンプレートは固定 | `MemberAccount` を受け取る。セッションに種類と id を持つ。テンプレートは種類の名前から。初回のログインでの登録（2.7・2.8）の用途を足す |
+| `LoginVerificationCode` | `Member` を受け取る。テンプレートは固定 | `LoginAccount` を受け取る。セッションに種類と id を持つ。テンプレートは種類の名前から。初回のログインでの登録（2.7・2.8）の用途を足す |
 | `TrustedDeviceManager` | `forMember()`・`forStaff()` | 会員もスタッフも `for($account)`。Cookie の名前は種類の名前から（`docs/two-factor-spec.md`） |
 | `PasswordChange` | `Member|Staff`。ルートとテンプレートは固定 | `LoginAccount`。ルートとテンプレートは種類の名前から |
-| `PasskeyManagement`・`PasskeyLogin` | `Member|Staff` | `MemberAccount|Staff`。ガードは、今までどおりコントローラーの定数 |
-| `MemberProfileNotice` | `Member`。ルートとテンプレートは固定 | `MemberAccount`。種類の名前から |
-| `MemberActivityLog` | `Member` | `MemberAccount`。記録に種類を足す |
+| `PasskeyManagement`・`PasskeyLogin` | `Member|Staff` | `LoginAccount`。ガードは、今までどおりコントローラーの定数 |
+| `LoginProfileNotice` | `Member`。ルートとテンプレートは固定 | `LoginAccount`。種類の名前から |
+| `MemberActivityLog` | `Member` | `LoginAccount`。記録に種類を足す |
 | `LoginRedirect` | `forMember()`・`forStaff()`。ルートは固定 | `for($accountClass, $defaultUrl)` の1つ。ガードはモデルから決まり、既定の移動先は呼ぶ側が渡す。戻り先を種類ごとに覚える |
 | `LoginThrottle` | アカウントを1つの値で区別する | 変えない。企業会員は、企業ID と担当者ID をつないだ値を渡す |
 | `HasPasskeys` | パスキーの表示名にメールアドレスを使う | `loginId()` を使う |
@@ -413,7 +413,7 @@ return [
 
 | 部品 | 役割 |
 |---|---|
-| `MemberAccount`・`IsMemberAccount` | 会員のモデルの共通の型と、名前の決まり（2.1） |
+| `LoginAccount`・`IsLoginAccount` | ログインするモデル（会員とスタッフ）の共通の型と、名前の決まり（2.1） |
 | `TwoFactorLogin`（トレイト） | ログインと2段階目の流れ。個人会員・企業の担当者・スタッフで同じ流れなので、切り出す（`docs/two-factor-spec.md`） |
 | `Company\FirstLoginSetupController` | メールアドレスが空の人の、初回のログインでの登録。企業の情報の照合と確認コード（2.7・2.8）。トレイトにはせず、企業会員のコントローラーとして書いた。個人会員で要るサイトは、これを写して作る（2.7） |
 | `LegacyPassword` と、MD5・SHA-1・SHA-256 のクラス | 古い方式のパスワード（2.9） |
@@ -431,7 +431,7 @@ return [
 
 | 段階 | 中身 | 状態 |
 |---|---|---|
-| 1 | `MemberAccount` を足し、`Member` に実装する。共通部品の型を置き換える。ルート・テンプレート・Cookie の名前を、種類の名前から作る | 済み |
+| 1 | `LoginAccount` を足し、`Member` に実装する。共通部品の型を置き換える。ルート・テンプレート・Cookie の名前を、種類の名前から作る | 済み |
 | 2 | ログインと2段階目の流れを、トレイトに切り出す。ログアウトを、そのガードの分だけにする。戻り先がどのガードの画面かを、ルートから読む | 済み |
 | 3 | 古い方式のパスワードの置き換え（2.9）。MD5・SHA-1・SHA-256 のクラスを用意する。個人会員でも使える | 済み |
 | 4-1 | 企業会員の土台。企業と担当者のテーブル、企業ID・担当者ID・パスワードでのログイン、2段階目、パスキーでのログイン、企業ID と担当者ID の記憶（2.3）、マイページの表示、企業の状態の確認 | 済み |

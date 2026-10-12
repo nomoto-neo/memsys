@@ -98,7 +98,7 @@
 | `twoFactorMethod()` | 2段階目の方式 | `TwoFactorMethod::Totp` |
 | `displayName()`・`notificationEmail()`・`loginId()` | 宛名・宛先・ログインに使う値 | |
 
-会員の共通の型 `MemberAccount` は、`LoginAccount` を継ぐ。会員だけの決まり（`memberType()` など）はそのまま残り、`LoginAccount` の問いには、それを使って答える。
+会員もスタッフも、同じ型 `LoginAccount` を実装し、トレイト `IsLoginAccount` を付ける。種類の名前（モデルの短い名前。`member`・`company_user`・`staff`）から、ガード・ルート・メールのテンプレートの名前が決まる。決まりと違う名前にするときだけ、定数 `LOGIN_GUARD`・`LOGIN_ROUTE_PREFIX` を書く。
 
 ### 2.2 テーブル
 

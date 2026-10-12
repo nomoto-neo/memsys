@@ -50,26 +50,26 @@ trait EmailChange
      * リダイレクトを返す。変わらない保存ならnullを返すので、呼ぶ側はそのままsaveData()へ進む。
      * 検証に失敗したときは、saveData()と同じく入力画面へ戻る。
      */
-    private function holdForEmailChange(Request $request, MemberAccount $member): ?RedirectResponse
+    private function holdForEmailChange(Request $request, LoginAccount $account): ?RedirectResponse
     {
-        $validated = $this->validatedInput($request, $member);
+        $validated = $this->validatedInput($request, $account);
 
         // メールアドレスが変わらないなら、確認は挟まない
-        if (($validated['email'] ?? null) === $member->notificationEmail()) {
+        if (($validated['email'] ?? null) === $account->notificationEmail()) {
             return null;
         }
 
         // 入力内容をセッションに仮置きする。誰の入力かも一緒に控える
         $pending = [
-            'member_id' => $member->getKey(),
+            'member_id' => $account->getKey(),
             'email' => $validated['email'],
             'input' => $request->except(['_token', '_method']),
         ];
 
-        $request->session()->put($this->emailChangeSessionKey($member), $pending);
+        $request->session()->put($this->emailChangeSessionKey($account), $pending);
 
         // 確認コードを送り、コードの入力画面へ（送れなかったときも、画面の「再送する」でやり直せる）
-        $error = $this->sendEmailChangeCode($request, $member, $pending);
+        $error = $this->sendEmailChangeCode($request, $account, $pending);
 
         if ($error !== null) {
             return redirect()->route(self::EMAIL_CHANGE_ROUTE)->with('error', $error);
@@ -81,7 +81,7 @@ trait EmailChange
     /** 確認コードの入力画面。 */
     public function emailChangeForm(Request $request): View|RedirectResponse
     {
-        $pending = $this->emailChangePending($request, $this->emailChangeMember());
+        $pending = $this->emailChangePending($request, $this->emailChangeAccount());
 
         // 仮置きが無ければ、入力画面へ
         if ($pending === null) {
@@ -96,8 +96,8 @@ trait EmailChange
     /** 確認コードの照合と、仮置きした内容の保存。 */
     public function emailChangeConfirm(Request $request): RedirectResponse
     {
-        $member = $this->emailChangeMember();
-        $pending = $this->emailChangePending($request, $member);
+        $account = $this->emailChangeAccount();
+        $pending = $this->emailChangePending($request, $account);
 
         // 仮置きが無ければ、入力画面へ
         if ($pending === null) {
@@ -109,7 +109,7 @@ trait EmailChange
         ])['code'];
 
         // 失敗回数による、IPごととアカウントごとの試行制限
-        $throttle = new LoginThrottle(self::EMAIL_CHANGE_THROTTLE_SCOPE, $request->ip(), $member->getKey());
+        $throttle = new LoginThrottle(self::EMAIL_CHANGE_THROTTLE_SCOPE, $request->ip(), $account->getKey());
 
         if ($throttle->isBlocked()) {
             return redirect()->route(self::EMAIL_CHANGE_ROUTE)
@@ -117,8 +117,8 @@ trait EmailChange
         }
 
         // 確認コードの照合。コードの宛先と、仮置きした新しいアドレスが同じかも確かめる
-        $email = (new MemberVerificationCode($member::class))
-            ->verifyForAddress($request, MemberVerificationCode::PURPOSE_EMAIL_CHANGE, $code);
+        $email = (new LoginVerificationCode($account::class))
+            ->verifyForAddress($request, LoginVerificationCode::PURPOSE_EMAIL_CHANGE, $code);
 
         if ($email === null || $email !== $pending['email']) {
             $throttle->hit();
@@ -128,11 +128,11 @@ trait EmailChange
         }
 
         $throttle->clear();
-        $request->session()->forget($this->emailChangeSessionKey($member));
+        $request->session()->forget($this->emailChangeSessionKey($account));
 
         // 仮置きした内容を、保存の前にもう一度検証する。コードの入力を待つ間に、同じアドレスが
         // 別の会員に使われたときなどは、入力画面へ戻す
-        $validator = Validator::make($pending['input'], $this->rules($member));
+        $validator = Validator::make($pending['input'], $this->rules($account));
 
         if ($validator->fails()) {
             return redirect()->route(self::EMAIL_CHANGE_EDIT_ROUTE)
@@ -143,7 +143,7 @@ trait EmailChange
         $validated = $this->prepareInput($validator->validated());
 
         try {
-            DB::transaction(fn () => $this->saveValidated($member, $validated, $pending['input']));
+            DB::transaction(fn () => $this->saveValidated($account, $validated, $pending['input']));
         } catch (UniqueConstraintViolationException $e) {
             // 検証から保存までのごく短い間に、同じアドレスが別の会員に使われたときの最後の砦
             return redirect()->route(self::EMAIL_CHANGE_EDIT_ROUTE)
@@ -157,15 +157,15 @@ trait EmailChange
     /** 確認コードの再送信。 */
     public function emailChangeResend(Request $request): RedirectResponse
     {
-        $member = $this->emailChangeMember();
-        $pending = $this->emailChangePending($request, $member);
+        $account = $this->emailChangeAccount();
+        $pending = $this->emailChangePending($request, $account);
 
         // 仮置きが無ければ、入力画面へ
         if ($pending === null) {
             return redirect()->route(self::EMAIL_CHANGE_EDIT_ROUTE);
         }
 
-        $error = $this->sendEmailChangeCode($request, $member, $pending);
+        $error = $this->sendEmailChangeCode($request, $account, $pending);
 
         if ($error !== null) {
             return redirect()->route(self::EMAIL_CHANGE_ROUTE)->with('error', $error);
@@ -180,30 +180,30 @@ trait EmailChange
      */
     public function emailChangeBack(Request $request): RedirectResponse
     {
-        $member = $this->emailChangeMember();
-        $pending = $this->emailChangePending($request, $member);
+        $account = $this->emailChangeAccount();
+        $pending = $this->emailChangePending($request, $account);
 
-        $request->session()->forget($this->emailChangeSessionKey($member));
+        $request->session()->forget($this->emailChangeSessionKey($account));
 
         return redirect()->route(self::EMAIL_CHANGE_EDIT_ROUTE)
             ->withInput($pending['input'] ?? []);
     }
 
     /** ログイン中の本人 */
-    private function emailChangeMember(): MemberAccount
+    private function emailChangeAccount(): LoginAccount
     {
-        $member = Auth::guard(self::EMAIL_CHANGE_GUARD)->user();
+        $account = Auth::guard(self::EMAIL_CHANGE_GUARD)->user();
 
-        abort_unless($member instanceof MemberAccount, 403);
+        abort_unless($account instanceof LoginAccount, 403);
 
-        return $member;
+        return $account;
     }
 
     /** 確認コードを新しいアドレスへ送る。送れなかった場合は画面に出すメッセージを、送れた場合はnullを返す。 */
-    private function sendEmailChangeCode(Request $request, MemberAccount $member, array $pending): ?string
+    private function sendEmailChangeCode(Request $request, LoginAccount $account, array $pending): ?string
     {
         // その会員が送った回数を数える
-        $key = self::EMAIL_CHANGE_THROTTLE_SCOPE.':mail:'.$member->getKey();
+        $key = self::EMAIL_CHANGE_THROTTLE_SCOPE.':mail:'.$account->getKey();
 
         if (RateLimiter::tooManyAttempts($key, self::EMAIL_CHANGE_MAIL_LIMIT)) {
             return '確認コードの送信回数が上限に達しました。しばらく時間をおいてから、もう一度お試しください。';
@@ -211,11 +211,11 @@ trait EmailChange
 
         RateLimiter::hit($key, self::EMAIL_CHANGE_MAIL_DECAY_SECONDS);
 
-        $sent = (new MemberVerificationCode($member::class))->issueForAddress(
+        $sent = (new LoginVerificationCode($account::class))->issueForAddress(
             $request,
             $pending['email'],
-            $member->displayName(),
-            MemberVerificationCode::PURPOSE_EMAIL_CHANGE,
+            $account->displayName(),
+            LoginVerificationCode::PURPOSE_EMAIL_CHANGE,
         );
 
         if (! $sent) {
@@ -226,11 +226,11 @@ trait EmailChange
     }
 
     /** セッションに仮置きした入力内容。無いときと、ほかの人のものだったときはnull */
-    private function emailChangePending(Request $request, MemberAccount $member): ?array
+    private function emailChangePending(Request $request, LoginAccount $account): ?array
     {
-        $pending = $request->session()->get($this->emailChangeSessionKey($member));
+        $pending = $request->session()->get($this->emailChangeSessionKey($account));
 
-        if (! is_array($pending) || ($pending['member_id'] ?? null) !== $member->getKey()) {
+        if (! is_array($pending) || ($pending['member_id'] ?? null) !== $account->getKey()) {
             return null;
         }
 
@@ -238,8 +238,8 @@ trait EmailChange
     }
 
     /** 入力内容を仮置きするセッションキー。会員の種類ごとに分ける */
-    private function emailChangeSessionKey(MemberAccount $member): string
+    private function emailChangeSessionKey(LoginAccount $account): string
     {
-        return $member::memberType().'.email_change.pending';
+        return $account::loginType().'.email_change.pending';
     }
 }

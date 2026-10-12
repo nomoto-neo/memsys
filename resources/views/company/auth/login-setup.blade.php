@@ -7,7 +7,7 @@
     $userは登録を待っている担当者。$canSetupは、照合する値が企業のデータにあるかどうか。
     無ければ、本人では登録できないので、フォームを出さずに案内だけ出す。
 
-    照合する値（identity）の見出しは、設定のconfig('members.company.identity_check_column')に
+    照合する値（identity）の見出しは、設定のconfig('login.company_user.identity_check_column')に
     合わせて書く。見本のサイトでは、企業の電話番号。
 --}}
 @section('content')

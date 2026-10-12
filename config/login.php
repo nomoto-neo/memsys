@@ -7,8 +7,8 @@ return [
     | 会員の設定
     |--------------------------------------------------------------------
     |
-    | 訪問者側でログインする会員について、サイトごとに変わるものを書く。
-    | キーは、会員の種類の名前（モデルのMEMBER_TYPE。App\Support\MemberAccount）。
+    | ログインする人の種類ごとに、サイトで変わるものを書く。
+    | キーは、種類の名前（モデルの短い名前。App\Support\IsLoginAccount）。member・company_userなど。
     | ガード・ルート・メールのテンプレートの名前は、種類の名前から決まりで作るので、
     | ここには書かない。設計は docs/member-types-spec.md。
     |
@@ -42,7 +42,7 @@ return [
     ],
 
     // 企業の担当者
-    'company' => [
+    'company_user' => [
         'legacy_passwords' => [
             //
         ],

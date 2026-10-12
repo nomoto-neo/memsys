@@ -11,8 +11,8 @@ use App\Support\AjaxFileUpload;
 use App\Support\EmailChange;
 use App\Support\FormFlow;
 use App\Support\LoginSession;
-use App\Support\MemberActivityLog;
-use App\Support\MemberProfileNotice;
+use App\Services\MemberActivityLog;
+use App\Support\LoginProfileNotice;
 use App\Support\OperationRecorder;
 use App\Support\LoginAccount;
 use App\Support\PasskeyManagement;
@@ -174,11 +174,11 @@ class MypageController extends Controller
 
     /**
      * 保存の直後の処理。会員情報が変わったことを、本人へメールで知らせる
-     * （App\Support\MemberProfileNotice参照）。
+     * （App\Support\LoginProfileNotice参照）。
      */
     private function afterSave(Member $member, array $validated, array $changedFields): void
     {
-        MemberProfileNotice::send($member, $changedFields);
+        LoginProfileNotice::send($member, $changedFields);
     }
 
     // ---- マイページ・プロフィール編集 ----
@@ -284,7 +284,7 @@ class MypageController extends Controller
 
         // ログアウト（行を消す前に。理由は上のコメント）。会員のログインだけを終わらせ、
         // このブラウザのセッションも作り直す（App\Support\LoginSession）
-        LoginSession::logout($request, Member::memberGuard());
+        LoginSession::logout($request, Member::loginGuard());
 
         // 会員と、会員に付いている記録・ファイルをまとめて消す
         DB::transaction(function () use ($member) {

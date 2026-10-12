@@ -7,7 +7,7 @@ use App\Models\TeamInvitation;
 use App\Models\CompanyUser;
 use App\Support\TeamInvitationManager;
 use App\Support\FormFlow;
-use App\Support\MemberProfileNotice;
+use App\Support\LoginProfileNotice;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -72,11 +72,11 @@ class UserController extends Controller
 
     /**
      * 保存の直後の処理。情報が変わったことを、変えられた担当者へメールで知らせる。
-     * 本人が変えたのではないので、本人が気付けるようにする（App\Support\MemberProfileNotice参照）。
+     * 本人が変えたのではないので、本人が気付けるようにする（App\Support\LoginProfileNotice参照）。
      */
     private function afterSave(CompanyUser $user, array $validated, array $changedFields): void
     {
-        MemberProfileNotice::send($user, $changedFields);
+        LoginProfileNotice::send($user, $changedFields);
     }
 
     /**
@@ -215,7 +215,7 @@ class UserController extends Controller
     /** ログイン中の担当者。このコントローラーではいつも企業会員のガードから取る */
     private function me(): CompanyUser
     {
-        return Auth::guard(CompanyUser::memberGuard())->user();
+        return Auth::guard(CompanyUser::loginGuard())->user();
     }
 
     /**

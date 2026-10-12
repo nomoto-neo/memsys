@@ -25,7 +25,7 @@
 - [20. エラーの通知（ErrorNotifyHandler）](#20.%20エラーの通知（ErrorNotifyHandler）)
 - [21. キュー（一斉メール）](#21.%20キュー（一斉メール）)
 - [22. 操作ログ（OperationRecorder）](#22.%20操作ログ（OperationRecorder）)
-- [23. 個人会員と企業会員（MemberAccount）](#23.%20個人会員と企業会員（MemberAccount）)
+- [23. 個人会員と企業会員（LoginAccount）](#23.%20個人会員と企業会員（LoginAccount）)
 - [付録. フレームワーク外で考慮すべきセキュリティ対策](#付録.%20フレームワーク外で考慮すべきセキュリティ対策)
 
 ## 版の履歴
@@ -223,7 +223,7 @@ GRANT ALL PRIVILEGES ON memsys_testing.* TO 'memsys'@'localhost';
 | `CsvReader` | `app/Support/` | CSV を読んで確かめる部分。自分の画面を持つ機能が、CSV の読み込みと検証だけを借りるときに使う | 10 |
 | `MailTemplate`・`TemplatedMail` | `app/Support/`・`app/Mail/` | テンプレートファイルによるメール送信 | 11 |
 | `LoginThrottle` | `app/Support/` | 認証の失敗回数による試行制限 | 14 |
-| `MemberAccount`・`IsMemberAccount` | `app/Support/` | 訪問者側でログインするモデルの共通の型と、名前の決まり | 14 |
+| `LoginAccount`・`IsLoginAccount` | `app/Support/` | ログインするモデル（個人会員・企業の担当者・スタッフ）の共通の型と、名前の決まり | 14 |
 | `LoginAccount`・`HasTwoFactor` | `app/Support/` | ログインするモデル（会員・スタッフ）の共通の型と、2段階認証にかかわるモデルの中身 | 14 |
 | `TwoFactorLogin` | `app/Support/` | ログインの、パスワードが合った後の流れ（2段階目・信頼済みの端末・ログインの確定）と、ログアウト | 14 |
 | `TwoFactorChallenge` | `app/Support/` | その人の2段階目の方式で、本人かどうかを確かめる | 14 |
@@ -234,7 +234,7 @@ GRANT ALL PRIVILEGES ON memsys_testing.* TO 'memsys'@'localhost';
 | `TeamInvitationManager`・`TeamInvitationOwner`・`TeamInvitationRelation` | `app/Support/` | 集団への招待（リンクの発行・送り直し・取り消し・照合）。企業会員の担当者の招待に使う。集団のモデルに、インターフェースとトレイトを付ける | 23 |
 | `LoginSession` | `app/Support/` | そのガードだけのログアウト（同じブラウザのほかのログインは残す） | 14 |
 | `LoginRedirect` | `app/Support/` | ログインの後の移動先（開こうとしていた画面へ戻す。戻り先は、ログインの種類ごとに覚える） | 14 |
-| `MemberVerificationCode` | `app/Support/` | メールで送る確認コード | 14 |
+| `LoginVerificationCode` | `app/Support/` | メールで送る確認コード | 14 |
 | `EmailChange` | `app/Support/` | 本人がメールアドレスを変えるときに、新しいアドレスへの確認コードの入力を挟む | 14 |
 | `TrustedDeviceManager` | `app/Support/` | 2段階目を省略できる信頼済み端末 | 14 |
 | `TwoFactorAuthenticator`・`BackupCodeGenerator` | `app/Support/` | 認証アプリ（TOTP）のコードと、バックアップコード | 14 |
@@ -254,7 +254,7 @@ GRANT ALL PRIVILEGES ON memsys_testing.* TO 'memsys'@'localhost';
 | `OperationLogStats`・`OperationLogReport` | `app/Support/` | 操作ログの件数の集計（一覧の上のグラフと表）と、1日ぶんの報告 | 22 |
 | `app:report-operation-logs` | `app/Console/Commands/` | 操作ログの報告のコマンド（スケジューラーから毎朝。気になる点があった日だけメールを送る） | 22 |
 | `AdminRequestLimit` | `app/Support/` | ログイン後の管理画面の全体に掛ける、スタッフごとの回数の制限 | 22 |
-| `MemberProfileNotice` | `app/Support/` | 会員情報が変わったことを、本人へメールで知らせる | 22 |
+| `LoginProfileNotice` | `app/Support/` | 会員情報が変わったことを、本人へメールで知らせる | 22 |
 | `SpamGuard`・`_spam_guard` | `app/Support/`・`resources/views/` | 訪問者向けフォームのスパム対策（ハニーポット・送信までの時間・Cloudflare Turnstile） | 12 |
 | `app.js` | `resources/js/` | フォームの補助（必須マークから required 属性、エラー表示） | 17 |
 
@@ -326,7 +326,7 @@ class NewsController extends Controller
 
 | 種類 | 例 | ある所 |
 |---|---|---|
-| そうしている理由 | メールアドレスが変わったときは、変わる前のアドレスにも送る。他人に書き換えられたときに本人が気付けるのは、変わる前のアドレスだけだから | `MemberProfileNotice` |
+| そうしている理由 | メールアドレスが変わったときは、変わる前のアドレスにも送る。他人に書き換えられたときに本人が気付けるのは、変わる前のアドレスだけだから | `LoginProfileNotice` |
 | あえてしていないこと | パスワードと同じ bcrypt は使わない。同じ値でも毎回違うハッシュ値になるので検索できず、記録の数だけログインが遅くなる | `TrustedDeviceManager` |
 | 順番や場所に意味があること | `/members/csv` は `/members/{member}` より前に書く。後ろだと csv が会員の id として扱われる | `routes/web.php` |
 | ほかの所とのつながり | 自分自身は削除できない。判断は `StaffPolicy` | `routes/web.php` |
@@ -978,7 +978,7 @@ Route::post('/members/csv-import/execute', [AdminMemberController::class, 'csvIm
 
 <p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
 
-**ファイル**：`app/Support/MailTemplate.php`・`MailTemplateParser.php`・`app/Mail/TemplatedMail.php`・`resources/mail-templates/`　**実例**：`ContactController::sendStaffNotification()`・`MemberVerificationCode`
+**ファイル**：`app/Support/MailTemplate.php`・`MailTemplateParser.php`・`app/Mail/TemplatedMail.php`・`resources/mail-templates/`　**実例**：`ContactController::sendStaffNotification()`・`LoginVerificationCode`
 
 送信元・宛先・件名・本文は、テンプレートファイルがすべて決めます。呼び出し側は変数と添付ファイルを渡すだけです。
 
@@ -1137,7 +1137,7 @@ if ($spam === SpamCheckResult::Failed) {
 | `None` | 求めない。パスワードが合ったら、そのままログインを確定する |
 
 ```php
-// モデル。ログインする人の共通の型（LoginAccount）を実装する。会員は MemberAccount が継いでいる
+// モデル。ログインする人の共通の型（LoginAccount）を実装する。会員もスタッフも同じ
 class Staff extends Authenticatable implements LoginAccount, PasskeyUser
 {
     use HasTwoFactor;
@@ -1240,13 +1240,13 @@ $this->useTwoFactorMethod(Staff::class, TwoFactorMethod::Email);
 $this->useBackupCodes(Staff::class, false);    // バックアップコードを使うかも、同じように差し替える
 ```
 
-### 会員の共通の型（MemberAccount）
+### ログインする人の共通の型（LoginAccount）
 
-訪問者側でログインするモデル（`Member`・`CompanyUser`）は、共通の型 `App\Support\MemberAccount` を実装します。認証の共通部品は、会員を `Member` の名指しではなく、この型で受け取ります。ガード・ルート・メールのテンプレート・信頼済み端末の Cookie の名前は、モデルの「種類の名前」（`MEMBER_TYPE`）から、決まりのとおりに作ります。名前の決まりと、モデル・コントローラーに書くものは、23章にあります。
+ログインするモデル（`Member`・`CompanyUser`・`Staff`）は、共通の型 `App\Support\LoginAccount` を実装し、トレイト `IsLoginAccount` を付けます。認証の共通部品は、相手を `Member` や `Staff` の名指しではなく、この型で受け取ります。ガード・ルート・メールのテンプレート・信頼済み端末の Cookie の名前は、モデルの「種類の名前」（モデルの短い名前。`member`・`company_user`・`staff`）から、決まりのとおりに作ります。名前の決まりと、モデル・コントローラーに書くものは、23章にあります。
 
 ### 古い方式のパスワード（LegacyPasswordUserProvider）
 
-**ファイル**：`app/Support/LegacyPasswordUserProvider.php`（冒頭のコメント）・`app/Support/LegacyPassword.php`・`app/Support/Legacy/`・`config/members.php`
+**ファイル**：`app/Support/LegacyPasswordUserProvider.php`（冒頭のコメント）・`app/Support/LegacyPassword.php`・`app/Support/Legacy/`・`config/login.php`
 
 既存のシステムから会員を移したサイトだけで使います。既存のシステムのパスワードは、MD5 や SHA-1 のような古い方式のハッシュ値で持っていることが多く、元のパスワードには戻せません。古いハッシュ値のまま移し、本人が次にログインしたときに、今の方式（bcrypt）に置き換えます。会員にパスワードを決め直してもらう必要はありません。
 
@@ -1261,7 +1261,7 @@ $member->forceFill([
 ])->save();
 ```
 
-**設定**（`config/members.php`）
+**設定**（`config/login.php`）
 
 ```php
 'member' => [
@@ -1310,9 +1310,9 @@ if ($throttle->isBlocked()) {
 
 失敗した回数だけを、IP 単位とアカウント単位の2本で数えます。使われている scope は、コントローラーを `THROTTLE_SCOPE` で検索すると一覧できます。メール送信を伴うルート（確認コードの再送など）には、ルートの `throttle` を付けます。
 
-### 確認コード（MemberVerificationCode）
+### 確認コード（LoginVerificationCode）
 
-会員の種類は、作るときにモデルで渡します（`new MemberVerificationCode(Member::class)`）。メールのテンプレートとセッションのキーは、種類の名前から決まります。
+会員の種類は、作るときにモデルで渡します（`new LoginVerificationCode(Member::class)`）。メールのテンプレートとセッションのキーは、種類の名前から決まります。
 
 用途（`PURPOSE_LOGIN`・`PURPOSE_PASSWORD_RESET`・`PURPOSE_MYPAGE_PASSWORD`・`PURPOSE_REGISTER`・`PURPOSE_PASSKEY`・`PURPOSE_FIRST_LOGIN`・`PURPOSE_EMAIL_CHANGE`）ごとにセッションで管理します。`issue()` で発行とメール送信、`verify()` で照合します。会員登録のようにまだ会員がいない場合と、初回のログインでの登録やメールアドレスの変更のようにメールアドレスがまだ保存されていない場合は、`issueForAddress()`・`verifyForAddress()` です。
 
@@ -1895,7 +1895,7 @@ OperationRecorder::record(OperationLogAction::Update, $company, ['status'], ['st
 - **手で動かす**：`php artisan app:report-operation-logs --date=2026-10-04 --always`。`--date` を書かなければ前の日、`--always` を付けると気になる点が無くても送ります。文面や宛先を確かめるときに使います。
 - 目安の数は、サイトの規模（スタッフや会員の数、1日の操作の量）に合わせて、`config/logging.php` の `operation_report_thresholds` で決めます。0 にすると、その項目は見ません。
 
-### 会員情報が変わったときのお知らせメール（MemberProfileNotice）
+### 会員情報が変わったときのお知らせメール（LoginProfileNotice）
 
 会員がマイページで自分の情報を変えると、本人へメールで知らせます（`resources/mail-templates/member_profile_changed.blade.php`）。本人が変えたのなら記録が本人の手元にも残り、他人がログインして変えたのなら本人が気付けます。
 
@@ -1903,7 +1903,7 @@ OperationRecorder::record(OperationLogAction::Update, $company, ['status'], ['st
 /** マイページのコントローラー */
 private function afterSave(Member $member, array $validated, array $changedFields): void
 {
-    MemberProfileNotice::send($member, $changedFields);
+    LoginProfileNotice::send($member, $changedFields);
 }
 ```
 
@@ -1913,38 +1913,40 @@ private function afterSave(Member $member, array $validated, array $changedField
 - メールアドレスが変わったときは、変わる前と後の両方のアドレスに送ります。他人にアドレスを書き換えられたときに、本人が気付けるのは変わる前のアドレスだけだからです。変わる前のアドレスは、`$changedFields['email']` で受け取ります。
 - 本人がメールアドレスを変えるときは、保存の前に確認コードの入力を挟みます（`EmailChange`。14章）。お知らせは、コードが入力できて保存された後に届きます。
 
-## 23. 個人会員と企業会員（MemberAccount）
+## 23. 個人会員と企業会員（LoginAccount）
 
 <p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
 
-**ファイル**：`app/Support/MemberAccount.php`・`IsMemberAccount.php`・`TwoFactorLogin.php`・`TeamInvitationManager.php`・`TeamInvitationOwner.php`・`TeamInvitationRelation.php`・`LoginIdMemory.php`、`config/members.php`、設計の詳細は「個人会員と企業会員を共存させる設計」（`docs/member-types-spec.md`）　**実例**：個人会員は `AuthSessionController` ほか、企業会員は `app/Http/Controllers/Company/` の下と `Admin\CompanyController`・`Admin\CompanyUserController`
+**ファイル**：`app/Support/LoginAccount.php`・`IsLoginAccount.php`・`TwoFactorLogin.php`・`TeamInvitationManager.php`・`TeamInvitationOwner.php`・`TeamInvitationRelation.php`・`LoginIdMemory.php`、`config/login.php`、設計の詳細は「個人会員と企業会員を共存させる設計」（`docs/member-types-spec.md`）　**実例**：個人会員は `AuthSessionController` ほか、企業会員は `app/Http/Controllers/Company/` の下と `Admin\CompanyController`・`Admin\CompanyUserController`
 
 訪問者側でログインする人は、個人会員と、企業の担当者の2種類です。ログインの仕組み（14章）は同じ共通部品を使い、画面・URL・コントローラーは種類ごとに分けて書きます。企業会員を使わないサイトは、企業会員のファイルを消します。
 
 ### 名前の決まり
 
-ログインするモデルは、共通の型 `MemberAccount` を実装します。ガード・ルート・メールのテンプレート・Cookie の名前は、モデルの「種類の名前」から決まりで作り、設定には書きません。共通部品は、渡されたモデルに名前を聞くだけで、個人か企業かの場合分けを持ちません。
+ログインするモデルは、共通の型 `LoginAccount` を実装します。ガード・ルート・メールのテンプレート・Cookie の名前は、モデルの「種類の名前」から決まりで作り、設定には書きません。共通部品は、渡されたモデルに名前を聞くだけで、個人か企業かの場合分けを持ちません。
 
 | もの | 決まり | 個人会員（`Member`） | 企業の担当者（`CompanyUser`） |
 |---|---|---|---|
-| 種類の名前 | モデルの定数 `MEMBER_TYPE` | `member` | `company` |
-| ガード | 種類の名前。個人会員だけは `web` | `web` | `company` |
-| ルートの名前 | 頭に「種類の名前.」。個人会員だけは付けない | `login`・`mypage` | `company.login`・`company.mypage` |
-| メールのテンプレート | 頭に「種類の名前_」 | `member_verification_code` | `company_verification_code` |
-| 信頼済み端末の Cookie | 「種類の名前_trusted_device」 | `member_trusted_device` | `company_trusted_device` |
-| 操作ログなどでの名前 | `enforceMorphMap()` に書いた名前 | `member` | `company_user` |
+| 種類の名前 | モデルの短い名前。`AppServiceProvider` の `enforceMorphMap()` に書いた名前。操作ログなどが DB に持つ名前と同じ | `member` | `company_user` |
+| ガード | 種類の名前。画面の名前に合わせるときは、定数 `LOGIN_GUARD` | `web` | `company` |
+| ルートの名前 | 頭に「種類の名前.」。画面の名前に合わせるときは、定数 `LOGIN_ROUTE_PREFIX` | `login`・`mypage` | `company.login`・`company.mypage` |
+| メールのテンプレート | 頭に「種類の名前_」 | `member_verification_code` | `company_user_verification_code` |
+| 信頼済み端末の Cookie | 「種類の名前_trusted_device」 | `member_trusted_device` | `company_user_trusted_device` |
 
-個人会員のガードとルートに頭を付けていないのは、URL とルートの名前を短いままにするためです。モデルの定数 `MEMBER_GUARD`・`MEMBER_ROUTE_PREFIX` で、決まりと違う名前にしています。
+ガードとルートは、画面の側の名前なので、種類の名前とは別に決められます。個人会員は、URL とルートの名前を短いままにするために、ガードを `web`、ルートの頭を無しにしています。企業の担当者は、企業会員の画面の URL（`/company/…`）に合わせて、ガードを `company`、ルートの頭を `company.` にしています。モデルの定数 `LOGIN_GUARD`・`LOGIN_ROUTE_PREFIX` で、決まりと違う名前にしています。
 
 ### モデルに書くもの
 
 ```php
-class CompanyUser extends Authenticatable implements MemberAccount, PasskeyUser
+class CompanyUser extends Authenticatable implements LoginAccount, PasskeyUser
 {
     use HasPasskeys;        // パスキー（14章）
-    use IsMemberAccount;    // 名前の決まり
+    use IsLoginAccount;    // 名前の決まり
 
-    public const MEMBER_TYPE = 'company';
+    // 種類の名前（company_user）は、モデルの短い名前から決まるので、書かない。
+    // ガードとルートの頭は、企業会員の画面の名前（/company/…）に合わせている
+    public const LOGIN_GUARD = 'company';
+    public const LOGIN_ROUTE_PREFIX = 'company.';
 
     /** 画面やメールに出す名前 */
     public function displayName(): string { ... }
@@ -1975,13 +1977,13 @@ return $this->continueAfterPassword($request, $user, $request->boolean('remember
 
 | したいこと | 書き方 |
 |---|---|
-| ログイン中の人を取る | `Auth::guard(CompanyUser::memberGuard())->user()` |
-| その種類のルートへ移す | `route(CompanyUser::memberRoute('mypage'))` |
-| 確認コード | `new MemberVerificationCode(CompanyUser::class)` |
+| ログイン中の人を取る | `Auth::guard(CompanyUser::loginGuard())->user()` |
+| その種類のルートへ移す | `route(CompanyUser::loginRoute('mypage'))` |
+| 確認コード | `new LoginVerificationCode(CompanyUser::class)` |
 | 信頼済み端末 | `TrustedDeviceManager::for($user)` |
 | ログインの後の移動先 | `LoginRedirect::for(CompanyUser::class, route('company.mypage'))` |
 | パスワードを変えた後始末 | `PasswordChange::resetAndNotify($user)` |
-| 情報が変わったお知らせ | `MemberProfileNotice::send($user, $changedFields)` |
+| 情報が変わったお知らせ | `LoginProfileNotice::send($user, $changedFields)` |
 | メールアドレスの変更の確認 | トレイトの `holdForEmailChange($request, $user)`（`EmailChange`） |
 | ログアウト | トレイトの `logoutAccount($request)` |
 
@@ -2048,18 +2050,18 @@ Route::prefix('company')->name('company.')->group(function () {
 
 | メール | テンプレート | 送るとき |
 |---|---|---|
-| 確認コード | `company_verification_code` | 登録・ログイン・パスワードの変更と再設定・パスキーの登録・初回のログインでの登録・自分のメールアドレスの変更 |
+| 確認コード | `company_user_verification_code` | 登録・ログイン・パスワードの変更と再設定・パスキーの登録・初回のログインでの登録・自分のメールアドレスの変更 |
 | 申請の通知（運営宛） | `company_registration_staff` | 企業の側が登録したとき。宛先は `.env` の `COMPANY_REGISTRATION_STAFF_EMAIL` |
 | 承認・却下 | `company_approved`・`company_rejected` | 運営が承認・却下したとき。停止と再開では送らない |
-| 招待 | `company_invitation` | 担当者か運営が招待したとき、送り直したとき |
-| パスワードの変更 | `company_password_changed` | 本人か運営がパスワードを変えたとき |
-| 担当者の情報の変更 | `company_profile_changed` | 本人か、同じ企業のほかの担当者が、氏名やメールアドレスを変えたとき |
+| 招待 | `company_user_invitation` | 担当者か運営が招待したとき、送り直したとき |
+| パスワードの変更 | `company_user_password_changed` | 本人か運営がパスワードを変えたとき |
+| 担当者の情報の変更 | `company_user_profile_changed` | 本人か、同じ企業のほかの担当者が、氏名やメールアドレスを変えたとき |
 
 ### 既存のシステムから会員を移すサイト
 
 既存のシステムからデータを移すサイトだけで働く機能が、2つあります。新しく始めるサイトでは、対象の会員がいないので、何も起きません。初回のログインでの登録は、コントローラーとルートを消しても構いません。
 
-| 機能 | 設定（`config/members.php`） | 働く条件 |
+| 機能 | 設定（`config/login.php`） | 働く条件 |
 |---|---|---|
 | 古い方式のパスワードの置き換え（14章） | `legacy_passwords` | `legacy_password` に値がある会員 |
 | 初回のログインでの登録 | `identity_check_column` | メールアドレスが空の担当者 |
@@ -2081,7 +2083,7 @@ Route::prefix('company')->name('company.')->group(function () {
 | `app/Support/`・`app/Http/Middleware/` | `LoginIdMemory`、`EnsureCompanyIsApproved` |
 | `resources/` | `views/company/`・`views/layouts/company.blade.php`・`views/admin/companies/`・`views/admin/company_users/`、`mail-templates/company_*.blade.php`、管理画面のトップのリンク |
 | `routes/web.php` | 企業会員のグループと、管理画面の企業会員管理のルート |
-| `config/` | `auth.php` の `company` のガードとプロバイダー、`members.php` の `company` |
+| `config/` | `auth.php` の `company` のガードとプロバイダー、`login.php` の `company_user` |
 | `bootstrap/app.php` | 移動先の `company.*` の行、`company.approved` の短い名前 |
 | `database/` | 企業会員の3つのテーブルのマイグレーション、`CompanySeeder` と、`DatabaseSeeder` の呼び出し |
 | `tests/Feature/Company/` | 全部 |
@@ -2115,12 +2117,12 @@ Route::prefix('company')->name('company.')->group(function () {
 
 代理店のような3つ目が要るようになったら、企業会員のモデル・コントローラー・画面・ルートを写して作ります。共通部品は、種類の名前をモデルから聞いて動くので、次の所に名前を足すだけです。
 
-1. モデルに `MemberAccount`・`IsMemberAccount` と、`MEMBER_TYPE` を書く。
+1. モデルに `LoginAccount`・`IsLoginAccount` を書く。種類の名前は、3で `enforceMorphMap()` に書く、モデルの短い名前になる。ガードやルートの頭を、種類の名前と違う名前にするときは、定数 `LOGIN_GUARD`・`LOGIN_ROUTE_PREFIX` を書く。
 2. `config/auth.php` に、種類の名前のガードとプロバイダーを足す。古い方式のパスワードを使うなら、`driver` を `eloquent-legacy` にする。
 3. `AppServiceProvider` の `enforceMorphMap()` と、`OperationLogSubject`（`OPERATORS` にも）、`OperationLog::subjectNames()` に足す。
 4. `bootstrap/app.php` の、ログインしていないときの移動先に足す。
 5. メールのテンプレートを、種類の名前を頭に付けて用意する（`種類の名前_verification_code`・`_password_changed`・`_profile_changed`）。
-6. `config/members.php` に、種類の名前のキーを足す。
+6. `config/login.php` に、種類の名前のキーを足す。
 
 ## 付録. フレームワーク外で考慮すべきセキュリティ対策
 

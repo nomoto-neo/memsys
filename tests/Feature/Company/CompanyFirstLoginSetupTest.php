@@ -194,7 +194,7 @@ class CompanyFirstLoginSetupTest extends TestCase
     public function test_legacy_password_is_replaced_at_setup(): void
     {
         // 古い方式（MD5）のパスワードで移した担当者
-        config(['members.company.legacy_passwords' => [Md5Password::class]]);
+        config(['login.company_user.legacy_passwords' => [Md5Password::class]]);
         $user = $this->migratedUser();
         $user->forceFill(['password' => null, 'legacy_password' => LegacyPasswordUserProvider::wrap(md5(self::OLD_PASSWORD))])->save();
 

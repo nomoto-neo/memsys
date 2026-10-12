@@ -56,13 +56,9 @@ trait HasPasskeys
         return (string) $this->getAttribute('name');
     }
 
-    /** 端末のパスキー選択画面などに出るアカウント名。会員は、ログインに使う値 */
+    /** 端末のパスキー選択画面などに出るアカウント名。ログインに使う値 */
     public function getPasskeyUsername(): string
     {
-        if ($this instanceof MemberAccount) {
-            return $this->loginId();
-        }
-
-        return (string) ($this->getAttribute('email') ?? $this->getAuthIdentifier());
+        return $this->loginId();
     }
 }

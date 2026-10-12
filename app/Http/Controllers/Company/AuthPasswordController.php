@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Company;
 use App\Http\Controllers\Controller;
 use App\Models\CompanyUser;
 use App\Support\LoginThrottle;
-use App\Support\MemberVerificationCode;
+use App\Support\LoginVerificationCode;
 use App\Support\PasswordChange;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,7 +24,7 @@ use Illuminate\View\View;
  */
 class AuthPasswordController extends Controller
 {
-    private const PURPOSE = MemberVerificationCode::PURPOSE_MYPAGE_PASSWORD;
+    private const PURPOSE = LoginVerificationCode::PURPOSE_MYPAGE_PASSWORD;
 
     /** 確認コードの試行制限（LoginThrottle）のカウンターの名前。アカウントは担当者のidで区別する。 */
     private const THROTTLE_SCOPE = 'company-password-code';
@@ -49,13 +49,13 @@ class AuthPasswordController extends Controller
      */
     public function edit(Request $request): View
     {
-        $user = Auth::guard(CompanyUser::memberGuard())->user();
+        $user = Auth::guard(CompanyUser::loginGuard())->user();
 
         // まだ有効なコードが無いときだけ、確認コードを送る
         $sendFailed = false;
 
-        if (! (new MemberVerificationCode(CompanyUser::class))->hasPending($request, self::PURPOSE, $user)) {
-            $sendFailed = ! (new MemberVerificationCode(CompanyUser::class))->issue($request, $user, self::PURPOSE);
+        if (! (new LoginVerificationCode(CompanyUser::class))->hasPending($request, self::PURPOSE, $user)) {
+            $sendFailed = ! (new LoginVerificationCode(CompanyUser::class))->issue($request, $user, self::PURPOSE);
         }
 
         return view('company.auth.password', [
@@ -68,9 +68,9 @@ class AuthPasswordController extends Controller
     /** 確認コードの再送信（POST /company/mypage/password/resend） */
     public function resend(Request $request): RedirectResponse
     {
-        $user = Auth::guard(CompanyUser::memberGuard())->user();
+        $user = Auth::guard(CompanyUser::loginGuard())->user();
 
-        if (! (new MemberVerificationCode(CompanyUser::class))->issue($request, $user, self::PURPOSE)) {
+        if (! (new LoginVerificationCode(CompanyUser::class))->issue($request, $user, self::PURPOSE)) {
             return redirect()->route('company.password.edit')
                 ->with('error', '確認コードの送信に失敗しました。時間をおいて再度お試しください。');
         }
@@ -86,7 +86,7 @@ class AuthPasswordController extends Controller
         // 更新は、ログイン中の担当者のインスタンスに対して行う。auth.sessionはリクエストの最後に、
         // このインスタンスのパスワードのハッシュ値をセッションに控え直すので、別のインスタンスを
         // 更新すると、次のリクエストで本人までログアウトされる
-        $user = Auth::guard(CompanyUser::memberGuard())->user();
+        $user = Auth::guard(CompanyUser::loginGuard())->user();
 
         // 失敗回数による試行制限（IP単位・担当者のid単位。App\Support\LoginThrottle）
         $throttle = new LoginThrottle(self::THROTTLE_SCOPE, $request->ip(), $user->id);
@@ -98,7 +98,7 @@ class AuthPasswordController extends Controller
 
         // 確認コードの照合。コードの宛先と、今ログイン中の本人が同じかも念のため確かめる
         // （このpurposeのコードは、edit()でログイン中の本人宛にしか発行しないので、通常は必ず同じ）
-        $verifiedUser = (new MemberVerificationCode(CompanyUser::class))->verify($request, self::PURPOSE, $validated['code']);
+        $verifiedUser = (new LoginVerificationCode(CompanyUser::class))->verify($request, self::PURPOSE, $validated['code']);
 
         if (! $verifiedUser instanceof CompanyUser || $verifiedUser->id !== $user->id) {
             $throttle->hit();

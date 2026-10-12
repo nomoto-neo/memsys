@@ -37,7 +37,7 @@ class LegacyPasswordTest extends TestCase
 
     public function test_old_password_logs_in_and_is_replaced(): void
     {
-        config(['members.member.legacy_passwords' => [Md5Password::class]]);
+        config(['login.member.legacy_passwords' => [Md5Password::class]]);
         $member = $this->migratedMember(md5(self::PASSWORD));
 
         // 今までのパスワードで、1段階目を通る
@@ -61,7 +61,7 @@ class LegacyPasswordTest extends TestCase
 
     public function test_wrong_password_is_rejected_and_nothing_changes(): void
     {
-        config(['members.member.legacy_passwords' => [Md5Password::class]]);
+        config(['login.member.legacy_passwords' => [Md5Password::class]]);
         $member = $this->migratedMember(md5(self::PASSWORD));
         $wrapped = $member->legacy_password;
 
@@ -76,7 +76,7 @@ class LegacyPasswordTest extends TestCase
     public function test_methods_are_tried_in_order(): void
     {
         // 方式が混ざっているデータ。書いた順に試して、通ったものを採る
-        config(['members.member.legacy_passwords' => [Md5Password::class, Sha1Password::class, Sha256Password::class]]);
+        config(['login.member.legacy_passwords' => [Md5Password::class, Sha1Password::class, Sha256Password::class]]);
         $member = $this->migratedMember(hash('sha256', self::PASSWORD));
 
         $this->post('/login', ['email' => 'taro@example.com', 'password' => self::PASSWORD])
@@ -88,20 +88,20 @@ class LegacyPasswordTest extends TestCase
     public function test_method_not_in_the_setting_does_not_pass(): void
     {
         // 設定に無い方式では通らない。新しく始めるサイト（設定が空）では、古い方式は働かない
-        config(['members.member.legacy_passwords' => [Md5Password::class]]);
+        config(['login.member.legacy_passwords' => [Md5Password::class]]);
         $this->migratedMember(sha1(self::PASSWORD));
 
         $this->post('/login', ['email' => 'taro@example.com', 'password' => self::PASSWORD])
             ->assertSessionHasErrors('email');
 
-        config(['members.member.legacy_passwords' => []]);
+        config(['login.member.legacy_passwords' => []]);
         $this->post('/login', ['email' => 'taro@example.com', 'password' => self::PASSWORD])
             ->assertSessionHasErrors('email');
     }
 
     public function test_old_hash_itself_is_not_stored_and_does_not_pass(): void
     {
-        config(['members.member.legacy_passwords' => [Md5Password::class]]);
+        config(['login.member.legacy_passwords' => [Md5Password::class]]);
         $member = $this->migratedMember(md5(self::PASSWORD));
 
         // DBにあるのは、今の方式で包んだ値。古いハッシュ値そのものは残っていない
@@ -115,7 +115,7 @@ class LegacyPasswordTest extends TestCase
 
     public function test_member_with_a_current_password_is_not_affected(): void
     {
-        config(['members.member.legacy_passwords' => [Md5Password::class]]);
+        config(['login.member.legacy_passwords' => [Md5Password::class]]);
 
         // 今の方式のパスワードを持つ会員は、古い方式の値があっても、今のパスワードだけで照合する
         $member = Member::factory()->create(['email' => 'taro@example.com', 'password' => Hash::make('current-password')]);
@@ -129,7 +129,7 @@ class LegacyPasswordTest extends TestCase
 
     public function test_password_reset_clears_the_old_password(): void
     {
-        config(['members.member.legacy_passwords' => [Md5Password::class]]);
+        config(['login.member.legacy_passwords' => [Md5Password::class]]);
         $member = $this->migratedMember(md5(self::PASSWORD));
 
         // 一度もログインしないまま、パスワードを再設定した

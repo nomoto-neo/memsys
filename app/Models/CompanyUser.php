@@ -6,8 +6,8 @@ use App\Enums\LoginIdType;
 use App\Enums\TwoFactorMethod;
 use App\Support\HasPasskeys;
 use App\Support\HasTwoFactor;
-use App\Support\IsMemberAccount;
-use App\Support\MemberAccount;
+use App\Support\IsLoginAccount;
+use App\Support\LoginAccount;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Validation\Rule;
@@ -16,25 +16,30 @@ use Laravel\Passkeys\Contracts\PasskeyUser;
 
 /**
  * 企業会員の担当者。企業（Company）に属し、ログインする（companyガード）。
- * 訪問者側でログインするモデルの共通の型（App\Support\MemberAccount）を実装している。
+ * ログインするモデルの共通の型（App\Support\LoginAccount）を実装している。
  *
  * 担当者に、権限の区別は無い。同じ企業の担当者は、だれでも同じことができる。
  * 設計は docs/member-types-spec.md。
  */
-class CompanyUser extends Authenticatable implements MemberAccount, PasskeyUser
+class CompanyUser extends Authenticatable implements LoginAccount, PasskeyUser
 {
     // パスキーを持てるようにする（App\Support\PasskeyLogin・PasskeyManagement参照）
     use HasPasskeys;
 
-    // 訪問者側でログインするモデルの、決まった中身。種類の名前から、ガード（company）、
+    // ログインするモデルの、決まった中身。種類の名前から、ガード（company）、
     // ルート（company.login など）、メールのテンプレート（company_...）の名前を作る
-    use IsMemberAccount;
+    use IsLoginAccount;
 
     // 2段階認証（方式の読み出し・認証アプリの列・バックアップコード・信頼済み端末）
     use HasTwoFactor;
 
-    /** 種類の名前 */
-    public const MEMBER_TYPE = 'company';
+    /**
+     * 企業会員の画面のガードと、ルートの名前の頭。種類の名前（company_user）とは別に、
+     * 画面の側の名前（/company/…のURL）に合わせて決めている
+     */
+    public const LOGIN_GUARD = 'company';
+
+    public const LOGIN_ROUTE_PREFIX = 'company.';
 
     /**
      * ログインに使う値。担当者IDでも、メールアドレスでもよい。どちらも、同じ企業の中で重ならない。

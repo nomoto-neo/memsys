@@ -108,10 +108,10 @@ class InvitationController extends Controller
         }
 
         // そのままログインさせる（登録の直後に、もう一度ログインし直させない）
-        Auth::guard(CompanyUser::memberGuard())->login($user);
+        Auth::guard(CompanyUser::loginGuard())->login($user);
         $request->session()->regenerate();
 
-        return redirect()->route(CompanyUser::memberRoute('mypage'))->with('status', '担当者の登録が完了しました。');
+        return redirect()->route(CompanyUser::loginRoute('mypage'))->with('status', '担当者の登録が完了しました。');
     }
 
     /**
@@ -138,8 +138,8 @@ class InvitationController extends Controller
      */
     private function logoutIfLoggedIn(Request $request): void
     {
-        if (Auth::guard(CompanyUser::memberGuard())->check()) {
-            LoginSession::logout($request, CompanyUser::memberGuard());
+        if (Auth::guard(CompanyUser::loginGuard())->check()) {
+            LoginSession::logout($request, CompanyUser::loginGuard());
         }
     }
 

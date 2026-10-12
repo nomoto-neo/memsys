@@ -27,13 +27,13 @@ final class TwoFactorChallenge
 {
     /**
      * 使い道。メールの確認コードは、使い道ごとに別のコードになる。ある使い道で送ったコードを、
-     * 別の画面で使い回せないようにするため（App\Support\MemberVerificationCode）
+     * 別の画面で使い回せないようにするため（App\Support\LoginVerificationCode）
      */
-    public const PURPOSE_LOGIN = MemberVerificationCode::PURPOSE_LOGIN;
+    public const PURPOSE_LOGIN = LoginVerificationCode::PURPOSE_LOGIN;
 
-    public const PURPOSE_PASSKEY = MemberVerificationCode::PURPOSE_PASSKEY;
+    public const PURPOSE_PASSKEY = LoginVerificationCode::PURPOSE_PASSKEY;
 
-    public const PURPOSE_BACKUP_CODES = MemberVerificationCode::PURPOSE_BACKUP_CODES;
+    public const PURPOSE_BACKUP_CODES = LoginVerificationCode::PURPOSE_BACKUP_CODES;
 
     public function __construct(private readonly LoginAccount $account)
     {
@@ -65,14 +65,14 @@ final class TwoFactorChallenge
             return true;
         }
 
-        return (new MemberVerificationCode($this->account::class))->issue($request, $this->account, $purpose);
+        return (new LoginVerificationCode($this->account::class))->issue($request, $this->account, $purpose);
     }
 
     /** メールの方式で、まだ有効な確認コードを送ってあるか。ほかの方式では、いつもfalse */
     public function hasSent(Request $request, string $purpose): bool
     {
         return $this->method() === TwoFactorMethod::Email
-            && (new MemberVerificationCode($this->account::class))->hasPending($request, $purpose, $this->account);
+            && (new LoginVerificationCode($this->account::class))->hasPending($request, $purpose, $this->account);
     }
 
     /** 入力された値を、その人の方式で照合する */
@@ -80,7 +80,7 @@ final class TwoFactorChallenge
     {
         // メール：送った確認コード。コードを送った相手が、この人かも確かめる
         if ($this->method() === TwoFactorMethod::Email) {
-            $verified = (new MemberVerificationCode($this->account::class))->verify($request, $purpose, $input);
+            $verified = (new LoginVerificationCode($this->account::class))->verify($request, $purpose, $input);
 
             return $verified !== null && $verified->is($this->account);
         }

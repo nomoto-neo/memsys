@@ -112,7 +112,7 @@ class AuthSessionController extends Controller
 
         // パスワードの確認だけ行う（まだログインはしない）。古い方式のパスワードの置き換えも、
         // ここで働く（App\Support\LegacyPasswordUserProvider）
-        $provider = Auth::guard(self::LOGIN_ACCOUNT::memberGuard())->getProvider();
+        $provider = Auth::guard(self::LOGIN_ACCOUNT::loginGuard())->getProvider();
 
         if ($user === null || ! $provider->validateCredentials($user, ['password' => $credentials['password']])) {
             $throttle->hit();

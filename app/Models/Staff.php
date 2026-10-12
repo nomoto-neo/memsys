@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use App\Enums\StaffAcl;
+use App\Enums\LoginIdType;
 use App\Enums\TwoFactorMethod;
 use App\Support\HasPasskeys;
 use App\Support\HasTwoFactor;
+use App\Support\IsLoginAccount;
 use App\Support\LoginAccount;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -37,16 +39,19 @@ class Staff extends Authenticatable implements LoginAccount, PasskeyUser
     // 2段階認証（方式の読み出し・認証アプリの列・バックアップコード・信頼済み端末）
     use HasTwoFactor;
 
-    // ---- ログインする人の共通の型（LoginAccount）の設定 ----
+    // 種類の名前から決まる、ガード・ルート・メールのテンプレートなどの名前
+    use IsLoginAccount;
 
-    /** 種類の名前。メールのテンプレート（staff_...）や、信頼済み端末のCookieの名前の頭になる */
-    public const LOGIN_TYPE = 'staff';
+    // ---- ログインする人の共通の型（LoginAccount）の設定 ----
 
     /** ログインするガード */
     public const LOGIN_GUARD = 'admin';
 
     /** ルートの名前の頭 */
     public const LOGIN_ROUTE_PREFIX = 'admin.';
+
+    /** ログインに使う値。ログインID */
+    public const LOGIN_ID_TYPE = LoginIdType::LoginId;
 
     /**
      * ログインの2段階目の方式。認証アプリのコード（TOTP）。
@@ -78,31 +83,6 @@ class Staff extends Authenticatable implements LoginAccount, PasskeyUser
     ];
 
     // ---- ログインする人の共通の型（LoginAccount）の問い ----
-
-    public static function loginType(): string
-    {
-        return self::LOGIN_TYPE;
-    }
-
-    public static function loginGuard(): string
-    {
-        return self::LOGIN_GUARD;
-    }
-
-    public static function loginRoute(string $name): string
-    {
-        return self::LOGIN_ROUTE_PREFIX.$name;
-    }
-
-    public static function loginMailTemplate(string $name): string
-    {
-        return self::LOGIN_TYPE.'_'.$name;
-    }
-
-    public static function trustedDeviceCookie(): string
-    {
-        return self::LOGIN_TYPE.'_trusted_device';
-    }
 
     /** 画面やメールに出す名前 */
     public function displayName(): string

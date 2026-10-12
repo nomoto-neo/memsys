@@ -13,7 +13,7 @@ use Illuminate\Support\Carbon;
  * この型で受け取る。会員かスタッフかの場合分けを持たず、ガード・ルート・メールのテンプレートの
  * 名前は、モデルに聞いて決める。設計は docs/two-factor-spec.md。
  *
- * 訪問者側の会員は、この型を継いだ MemberAccount を実装する。
+ * 種類の名前から決まる中身（loginType()からtrustedDeviceCookie()まで）は、IsLoginAccountトレイトに、
  * 2段階認証にかかわる中身（twoFactorMethod()から下）は、HasTwoFactorトレイトにある。
  */
 interface LoginAccount
@@ -29,6 +29,15 @@ interface LoginAccount
 
     /** この種類のメールのテンプレートの名前。$nameは頭を付ける前の名前。例：'verification_code' */
     public static function loginMailTemplate(string $name): string;
+
+    /**
+     * ログイン画面で入力された値で、この種類の人を探す条件。[列の名前 => 値]で返すので、
+     * そのままwhere()に渡せる。どの列で探すかは、モデルの定数 LOGIN_ID_TYPE
+     * （App\Enums\LoginIdType）で決まる。
+     *
+     * @return array<string, string>
+     */
+    public static function loginIdCondition(string $value): array;
 
     /** 信頼済み端末の値を入れるCookieの名前 */
     public static function trustedDeviceCookie(): string;

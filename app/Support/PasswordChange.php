@@ -51,7 +51,7 @@ class PasswordChange
 
         // 既存のシステムから移した会員の、古い方式のパスワードが残っていれば消す。新しいパスワードを
         // 決めたので、もう要らない（App\Support\LegacyPasswordUserProvider）
-        if ($owner instanceof MemberAccount && $owner->legacy_password !== null) {
+        if ($owner->legacy_password !== null) {
             $owner->forceFill(['legacy_password' => null])->save();
         }
 

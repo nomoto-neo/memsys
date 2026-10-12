@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 /**
- * 会員向けの、メールで送る確認コードの発行と照合。
+ * ログインする人に、メールで送る確認コードの発行と照合。会員にも、スタッフにも使う。
  *
  * 使い道はログイン・パスワードの再設定・マイページのパスワード変更・会員登録・
  * パスキーの登録の前の本人確認・バックアップコードの発行の前の本人確認・
@@ -27,14 +27,14 @@ use Illuminate\Support\Facades\Mail;
  * 相手は、ログインする人の共通の型（LoginAccount）で受け取る。スタッフのログインの2段階目を
  * メールの方式にしたときは、スタッフにも送る（App\Support\TwoFactorChallenge）。
  * 会員の種類（個人会員か、企業の担当者か）は、作るときにモデルのクラスで渡す。
- *     new MemberVerificationCode(Member::class)
+ *     new LoginVerificationCode(Member::class)
  * メールのテンプレートと、セッションのキーは、種類の名前から決まる（個人会員なら
  * member_verification_codeと、member.verification_code.使い道）。同じブラウザで個人会員と
  * 企業の担当者の両方を使っても、片方のコードがもう片方の仮置きを上書きしない。
  * 仮置きには、会員の種類とidの両方を持つ。種類が違えばidが同じでも別の人なので、
  * 取り違えないようにするため。
  */
-class MemberVerificationCode
+class LoginVerificationCode
 {
     public const PURPOSE_LOGIN = 'login';
 
@@ -232,7 +232,7 @@ class MemberVerificationCode
 
             return true;
         } catch (\Throwable $e) {
-            Log::error('MemberVerificationCode: 確認コードメールの送信に失敗しました。', $logContext + [
+            Log::error('LoginVerificationCode: 確認コードメールの送信に失敗しました。', $logContext + [
                 'purpose' => $purpose,
                 'message' => $e->getMessage(),
             ]);

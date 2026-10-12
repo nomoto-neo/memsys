@@ -11,7 +11,7 @@ use App\Models\CompanyUser;
 use App\Rules\KatakanaRule;
 use App\Rules\PhoneNumberRule;
 use App\Support\LoginThrottle;
-use App\Support\MemberVerificationCode;
+use App\Support\LoginVerificationCode;
 use App\Support\OperationRecorder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -39,7 +39,7 @@ class RegistrationController extends Controller
     /** コード入力待ちの入力内容（パスワードはハッシュ化済み）を仮置きするセッションキー。 */
     private const PENDING_SESSION_KEY = 'company.regist.pending';
 
-    private const PURPOSE = MemberVerificationCode::PURPOSE_REGISTER;
+    private const PURPOSE = LoginVerificationCode::PURPOSE_REGISTER;
 
     /**
      * 1つのメールアドレスへ確認コードを送れる回数の上限と、数える期間。登録フォームは
@@ -199,7 +199,7 @@ class RegistrationController extends Controller
 
         // 確認コードの照合。コードの宛先と、仮置きした入力のメールアドレスが同じかも確かめる
         // （別のアドレスで送り直すと、仮置きもコードも置き換わるので、通常は同じ）
-        $email = (new MemberVerificationCode(CompanyUser::class))->verifyForAddress($request, self::PURPOSE, $validated['code']);
+        $email = (new LoginVerificationCode(CompanyUser::class))->verifyForAddress($request, self::PURPOSE, $validated['code']);
 
         if ($email === null || $email !== $pending['email']) {
             $throttle->hit();
@@ -246,7 +246,7 @@ class RegistrationController extends Controller
             Mail::send(new TemplatedMail('company_registration_staff', [
                 'from_mail' => config('mail.from.address'),
                 'from_name' => config('mail.from.name'),
-                'staff_mail' => config('members.company.registration_staff_email'),
+                'staff_mail' => config('login.company_user.registration_staff_email'),
                 'company_code' => $company->code,
                 'company_name' => $company->name,
                 'user_name' => $user->name,
@@ -319,7 +319,7 @@ class RegistrationController extends Controller
         // 宛名は、ログインの確認コードと同じく、企業名と担当者の氏名
         $name = trim($pending['name'].' '.$pending['user_name']);
 
-        if (! (new MemberVerificationCode(CompanyUser::class))->issueForAddress($request, $pending['email'], $name, self::PURPOSE)) {
+        if (! (new LoginVerificationCode(CompanyUser::class))->issueForAddress($request, $pending['email'], $name, self::PURPOSE)) {
             return '確認コードの送信に失敗しました。時間をおいて「確認コードを再送する」からお試しください。';
         }
 

@@ -113,7 +113,7 @@ class MypageController extends Controller
      */
     public function index(): View
     {
-        $user = Auth::guard(CompanyUser::memberGuard())->user();
+        $user = Auth::guard(CompanyUser::loginGuard())->user();
 
         return view('company.mypage.index', [
             'user' => $user,
@@ -124,7 +124,7 @@ class MypageController extends Controller
     /** 企業の情報の編集フォームの表示（GET /company/mypage/edit） */
     public function edit(): View
     {
-        $company = Auth::guard(CompanyUser::memberGuard())->user()->company;
+        $company = Auth::guard(CompanyUser::loginGuard())->user()->company;
 
         // 入力欄の値。old()があればそちらを優先し、無ければ企業の今の値を使う（FormFlow::formInput()）
         return view('company.mypage.edit', [
@@ -140,7 +140,7 @@ class MypageController extends Controller
      */
     public function update(Request $request): RedirectResponse
     {
-        $company = Auth::guard(CompanyUser::memberGuard())->user()->company;
+        $company = Auth::guard(CompanyUser::loginGuard())->user()->company;
 
         $this->saveData($company, $request);
 

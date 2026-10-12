@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\CompanyUser;
 use App\Support\EmailChange;
 use App\Support\FormFlow;
-use App\Support\MemberProfileNotice;
+use App\Support\LoginProfileNotice;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -90,11 +90,11 @@ class ProfileController extends Controller
 
     /**
      * 保存の直後の処理。担当者の情報が変わったことを、本人へメールで知らせる
-     * （App\Support\MemberProfileNotice参照）。
+     * （App\Support\LoginProfileNotice参照）。
      */
     private function afterSave(CompanyUser $user, array $validated, array $changedFields): void
     {
-        MemberProfileNotice::send($user, $changedFields);
+        LoginProfileNotice::send($user, $changedFields);
     }
 
     // ---- 自分の情報の編集 ----
@@ -105,7 +105,7 @@ class ProfileController extends Controller
      */
     public function edit(): View
     {
-        $user = Auth::guard(CompanyUser::memberGuard())->user();
+        $user = Auth::guard(CompanyUser::loginGuard())->user();
 
         // 入力欄の値。old()があればそちらを優先し、無ければ担当者の今の値を使う（FormFlow::formInput()）
         return view('company.mypage.profile', [
@@ -121,7 +121,7 @@ class ProfileController extends Controller
      */
     public function update(Request $request): RedirectResponse
     {
-        $user = Auth::guard(CompanyUser::memberGuard())->user();
+        $user = Auth::guard(CompanyUser::loginGuard())->user();
 
         // メールアドレスが変わるときは、保存せずに確認コードの入力画面へ進む。
         // 保存は、コードが入力できた時点で行う（App\Support\EmailChange）

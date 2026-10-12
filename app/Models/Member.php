@@ -7,8 +7,8 @@ use App\Enums\LoginIdType;
 use App\Enums\TwoFactorMethod;
 use App\Support\HasPasskeys;
 use App\Support\HasTwoFactor;
-use App\Support\IsMemberAccount;
-use App\Support\MemberAccount;
+use App\Support\IsLoginAccount;
+use App\Support\LoginAccount;
 use App\Support\UploadFilePath;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -19,12 +19,12 @@ use Laravel\Passkeys\Contracts\PasskeyUser;
 
 /**
  * 個人会員。ログインできるモデルなので、Authenticatableを継承している（webガード）。
- * 訪問者側でログインするモデルの共通の型（App\Support\MemberAccount）を実装している。
+ * ログインするモデルの共通の型（App\Support\LoginAccount）を実装している。
  */
-class Member extends Authenticatable implements MemberAccount, PasskeyUser
+class Member extends Authenticatable implements LoginAccount, PasskeyUser
 {
-    // 訪問者側でログインするモデルの、決まった中身（種類の名前からルートなどの名前を作る）
-    use IsMemberAccount;
+    // ログインするモデルの、決まった中身（種類の名前からルートなどの名前を作る）
+    use IsLoginAccount;
 
     // 2段階認証（方式の読み出し・認証アプリの列・バックアップコード・信頼済み端末）
     use HasTwoFactor;
@@ -37,16 +37,13 @@ class Member extends Authenticatable implements MemberAccount, PasskeyUser
     // Member::factory()を使えるようにする（database/factories/MemberFactory.php）
     use HasFactory;
 
-    /** 種類の名前。メールのテンプレート（member_...）や、信頼済み端末のCookieの名前の頭になる */
-    public const MEMBER_TYPE = 'member';
-
     /**
      * ガードとルートの名前は、今のまま変えない。決まりのとおりなら、ガードはmember、
-     * ルートはmember.loginのようになる（App\Support\IsMemberAccount）
+     * ルートはmember.loginのようになる（App\Support\IsLoginAccount）
      */
-    public const MEMBER_GUARD = 'web';
+    public const LOGIN_GUARD = 'web';
 
-    public const MEMBER_ROUTE_PREFIX = '';
+    public const LOGIN_ROUTE_PREFIX = '';
 
     /**
      * ログインに使う値。メールアドレス。ログインIDでログインさせるサイトでは、ここを変える

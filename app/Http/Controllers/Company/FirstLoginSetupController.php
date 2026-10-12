@@ -7,7 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\CompanyUser;
 use App\Support\LoginRedirect;
 use App\Support\LoginThrottle;
-use App\Support\MemberVerificationCode;
+use App\Support\LoginVerificationCode;
 use App\Support\OperationRecorder;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\RedirectResponse;
@@ -30,7 +30,7 @@ use Illuminate\View\View;
  *
  * ■ 企業の情報の照合
  * 一緒に、企業のデータにある情報を1つ入力させて照合する。照合する列は、設定の
- * config('members.company.identity_check_column')。見本のサイトでは電話番号。
+ * config('login.company_user.identity_check_column')。見本のサイトでは電話番号。
  * 既存のシステムのIDとパスワードは、漏れている前提で扱うため。IDとパスワードを知っているだけの
  * 他人が、自分のメールアドレスを登録して、アカウントを自分のものにすることを防ぐ。
  * 照合の失敗は、試行制限（LoginThrottle）で数える。
@@ -56,7 +56,7 @@ class FirstLoginSetupController extends Controller
     /** コード入力待ちの入力内容（パスワードはハッシュ化済み）を仮置きするセッションキー。 */
     private const PENDING_SESSION_KEY = 'company.login.setup.pending';
 
-    private const PURPOSE = MemberVerificationCode::PURPOSE_FIRST_LOGIN;
+    private const PURPOSE = LoginVerificationCode::PURPOSE_FIRST_LOGIN;
 
     /** 企業の情報の照合の試行制限（LoginThrottle）のカウンターの名前。アカウントは担当者のidで区別する。 */
     private const IDENTITY_THROTTLE_SCOPE = 'company-setup-identity';
@@ -209,7 +209,7 @@ class FirstLoginSetupController extends Controller
         }
 
         // 確認コードの照合。コードの宛先と、仮置きした入力のメールアドレスが同じかも確かめる
-        $email = (new MemberVerificationCode(CompanyUser::class))->verifyForAddress($request, self::PURPOSE, $validated['code']);
+        $email = (new LoginVerificationCode(CompanyUser::class))->verifyForAddress($request, self::PURPOSE, $validated['code']);
 
         if ($email === null || $email !== $pending['email']) {
             $throttle->hit();
@@ -250,11 +250,11 @@ class FirstLoginSetupController extends Controller
         // regenerate()も、このときに行う
         $request->session()->forget([self::USER_SESSION_KEY, self::PENDING_SESSION_KEY]);
 
-        Auth::guard(CompanyUser::memberGuard())->login($user);
+        Auth::guard(CompanyUser::loginGuard())->login($user);
         $request->session()->regenerate();
 
         // ログインが必要な画面から来た場合はその画面へ、そうでなければマイページへ
-        return redirect(LoginRedirect::for(CompanyUser::class, route(CompanyUser::memberRoute('mypage'))))
+        return redirect(LoginRedirect::for(CompanyUser::class, route(CompanyUser::loginRoute('mypage'))))
             ->with('status', '登録が完了しました。次回からは、新しい担当者IDとパスワードでログインしてください。');
     }
 
@@ -306,7 +306,7 @@ class FirstLoginSetupController extends Controller
         // 宛名は、ログインの確認コードと同じく、企業名と担当者の氏名
         $name = trim($user->company->name.' '.$pending['name']);
 
-        if (! (new MemberVerificationCode(CompanyUser::class))->issueForAddress($request, $pending['email'], $name, self::PURPOSE)) {
+        if (! (new LoginVerificationCode(CompanyUser::class))->issueForAddress($request, $pending['email'], $name, self::PURPOSE)) {
             return '確認コードの送信に失敗しました。時間をおいて「確認コードを再送する」からお試しください。';
         }
 
@@ -324,7 +324,7 @@ class FirstLoginSetupController extends Controller
     /** 企業のデータにある、照合する値。比べられる形にそろえたもの。値が無ければ空の文字 */
     private function identityOf(CompanyUser $user): string
     {
-        $column = config('members.company.identity_check_column');
+        $column = config('login.company_user.identity_check_column');
 
         return $this->normalizeIdentity((string) $user->company->getAttribute($column));
     }

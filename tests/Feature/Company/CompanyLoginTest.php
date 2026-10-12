@@ -184,13 +184,13 @@ class CompanyLoginTest extends TestCase
 
         $this->post('/company/login', $this->credentials());
         $response = $this->post('/company/login/verify', ['code' => $this->lastVerificationCode(), 'remember_device' => '1']);
-        $cookie = $response->getCookie('company_trusted_device');
+        $cookie = $response->getCookie('company_user_trusted_device');
         $this->assertSame('/', $cookie->getPath());
 
         $this->post('/company/logout')->assertRedirect(route('company.login'));
         $this->assertGuest('company');
 
-        $this->withCookie('company_trusted_device', $cookie->getValue())
+        $this->withCookie('company_user_trusted_device', $cookie->getValue())
             ->post('/company/login', $this->credentials())
             ->assertRedirect(route('company.mypage'));
         $this->assertAuthenticatedAs($user, 'company');
@@ -244,7 +244,7 @@ class CompanyLoginTest extends TestCase
 
     public function test_old_password_of_a_migrated_user_is_replaced(): void
     {
-        config(['members.company.legacy_passwords' => [Md5Password::class]]);
+        config(['login.company_user.legacy_passwords' => [Md5Password::class]]);
         $user = $this->user($this->company());
         $user->forceFill(['password' => null, 'legacy_password' => LegacyPasswordUserProvider::wrap(md5('old-system-password'))])->save();
 

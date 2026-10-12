@@ -439,7 +439,7 @@ class CompanyController extends Controller
             $this->sendMail('company_approved', $user, [
                 'company_code' => $company->code,
                 'login_id' => $user->login_id,
-                'login_url' => route(CompanyUser::memberRoute('login')),
+                'login_url' => route(CompanyUser::loginRoute('login')),
             ]);
         }
 

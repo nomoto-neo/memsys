@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Company;
 use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Models\CompanyUser;
-use App\Support\MemberVerificationCode;
+use App\Support\LoginVerificationCode;
 use App\Support\PasswordChange;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -26,7 +26,7 @@ use Illuminate\View\View;
  */
 class PasswordResetController extends Controller
 {
-    private const PURPOSE = MemberVerificationCode::PURPOSE_PASSWORD_RESET;
+    private const PURPOSE = LoginVerificationCode::PURPOSE_PASSWORD_RESET;
 
     /**
      * 再設定フォーム（確認コード＋新しいパスワード）の入力バリデーションルール。
@@ -69,9 +69,9 @@ class PasswordResetController extends Controller
             ->first();
 
         // 担当者がいれば確認コードを送る。送信に失敗しても、案内は変えない
-        // （開発者はMemberVerificationCode::issue()が残すログで気付ける）
+        // （開発者はLoginVerificationCode::issue()が残すログで気付ける）
         if ($user !== null) {
-            (new MemberVerificationCode(CompanyUser::class))->issue($request, $user, self::PURPOSE);
+            (new LoginVerificationCode(CompanyUser::class))->issue($request, $user, self::PURPOSE);
         }
 
         return redirect()->route('company.password.reset')
@@ -92,7 +92,7 @@ class PasswordResetController extends Controller
     {
         $validated = $request->validate($this->rules());
 
-        $user = (new MemberVerificationCode(CompanyUser::class))->verify($request, self::PURPOSE, $validated['code']);
+        $user = (new LoginVerificationCode(CompanyUser::class))->verify($request, self::PURPOSE, $validated['code']);
 
         if (! $user instanceof CompanyUser) {
             return redirect()->route('company.password.reset')
@@ -122,7 +122,7 @@ class PasswordResetController extends Controller
             return redirect()->route('company.login')->with('status', $message);
         }
 
-        Auth::guard(CompanyUser::memberGuard())->login($user);
+        Auth::guard(CompanyUser::loginGuard())->login($user);
         $request->session()->regenerate();
 
         return redirect()->route('company.mypage')->with('status', $message);

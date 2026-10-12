@@ -109,7 +109,7 @@ return [
             'replace_placeholders' => true,
         ],
 
-        // 会員の登録・退会の記録（App\Support\MemberActivityLog）。
+        // 会員の登録・退会の記録（App\Services\MemberActivityLog）。
         // storage/logs/member-日付.log に1日1ファイルで書き、LOG_MEMBER_DAYS日分
         // （既定は365日）を残す。氏名・メールアドレスなどの個人情報は書かない。
         'member' => [

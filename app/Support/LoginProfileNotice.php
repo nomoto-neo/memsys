@@ -22,7 +22,7 @@ use Illuminate\Support\Facades\Mail;
  * テンプレートは、会員の種類の「種類の名前_profile_changed」。渡す値は、name・changed_at・
  * reset_url（その種類のパスワードの再設定の画面）。
  */
-final class MemberProfileNotice
+final class LoginProfileNotice
 {
     /** 変わっても知らせない列。パスワードは別のメールで知らせる */
     private const SILENT_FIELDS = ['password'];
@@ -30,7 +30,7 @@ final class MemberProfileNotice
     /**
      * @param  array  $changedFields  値が変わった列の、列の名前 => 変わる前の値。FormFlowがafterSave()に渡すもの
      */
-    public static function send(MemberAccount $member, array $changedFields): void
+    public static function send(LoginAccount $member, array $changedFields): void
     {
         $fields = array_diff(array_keys($changedFields), self::SILENT_FIELDS);
 
@@ -44,14 +44,14 @@ final class MemberProfileNotice
             'from_name' => config('mail.from.name'),
             'name' => $member->displayName(),
             'changed_at' => now()->format('Y年n月j日 H:i'),
-            'reset_url' => route($member::memberRoute('password.forgot')),
+            'reset_url' => route($member::loginRoute('password.forgot')),
         ];
 
         // 宛先。メールアドレスが変わったときは、変わる前のアドレスにも送る
         $recipients = array_unique(array_filter([$member->notificationEmail(), $changedFields['email'] ?? null]));
 
         // メールのテンプレートは、会員の種類の名前から決まる
-        $template = $member::memberMailTemplate('profile_changed');
+        $template = $member::loginMailTemplate('profile_changed');
 
         // 保存が確定した後に送る
         DB::afterCommit(function () use ($member, $variables, $recipients, $template) {
@@ -59,7 +59,7 @@ final class MemberProfileNotice
                 try {
                     Mail::send(new TemplatedMail($template, ['to_mail' => $recipient] + $variables));
                 } catch (\Throwable $e) {
-                    Log::error('MemberProfileNotice: 会員情報変更のお知らせメールの送信に失敗しました。', [
+                    Log::error('LoginProfileNotice: 会員情報変更のお知らせメールの送信に失敗しました。', [
                         'member_type' => $member->getMorphClass(),
                         'member_id' => $member->getKey(),
                         'message' => $e->getMessage(),

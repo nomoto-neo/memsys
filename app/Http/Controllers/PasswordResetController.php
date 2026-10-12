@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Member;
-use App\Support\MemberVerificationCode;
+use App\Support\LoginVerificationCode;
 use App\Support\PasswordChange;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -22,7 +22,7 @@ use Illuminate\View\View;
  */
 class PasswordResetController extends Controller
 {
-    private const PURPOSE = MemberVerificationCode::PURPOSE_PASSWORD_RESET;
+    private const PURPOSE = LoginVerificationCode::PURPOSE_PASSWORD_RESET;
 
     /**
      * 再設定フォーム（確認コード＋新しいパスワード）の入力バリデーションルール。
@@ -52,9 +52,9 @@ class PasswordResetController extends Controller
         $member = Member::where('email', $validated['email'])->first();
 
         // 会員がいれば確認コードを送る。送信に失敗しても、案内は変えない
-        // （開発者はMemberVerificationCode::issue()が残すログで気付ける）
+        // （開発者はLoginVerificationCode::issue()が残すログで気付ける）
         if ($member !== null) {
-            (new MemberVerificationCode(Member::class))->issue($request, $member, self::PURPOSE);
+            (new LoginVerificationCode(Member::class))->issue($request, $member, self::PURPOSE);
         }
 
         return redirect()->route('password.reset')
@@ -75,7 +75,7 @@ class PasswordResetController extends Controller
     {
         $validated = $request->validate($this->rules());
 
-        $member = (new MemberVerificationCode(Member::class))->verify($request, self::PURPOSE, $validated['code']);
+        $member = (new LoginVerificationCode(Member::class))->verify($request, self::PURPOSE, $validated['code']);
 
         if ($member === null) {
             return redirect()->route('password.reset')
