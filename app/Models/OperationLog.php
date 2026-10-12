@@ -35,7 +35,8 @@ class OperationLog extends Model
         'action' => OperationLogAction::class,
         'target_id' => 'integer',
         'changed_fields' => 'array',
-        'detail' => 'array',
+        // 日本語を\u4f1aのような表記に変えずに、そのまま保存する。一覧の検索で、補足を部分一致で探せるようにするため
+        'detail' => 'json:unicode',
     ];
 
     /**

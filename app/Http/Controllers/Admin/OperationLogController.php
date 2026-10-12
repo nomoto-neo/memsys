@@ -197,6 +197,8 @@ class OperationLogController extends Controller
             'target_type' => ['nullable', Rule::in(code_keys('operation_log_subject'))],
             'target_id' => ['nullable', 'integer'],
             'ip' => ['nullable', 'string', 'max:45'],
+            // 補足の中の語（JSONの列なのでapplyCustomSearch()で処理）
+            'detail' => ['nullable', 'string', 'max:100'],
             // 日付の範囲（カラムではないのでapplyCustomSearch()で処理）
             'date_from' => ['nullable', 'date'],
             'date_to' => ['nullable', 'date'],
@@ -222,6 +224,21 @@ class OperationLogController extends Controller
 
         if ($key === 'date_to') {
             $query->where('created_at', '<=', Carbon::parse($value)->endOfDay());
+
+            return true;
+        }
+
+        // 補足は、空白で区切った語の全部を含む行に絞る。補足はJSONの文字のまま入っているので、
+        // 語もJSONの中での表記（「/」は「\/」になる）に直してから、部分一致で探す
+        if ($key === 'detail') {
+            $words = preg_split('/[ \x{3000}\t\r\n]+/u', trim($value), -1, PREG_SPLIT_NO_EMPTY);
+
+            foreach ($words as $word) {
+                $stored = substr(json_encode($word, JSON_UNESCAPED_UNICODE), 1, -1);
+
+                // LIKEでは「\」が特別な文字なので、重ねて書く
+                $query->where('detail', 'like', '%'.str_replace('\\', '\\\\', $stored).'%');
+            }
 
             return true;
         }

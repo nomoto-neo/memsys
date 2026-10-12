@@ -61,6 +61,8 @@ button.stats-chart-col:hover .stats-chart-bar {
     - action：操作の種類（完全一致）
     - target_type・target_id：対象の種類とid（完全一致）
     - ip：IPアドレス（部分一致）
+    - detail：補足の中の語（部分一致。空白で区切ると、全部を含む行。
+      OperationLogController::applyCustomSearch()で処理）
 --}}
 <form method="POST" action="{{ route('admin.operation-logs.search') }}" class="row g-2 mb-4">
     @csrf
@@ -120,6 +122,10 @@ button.stats-chart-col:hover .stats-chart-bar {
     <div class="col-sm-2">
         <input type="text" name="target_id" inputmode="numeric" class="form-control" placeholder="対象のID"
                value="{{ $filters['target_id'] ?? '' }}">
+    </div>
+    <div class="col-sm-4">
+        <input type="text" name="detail" maxlength="100" class="form-control" placeholder="補足"
+               value="{{ $filters['detail'] ?? '' }}">
     </div>
 </form>
 
