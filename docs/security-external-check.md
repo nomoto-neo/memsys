@@ -283,7 +283,7 @@ Laravel を通る画面には、同じヘッダーが `SecurityHeaders` から�
 | 所見 | 対応 |
 |---|---|
 | 1・2 | サーバーの側の作業。まだ対応していない |
-| 3 | 表示用のサイト名を `SITE_NAME` に分けた（利用ガイド第3.3版）。サーバーの `.env` の書き換えは、サーバーの側の作業 |
+| 3 | 表示用のサイト名を `SITE_NAME` に分けた。サーバーの `.env` の書き換えは、サーバーの側の作業 |
 | 4 | `composer update league/commonmark` で更新した。`composer audit` は報告なし |
 | 5 | `@ckeditor/ckeditor5-build-classic` を外し、`ckeditor5`（48.5.2）に入れ替えた。`npm audit --omit=dev` は `found 0 vulnerabilities` |
 
