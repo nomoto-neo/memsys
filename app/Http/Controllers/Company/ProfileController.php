@@ -57,7 +57,7 @@ class ProfileController extends Controller
 
     /**
      * 担当者の情報の検証ルール。メールアドレスは、同じ企業のほかの担当者と重ならないこと
-     * （CompanyUser::emailNotUsedInCompany()）。
+     * （CompanyUser::uniqueEmailInCompany()）。
      */
     private function rules(?CompanyUser $user = null): array
     {
@@ -65,7 +65,7 @@ class ProfileController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => [
                 'required', 'string', 'email', 'max:255',
-                ...($user !== null ? [CompanyUser::emailNotUsedInCompany($user->company_id, $user)] : []),
+                ...($user !== null ? [CompanyUser::uniqueEmailInCompany($user->company_id, $user)] : []),
             ],
         ];
     }

@@ -38,7 +38,7 @@ class CompanyUserController extends Controller
 
     /**
      * 入力バリデーションルール。メールアドレスは、同じ企業のほかの担当者と重ならないこと
-     * （CompanyUser::emailNotUsedInCompany()）。
+     * （CompanyUser::uniqueEmailInCompany()）。
      */
     private function rules(?CompanyUser $user): array
     {
@@ -46,7 +46,7 @@ class CompanyUserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => [
                 'required', 'string', 'email', 'max:255',
-                ...($user !== null ? [CompanyUser::emailNotUsedInCompany($user->company_id, $user)] : []),
+                ...($user !== null ? [CompanyUser::uniqueEmailInCompany($user->company_id, $user)] : []),
             ],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
         ];

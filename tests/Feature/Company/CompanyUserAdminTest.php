@@ -180,7 +180,7 @@ class CompanyUserAdminTest extends TestCase
         $this->actingAs($this->staff(), 'admin')->patch($this->url($user, '/update'), [
             'name' => '山田 太郎',
             'email' => $other->email,
-        ])->assertSessionHasErrors(['email' => 'このメールアドレスは、すでにほかの担当者が使っています。']);
+        ])->assertSessionHasErrors(['email' => 'この項目は既に使用されています。']);
 
         $this->assertSame('yamada@example.com', $user->fresh()->email);
     }

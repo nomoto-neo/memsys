@@ -74,7 +74,7 @@ class FirstLoginSetupController extends Controller
 
     /**
      * 登録フォームの検証ルール。担当者IDは、その企業の中で重ならないこと。今の担当者IDのままでもよい。
-     * メールアドレスも、同じ企業のほかの担当者と重ならないこと（CompanyUser::emailNotUsedInCompany()）。
+     * メールアドレスも、同じ企業のほかの担当者と重ならないこと（CompanyUser::uniqueEmailInCompany()）。
      * identityは、企業の情報と照合する値。password_confirmationは、confirmedルールで
      * passwordと照合するので、ここには書かない。
      */
@@ -82,7 +82,7 @@ class FirstLoginSetupController extends Controller
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', CompanyUser::emailNotUsedInCompany($user->company_id, $user)],
+            'email' => ['required', 'string', 'email', 'max:255', CompanyUser::uniqueEmailInCompany($user->company_id, $user)],
             'login_id' => [
                 'required', 'string', 'max:50', 'regex:'.CompanyUser::LOGIN_ID_PATTERN,
                 Rule::unique(CompanyUser::class, 'login_id')->where('company_id', $user->company_id)->ignore($user->id),

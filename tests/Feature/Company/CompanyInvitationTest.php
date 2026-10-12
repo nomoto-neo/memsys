@@ -412,7 +412,7 @@ class CompanyInvitationTest extends TestCase
             'password' => $me->password,
         ]);
         $this->user($this->company('other'), 'sato', 'elsewhere@example.com');
-        $error = ['email' => 'このメールアドレスは、すでにほかの担当者が使っています。'];
+        $error = ['email' => 'この項目は既に使用されています。'];
 
         // すでに担当者が使っているアドレスには、招待を送れない
         $this->actingAs($me, 'company')->post('/company/mypage/users/invite', ['email' => 'suzuki@example.com'])

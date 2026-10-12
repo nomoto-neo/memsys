@@ -7,9 +7,10 @@ use App\Support\HasPasskeys;
 use App\Support\HasTwoFactor;
 use App\Support\IsMemberAccount;
 use App\Support\MemberAccount;
-use Closure;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Unique;
 use Laravel\Passkeys\Contracts\PasskeyUser;
 
 /**
@@ -90,28 +91,14 @@ class CompanyUser extends Authenticatable implements MemberAccount, PasskeyUser
     /**
      * メールアドレスの検証のルール。同じ企業の中で、ほかの担当者が使っていないこと。
      * 確認コードとパスワードの再設定のメールが、本人だけに届くようにするため。
-     * 画面から登録・変更するときに使う。別の企業の担当者と同じアドレスは、使ってよい。
-     *
-     * $currentは、編集する担当者。アドレスを変えていなければ通す。既存のシステムから移した
-     * データには、同じアドレスの担当者がいることがあり、その人が氏名だけを直せるようにするため。
+     * 別の企業の担当者と同じアドレスは、使ってよい。DBにも、同じ内容の制約がある。
+     * $currentは、編集する担当者。自分自身は、重なりの相手に数えない。
      */
-    public static function emailNotUsedInCompany(int $companyId, ?self $current = null): Closure
+    public static function uniqueEmailInCompany(int $companyId, ?self $current = null): Unique
     {
-        return function (string $attribute, mixed $value, Closure $fail) use ($companyId, $current) {
-            if ($current !== null && $value === $current->email) {
-                return;
-            }
-
-            $used = self::query()
-                ->where('company_id', $companyId)
-                ->where('email', $value)
-                ->when($current, fn ($query) => $query->whereKeyNot($current->getKey()))
-                ->exists();
-
-            if ($used) {
-                $fail('このメールアドレスは、すでにほかの担当者が使っています。');
-            }
-        };
+        return Rule::unique(self::class, 'email')
+            ->where('company_id', $companyId)
+            ->ignore($current?->getKey());
     }
 
     /** 画面やメールに出す名前。どの企業の人かが分かるよう、企業名を前に付ける */

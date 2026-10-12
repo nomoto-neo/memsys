@@ -157,7 +157,7 @@ class CompanyController extends Controller
     private function invitationRules(Company $company): array
     {
         return [
-            'email' => ['required', 'string', 'email', 'max:255', CompanyUser::emailNotUsedInCompany($company->id)],
+            'email' => ['required', 'string', 'email', 'max:255', CompanyUser::uniqueEmailInCompany($company->id)],
         ];
     }
 

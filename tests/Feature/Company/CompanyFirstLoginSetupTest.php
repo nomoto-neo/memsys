@@ -234,7 +234,7 @@ class CompanyFirstLoginSetupTest extends TestCase
 
         // 同じ企業のほかの担当者が使っているアドレスは、登録できない
         $this->post('/company/login/setup', $this->setupInput())
-            ->assertSessionHasErrors(['email' => 'このメールアドレスは、すでにほかの担当者が使っています。']);
+            ->assertSessionHasErrors(['email' => 'この項目は既に使用されています。']);
         $this->assertNull($user->fresh()->email);
     }
 }

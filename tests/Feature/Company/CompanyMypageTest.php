@@ -7,6 +7,7 @@ use App\Enums\OperationLogAction;
 use App\Models\Company;
 use App\Models\CompanyUser;
 use App\Models\OperationLog;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Tests\Support\ReadsSentMail;
@@ -161,7 +162,7 @@ class CompanyMypageTest extends TestCase
         // 同じ企業のほかの担当者が使っているアドレスには、変えられない
         $this->actingAs($user, 'company')
             ->patch('/company/mypage/profile', ['name' => '山田 太郎', 'email' => 'info@example.com'])
-            ->assertSessionHasErrors(['email' => 'このメールアドレスは、すでにほかの担当者が使っています。']);
+            ->assertSessionHasErrors(['email' => 'この項目は既に使用されています。']);
         $this->assertSame('old@example.com', $user->fresh()->email);
     }
 
@@ -181,18 +182,31 @@ class CompanyMypageTest extends TestCase
         $this->assertSame('info@example.com', $user->fresh()->email);
     }
 
-    public function test_user_sharing_an_address_can_save_without_changing_it(): void
+    public function test_same_address_cannot_exist_twice_in_a_company(): void
     {
-        // 既存のシステムから移したデータには、同じアドレスの担当者がいることがある
         $company = $this->company();
         $this->user($company, 'sato', 'info@example.com');
-        $user = $this->user($company, 'yamada', 'info@example.com');
 
-        // アドレスを変えていなければ、氏名だけを直せる
+        // 検証を通らずに書き込もうとしても、DBの制約で止まる
+        try {
+            $this->user($company, 'yamada', 'info@example.com');
+            $this->fail('同じ企業に、同じメールアドレスの担当者を作れてしまった。');
+        } catch (UniqueConstraintViolationException) {
+            $this->assertSame(1, CompanyUser::count());
+        }
+
+        // メールアドレスが空の担当者は、何人いてもよい。既存のシステムから移した担当者は、初回のログインで登録する
+        foreach (['a', 'b'] as $loginId) {
+            CompanyUser::create(['company_id' => $company->id, 'login_id' => $loginId, 'password' => Hash::make('x')]);
+        }
+        $this->assertSame(3, CompanyUser::count());
+
+        // 自分のアドレスを変えない保存は、通る
+        $user = CompanyUser::where('login_id', 'sato')->sole();
         $this->actingAs($user, 'company')
-            ->patch('/company/mypage/profile', ['name' => '山田 次郎', 'email' => 'info@example.com'])
+            ->patch('/company/mypage/profile', ['name' => '佐藤 次郎', 'email' => 'info@example.com'])
             ->assertSessionHasNoErrors();
-        $this->assertSame('山田 次郎', $user->fresh()->name);
+        $this->assertSame('佐藤 次郎', $user->fresh()->name);
     }
 
     public function test_own_email_is_not_changed_without_the_right_code(): void

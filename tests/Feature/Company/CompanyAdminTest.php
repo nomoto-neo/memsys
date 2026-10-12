@@ -371,7 +371,7 @@ class CompanyAdminTest extends TestCase
         $this->user($company);
 
         $this->actingAs($this->staff(), 'admin')->post("/admin/companies/{$company->id}/invitations", ['email' => 'yamada@example.com'])
-            ->assertSessionHasErrorsIn('invitation', ['email' => 'このメールアドレスは、すでにほかの担当者が使っています。']);
+            ->assertSessionHasErrorsIn('invitation', ['email' => 'この項目は既に使用されています。']);
         $this->assertSame(0, TeamInvitation::count());
     }
 }

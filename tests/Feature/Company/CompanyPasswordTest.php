@@ -133,12 +133,12 @@ class CompanyPasswordTest extends TestCase
         $this->assertCount(0, $this->sentMails());
     }
 
-    public function test_forgot_picks_one_user_even_if_the_address_is_shared(): void
+    public function test_forgot_picks_one_user_even_if_the_address_is_used_in_another_company(): void
     {
-        // 同じメールアドレスを、同じ企業の別の担当者と、別の企業の同じ担当者IDの人が使っている
+        // 同じメールアドレスを、別の企業の同じ担当者IDの人が使っている。同じ企業の中では、重ならない
         $company = $this->company('acme');
         $yamada = $this->user($company, 'yamada', 'info@example.com');
-        $sato = $this->user($company, 'sato', 'info@example.com');
+        $sato = $this->user($company, 'sato', 'sato@example.com');
         $other = $this->user($this->company('other'), 'yamada', 'info@example.com');
 
         $this->post('/company/password/forgot', $this->forgotInput(['email' => 'info@example.com']));
