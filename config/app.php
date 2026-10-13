@@ -130,14 +130,6 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
-    // ログイン後の管理画面で、1人のスタッフが1分に送れる回数（Neobit\Core\Security\AdminRequestLimit）。
-    // 超えた回は処理せず、操作ログとwarningのログに残す。人が普通に使って届かない数にする
-    'admin_requests_per_minute' => 120,
-
-    // 上の回数を超えたときに出す、案内の文。画面と、アップロードのようなJavaScriptからの送信に
-    // 返すJSONの両方に、この文をそのまま出す。タグは書けない
-    'admin_requests_exceeded_message' => '操作の回数が上限を超えました。1分ほど待ってから、もう一度お試しください。',
-
     // 信頼するプロキシのIPアドレス。サーバーの前にロードバランサーやCDNを置いたときに、
     // そのIPアドレスをカンマ区切りで書く（192.168.0.0/24のような範囲も書ける）。
     // ここに書いたプロキシから届いたX-Forwarded-Forを、訪問者のIPアドレスとして使う

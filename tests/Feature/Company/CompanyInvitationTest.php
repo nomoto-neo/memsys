@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Hash;
 use Neobit\Core\Enums\OperationLogAction;
 use Neobit\Core\Models\OperationLog;
 use Neobit\Core\Models\TeamInvitation;
+use Neobit\Core\Operations\TemporaryDataCleaner;
 use Neobit\Core\Team\TeamInvitationManager;
 use Tests\Support\ReadsSentMail;
 use Tests\TestCase;
@@ -184,7 +185,7 @@ class CompanyInvitationTest extends TestCase
         $this->post($url, $this->registerInput())->assertNotFound();
         $this->assertSame(1, CompanyUser::count());
 
-        $this->assertSame(1, TeamInvitationManager::deleteExpired());
+        $this->assertSame(1, TemporaryDataCleaner::all()['期限の切れた招待']);
         $this->assertSame(0, TeamInvitation::count());
     }
 

@@ -25,8 +25,8 @@ class AdminRequestLimitTest extends TestCase
         parent::setUp();
 
         config([
-            'app.admin_requests_per_minute' => 2,
-            'app.admin_requests_exceeded_message' => self::MESSAGE,
+            'neobit.admin_requests_per_minute' => 2,
+            'neobit.admin_requests_exceeded_message' => self::MESSAGE,
         ]);
 
         $this->actingAs(Staff::create([

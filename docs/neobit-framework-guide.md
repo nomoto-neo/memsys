@@ -317,6 +317,7 @@ class NewsController extends Controller
 - **データ項目の仕様はモデルの定数に持つ**：画像の横幅のように、どの画面から登録しても変わらない仕様はモデルの定数にし、コントローラーや画面はそれを参照します（例：`News::LIST_IMAGE_WIDTH`）。
 - **選択肢のように決まった種類の値は列挙型にする**：`app/Enums/`。区分表として一覧を使うときは、出どころに関係なく `code_table()` 系のヘルパーを通します（8章）。
 - **テンプレートは細かく部品化しない**：デザイナーが触れる HTML のまま保ちます。コーナーの入力欄は `_fields.blade.php` 1つにまとめ、4つの画面から呼びます（5章）。Blade にコントローラー名は書きません。
+- **設定の既定の値は、フレームワークが持つ**：`neobit`・`upload`・`cleanup` の設定は、`packages/neobit/core/config/` に既定の値があります。アプリの `config/` に同じ名前のファイルで書いたキーが、それに優先します。優先するのは、いちばん上の階層のキーごとです。配列の値（`upload.image_types`・`neobit.operation_report_thresholds` など）は、アプリが書くと丸ごと置き換わるので、変えない要素も全部書きます。`php artisan vendor:publish --tag=neobit-config` で、既定の値のファイルを `config/` へ写せます。
 - **Blade のコメントは `{{-- --}}` で書く**：`<style>` や `<script>` の中でも同じです。`/* */`・`//`・`<!-- -->` は HTML のソースに出て、訪問者に見えるので使いません。
 - **コメント**：今のコードが何をしていて、なぜそうなっているかだけを書きます。試行錯誤の経緯は書きません。書き方は 1-5 にまとめてあります。
 
@@ -1571,23 +1572,20 @@ Schedule::command(CleanupTemporaryData::class)->hourly()->withoutOverlapping();
 | 「この端末を信頼する」の記録 | `trusted_devices` テーブル | 期限（`expires_at`）の切れた行 |
 | 操作ログ（22章） | `operation_logs` テーブル | `config/cleanup.php` の `operation_log_days`（365日）より古い行 |
 | 送れなかったキューのジョブ（21章） | `failed_jobs` テーブル | `config/cleanup.php` の `failed_job_days`（7日）より古い行 |
+| 招待（23章） | `team_invitations` テーブル | 期限（`expires_at`）の切れた行（`TeamInvitationManager::deleteExpired()`） |
 
-業務のデータの片付けは、`TemporaryDataCleaner` には書かず、`config/cleanup.php` の `tasks` に足します。フレームワークの片付けの後に、同じ1時間ごとの片付けの中で呼ばれます。サンプルサイトでは、次の2つを足しています。
+業務のデータの片付けは、`TemporaryDataCleaner` には書かず、`config/cleanup.php` の `tasks` に足します。フレームワークの片付けの後に、同じ1時間ごとの片付けの中で呼ばれます。サンプルサイトでは、お問い合わせの片付けを足しています。
 
 | 片付け | 置き場所 | 消すもの |
 |---|---|---|
 | お問い合わせ（12章） | `t_inquiries` テーブルと添付ファイル | `tasks` の `days` に書いた日数より古い行と、その添付ファイル。`null` なら消さない（`App\Services\InquiryCleanup`） |
-| 企業会員の担当者の招待（23章） | `team_invitations` テーブル | 期限（`expires_at`）の切れた行（`TeamInvitationManager::deleteExpired()`） |
 
 ```php
 // config/cleanup.php
 'tasks' => [
     '保存期間を過ぎたお問い合わせ' => [
         'run' => [InquiryCleanup::class, 'deleteOld'],                // 呼ぶメソッド。消した件数を返す
-        'days' => null,                                               // 残す日数。メソッドに引数で渡す
-    ],
-    '期限の切れた担当者の招待' => [
-        'run' => [TeamInvitationManager::class, 'deleteExpired'],     // 行ごとに期限を持つものは、days を書かない
+        'days' => null,                                               // 残す日数。メソッドに引数で渡す。行ごとに期限を持つものは、days を書かない
     ],
 ],
 ```
@@ -1850,9 +1848,9 @@ OperationRecorder::record(OperationLogAction::Update, $company, ['status'], ['st
 
 ログイン後の管理画面の全体に、スタッフごとの回数の制限を掛けています。一覧や詳細を、プログラムで続けて開いてデータを取り出す動きを止めるためです。
 
-- **回数**：`config/app.php` の `admin_requests_per_minute`（1分に120回）。人が普通に使って届かない数にします。画面の表示のほか、アップロードや、送信中の画面の読み直しも1回に数えます。
+- **回数**：`config/neobit.php` の `admin_requests_per_minute`（1分に120回）。人が普通に使って届かない数にします。画面の表示のほか、アップロードや、送信中の画面の読み直しも1回に数えます。
 - **数える単位**：操作しているスタッフの id です。同じ事務所から複数の人が使っても、互いに影響しません。
-- **超えたとき**：その回は処理せず、少し待つよう案内する画面（`admin/too_many_requests.blade.php`）を返します。案内の文は、`config/app.php` の `admin_requests_exceeded_message` に書きます。アップロードのような JavaScript からの送信には、同じ文を JSON で返します。操作ログに「回数の制限」を残し、`warning` のログも書きます。`ERROR_NOTIFY_LEVEL` が `warning` なら、エラーの通知のメール（20章）が届きます。件名は `【要確認：サイト名】WARNING：管理画面の操作が上限を超えました（スタッフID:3）` です。
+- **超えたとき**：その回は処理せず、少し待つよう案内する画面（`admin/too_many_requests.blade.php`）を返します。案内の文は、`config/neobit.php` の `admin_requests_exceeded_message` に書きます。アップロードのような JavaScript からの送信には、同じ文を JSON で返します。操作ログに「回数の制限」を残し、`warning` のログも書きます。`ERROR_NOTIFY_LEVEL` が `warning` なら、エラーの通知のメール（20章）が届きます。件名は `【要確認：サイト名】WARNING：管理画面の操作が上限を超えました（スタッフID:3）` です。
 - **記録は、スタッフごとに1分に1回まで**：続けて取り出そうとすると、超えた回数だけ記録が増えてしまうためです。
 - **管理画面のルートを足すとき**：`auth:admin` のグループの内側に書けば、この制限が掛かります。足すものはありません。
 - **止められないもの**：上限より遅く、時間をかけて取る動きは止まりません。そちらは、詳細の閲覧や CSV のダウンロードの記録から調べます。
@@ -1890,7 +1888,7 @@ OperationRecorder::record(OperationLogAction::Update, $company, ['status'], ['st
 
 毎朝8時に、前の日の操作ログの報告を管理者へ送ります（`routes/console.php`）。**気になる点があった日だけ**送ります。毎日届くと読まれなくなり、肝心の日に埋もれるためです。
 
-| 気になる点 | 目安（`config/logging.php` の `operation_report_thresholds`） |
+| 気になる点 | 目安（`config/neobit.php` の `operation_report_thresholds`） |
 |---|---|
 | 1人が、1時間に詳細を開いた件数 | 50件以上（`views_per_hour`） |
 | 1人が、1日に CSV をダウンロードした回数 | 5回以上（`csv_downloads_per_day`） |
@@ -1901,7 +1899,7 @@ OperationRecorder::record(OperationLogAction::Update, $company, ['status'], ['st
 - **件名**：`【要確認：サイト名】操作ログの報告（日付）`。頭は、エラーの通知と同じです。
 - **載せるもの**：気になる点、操作の種類ごとの件数、操作の多い人です。操作ログと同じく、氏名のほかの個人情報は載せません。
 - **手で動かす**：`php artisan app:report-operation-logs --date=2026-10-04 --always`。`--date` を書かなければ前の日、`--always` を付けると気になる点が無くても送ります。文面や宛先を確かめるときに使います。
-- 目安の数は、サイトの規模（スタッフや会員の数、1日の操作の量）に合わせて、`config/logging.php` の `operation_report_thresholds` で決めます。0 にすると、その項目は見ません。
+- 目安の数は、サイトの規模（スタッフや会員の数、1日の操作の量）に合わせて、`config/neobit.php` の `operation_report_thresholds` で決めます。0 にすると、その項目は見ません。
 
 ### 会員情報が変わったときのお知らせメール（LoginProfileNotice）
 
@@ -2111,7 +2109,6 @@ Route::prefix('company')->name('company.')->group(function () {
 - `AppServiceProvider` の `enforceMorphMap()` の `company`・`company_user`
 - `OperationLogSubject` の `Company`・`CompanyUser` と、`OperationLog::subjectNames()` の読み方
 - `OperationLogAction` の `InvitationSend`・`InvitationCancel`
-- `config/cleanup.php` の `tasks` の「期限の切れた担当者の招待」
 
 ### 個人会員をログインID でログインさせるサイト
 

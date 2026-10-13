@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Storage;
 use Neobit\Core\Csv\CsvImportSettings;
 use Neobit\Core\Models\OperationLog;
 use Neobit\Core\Models\TrustedDevice;
+use Neobit\Core\Team\TeamInvitationManager;
 use Neobit\Core\Upload\UploadFilePath;
 
 /**
@@ -30,9 +31,12 @@ use Neobit\Core\Upload\UploadFilePath;
  * 送れなかったキューのジョブ（failed_jobsテーブル）
  *   消すもの：config('cleanup.failed_job_days')の日数より古い行
  *
+ * 招待（team_invitationsテーブル。Neobit\Core\Team\TeamInvitationManager）
+ *   消すもの：期限の切れた行
+ *
  * ■ プロジェクトの片付け
  * 業務のデータの片付けは、このクラスには書かない。config/cleanup.phpのtasksに、
- * 名前と呼ぶメソッドを書くと、all()が上の片付けの後に呼ぶ。お問い合わせや、担当者の招待が
+ * 名前と呼ぶメソッドを書くと、all()が上の片付けの後に呼ぶ。お問い合わせが
  * これに当たる。残す日数（days）を書いた片付けには、その日数を引数で渡す。
  *
  * ■ 呼ぶところ
@@ -42,7 +46,7 @@ use Neobit\Core\Upload\UploadFilePath;
  *   溜まり続けないようにするための控え
  *
  * ■ 期限の切れた行
- * キャッシュと信頼済みの端末の記録は行ごとに期限を持ち、期限の切れた行は使われない。
+ * キャッシュ・信頼済みの端末の記録・招待は行ごとに期限を持ち、期限の切れた行は使われない。
  * ただ、もう一度読まれない限り消えないので、試行制限のように毎回違うキーで作られる行が
  * 溜まっていく。期限は各機能が決めているので、ここでは期限の切れた行を消すだけで
  * MAX_AGE_HOURSは使わない。キャッシュをDB以外に置いているときは何もしない。
@@ -66,6 +70,7 @@ final class TemporaryDataCleaner
             '期限の切れた信頼済み端末' => self::expiredTrustedDevices(),
             '保存期間を過ぎた操作ログ' => self::oldOperationLogs(),
             '保存期間を過ぎた、送れなかったジョブ' => self::oldFailedJobs(),
+            '期限の切れた招待' => TeamInvitationManager::deleteExpired(),
         ];
 
         // プロジェクトの片付け。残す日数を書いた片付けには、その日数を渡す

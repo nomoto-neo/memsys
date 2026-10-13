@@ -13,7 +13,7 @@ use Neobit\Core\Models\OperationLog;
  *
  * ■ 気になる点
  * 次のどれかに当たるものを「気になる点」として挙げる。目安の数は、サイトの規模で変わるので、
- * config('logging.operation_report_thresholds')に持つ。0にした項目は見ない。
+ * config('neobit.operation_report_thresholds')に持つ。0にした項目は見ない。
  * - 1人が、1時間に詳細をviews_per_hour件以上開いた
  * - 1人が、1日にCSVをcsv_downloads_per_day回以上ダウンロードした
  * - ログインの失敗が、1日にlogin_failures_per_day件以上あった
@@ -138,7 +138,7 @@ final class OperationLogReport
     /** 気になる点の、目安の数。設定に無ければ0で、その項目は見ない */
     private static function threshold(string $name): int
     {
-        return (int) config('logging.operation_report_thresholds.'.$name);
+        return (int) config('neobit.operation_report_thresholds.'.$name);
     }
 
     /** 日時から「時」を取り出すSQL。書き方がDBによって違う */

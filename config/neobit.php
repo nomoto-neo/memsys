@@ -59,4 +59,18 @@ return [
     // 操作ログの画面のルート名。日々の報告のメールに、この画面のURLを載せる
     'operation_log_route' => 'admin.operation-logs.index',
 
+    // 操作ログの報告のメール（Neobit\Core\Operations\OperationLogReport）で、「気になる点」として
+    // 挙げる目安の数。これ以上なら挙げる。サイトの規模（スタッフや会員の数、1日の操作の量）に
+    // 合わせて、プロジェクトごとに決める。0にすると、その項目は見ない。
+    // 宛先は.envのOPERATION_REPORT_TO。エラーの通知（ERROR_NOTIFY_TO）は開発者、こちらは管理者と、
+    // 読む人が違うので分けている
+    'operation_report_thresholds' => [
+        // 1人が、1時間に開いた詳細の件数
+        'views_per_hour' => 50,
+        // 1人が、1日にCSVをダウンロードした回数
+        'csv_downloads_per_day' => 5,
+        // 1日のログインの失敗の件数
+        'login_failures_per_day' => 10,
+    ],
+
 ];

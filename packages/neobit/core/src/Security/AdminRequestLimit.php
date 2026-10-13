@@ -17,13 +17,13 @@ use Symfony\Component\HttpFoundation\Response;
  * throttle:admin-screenで使う。
  *
  * ■ 回数
- * config('app.admin_requests_per_minute')。
+ * config('neobit.admin_requests_per_minute')。
  * 人が普通に使って届かない数にする。画面の表示のほか、アップロードや、送信中の画面の
  * 読み直しも1回に数える。
  *
  * ■ 超えたとき
  * その回は処理せずに、少し待つよう案内する画面を返す。案内の文は、
- * config('app.admin_requests_exceeded_message')。あわせて、操作ログに「回数の制限」を残し、
+ * config('neobit.admin_requests_exceeded_message')。あわせて、操作ログに「回数の制限」を残し、
  * warningのログを書く。ERROR_NOTIFY_LEVELがwarningなら、エラーの通知のメールが届く。
  * 続けて取り出そうとすると、超えた回数だけ記録が増えてしまうので、操作ログとログは、
  * スタッフごとにNOTIFY_INTERVAL_SECONDSに1回までにする。
@@ -46,7 +46,7 @@ final class AdminRequestLimit
     public static function limit(Request $request): Limit
     {
         // 設定が無いか0のときは、既定の回数にする。0のまま使うと、全部の操作が止まる
-        $perMinute = (int) config('app.admin_requests_per_minute') ?: self::DEFAULT_PER_MINUTE;
+        $perMinute = (int) config('neobit.admin_requests_per_minute') ?: self::DEFAULT_PER_MINUTE;
         $staffId = $request->user()?->getKey();
 
         return Limit::perMinute($perMinute)
@@ -73,7 +73,7 @@ final class AdminRequestLimit
             ]);
         }
 
-        $message = config('app.admin_requests_exceeded_message') ?: self::DEFAULT_MESSAGE;
+        $message = config('neobit.admin_requests_exceeded_message') ?: self::DEFAULT_MESSAGE;
 
         // アップロードのように、JavaScriptからの送信にはJSONで返す
         if ($request->expectsJson()) {

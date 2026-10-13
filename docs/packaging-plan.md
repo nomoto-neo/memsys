@@ -39,7 +39,7 @@
 
 | 段階 | 中身 | 状態 |
 |---|---|---|
-| 1 | 設定の既定の値を、パッケージに持たせる | 未着手 |
+| 1 | 設定の既定の値を、パッケージに持たせる | 済み |
 | 2 | フレームワークが送るメールのテンプレートを、パッケージに持たせる | 未着手 |
 | 3 | フレームワークの画面を動かす JavaScript と CSS を、パッケージへ移す | 未着手 |
 | 4 | `CodeTable` が列挙型を探す名前空間（`App\Enums\`）の決め打ちを外す | 未着手 |
@@ -48,30 +48,27 @@
 
 ### 段階1　設定の既定の値
 
-フレームワークが読んでいる設定のうち、既定の値がプロジェクトの `config/` にしか無いもの。
+済み。フレームワークが読む設定の、既定の値の置き場所は次のとおり。
 
-| 設定のキー | 読んでいる部品 | 今の置き場所 |
+| 設定のキー | 読んでいる部品 | 既定の値の置き場所 |
 |---|---|---|
-| `upload.*`（5つ） | `AjaxFileUpload`・`CsvReader`・`CsvImport` | `config/upload.php` |
-| `cleanup.operation_log_days`・`failed_job_days`・`tasks` | `TemporaryDataCleaner` | `config/cleanup.php` |
-| `app.admin_requests_per_minute`・`admin_requests_exceeded_message` | `AdminRequestLimit` | `config/app.php` |
-| `logging.operation_report_to`・`operation_report_thresholds` | `ReportOperationLogs`・`OperationLogReport` | `config/logging.php` |
-| `app.site_name` | 画面2つ・`ErrorNotifyHandler`・`ReportOperationLogs`・`TeamInvitationManager` | `config/app.php` |
-| `services.turnstile.*` | `SpamGuard`・`_spam_guard.blade.php` | `config/services.php` |
-| `login.{種類の名前}.legacy_passwords` | `LegacyPasswordUserProvider` | `config/login.php` |
+| `upload.*`（5つ） | `AjaxFileUpload`・`CsvReader`・`CsvImport` | パッケージの `config/upload.php` |
+| `cleanup.operation_log_days`・`failed_job_days`・`tasks` | `TemporaryDataCleaner` | パッケージの `config/cleanup.php` |
+| `neobit.admin_requests_per_minute`・`admin_requests_exceeded_message` | `AdminRequestLimit` | パッケージの `config/neobit.php` |
+| `neobit.operation_report_to`・`operation_report_thresholds` | `ReportOperationLogs`・`OperationLogReport` | パッケージの `config/neobit.php` |
+| `app.site_name` | 画面2つ・`ErrorNotifyHandler`・`ReportOperationLogs`・`TeamInvitationManager` | プロジェクトの `config/app.php` |
+| `services.turnstile.*` | `SpamGuard`・`_spam_guard.blade.php` | プロジェクトの `config/services.php` |
+| `login.{種類の名前}.legacy_passwords` | `LegacyPasswordUserProvider` | プロジェクトの `config/login.php` |
 
-進め方。
+- パッケージの `config/` に置いたファイルを、サービスプロバイダーが `mergeConfigFrom()` で既定の値にする。プロジェクトの `config/` に同じ名前のファイルで書いたキーが優先する
+- 管理画面の回数の制限と、操作ログの報告の設定は、`config/app.php`・`config/logging.php` から `neobit.*` へ移した。フレームワークだけが読む値で、Laravel 自身の設定ファイルに間借りしたままだと、パッケージが既定の値を持てないため
+- `app.site_name`・`services.turnstile.*`・`login.*` は動かしていない。`site_name` はプロジェクトの画面も読み、`turnstile` は Laravel の習わしどおりの場所にあり、`login` は種類の名前がプロジェクトごとに違う。どれも、無ければ空として動く
+- 期限の切れた招待の片付けは、`TemporaryDataCleaner` が自分で呼ぶ。プロジェクトの `cleanup.tasks` には、業務のデータの片付けだけを書く
+- `php artisan vendor:publish --tag=neobit-config` で、既定の値のファイルをプロジェクトの `config/` へ写せる
 
-- `upload` と `cleanup` は、パッケージの `config/` に同じ名前のファイルを置き、サービスプロバイダーの `mergeConfigFrom()` で既定の値にする。プロジェクトの `config/upload.php` に書いたキーが優先する
-- `app.admin_requests_*` と `logging.operation_report_*` は、Laravel 自身の設定ファイルの中に間借りしている。フレームワークだけが読む値なので、`neobit.*` へ移してパッケージの `config/neobit.php` に既定の値を持たせる
-- `app.site_name`・`services.turnstile.*`・`login.*` は動かさない。`site_name` はプロジェクトの画面も読み、`turnstile` は Laravel の習わしどおりの場所にあり、`login` は種類の名前がプロジェクトごとに違う。どれも、無ければ空として動く
-- `cleanup.tasks` に書いてある「期限の切れた担当者の招待」は、フレームワークの部品（`TeamInvitationManager`）の片付けなので、`TemporaryDataCleaner` が自分で呼ぶ形にして、プロジェクトの設定から外す
-- 設定をプロジェクトへ写す手段（`php artisan vendor:publish --tag=neobit-config`）を、サービスプロバイダーに足す
-
-気を付けること。
+後の段階でも気を付けること。
 
 - `mergeConfigFrom()` が混ぜるのは、いちばん上の階層のキーだけ。配列の値（`upload.image_types`、`cleanup.tasks`、`neobit.operation_report_thresholds`）は、プロジェクトが書くと丸ごと置き換わる。中の1つだけを変えるつもりで一部だけ書くと、残りが消える
-- 設定のキーを移すので、`.env.example`・テスト（`AdminRequestLimitTest`・`OperationLogReportTest`）・利用ガイドの記述も合わせる
 
 ### 段階2　メールのテンプレート
 

@@ -51,22 +51,6 @@ return [
     |
     */
 
-    // 操作ログの報告のメール（Neobit\Core\Operations\OperationLogReport）の宛先。カンマ区切りで複数書ける。
-    // 空なら送らない。エラーの通知（ERROR_NOTIFY_TO）は開発者、こちらは管理者と、読む人が違うので分けている
-    'operation_report_to' => (string) env('OPERATION_REPORT_TO', ''),
-
-    // 操作ログの報告のメールで、「気になる点」として挙げる目安の数。これ以上なら挙げる。
-    // サイトの規模（スタッフや会員の数、1日の操作の量）に合わせて、プロジェクトごとに決める。
-    // 0にすると、その項目は見ない
-    'operation_report_thresholds' => [
-        // 1人が、1時間に開いた詳細の件数
-        'views_per_hour' => 50,
-        // 1人が、1日にCSVをダウンロードした回数
-        'csv_downloads_per_day' => 5,
-        // 1日のログインの失敗の件数
-        'login_failures_per_day' => 10,
-    ],
-
     'channels' => [
 
         // ERROR_NOTIFY_LEVELがあれば、ファイルに書くのと一緒にerror_notifyでメールでも知らせる

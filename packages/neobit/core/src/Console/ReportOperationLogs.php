@@ -41,7 +41,7 @@ class ReportOperationLogs extends Command
             return self::SUCCESS;
         }
 
-        $recipients = array_filter(array_map('trim', explode(',', (string) config('logging.operation_report_to'))));
+        $recipients = array_filter(array_map('trim', explode(',', (string) config('neobit.operation_report_to'))));
 
         if ($recipients === []) {
             $this->warn('宛先（OPERATION_REPORT_TO）が設定されていないので、メールは送りません。');

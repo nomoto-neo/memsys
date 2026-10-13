@@ -1,7 +1,6 @@
 <?php
 
 use App\Services\InquiryCleanup;
-use Neobit\Core\Team\TeamInvitationManager;
 
 return [
 
@@ -33,9 +32,6 @@ return [
             'run' => [InquiryCleanup::class, 'deleteOld'],
             // nullなら、消さずに残し続ける。日数は、サイトの運用で決める
             'days' => null,
-        ],
-        '期限の切れた担当者の招待' => [
-            'run' => [TeamInvitationManager::class, 'deleteExpired'],
         ],
     ],
 
