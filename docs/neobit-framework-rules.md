@@ -29,7 +29,7 @@
 - データ項目の仕様（画像の横幅など）はモデルの定数に持ち、コントローラーや画面はそれを参照する
 - 入力は、検証の前に全角と半角がそろえられる（`InputNormalizer`。利用ガイド5章）。本文のように書いたとおりに残す項目は、モデルの `RAW_INPUT_FIELDS` に書き、コントローラーの同じ名前の定数でそれを引く。フリガナの欄には `KatakanaRule` を付ける
 - 選択肢のように決まった種類の値は `app/Enums/` の列挙型にする。値ごとの名前や設定は、`match` でメソッドの中に書かず、冒頭の定数（キーは `self::Xxx->value`）にまとめる
-- 区分表は、出どころ（列挙型・`code/*.csv`・`t_codes`）に関係なく `code_table()`・`code_keys()`・`code_label()` で使う。Blade に `\App\Enums\...` を書かない
+- 区分表は、出どころ（列挙型・`code/*.csv`・`code_tables`）に関係なく `code_table()`・`code_keys()`・`code_label()` で使う。Blade に `\App\Enums\...` を書かない
 
 ## テーブル
 

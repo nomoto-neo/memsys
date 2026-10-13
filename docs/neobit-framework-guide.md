@@ -812,7 +812,7 @@ public function viewFiles(Member|Staff|null $user, News $news, string $field): b
 
 <p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
 
-**ファイル**：`packages/neobit/core/src/Code/CodeTable.php`・`packages/neobit/core/src/helpers.php`・`app/Enums/`・`code/*.csv`・`App\Enums\CodeType`・`t_codes`（`Admin\CodeController`）
+**ファイル**：`packages/neobit/core/src/Code/CodeTable.php`・`packages/neobit/core/src/helpers.php`・`app/Enums/`・`code/*.csv`・`App\Enums\CodeType`・`code_tables`（`Admin\CodeController`）
 
 区分表（値と名称の組）は、出どころに関係なく次のヘルパーで使います。
 
@@ -828,7 +828,7 @@ public function viewFiles(Member|Staff|null $user, News $news, string $field): b
 
 - **列挙型**（`App\Enums\<コード名の StudlyCase>`、`CodeTableEnum` を実装し `label()` を持つ）：プログラムが値によって動きを変えるもの（スタッフの権限 `StaffAcl` など）。モデルの `$casts` や判定では列挙型を直接使います。
 - **CSV**（`code/<コード名>.csv`、「値,名称」を1行1件、`#` はコメント）：選択肢として並べるだけのもの（都道府県など）。
-- **DB**（`t_codes`。コード名を `App\Enums\CodeType` に載せる）：CSVと同じ扱いのもの（性別・連絡方法など）を、管理画面の「項目見出し一覧」から書き換えたいとき。値・名称の扱い（数字だけの値は int、名称の `\n` は改行）も CSV と同じです。
+- **DB**（`code_tables`。コード名を `App\Enums\CodeType` に載せる）：CSVと同じ扱いのもの（性別・連絡方法など）を、管理画面の「項目見出し一覧」から書き換えたいとき。値・名称の扱い（数字だけの値は int、名称の `\n` は改行）も CSV と同じです。
 
 DBのコード表を増やすときは、`CodeType` に `case` と `label()` を足し、必要なら `CodeSeeder` に初期データを書きます。プルダウンは `code_table('code_type')` です。プログラムが特定のコード値を前提に処理するコード表は、`CodeType::isFixed()` で true を返します。そのコード表は、画面で並び替えと表示名の変更だけができ、コード値の変更・追加・削除はできません（サーバー側でも断ります）。
 
@@ -1423,6 +1423,7 @@ private const PASSKEY_VIEW = 'mypage.passkeys';                // 一覧画面�
 <p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
 
 - **テーブル名**：業務のデータ（会員、ニュース、問い合わせなど）は `t_` を付けます。フレームワークの側のテーブルは `t_` を付けません。認証の保持や試行制限のためのものと、誰が何をしたかの記録（操作ログ、CSV のダウンロード・取り込みの記録）です。認証のためのテーブルは、会員・スタッフ共通の汎用のテーブルにします。
+- **フレームワークのテーブルのマイグレーション**は、パッケージの `database/migrations/` にあり、`php artisan migrate` でアプリのものと一緒に流れます（コード表・操作ログ・CSV の記録・2段階認証・パスキー・招待）。アプリの `database/migrations/` には、業務のテーブルだけを置きます。
 - DB の外部キー制約（`constrained()`）は付けていません。関連の片付けは `beforeDelete()` などでコードで行います。
 - **モデル**：データ項目の仕様（画像の横幅など）は定数、表示用の値（ファイルの URL など）はアクセサにします。日付は `date`、フラグは `boolean`、列挙型は列挙型のクラスで `$casts` に書きます。
 - 論理削除が要るものは `SoftDeletes`（`deleted_at`）を使います。
