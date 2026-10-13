@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Neobit\Core\Enums\OperationLogAction;
+use Neobit\Core\Enums\OperationLogActionType;
 use Neobit\Core\Operations\OperationRecorder;
 
 /**
@@ -237,7 +238,7 @@ trait FormFlow
     }
 
     /** 操作ログに残す操作の種類。$createdは新規登録ならtrue */
-    private function savedLogAction(bool $created): OperationLogAction
+    private function savedLogAction(bool $created): OperationLogActionType
     {
         return $created ? OperationLogAction::Create : OperationLogAction::Update;
     }

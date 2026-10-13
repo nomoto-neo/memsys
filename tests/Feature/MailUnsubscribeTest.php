@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\AppOperationLogAction;
 use App\Enums\BulkMailStatus;
 use App\Enums\NoticeMail;
 use App\Enums\StaffAcl;
@@ -13,7 +14,6 @@ use App\Services\MailUnsubscribe;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
-use Neobit\Core\Enums\OperationLogAction;
 use Neobit\Core\Models\OperationLog;
 use Tests\Support\ReadsSentMail;
 use Tests\TestCase;
@@ -47,7 +47,7 @@ class MailUnsubscribeTest extends TestCase
     /** 配信停止の操作ログ。古い順 */
     private function unsubscribeLogs(): array
     {
-        return OperationLog::where('action', OperationLogAction::MailUnsubscribe)->orderBy('id')->get()->all();
+        return OperationLog::where('action', AppOperationLogAction::MailUnsubscribe)->orderBy('id')->get()->all();
     }
 
     // ---- 配信停止のURL ----

@@ -16,7 +16,6 @@ use Illuminate\View\View;
 use Neobit\Core\Crud\SearchableList;
 use Neobit\Core\Csv\CsvDownload;
 use Neobit\Core\Enums\CsvEncoding;
-use Neobit\Core\Enums\OperationLogAction;
 use Neobit\Core\Models\OperationLog;
 use Neobit\Core\Operations\OperationLogStats;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -218,7 +217,7 @@ class OperationLogController extends Controller
             // 訪問者（self::GUEST）だけは、列の値と比べられないのでapplyCustomSearch()で処理
             'operator_type' => ['nullable', Rule::in(array_keys($this->operatorOptions()))],
             'operator_id' => ['nullable', 'integer'],
-            'action' => ['nullable', Rule::enum(OperationLogAction::class)],
+            'action' => ['nullable', Rule::in(code_keys('operation_log_action'))],
             'target_type' => ['nullable', Rule::in(code_keys('operation_log_subject'))],
             'target_id' => ['nullable', 'integer'],
             'ip' => ['nullable', 'string', 'max:45'],

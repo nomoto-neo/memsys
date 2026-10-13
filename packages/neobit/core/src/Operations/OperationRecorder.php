@@ -5,7 +5,7 @@ namespace Neobit\Core\Operations;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Neobit\Core\Auth\UserAgentLabel;
-use Neobit\Core\Enums\OperationLogAction;
+use Neobit\Core\Enums\OperationLogActionType;
 use Neobit\Core\Models\OperationLog;
 
 /**
@@ -68,7 +68,7 @@ final class OperationRecorder
      *                                                 $targetを渡したときは使わない
      */
     public static function record(
-        OperationLogAction $action,
+        OperationLogActionType $action,
         ?Model $target = null,
         array $changedFields = [],
         array $detail = [],

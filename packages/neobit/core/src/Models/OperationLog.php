@@ -11,6 +11,7 @@ use App\Models\Member;
 use App\Models\Staff;
 use Illuminate\Database\Eloquent\Model;
 use Neobit\Core\Enums\OperationLogAction;
+use Neobit\Core\Models\Casts\OperationLogActionCast;
 
 /**
  * 操作ログ。Neobit\Core\Operations\OperationRecorderが、1回の操作ごとに1行作る。
@@ -37,7 +38,7 @@ class OperationLog extends Model
 
     protected $casts = [
         'operator_id' => 'integer',
-        'action' => OperationLogAction::class,
+        'action' => OperationLogActionCast::class,
         'target_id' => 'integer',
         'changed_fields' => 'array',
         // 日本語を\u4f1aのような表記に変えずに、そのまま保存する。一覧の検索で、補足を部分一致で探せるようにするため
@@ -111,12 +112,8 @@ class OperationLog extends Model
      */
     public static function relatedRecords(iterable $logs): array
     {
-        // 操作の種類ごとに、[操作ログのid => 相手の記録のid]を集める
-        $ids = [
-            CsvDownloadLog::class => [],
-            CsvImportLog::class => [],
-            BulkMail::class => [],
-        ];
+        // 相手の記録のクラスごとに、[操作ログのid => 相手の記録のid]を集める
+        $ids = [];
 
         foreach ($logs as $log) {
             [$class, $id] = $log->relatedKey();
@@ -129,10 +126,6 @@ class OperationLog extends Model
         $related = [];
 
         foreach ($ids as $class => $idsOfLogs) {
-            if ($idsOfLogs === []) {
-                continue;
-            }
-
             $records = $class::query()->whereIn('id', $idsOfLogs)->get()->keyBy('id');
 
             // 相手の記録が消えていれば、その行には何も出さない
@@ -148,17 +141,13 @@ class OperationLog extends Model
 
     /**
      * この行の件数や内訳を持っている記録の、モデルのクラスとid。持たない操作なら[null, null]。
+     * どの記録を持つかは、操作の種類の列挙型が決める。
      *
      * @return array{0: class-string<Model>|null, 1: int|null}
      */
     public function relatedKey(): array
     {
-        return match ($this->action) {
-            OperationLogAction::CsvDownload => [CsvDownloadLog::class, $this->detail['csv_download_log_id'] ?? null],
-            OperationLogAction::CsvImport => [CsvImportLog::class, $this->detail['csv_import_log_id'] ?? null],
-            OperationLogAction::BulkMailSend => [BulkMail::class, $this->target_id],
-            default => [null, null],
-        };
+        return $this->action->relatedKey($this);
     }
 
     /**

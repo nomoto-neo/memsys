@@ -3,11 +3,11 @@
 namespace App\Services;
 
 use App\Enums\NoticeMail;
+use App\Enums\AppOperationLogAction;
 use App\Models\Member;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\URL;
-use Neobit\Core\Enums\OperationLogAction;
 use Neobit\Core\Operations\OperationRecorder;
 
 /**
@@ -61,7 +61,7 @@ final class MailUnsubscribe
 
         // URLが正しくないとき。アドレスを書き換えたURLなので、何も変えない
         if ($email === '' || ! $request->hasValidRelativeSignature()) {
-            OperationRecorder::record(OperationLogAction::MailUnsubscribe, detail: [
+            OperationRecorder::record(AppOperationLogAction::MailUnsubscribe, detail: [
                 'result' => 'URLが正しくない',
                 'email' => $loggedEmail,
             ]);
@@ -73,7 +73,7 @@ final class MailUnsubscribe
 
         // そのアドレスの会員がいないとき。会員ではない宛先か、退会やアドレスの変更の後
         if ($member === null) {
-            OperationRecorder::record(OperationLogAction::MailUnsubscribe, detail: [
+            OperationRecorder::record(AppOperationLogAction::MailUnsubscribe, detail: [
                 'result' => '会員が見つからない',
                 'email' => $loggedEmail,
             ]);
@@ -83,7 +83,7 @@ final class MailUnsubscribe
 
         // すでに「受け取らない」のとき
         if (! $member->receivesNoticeMail()) {
-            OperationRecorder::record(OperationLogAction::MailUnsubscribe, $member, detail: [
+            OperationRecorder::record(AppOperationLogAction::MailUnsubscribe, $member, detail: [
                 'result' => '停止済み',
             ]);
 
@@ -94,7 +94,7 @@ final class MailUnsubscribe
         DB::transaction(function () use ($member) {
             $member->update(['notice_mail' => NoticeMail::Stop->value]);
 
-            OperationRecorder::record(OperationLogAction::MailUnsubscribe, $member, changedFields: ['notice_mail']);
+            OperationRecorder::record(AppOperationLogAction::MailUnsubscribe, $member, changedFields: ['notice_mail']);
         });
     }
 }

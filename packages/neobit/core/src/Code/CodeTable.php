@@ -21,6 +21,10 @@ use Neobit\Core\Models\Code;
  * 3. DB：config('neobit.db_code_types')にあるコード名なら、t_codesテーブルを表示順に読む。CSVと同じく
  *    並べるだけのもので、管理画面の項目見出し一覧から書き換えられる。値と名称の扱いはCSVと同じ
  *
+ * 複数の列挙型を1つに合わせたいコード表（フレームワークの操作とサイトの操作を合わせた、操作ログの
+ * 操作など）は、config('neobit.code_table_merge')に、コード名 => 列挙型の一覧で書く。
+ * これは、上の3つより先に見る。
+ *
  * ■ CSVの形式
  * 「値,名称」を1行1件。
  * - 名称にカンマがあってもよいよう、最初のカンマだけで区切る。引用符で囲む書き方は求めない
@@ -72,6 +76,19 @@ class CodeTable
         // 1回読んだら同じリクエストの中では使い回す
         if (array_key_exists($codeName, self::$cache)) {
             return self::$cache[$codeName];
+        }
+
+        // 複数の列挙型を1つに合わせるコード表（config('neobit.code_table_merge')）
+        $merged = config('neobit.code_table_merge.'.$codeName);
+        if ($merged !== null) {
+            $options = [];
+            foreach ($merged as $class) {
+                foreach ($class::cases() as $case) {
+                    $options[$case->value] = $case->label();
+                }
+            }
+
+            return self::$cache[$codeName] = $options;
         }
 
         // 3つの出どころのどこにあるかを調べ、2つ以上にあればエラー

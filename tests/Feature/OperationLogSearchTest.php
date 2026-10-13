@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\AppOperationLogAction;
 use App\Enums\StaffAcl;
 use App\Models\Staff;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -35,7 +36,7 @@ class OperationLogSearchTest extends TestCase
     private function log(array $detail, string $ip): OperationLog
     {
         return OperationLog::create([
-            'action' => OperationLogAction::MailUnsubscribe,
+            'action' => AppOperationLogAction::MailUnsubscribe,
             'detail' => $detail,
             'ip' => $ip,
         ]);
@@ -165,7 +166,7 @@ class OperationLogSearchTest extends TestCase
     {
         // キャストを変える前に書かれた行。日本語が\uの表記で入っている
         $id = DB::table('operation_logs')->insertGetId([
-            'action' => OperationLogAction::MailUnsubscribe->value,
+            'action' => AppOperationLogAction::MailUnsubscribe->value,
             'detail' => json_encode(['result' => '会員が見つからない']),
             'ip' => '192.0.2.1',
             'created_at' => now(),

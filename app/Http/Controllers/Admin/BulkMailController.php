@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\AppOperationLogAction;
 use App\Enums\BulkMailStatus;
 use App\Enums\NoticeMail;
 use App\Http\Controllers\Controller;
@@ -27,7 +28,7 @@ use Neobit\Core\Csv\CsvImportSettings;
 use Neobit\Core\Csv\CsvReader;
 use Neobit\Core\Enums\CsvEncoding;
 use Neobit\Core\Enums\CsvImportMode;
-use Neobit\Core\Enums\OperationLogAction;
+use Neobit\Core\Enums\OperationLogActionType;
 use Neobit\Core\Upload\AjaxFileUpload;
 use Neobit\Core\Upload\UploadFilePath;
 use Throwable;
@@ -191,9 +192,9 @@ class BulkMailController extends Controller
      * 操作ログに残す操作の種類。送信の記録を1件作るのが、送信の始まりなので、
      * 「登録」ではなく「一斉メールの送信」として残す。
      */
-    private function savedLogAction(bool $created): OperationLogAction
+    private function savedLogAction(bool $created): OperationLogActionType
     {
-        return OperationLogAction::BulkMailSend;
+        return AppOperationLogAction::BulkMailSend;
     }
 
     // ---- 履歴 ----

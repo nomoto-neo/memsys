@@ -2,12 +2,17 @@
 
 namespace Neobit\Core\Enums;
 
+use Neobit\Core\Models\CsvDownloadLog;
+use Neobit\Core\Models\CsvImportLog;
+use Neobit\Core\Models\OperationLog;
+
 /**
  * 操作ログの操作の種類（operation_logs.action）。DBには文字列（value）で保存する。
- * 画面ではコード表code_table('operation_log_action')として使う。
+ * サイトに固有の操作は、App側の列挙型が足す（Neobit\Core\Enums\OperationLogActionType）。
+ * 画面では、足した分と合わせて、コード表code_table('operation_log_action')として使う。
  * 記録するところはNeobit\Core\Operations\OperationRecorderの冒頭のコメントにまとめてある。
  */
-enum OperationLogAction: string implements CodeTableEnum
+enum OperationLogAction: string implements OperationLogActionType
 {
     case Login = 'login';
     case LoginFailed = 'login_failed';
@@ -24,8 +29,6 @@ enum OperationLogAction: string implements CodeTableEnum
     case PasskeyAdd = 'passkey_add';
     case PasskeyDelete = 'passkey_delete';
     case TwoFactorReset = 'two_factor_reset';
-    case BulkMailSend = 'bulk_mail_send';
-    case MailUnsubscribe = 'mail_unsubscribe';
     case InvitationSend = 'invitation_send';
     case InvitationCancel = 'invitation_cancel';
     case Throttled = 'throttled';
@@ -47,8 +50,6 @@ enum OperationLogAction: string implements CodeTableEnum
         self::PasskeyAdd->value => 'パスキーの登録',
         self::PasskeyDelete->value => 'パスキーの削除',
         self::TwoFactorReset->value => '2段階認証の登録解除',
-        self::BulkMailSend->value => '一斉メールの送信',
-        self::MailUnsubscribe->value => 'お知らせメールの配信停止',
         self::InvitationSend->value => '担当者の招待の送信',
         self::InvitationCancel->value => '担当者の招待の取り消し',
         self::Throttled->value => '回数の制限',
@@ -57,5 +58,15 @@ enum OperationLogAction: string implements CodeTableEnum
     public function label(): string
     {
         return self::LABELS[$this->value];
+    }
+
+    /** CSVのダウンロードと取り込みは、それぞれの記録に件数を持つ。記録のidは、補足に入っている */
+    public function relatedKey(OperationLog $log): array
+    {
+        return match ($this) {
+            self::CsvDownload => [CsvDownloadLog::class, $log->detail['csv_download_log_id'] ?? null],
+            self::CsvImport => [CsvImportLog::class, $log->detail['csv_import_log_id'] ?? null],
+            default => [null, null],
+        };
     }
 }

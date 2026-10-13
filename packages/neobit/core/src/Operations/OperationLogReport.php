@@ -48,9 +48,9 @@ final class OperationLogReport
             ->map(fn ($total) => (int) $total);
 
         $countLines = ['全体　'.number_format($countsByAction->sum()).'件'];
-        foreach (OperationLogAction::cases() as $action) {
-            if (isset($countsByAction[$action->value])) {
-                $countLines[] = $action->label().'　'.number_format($countsByAction[$action->value]).'件';
+        foreach (code_table('operation_log_action') as $value => $label) {
+            if (isset($countsByAction[$value])) {
+                $countLines[] = $label.'　'.number_format($countsByAction[$value]).'件';
             }
         }
 
