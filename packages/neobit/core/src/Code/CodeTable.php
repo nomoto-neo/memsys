@@ -2,7 +2,6 @@
 
 namespace Neobit\Core\Code;
 
-use App\Enums\CodeType;
 use BackedEnum;
 use Illuminate\Support\Str;
 use Neobit\Core\Enums\CodeTableEnum;
@@ -19,7 +18,7 @@ use Neobit\Core\Models\Code;
  *    全部の値と名前の一覧にする。スタッフの権限のように、プログラムが値で動きを変えるもの
  * 2. CSV：code/<コード名>.csv。都道府県のように選択肢として並べるだけのもの。
  *    ファイルを直すだけで項目を増やせる
- * 3. DB：App\Enums\CodeTypeにあるコード名なら、t_codesテーブルを表示順に読む。CSVと同じく
+ * 3. DB：config('neobit.db_code_types')にあるコード名なら、t_codesテーブルを表示順に読む。CSVと同じく
  *    並べるだけのもので、管理画面の項目見出し一覧から書き換えられる。値と名称の扱いはCSVと同じ
  *
  * ■ CSVの形式
@@ -90,12 +89,12 @@ class CodeTable
             }
         }
         $path = base_path(self::DIRECTORY.'/'.$codeName.'.csv');
-        $isDb = CodeType::tryFrom($codeName) !== null;
+        $isDb = in_array($codeName, config('neobit.db_code_types', []), true);
 
         $sources = array_keys(array_filter([
             "列挙型（{$enumClass}）" => $isEnum,
             "CSV（{$path}）" => is_file($path),
-            'DB（App\\Enums\\CodeType）' => $isDb,
+            'DB（neobit.db_code_types）' => $isDb,
         ]));
 
         if (count($sources) > 1) {
