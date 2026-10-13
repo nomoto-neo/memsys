@@ -21,7 +21,7 @@ use Neobit\Core\Enums\SpamCheckResult;
  *    裏で判定して結果を送ってくるので、それが本物かをサーバーからCloudflareに問い合わせる
  *
  * ■ 使い方
- * - 入力画面の<form>の中に@include('_spam_guard')を置く
+ * - 入力画面の<form>の中に@include('neobit::_spam_guard')を置く
  * - 入力画面から送信を受け取るところで、check()を呼んで結果で分ける。Turnstileの結果は
  *   1回しか使えないので確認画面から先では呼ばず、確認画面を通った人にだけ進ませる仕組みで守る
  *

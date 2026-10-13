@@ -66,8 +66,8 @@
 
 | 部品 | 書いてある名前 |
 |---|---|
-| `AdminRequestLimit` | ビュー `admin.too_many_requests` |
-| `CsvImport` | ビュー `admin.csv_import.form`・`confirm` |
+| `AdminRequestLimit` | ビュー `neobit::admin.too_many_requests` |
+| `CsvImport` | ビュー `neobit::admin.csv_import.form`・`confirm` |
 | `UploadFilePath` | `uploads.show`・`uploads.tmp` |
 
 ## サーバーへ送らないもの

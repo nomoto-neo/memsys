@@ -134,7 +134,7 @@ TRUSTED_PROXIES=10.0.0.5,10.0.0.6
 - `.env` を変えたら `php artisan config:cache` をやり直します。
 ### 接続元の IP アドレスの制限（SITE_ALLOWED_IPS・ADMIN_ALLOWED_IPS）
 
-**ファイル**：`packages/neobit/core/src/Http/Middleware/RestrictSiteAccess.php`・`RestrictAdminAccess.php`（冒頭のコメント）、画面は `resources/views/maintenance.blade.php`
+**ファイル**：`packages/neobit/core/src/Http/Middleware/RestrictSiteAccess.php`・`RestrictAdminAccess.php`（冒頭のコメント）、画面は `packages/neobit/core/resources/views/maintenance.blade.php`
 
 サイトを開ける IP アドレスを、`.env` で絞れます。どちらも、空なら制限しません。
 
@@ -153,7 +153,7 @@ ADMIN_ALLOWED_IPS=203.0.113.10,203.0.113.0/28
 - **書き間違えると、自分も入れなくなります**。今つないでいる IP アドレスを確かめてから書きます。入れなくなったら、サーバーで `.env` を直して `config:cache` をやり直します。画面からは直せません。
 - **プロキシを前に置くときは、`TRUSTED_PROXIES` を先に書きます**。書かないと、全員がプロキシの IP アドレスに見えるので、全員が通るか、全員が止まります。
 - **両方を書いたとき**：管理画面は、両方で入ってよい IP アドレスだけが開けます。
-- **メンテナンス中の画面**は、レイアウトを継承しない1枚の HTML です。DB もセッションも使わないので、DB を止めている間も出せます。文言は `maintenance.blade.php` を直接書き換えます。デモの運用のときも、この画面が出ます。
+- **メンテナンス中の画面**は、レイアウトを継承しない1枚の HTML です。DB もセッションも使わないので、DB を止めている間も出せます。文言は、アプリの `resources/views/vendor/neobit/maintenance.blade.php` に同じ名前で置いて上書きします。デモの運用のときも、この画面が出ます。
 - **503 で返す**のは、一時的に止めていることを検索エンジンに伝えて、登録を消されないようにするためです。
 - **制限の間も通すパス**は、`bootstrap/app.php` の `RestrictSiteAccess::except()` に書きます。今は、死活監視（`/up`）と、お知らせメールの配信停止（`/mail/unsubscribe`）です。止めている間に届いたメールからも、停止できるようにするためです。
 - **管理画面を 404 にする**のは、そこに管理画面があることを知らせないためです。止めたアクセスは、操作ログに残しません。
@@ -245,10 +245,10 @@ GRANT ALL PRIVILEGES ON memsys_testing.* TO 'memsys'@'localhost';
 | `TwoFactorAuthenticator`・`BackupCodeGenerator` | `packages/neobit/core/src/Auth/` | 認証アプリ（TOTP）のコードと、バックアップコード | 14 |
 | `PasskeyLogin`・`PasskeyManagement` | `packages/neobit/core/src/Auth/` | パスキーでのログインと、本人によるパスキーの登録・削除 | 14 |
 | `PasswordChange` | `packages/neobit/core/src/Auth/` | パスワードを変えたときの後始末（信頼済み端末・パスキーの無効化、お知らせのメール） | 14 |
-| `_confirm_hidden` | `resources/views/` | 確認画面の hidden を `$input` から組み立てる | 5 |
-| `_ajax_upload_block`・`_ajax_upload_group` | `resources/views/` | アップロード欄（単数・複数） | 7 |
-| `admin/csv_import/` | `resources/views/` | CSV 取り込みの画面（全コーナー共通） | 10 |
-| `_passkeys` | `resources/views/` | パスキーの一覧・本人確認・登録の画面の中身 | 14 |
+| `_confirm_hidden` | `packages/neobit/core/resources/views/` | 確認画面の hidden を `$input` から組み立てる | 5 |
+| `_ajax_upload_block`・`_ajax_upload_group` | `packages/neobit/core/resources/views/` | アップロード欄（単数・複数） | 7 |
+| `admin/csv_import/` | `packages/neobit/core/resources/views/` | CSV 取り込みの画面（全コーナー共通） | 10 |
+| `_passkeys` | `packages/neobit/core/resources/views/` | パスキーの一覧・本人確認・登録の画面の中身 | 14 |
 | `TemporaryDataCleaner` | `packages/neobit/core/src/Operations/` | 一時データの後片付け（一時ファイル・期限の切れたキャッシュと信頼済み端末・古い操作ログ）。プロジェクトの片付けは `config/cleanup.php` に足す | 19 |
 | `app:cleanup-temporary-data` | `packages/neobit/core/src/Console/` | 一時データの後片付けのコマンド（スケジューラーから1時間ごと） | 19 |
 | `app:reset-two-factor` | `packages/neobit/core/src/Console/` | 2段階認証の登録を解除するコマンド（画面から解除できる人がいないときに使う） | 14 |
@@ -259,7 +259,7 @@ GRANT ALL PRIVILEGES ON memsys_testing.* TO 'memsys'@'localhost';
 | `app:report-operation-logs` | `packages/neobit/core/src/Console/` | 操作ログの報告のコマンド（スケジューラーから毎朝。気になる点があった日だけメールを送る） | 22 |
 | `AdminRequestLimit` | `packages/neobit/core/src/Security/` | ログイン後の管理画面の全体に掛ける、スタッフごとの回数の制限 | 22 |
 | `LoginProfileNotice` | `packages/neobit/core/src/Auth/` | 会員情報が変わったことを、本人へメールで知らせる | 22 |
-| `SpamGuard`・`_spam_guard` | `packages/neobit/core/src/Security/`・`resources/views/` | 訪問者向けフォームのスパム対策（ハニーポット・送信までの時間・Cloudflare Turnstile） | 12 |
+| `SpamGuard`・`_spam_guard` | `packages/neobit/core/src/Security/`・`packages/neobit/core/resources/views/` | 訪問者向けフォームのスパム対策（ハニーポット・送信までの時間・Cloudflare Turnstile） | 12 |
 | `app.js` | `resources/js/` | フォームの補助（必須マークから required 属性、エラー表示） | 17 |
 
 トレイトは、コントローラーが `use` するだけで働きます。コントローラーに書くのは「このコーナーの項目の定義」と「ルートから呼ばれる入口」だけ、というのが全体の考え方です。
@@ -591,7 +591,7 @@ Route::patch('/news/{news}/update', ...'update')->name('news.update');
 
   エラー欄の `<div>` と `{{ }}` の間に改行や空白を入れないでください（中身が空のときだけ隠れる CSS のため）。ラジオボタン・チェックボックス・セレクトには `$disabled` を付けます。
 - **`$input` には、`rules()` にある項目のキーが必ず入っています**。値の無い項目は null です。画面では `{{ $input['title'] }}` のように、`?? ''` を付けずに書けます。チェックの無いチェックボックスのように、送られてこない項目も同じです。一覧の検索条件の `$filters`（3章）も、検索の項目のキーが必ず入っています。`rules()` に無い項目（`password_confirmation` など）と、`FormFlow` を通さずに組み立てた `$input`（会員登録の `old()` など）には、`??` が要ります。
-- **確認画面**：`_fields` を読み取り専用で表示し、「戻る」「登録する」の2つのフォームに `@include('_confirm_hidden', ['input' => $input])` で hidden を入れます。項目が増えても確認画面は直さずに済みます。
+- **確認画面**：`_fields` を読み取り専用で表示し、「戻る」「登録する」の2つのフォームに `@include('neobit::_confirm_hidden', ['input' => $input])` で hidden を入れます。項目が増えても確認画面は直さずに済みます。
 - **パスワード**：確認画面の「戻る」側は `'exclude' => ['password', 'password_confirmation']` で hidden から外します。`rules()` に無い `password_confirmation` は、確認画面の `$input` に足して持ち回ります。入力画面に戻したときは、`Arr::except(old(), [...])` で再表示しません（実例：スタッフ）。
 - **必須マーク**：`requiredFields($record, ['password_confirmation'])` の第2引数で、`rules()` に `required` が無いが必須にしたい項目を足せます（`accepted` の同意チェックなど）。マークの HTML は `config/form.php` の `required_mark`（管理画面と訪問者向けで別）にあります。
 - 入力画面では、必須マークの付いた欄に JavaScript が `required` 属性を付け、ブラウザの入力チェックの結果も同じエラー欄に出します（17章）。
@@ -710,12 +710,12 @@ private function prepareInput(array $validated): array
 
 ```blade
 {{-- 単数 --}}
-@include('_ajax_upload_block', [
+@include('neobit::_ajax_upload_block', [
     'model' => $model, 'input' => $input, 'field' => 'list_image',
     'width' => \App\Models\News::LIST_IMAGE_WIDTH, 'readonly' => $readonly, 'uploadUrl' => $uploadUrl,
 ])
 {{-- 複数 --}}
-@include('_ajax_upload_group', [
+@include('neobit::_ajax_upload_group', [
     'model' => $model, 'input' => $input, 'field' => 'attach',
     'width' => 0, 'readonly' => $readonly, 'uploadUrl' => $uploadUrl,
 ])
@@ -1034,7 +1034,7 @@ Mail::send(new TemplatedMail('contact_staff', [
 
 ### スパム対策（SpamGuard）
 
-**ファイル**：`packages/neobit/core/src/Security/SpamGuard.php`（冒頭のコメント）・`resources/views/_spam_guard.blade.php`・`packages/neobit/core/src/Enums/SpamCheckResult.php`　**実例**：`ContactController::confirmStore()`
+**ファイル**：`packages/neobit/core/src/Security/SpamGuard.php`（冒頭のコメント）・`packages/neobit/core/resources/views/_spam_guard.blade.php`・`packages/neobit/core/src/Enums/SpamCheckResult.php`　**実例**：`ContactController::confirmStore()`
 
 人に手間をかけさせない3つの仕組みを組み合わせます。画像を選ばせる問題は出しません。
 
@@ -1046,7 +1046,7 @@ Mail::send(new TemplatedMail('contact_staff', [
 
 ```blade
 {{-- 入力画面の <form> の中 --}}
-@include('_spam_guard')
+@include('neobit::_spam_guard')
 ```
 
 ```php
@@ -1130,7 +1130,7 @@ if ($spam === SpamCheckResult::Failed) {
 
 ### 2段階認証（TwoFactorLogin・TwoFactorChallenge）
 
-**ファイル**：`packages/neobit/core/src/Enums/TwoFactorMethod.php`、`packages/neobit/core/src/Auth/LoginAccount.php`・`HasTwoFactor.php`・`TwoFactorLogin.php`・`TwoFactorChallenge.php`・`TwoFactorManagement.php`・`TwoFactorAuthenticator.php`・`BackupCodeGenerator.php`・`TrustedDeviceManager.php`、`resources/views/_two_factor.blade.php`・`_two_factor_manage.blade.php`・`_two_factor_backup_codes.blade.php`・`_two_factor_reset.blade.php`、設計の詳細は「2段階認証の設計」（`docs/two-factor-spec.md`）　**実例**：ログインは `AuthSessionController`・`Company\AuthSessionController`・`Admin\AuthSessionController`、本人による管理は `MypageController`・`Company\MypageController`・`Admin\StaffController`、運営による解除は `Admin\MemberController`・`Admin\CompanyUserController`・`Admin\StaffController`
+**ファイル**：`packages/neobit/core/src/Enums/TwoFactorMethod.php`、`packages/neobit/core/src/Auth/LoginAccount.php`・`HasTwoFactor.php`・`TwoFactorLogin.php`・`TwoFactorChallenge.php`・`TwoFactorManagement.php`・`TwoFactorAuthenticator.php`・`BackupCodeGenerator.php`・`TrustedDeviceManager.php`、`packages/neobit/core/resources/views/_two_factor.blade.php`・`_two_factor_manage.blade.php`・`_two_factor_backup_codes.blade.php`・`_two_factor_reset.blade.php`、設計の詳細は「2段階認証の設計」（`docs/two-factor-spec.md`）　**実例**：ログインは `AuthSessionController`・`Company\AuthSessionController`・`Admin\AuthSessionController`、本人による管理は `MypageController`・`Company\MypageController`・`Admin\StaffController`、運営による解除は `Admin\MemberController`・`Admin\CompanyUserController`・`Admin\StaffController`
 
 ログインの2段階目の方式は、ログインするモデルの定数で選びます。部品は、相手が会員かスタッフかを知りません。
 
@@ -1173,7 +1173,7 @@ return $this->continueAfterPassword($request, $staff, $request->boolean('remembe
 | `resendCode()`（POST。メールの方式だけ。`throttle` を付ける） | `login.verify.resend` |
 
 - **定数に既定の値はありません**。`TWO_FACTOR_METHOD` と `BACKUP_CODES` を書いていないモデルでログインすると、エラーになります。書き忘れで「なし」になるのを防ぐためです。
-- **2段階目の画面のビューは、`@include('_two_factor')` するだけにします**。中身は方式と状態（コードの入力か、QR コードの登録か）で出し分けます。
+- **2段階目の画面のビューは、`@include('neobit::_two_factor')` するだけにします**。中身は方式と状態（コードの入力か、QR コードの登録か）で出し分けます。
 - **認証アプリの登録は、共通のテーブル `two_factor_secrets` に持ちます**。バックアップコード（`two_factor_backup_codes`）・信頼済み端末（`trusted_devices`）と同じ扱いで、業務のテーブルには列を足しません。読み書きは、モデルの `hasTwoFactorConfirmed()`・`twoFactorConfirmedAt()`・`registerTwoFactor($secret)`・`resetTwoFactor()` で行います。
 - **本人をもう一度確かめるときは `TwoFactorChallenge` を使います**。`send()` で準備（メールの方式なら確認コードを送る）、`verify()` で照合、`throttle()` で試行制限です。方式での場合分けは、部品の中にあります。
 - **メールの方式のモデルは、メールアドレスを必須にします**。スタッフのメールアドレスは任意なので、スタッフを `Email` にするときは、検証のルールを必須に変えます。
@@ -1221,7 +1221,7 @@ private function twoFactorHomeUrl(): string                                     
 - **発行と解除の前に、本人をもう一度確かめます**。ログイン中の画面を他人に使われたときに、被害を広げないためです。
 - **解除は、バックアップコードでもできます**。端末を無くした人が、発行してあったバックアップコードでログインした後に、別のバックアップコードで自分で解除できるようにするためです。解除は操作ログに残ります。
 - **解除すると、バックアップコード・信頼済み端末・パスキーも消えます**（`$account->resetTwoFactor()`）。パスキーでのログインは2段階目を求めないので、残すと登録し直さないまま使えてしまうためです。
-- **端末を無くし、バックアップコードも無い人は、運営が解除します**。管理画面の詳細に `@include('_two_factor_reset', ['twoFactorAccount' => $member, 'twoFactorResetUrl' => route(...)])` を置き、コントローラーで `$member->resetTwoFactor()` を呼びます。ボタンは、方式が `Totp` で登録が済んでいるときだけ出ます。
+- **端末を無くし、バックアップコードも無い人は、運営が解除します**。管理画面の詳細に `@include('neobit::_two_factor_reset', ['twoFactorAccount' => $member, 'twoFactorResetUrl' => route(...)])` を置き、コントローラーで `$member->resetTwoFactor()` を呼びます。ボタンは、方式が `Totp` で登録が済んでいるときだけ出ます。
 
 #### サーバーからの解除（app:reset-two-factor）
 
@@ -1375,7 +1375,7 @@ public function update(Request $request): RedirectResponse
 
 ### パスキー（PasskeyLogin・PasskeyManagement）
 
-**ファイル**：`packages/neobit/core/src/Auth/PasskeyLogin.php`・`PasskeyManagement.php`・`PasskeyCeremony.php`・`HasPasskeys.php`・`UserAgentLabel.php`、`packages/neobit/core/src/Models/Passkey.php`、`resources/views/_passkeys.blade.php`、`resources/js/passkeys.js`、設計の詳細は「パスキーの設計」（`docs/passkeys-spec.md`）　**実例**：会員は `AuthSessionController`・`MypageController`、管理は `Admin\AuthSessionController`・`Admin\StaffController`
+**ファイル**：`packages/neobit/core/src/Auth/PasskeyLogin.php`・`PasskeyManagement.php`・`PasskeyCeremony.php`・`HasPasskeys.php`・`UserAgentLabel.php`、`packages/neobit/core/src/Models/Passkey.php`、`packages/neobit/core/resources/views/_passkeys.blade.php`、`resources/js/passkeys.js`、設計の詳細は「パスキーの設計」（`docs/passkeys-spec.md`）　**実例**：会員は `AuthSessionController`・`MypageController`、管理は `Admin\AuthSessionController`・`Admin\StaffController`
 
 ログイン画面の「パスキーでログイン」で通ったときは、パスワードも2段階目も求めずにログインさせます。登録の前の本人確認は、その人のログインの2段階目の方式（メールの確認コードか、認証アプリのコード）で行います。2段階目が「なし」の人は、パスワードの再入力で確かめます。トレイトが `TwoFactorChallenge` に任せるので、方式での場合分けは要りません。
 
@@ -1402,7 +1402,7 @@ private const PASSKEY_VIEW = 'mypage.passkeys';                // 一覧画面�
 | `PasskeyLogin` | `passkeyLoginOptions()`（GET）・`passkeyLogin()`（POST） | `login.passkey.options`・`login.passkey`（管理は `admin.` を付ける。ゲスト用のグループに入れ、`throttle` を付ける） |
 | `PasskeyManagement` | `passkeyIndex()`（GET）・`passkeySendCode()`（POST。メールの方式だけ。`throttle` を付ける）・`passkeyConfirm()`（POST）・`passkeyRegistrationOptions()`（GET）・`passkeyStore()`（POST）・`passkeyDestroy()`（DELETE） | `PASSKEY_ROUTE` と、その後ろに `.code`・`.confirm`・`.options`・`.store`・`.destroy` |
 
-- 一覧画面のビューは、`@push('head-extra')` で CSRF の `<meta>` と `resources/js/passkeys.js` を読み込み、`@include('_passkeys')` するだけにします。
+- 一覧画面のビューは、`@push('head-extra')` で CSRF の `<meta>` と `resources/js/passkeys.js` を読み込み、`@include('neobit::_passkeys')` するだけにします。
 - 本人確認の失敗は、ログインの2段階目と同じカウンターで数えます（`TwoFactorChallenge::throttle()`）。
 - 認証アプリの方式の人は、認証アプリを登録してある間だけパスキーを持てます。未登録の間は、登録に進めません。
 - パスキーは `APP_URL` のドメインに結び付きます。`APP_URL` をブラウザで開いているアドレスと完全に同じにし、HTTPS（開発時の `localhost` は例外）で使います。
@@ -1471,7 +1471,8 @@ php artisan app:set-next-id t_members 100001
     {{ $members->onEachSide(4)->links('pagination::bootstrap-5') }}
     ```
 - **戻り先**：一覧へ戻るリンクは `route('admin.xxx.index', ['back'])`。
-- **共通の部分ビュー**（`_confirm_hidden`・`_ajax_upload_block` など）は `resources/views/` 直下に置き、モデル名やコントローラー名を書きません。コーナー専用のテンプレート（`admin/news/_fields` など）は、そのコーナーのモデルの定数を参照してかまいません。共通の部分ビューを `@include` するときは、`resources/views/` を基準にした相対パスで指定します（例：`@include('_confirm_hidden')`）。
+- **共通の部分ビュー**（`_confirm_hidden`・`_ajax_upload_block` など）は、フレームワークの `packages/neobit/core/resources/views/` に置き、モデル名やコントローラー名を書きません。コーナー専用のテンプレート（`admin/news/_fields` など）は、アプリの `resources/views/` に置き、そのコーナーのモデルの定数を参照してかまいません。フレームワークの画面は、`neobit::` を付けた名前で `@include` します（例：`@include('neobit::_confirm_hidden')`）。見た目や文言を変えたいときは、アプリの `resources/views/vendor/neobit/` に同じ名前（例：`_confirm_hidden.blade.php`）で置くと、そちらが使われます。
+- **フレームワークの画面が継承するレイアウト**は、`config/neobit.php` の `layouts`（`admin`・`app`）で、アプリのレイアウトに差し替えます。既定は、Bootstrap だけの `neobit::layouts.plain` です。レイアウトには、セクション `title`・`content`（必須）・`content-width` と、スタック `head-extra`・`scripts` を用意します。
 
 ## 18. PDF 出力（PdfDownload）
 

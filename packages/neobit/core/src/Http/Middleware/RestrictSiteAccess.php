@@ -12,7 +12,7 @@ use Symfony\Component\HttpFoundation\Response;
  * 公開前のデモの運用と、メンテナンスの間に使う。書いていなければ、制限しない。
  *
  * 入ってよいIPアドレスのほかから開かれたら、メンテナンス中の画面
- * （resources/views/maintenance.blade.php）を503で返す。503にするのは、一時的に止めていることを
+ * （neobit::maintenance）を503で返す。503にするのは、一時的に止めていることを
  * 検索エンジンに伝えて、登録を消されないようにするため。
  * 画面はDBもセッションも使わない1枚のHTMLなので、DBを止めている間も出せる。
  * ルートが無いURLでも同じ画面を出すので、bootstrap/app.phpで、全体のミドルウェアに足している。

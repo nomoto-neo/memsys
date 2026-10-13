@@ -28,7 +28,7 @@ use Illuminate\Support\Facades\Route;
  *
  * ■ 案内の出し方
  * 次に開く画面で1回だけ出すよう、一覧画面のルート名をセッションに仮置きする。出すのは
- * レイアウトのメッセージ欄（resources/views/_passkey_suggest.blade.php）。仮置きした時点で
+ * レイアウトのメッセージ欄（neobit::_passkey_suggest）。仮置きした時点で
  * 「見せた」と数える。
  */
 final class PasskeySuggestion

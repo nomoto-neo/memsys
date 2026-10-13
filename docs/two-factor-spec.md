@@ -135,7 +135,7 @@
 | `Neobit\Core\Auth\TwoFactorLogin` | コントローラーのトレイト | パスワードを確かめた後の流れ（1.2）と、2段階目の画面 |
 | `Neobit\Core\Auth\TwoFactorManagement` | コントローラーのトレイト | ログイン中の本人による、バックアップコードの発行と TOTP の解除 |
 | `app:reset-two-factor` | コマンド | サーバーからの解除（3.5） |
-| `resources/views/_two_factor.blade.php` | 部分ビュー | 2段階目の画面の中身。方式と状態で、コードの入力か QR コードの登録かを出し分ける |
+| `packages/neobit/core/resources/views/_two_factor.blade.php` | 部分ビュー | 2段階目の画面の中身。方式と状態で、コードの入力か QR コードの登録かを出し分ける |
 
 ### 3.1 モデルに書くもの
 

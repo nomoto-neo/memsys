@@ -495,7 +495,7 @@ final class Tpl2Blade
 
         // アップロード欄：書き方が違うので、人に任せる
         if (preg_match('/^\$('.implode('|', UPLOAD_VARS).')\.(\w+)/', $body, $m)) {
-            return $this->todo("アップロード欄です。@include('_ajax_upload_block', ['field' => '{$m[2]}', …]) に差し替えます", $inner);
+            return $this->todo("アップロード欄です。@include('neobit::_ajax_upload_block', ['field' => '{$m[2]}', …]) に差し替えます", $inner);
         }
 
         $piece = $this->exprPiece($body);
