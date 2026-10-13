@@ -134,7 +134,7 @@ TRUSTED_PROXIES=10.0.0.5,10.0.0.6
 - `.env` を変えたら `php artisan config:cache` をやり直します。
 ### 接続元の IP アドレスの制限（SITE_ALLOWED_IPS・ADMIN_ALLOWED_IPS）
 
-**ファイル**：`app/Http/Middleware/RestrictSiteAccess.php`・`RestrictAdminAccess.php`（冒頭のコメント）、画面は `resources/views/maintenance.blade.php`
+**ファイル**：`packages/neobit/core/src/Http/Middleware/RestrictSiteAccess.php`・`RestrictAdminAccess.php`（冒頭のコメント）、画面は `resources/views/maintenance.blade.php`
 
 サイトを開ける IP アドレスを、`.env` で絞れます。どちらも、空なら制限しません。
 
@@ -163,7 +163,7 @@ ADMIN_ALLOWED_IPS=203.0.113.10,203.0.113.0/28
 
 ### セキュリティのヘッダー（SecurityHeaders）
 
-**ファイル**：`app/Http/Middleware/SecurityHeaders.php`（冒頭のコメント）
+**ファイル**：`packages/neobit/core/src/Http/Middleware/SecurityHeaders.php`（冒頭のコメント）
 
 ブラウザに守り方を伝えるヘッダーを、全部の応答に付けます。`bootstrap/app.php` で全体のミドルウェアに足しているので、コントローラーと画面に書くものはありません。
 
@@ -212,54 +212,54 @@ GRANT ALL PRIVILEGES ON memsys_testing.* TO 'memsys'@'localhost';
 
 | 部品 | 場所 | 役割 | 章 |
 |---|---|---|---|
-| `SearchableList` | `app/Support/` | 一覧・検索（検索条件の検証と保存、完全一致・部分一致の自動判定、並び順、ページと検索条件の復元） | 3 |
-| `FormFlow` | `app/Support/` | 入力 → 確認 → 保存、削除（トランザクション込み）、必須マーク | 5・6 |
-| `InputNormalizer`・`NormalizeInput` | `app/Support/`・`app/Http/Middleware/` | 入力の全角と半角の揺らぎをそろえる（画面の入力と CSV 取り込み。検証の前） | 5 |
-| `SecurityHeaders` | `app/Http/Middleware/` | ブラウザに守り方を伝えるヘッダーを、全部の応答に付ける | 0 |
-| `RestrictSiteAccess`・`RestrictAdminAccess`・`AllowedIps` | `app/Http/Middleware/`・`app/Support/` | 接続元の IP アドレスの制限（サイト全体はメンテナンス中の画面、管理画面は 404） | 0 |
-| `AjaxFileUpload` | `app/Support/` | 画像・添付ファイルの Ajax アップロード、WYSIWYG の画像 | 7 |
-| `UploadFilePath` | `app/Support/` | アップロードしたファイルの保存先と URL の規則（公開・非公開・一時ファイル） | 7 |
-| `UploadedFileController` | `app/Http/Controllers/` | ログインした人だけが見られるファイルと、一時ファイルを返す | 7 |
-| `PdfDownload` | `app/Support/` | Blade のテンプレートから PDF を作って返す（mPDF、同梱の IPAex フォント） | 18 |
-| `HtmlSanitizer`（`safe_html()`） | `app/Support/` | WYSIWYG の HTML の無害化 | 7 |
-| `CodeTable`（`code_table()` など） | `app/Support/`・`app/helpers.php` | 区分表（列挙型・CSV・DB） | 8 |
-| `CsvDownload`・`CsvColumnSet` | `app/Support/` | CSV ダウンロードと、CSV の項目の定義 | 9 |
-| `CsvImport` ほか | `app/Support/` | CSV 取り込み（取り込み画面と保存の流れ） | 10 |
-| `CsvReader` | `app/Support/` | CSV を読んで確かめる部分。自分の画面を持つ機能が、CSV の読み込みと検証だけを借りるときに使う | 10 |
-| `MailTemplate`・`TemplatedMail` | `app/Support/`・`app/Mail/` | テンプレートファイルによるメール送信 | 11 |
-| `LoginThrottle` | `app/Support/` | 認証の失敗回数による試行制限 | 14 |
-| `LoginAccount`・`IsLoginAccount`・`HasTwoFactor` | `app/Support/` | ログインするモデル（個人会員・企業の担当者・スタッフ）の共通の型と、名前の決まり、2段階認証にかかわるモデルの中身 | 14・23 |
-| `LoginIdType` | `app/Enums/` | ログインに使う値の種類（メールアドレス・ログインID・どちらでも）。モデルの定数で選ぶ | 23 |
-| `TwoFactorLogin` | `app/Support/` | ログインの、パスワードが合った後の流れ（2段階目・信頼済みの端末・ログインの確定）と、ログアウト | 14 |
-| `TwoFactorChallenge` | `app/Support/` | その人の2段階目の方式で、本人かどうかを確かめる | 14 |
-| `TwoFactorManagement` | `app/Support/` | ログイン中の本人による、バックアップコードの発行と、認証アプリの登録の解除 | 14 |
-| `PasskeySuggestion` | `app/Support/` | パスワードでログインした人に、パスキーの登録を1回だけ勧める | 14 |
-| `LegacyPasswordUserProvider`・`LegacyPassword` | `app/Support/` | 既存のシステムから移した会員の、古い方式のパスワードの照合と、今の方式への置き換え | 14 |
-| `LoginIdMemory` | `app/Support/` | ログイン画面の入力（企業ID と担当者ID）を、ブラウザに覚えさせる | 14 |
-| `TeamInvitationManager`・`TeamInvitationOwner`・`TeamInvitationRelation` | `app/Support/` | 集団への招待（リンクの発行・送り直し・取り消し・照合）。企業会員の担当者の招待に使う。集団のモデルに、インターフェースとトレイトを付ける | 23 |
-| `LoginSession` | `app/Support/` | そのガードだけのログアウト（同じブラウザのほかのログインは残す） | 14 |
-| `LoginRedirect` | `app/Support/` | ログインの後の移動先（開こうとしていた画面へ戻す。戻り先は、ログインの種類ごとに覚える） | 14 |
-| `LoginVerificationCode` | `app/Support/` | メールで送る確認コード | 14 |
-| `EmailChange` | `app/Support/` | 本人がメールアドレスを変えるときに、新しいアドレスへの確認コードの入力を挟む | 14 |
-| `TrustedDeviceManager` | `app/Support/` | 2段階目を省略できる信頼済み端末 | 14 |
-| `TwoFactorAuthenticator`・`BackupCodeGenerator` | `app/Support/` | 認証アプリ（TOTP）のコードと、バックアップコード | 14 |
-| `PasskeyLogin`・`PasskeyManagement` | `app/Support/` | パスキーでのログインと、本人によるパスキーの登録・削除 | 14 |
-| `PasswordChange` | `app/Support/` | パスワードを変えたときの後始末（信頼済み端末・パスキーの無効化、お知らせのメール） | 14 |
+| `SearchableList` | `packages/neobit/core/src/Crud/` | 一覧・検索（検索条件の検証と保存、完全一致・部分一致の自動判定、並び順、ページと検索条件の復元） | 3 |
+| `FormFlow` | `packages/neobit/core/src/Crud/` | 入力 → 確認 → 保存、削除（トランザクション込み）、必須マーク | 5・6 |
+| `InputNormalizer`・`NormalizeInput` | `packages/neobit/core/src/Crud/`・`packages/neobit/core/src/Http/Middleware/` | 入力の全角と半角の揺らぎをそろえる（画面の入力と CSV 取り込み。検証の前） | 5 |
+| `SecurityHeaders` | `packages/neobit/core/src/Http/Middleware/` | ブラウザに守り方を伝えるヘッダーを、全部の応答に付ける | 0 |
+| `RestrictSiteAccess`・`RestrictAdminAccess`・`AllowedIps` | `packages/neobit/core/src/Http/Middleware/`・`packages/neobit/core/src/Security/` | 接続元の IP アドレスの制限（サイト全体はメンテナンス中の画面、管理画面は 404） | 0 |
+| `AjaxFileUpload` | `packages/neobit/core/src/Upload/` | 画像・添付ファイルの Ajax アップロード、WYSIWYG の画像 | 7 |
+| `UploadFilePath` | `packages/neobit/core/src/Upload/` | アップロードしたファイルの保存先と URL の規則（公開・非公開・一時ファイル） | 7 |
+| `UploadedFileController` | `packages/neobit/core/src/Http/Controllers/` | ログインした人だけが見られるファイルと、一時ファイルを返す | 7 |
+| `PdfDownload` | `packages/neobit/core/src/Pdf/` | Blade のテンプレートから PDF を作って返す（mPDF、同梱の IPAex フォント） | 18 |
+| `HtmlSanitizer`（`safe_html()`） | `packages/neobit/core/src/Upload/` | WYSIWYG の HTML の無害化 | 7 |
+| `CodeTable`（`code_table()` など） | `packages/neobit/core/src/Code/`・`packages/neobit/core/src/helpers.php` | 区分表（列挙型・CSV・DB） | 8 |
+| `CsvDownload`・`CsvColumnSet` | `packages/neobit/core/src/Csv/` | CSV ダウンロードと、CSV の項目の定義 | 9 |
+| `CsvImport` ほか | `packages/neobit/core/src/Csv/` | CSV 取り込み（取り込み画面と保存の流れ） | 10 |
+| `CsvReader` | `packages/neobit/core/src/Csv/` | CSV を読んで確かめる部分。自分の画面を持つ機能が、CSV の読み込みと検証だけを借りるときに使う | 10 |
+| `MailTemplate`・`TemplatedMail` | `packages/neobit/core/src/Mail/`・`packages/neobit/core/src/Mail/` | テンプレートファイルによるメール送信 | 11 |
+| `LoginThrottle` | `packages/neobit/core/src/Auth/` | 認証の失敗回数による試行制限 | 14 |
+| `LoginAccount`・`IsLoginAccount`・`HasTwoFactor` | `packages/neobit/core/src/Auth/` | ログインするモデル（個人会員・企業の担当者・スタッフ）の共通の型と、名前の決まり、2段階認証にかかわるモデルの中身 | 14・23 |
+| `LoginIdType` | `packages/neobit/core/src/Enums/` | ログインに使う値の種類（メールアドレス・ログインID・どちらでも）。モデルの定数で選ぶ | 23 |
+| `TwoFactorLogin` | `packages/neobit/core/src/Auth/` | ログインの、パスワードが合った後の流れ（2段階目・信頼済みの端末・ログインの確定）と、ログアウト | 14 |
+| `TwoFactorChallenge` | `packages/neobit/core/src/Auth/` | その人の2段階目の方式で、本人かどうかを確かめる | 14 |
+| `TwoFactorManagement` | `packages/neobit/core/src/Auth/` | ログイン中の本人による、バックアップコードの発行と、認証アプリの登録の解除 | 14 |
+| `PasskeySuggestion` | `packages/neobit/core/src/Auth/` | パスワードでログインした人に、パスキーの登録を1回だけ勧める | 14 |
+| `LegacyPasswordUserProvider`・`LegacyPassword` | `packages/neobit/core/src/Auth/` | 既存のシステムから移した会員の、古い方式のパスワードの照合と、今の方式への置き換え | 14 |
+| `LoginIdMemory` | `packages/neobit/core/src/Auth/` | ログイン画面の入力（企業ID と担当者ID）を、ブラウザに覚えさせる | 14 |
+| `TeamInvitationManager`・`TeamInvitationOwner`・`TeamInvitationRelation` | `packages/neobit/core/src/Team/` | 集団への招待（リンクの発行・送り直し・取り消し・照合）。企業会員の担当者の招待に使う。集団のモデルに、インターフェースとトレイトを付ける | 23 |
+| `LoginSession` | `packages/neobit/core/src/Auth/` | そのガードだけのログアウト（同じブラウザのほかのログインは残す） | 14 |
+| `LoginRedirect` | `packages/neobit/core/src/Auth/` | ログインの後の移動先（開こうとしていた画面へ戻す。戻り先は、ログインの種類ごとに覚える） | 14 |
+| `LoginVerificationCode` | `packages/neobit/core/src/Auth/` | メールで送る確認コード | 14 |
+| `EmailChange` | `packages/neobit/core/src/Auth/` | 本人がメールアドレスを変えるときに、新しいアドレスへの確認コードの入力を挟む | 14 |
+| `TrustedDeviceManager` | `packages/neobit/core/src/Auth/` | 2段階目を省略できる信頼済み端末 | 14 |
+| `TwoFactorAuthenticator`・`BackupCodeGenerator` | `packages/neobit/core/src/Auth/` | 認証アプリ（TOTP）のコードと、バックアップコード | 14 |
+| `PasskeyLogin`・`PasskeyManagement` | `packages/neobit/core/src/Auth/` | パスキーでのログインと、本人によるパスキーの登録・削除 | 14 |
+| `PasswordChange` | `packages/neobit/core/src/Auth/` | パスワードを変えたときの後始末（信頼済み端末・パスキーの無効化、お知らせのメール） | 14 |
 | `_confirm_hidden` | `resources/views/` | 確認画面の hidden を `$input` から組み立てる | 5 |
 | `_ajax_upload_block`・`_ajax_upload_group` | `resources/views/` | アップロード欄（単数・複数） | 7 |
 | `admin/csv_import/` | `resources/views/` | CSV 取り込みの画面（全コーナー共通） | 10 |
 | `_passkeys` | `resources/views/` | パスキーの一覧・本人確認・登録の画面の中身 | 14 |
-| `TemporaryDataCleaner` | `app/Support/` | 一時データの後片付け（一時ファイル・期限の切れたキャッシュと信頼済み端末・古い操作ログ）。プロジェクトの片付けは `config/cleanup.php` に足す | 19 |
-| `app:cleanup-temporary-data` | `app/Console/Commands/` | 一時データの後片付けのコマンド（スケジューラーから1時間ごと） | 19 |
-| `app:reset-two-factor` | `app/Console/Commands/` | 2段階認証の登録を解除するコマンド（画面から解除できる人がいないときに使う） | 14 |
-| `app:set-next-id` | `app/Console/Commands/` | 新しく登録する行の id の始まりを決めるコマンド（サイトを開ける前に使う） | 16 |
-| `ErrorNotifyHandler` | `app/Support/` | ログに書いたエラーを開発者にメールで知らせる（レベル・宛先は .env、間隔は `config/logging.php`） | 20 |
-| `OperationRecorder` | `app/Support/` | 操作ログ（誰が・いつ・どこから・何に・何をしたか）を書く | 22 |
-| `OperationLogStats`・`OperationLogReport` | `app/Support/` | 操作ログの件数の集計（一覧の上のグラフと表）と、1日ぶんの報告 | 22 |
-| `app:report-operation-logs` | `app/Console/Commands/` | 操作ログの報告のコマンド（スケジューラーから毎朝。気になる点があった日だけメールを送る） | 22 |
-| `AdminRequestLimit` | `app/Support/` | ログイン後の管理画面の全体に掛ける、スタッフごとの回数の制限 | 22 |
-| `LoginProfileNotice` | `app/Support/` | 会員情報が変わったことを、本人へメールで知らせる | 22 |
-| `SpamGuard`・`_spam_guard` | `app/Support/`・`resources/views/` | 訪問者向けフォームのスパム対策（ハニーポット・送信までの時間・Cloudflare Turnstile） | 12 |
+| `TemporaryDataCleaner` | `packages/neobit/core/src/Operations/` | 一時データの後片付け（一時ファイル・期限の切れたキャッシュと信頼済み端末・古い操作ログ）。プロジェクトの片付けは `config/cleanup.php` に足す | 19 |
+| `app:cleanup-temporary-data` | `packages/neobit/core/src/Console/` | 一時データの後片付けのコマンド（スケジューラーから1時間ごと） | 19 |
+| `app:reset-two-factor` | `packages/neobit/core/src/Console/` | 2段階認証の登録を解除するコマンド（画面から解除できる人がいないときに使う） | 14 |
+| `app:set-next-id` | `packages/neobit/core/src/Console/` | 新しく登録する行の id の始まりを決めるコマンド（サイトを開ける前に使う） | 16 |
+| `ErrorNotifyHandler` | `packages/neobit/core/src/Operations/` | ログに書いたエラーを開発者にメールで知らせる（レベル・宛先は .env、間隔は `config/logging.php`） | 20 |
+| `OperationRecorder` | `packages/neobit/core/src/Operations/` | 操作ログ（誰が・いつ・どこから・何に・何をしたか）を書く | 22 |
+| `OperationLogStats`・`OperationLogReport` | `packages/neobit/core/src/Operations/` | 操作ログの件数の集計（一覧の上のグラフと表）と、1日ぶんの報告 | 22 |
+| `app:report-operation-logs` | `packages/neobit/core/src/Console/` | 操作ログの報告のコマンド（スケジューラーから毎朝。気になる点があった日だけメールを送る） | 22 |
+| `AdminRequestLimit` | `packages/neobit/core/src/Security/` | ログイン後の管理画面の全体に掛ける、スタッフごとの回数の制限 | 22 |
+| `LoginProfileNotice` | `packages/neobit/core/src/Auth/` | 会員情報が変わったことを、本人へメールで知らせる | 22 |
+| `SpamGuard`・`_spam_guard` | `packages/neobit/core/src/Security/`・`resources/views/` | 訪問者向けフォームのスパム対策（ハニーポット・送信までの時間・Cloudflare Turnstile） | 12 |
 | `app.js` | `resources/js/` | フォームの補助（必須マークから required 属性、エラー表示） | 17 |
 
 トレイトは、コントローラーが `use` するだけで働きます。コントローラーに書くのは「このコーナーの項目の定義」と「ルートから呼ばれる入口」だけ、というのが全体の考え方です。
@@ -389,7 +389,7 @@ class NewsController extends Controller
 
 <p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
 
-**ファイル**：`app/Support/SearchableList.php`　**実例**：`Admin\StaffController`・`Admin\MemberController`・`Admin\NewsController`・`NewsController`（訪問者向け）
+**ファイル**：`packages/neobit/core/src/Crud/SearchableList.php`　**実例**：`Admin\StaffController`・`Admin\MemberController`・`Admin\NewsController`・`NewsController`（訪問者向け）
 
 ### コントローラーに書くもの
 
@@ -502,7 +502,7 @@ public function show(News $news): View
 
 <p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
 
-**ファイル**：`app/Support/FormFlow.php`　**実例**：`Admin\NewsController`（確認画面あり）・`Admin\CategoryController`（確認画面なし）
+**ファイル**：`packages/neobit/core/src/Crud/FormFlow.php`　**実例**：`Admin\NewsController`（確認画面あり）・`Admin\CategoryController`（確認画面なし）
 
 ### コントローラーに書く「項目の定義」
 
@@ -602,7 +602,7 @@ Route::patch('/news/{news}/update', ...'update')->name('news.update');
 
 ### 入力をそろえる（InputNormalizer）
 
-**ファイル**：`app/Support/InputNormalizer.php`（冒頭のコメント）・`app/Http/Middleware/NormalizeInput.php`、`app/Rules/KatakanaRule.php`・`HiraganaRule.php`
+**ファイル**：`packages/neobit/core/src/Crud/InputNormalizer.php`（冒頭のコメント）・`packages/neobit/core/src/Http/Middleware/NormalizeInput.php`、`packages/neobit/core/src/Rules/KatakanaRule.php`・`HiraganaRule.php`
 
 入力された文字の、全角と半角の揺らぎをそろえます。住所や電話番号のような個人情報が、入力した人によって全角だったり半角だったりするのを防ぐためです。画面からの入力の全部と、CSV 取り込みの各セルに、検証の前に掛かります。全角の数字で入力された電話番号も、半角に直ってから検証されます。
 
@@ -661,7 +661,7 @@ private function beforeDelete(News $news): void
 
 <p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
 
-**ファイル**：`app/Support/AjaxFileUpload.php`・`UploadFilePath.php`　**実例**：`Admin\NewsController`（一覧用画像・添付ファイル・本文）、`ContactController`（添付ファイル1つ）
+**ファイル**：`packages/neobit/core/src/Upload/AjaxFileUpload.php`・`UploadFilePath.php`　**実例**：`Admin\NewsController`（一覧用画像・添付ファイル・本文）、`ContactController`（添付ファイル1つ）
 
 ファイルは選んだ時点で Ajax で一時ディレクトリ（`tmp/`）に送り、確認画面を経て保存するときに正式な保存先へ移します。コントローラー・画面の書き方は、アップロードの有無で変わらないようにしてあります。
 
@@ -812,7 +812,7 @@ public function viewFiles(Member|Staff|null $user, News $news, string $field): b
 
 <p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
 
-**ファイル**：`app/Support/CodeTable.php`・`app/helpers.php`・`app/Enums/`・`code/*.csv`・`App\Enums\CodeType`・`t_codes`（`Admin\CodeController`）
+**ファイル**：`packages/neobit/core/src/Code/CodeTable.php`・`packages/neobit/core/src/helpers.php`・`app/Enums/`・`code/*.csv`・`App\Enums\CodeType`・`t_codes`（`Admin\CodeController`）
 
 区分表（値と名称の組）は、出どころに関係なく次のヘルパーで使います。
 
@@ -895,7 +895,7 @@ Blade には `\App\Enums\...` を書かず、`code_table()` 系で書きます�
 
 <p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
 
-**ファイル**：`app/Support/CsvDownload.php`・`CsvColumnSet.php`（項目の定義の書き方）　**実例**：`Admin\MemberController`・`Admin\NewsController`
+**ファイル**：`packages/neobit/core/src/Csv/CsvDownload.php`・`CsvColumnSet.php`（項目の定義の書き方）　**実例**：`Admin\MemberController`・`Admin\NewsController`
 
 ```php
 use CsvDownload;
@@ -938,7 +938,7 @@ private function csvColumns(): array
 
 <p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
 
-**ファイル**：`app/Support/CsvImport.php` ほか（冒頭のコメント）、設計の詳細は「CSV取り込みの設計」（`docs/csv-import-spec.md`）　**実例**：`Admin\MemberController`（更新だけ）・`Admin\NewsController`（追加あり、アップロード項目あり）
+**ファイル**：`packages/neobit/core/src/Csv/CsvImport.php` ほか（冒頭のコメント）、設計の詳細は「CSV取り込みの設計」（`docs/csv-import-spec.md`）　**実例**：`Admin\MemberController`（更新だけ）・`Admin\NewsController`（追加あり、アップロード項目あり）
 
 項目の定義は、ダウンロードと同じ `csvColumns()` を使います。文字コードの判定は、取り込みの設定が `encoding: null` なら自動判別です。ダウンロードした CSV を直して、そのまま取り込めます。検証・保存は画面からの登録・更新（FormFlow）と同じ処理を通ります。
 
@@ -982,7 +982,7 @@ Route::post('/members/csv-import/execute', [AdminMemberController::class, 'csvIm
 
 <p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
 
-**ファイル**：`app/Support/MailTemplate.php`・`MailTemplateParser.php`・`app/Mail/TemplatedMail.php`・`resources/mail-templates/`　**実例**：`ContactController::sendStaffNotification()`・`LoginVerificationCode`
+**ファイル**：`packages/neobit/core/src/Mail/MailTemplate.php`・`MailTemplateParser.php`・`packages/neobit/core/src/Mail/TemplatedMail.php`・`resources/mail-templates/`　**実例**：`ContactController::sendStaffNotification()`・`LoginVerificationCode`
 
 送信元・宛先・件名・本文は、テンプレートファイルがすべて決めます。呼び出し側は変数と添付ファイルを渡すだけです。
 
@@ -1034,7 +1034,7 @@ Mail::send(new TemplatedMail('contact_staff', [
 
 ### スパム対策（SpamGuard）
 
-**ファイル**：`app/Support/SpamGuard.php`（冒頭のコメント）・`resources/views/_spam_guard.blade.php`・`app/Enums/SpamCheckResult.php`　**実例**：`ContactController::confirmStore()`
+**ファイル**：`packages/neobit/core/src/Security/SpamGuard.php`（冒頭のコメント）・`resources/views/_spam_guard.blade.php`・`packages/neobit/core/src/Enums/SpamCheckResult.php`　**実例**：`ContactController::confirmStore()`
 
 人に手間をかけさせない3つの仕組みを組み合わせます。画像を選ばせる問題は出しません。
 
@@ -1130,7 +1130,7 @@ if ($spam === SpamCheckResult::Failed) {
 
 ### 2段階認証（TwoFactorLogin・TwoFactorChallenge）
 
-**ファイル**：`app/Enums/TwoFactorMethod.php`、`app/Support/LoginAccount.php`・`HasTwoFactor.php`・`TwoFactorLogin.php`・`TwoFactorChallenge.php`・`TwoFactorManagement.php`・`TwoFactorAuthenticator.php`・`BackupCodeGenerator.php`・`TrustedDeviceManager.php`、`resources/views/_two_factor.blade.php`・`_two_factor_manage.blade.php`・`_two_factor_backup_codes.blade.php`・`_two_factor_reset.blade.php`、設計の詳細は「2段階認証の設計」（`docs/two-factor-spec.md`）　**実例**：ログインは `AuthSessionController`・`Company\AuthSessionController`・`Admin\AuthSessionController`、本人による管理は `MypageController`・`Company\MypageController`・`Admin\StaffController`、運営による解除は `Admin\MemberController`・`Admin\CompanyUserController`・`Admin\StaffController`
+**ファイル**：`packages/neobit/core/src/Enums/TwoFactorMethod.php`、`packages/neobit/core/src/Auth/LoginAccount.php`・`HasTwoFactor.php`・`TwoFactorLogin.php`・`TwoFactorChallenge.php`・`TwoFactorManagement.php`・`TwoFactorAuthenticator.php`・`BackupCodeGenerator.php`・`TrustedDeviceManager.php`、`resources/views/_two_factor.blade.php`・`_two_factor_manage.blade.php`・`_two_factor_backup_codes.blade.php`・`_two_factor_reset.blade.php`、設計の詳細は「2段階認証の設計」（`docs/two-factor-spec.md`）　**実例**：ログインは `AuthSessionController`・`Company\AuthSessionController`・`Admin\AuthSessionController`、本人による管理は `MypageController`・`Company\MypageController`・`Admin\StaffController`、運営による解除は `Admin\MemberController`・`Admin\CompanyUserController`・`Admin\StaffController`
 
 ログインの2段階目の方式は、ログインするモデルの定数で選びます。部品は、相手が会員かスタッフかを知りません。
 
@@ -1246,11 +1246,11 @@ $this->useBackupCodes(Staff::class, false);    // バックアップコードを
 
 ### ログインする人の共通の型（LoginAccount）
 
-ログインするモデル（`Member`・`CompanyUser`・`Staff`）は、共通の型 `App\Support\LoginAccount` を実装し、トレイト `IsLoginAccount` を付けます。認証の共通部品は、相手を `Member` や `Staff` の名指しではなく、この型で受け取ります。ガード・ルート・メールのテンプレート・信頼済み端末の Cookie の名前は、モデルの「種類の名前」（モデルの短い名前。`member`・`company_user`・`staff`）から、決まりのとおりに作ります。名前の決まりと、モデル・コントローラーに書くものは、23章にあります。
+ログインするモデル（`Member`・`CompanyUser`・`Staff`）は、共通の型 `Neobit\Core\Auth\LoginAccount` を実装し、トレイト `IsLoginAccount` を付けます。認証の共通部品は、相手を `Member` や `Staff` の名指しではなく、この型で受け取ります。ガード・ルート・メールのテンプレート・信頼済み端末の Cookie の名前は、モデルの「種類の名前」（モデルの短い名前。`member`・`company_user`・`staff`）から、決まりのとおりに作ります。名前の決まりと、モデル・コントローラーに書くものは、23章にあります。
 
 ### 古い方式のパスワード（LegacyPasswordUserProvider）
 
-**ファイル**：`app/Support/LegacyPasswordUserProvider.php`（冒頭のコメント）・`app/Support/LegacyPassword.php`・`app/Support/Legacy/`・`config/login.php`
+**ファイル**：`packages/neobit/core/src/Auth/LegacyPasswordUserProvider.php`（冒頭のコメント）・`packages/neobit/core/src/Auth/LegacyPassword.php`・`packages/neobit/core/src/Auth/Legacy/`・`config/login.php`
 
 既存のシステムから会員を移したサイトだけで使います。既存のシステムのパスワードは、MD5 や SHA-1 のような古い方式のハッシュ値で持っていることが多く、元のパスワードには戻せません。古いハッシュ値のまま移し、本人が次にログインしたときに、今の方式（bcrypt）に置き換えます。会員にパスワードを決め直してもらう必要はありません。
 
@@ -1270,8 +1270,8 @@ $member->forceFill([
 ```php
 'member' => [
     'legacy_passwords' => [
-        App\Support\Legacy\Md5Password::class,
-        App\Support\Legacy\Sha1Password::class,
+        Neobit\Core\Auth\Legacy\Md5Password::class,
+        Neobit\Core\Auth\Legacy\Sha1Password::class,
     ],
 ],
 ```
@@ -1322,7 +1322,7 @@ if ($throttle->isBlocked()) {
 
 ### メールアドレスの変更の確認（EmailChange）
 
-**ファイル**：`app/Support/EmailChange.php`　**実例**：`MypageController`・`Company\ProfileController`、画面は `mypage/email-verify.blade.php`・`company/mypage/profile-email-verify.blade.php`
+**ファイル**：`packages/neobit/core/src/Auth/EmailChange.php`　**実例**：`MypageController`・`Company\ProfileController`、画面は `mypage/email-verify.blade.php`・`company/mypage/profile-email-verify.blade.php`
 
 本人が自分の情報を保存するときに、メールアドレスが変わる場合だけ、確認コードの入力を挟みます。入力内容をセッションに仮置きして、新しいアドレスに確認コードを送り、コードが入力できた時点で、仮置きした内容をまとめて保存します。打ち間違えたアドレスに変えてログインできなくなることと、ログイン中の画面を使った他人が自分のアドレスに書き換えることを防ぎます。メールアドレスが変わらない保存は、今までどおりすぐ保存します。
 
@@ -1375,7 +1375,7 @@ public function update(Request $request): RedirectResponse
 
 ### パスキー（PasskeyLogin・PasskeyManagement）
 
-**ファイル**：`app/Support/PasskeyLogin.php`・`PasskeyManagement.php`・`PasskeyCeremony.php`・`HasPasskeys.php`・`UserAgentLabel.php`、`app/Models/Passkey.php`、`resources/views/_passkeys.blade.php`、`resources/js/passkeys.js`、設計の詳細は「パスキーの設計」（`docs/passkeys-spec.md`）　**実例**：会員は `AuthSessionController`・`MypageController`、管理は `Admin\AuthSessionController`・`Admin\StaffController`
+**ファイル**：`packages/neobit/core/src/Auth/PasskeyLogin.php`・`PasskeyManagement.php`・`PasskeyCeremony.php`・`HasPasskeys.php`・`UserAgentLabel.php`、`packages/neobit/core/src/Models/Passkey.php`、`resources/views/_passkeys.blade.php`、`resources/js/passkeys.js`、設計の詳細は「パスキーの設計」（`docs/passkeys-spec.md`）　**実例**：会員は `AuthSessionController`・`MypageController`、管理は `Admin\AuthSessionController`・`Admin\StaffController`
 
 ログイン画面の「パスキーでログイン」で通ったときは、パスワードも2段階目も求めずにログインさせます。登録の前の本人確認は、その人のログインの2段階目の方式（メールの確認コードか、認証アプリのコード）で行います。2段階目が「なし」の人は、パスワードの再入力で確かめます。トレイトが `TwoFactorChallenge` に任せるので、方式での場合分けは要りません。
 
@@ -1429,7 +1429,7 @@ private const PASSKEY_VIEW = 'mypage.passkeys';                // 一覧画面�
 
 ### 新しく登録する行の id の始まり（app:set-next-id）
 
-**ファイル**：`app/Console/Commands/SetNextId.php`（冒頭のコメント）
+**ファイル**：`packages/neobit/core/src/Console/SetNextId.php`（冒頭のコメント）
 
 会員などの id は、DB が自動で振る連番です。サイトを開ける前に、新しく登録する行の id を、区切りのよい番号から始めたいときは、このコマンドで決めます。既存のシステムのデータを元の id のまま取り込んだ後、新しい登録を別の範囲の番号にすれば、番号で見分けられます。
 
@@ -1477,7 +1477,7 @@ php artisan app:set-next-id t_members 100001
 
 <p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
 
-**ファイル**：`app/Support/PdfDownload.php`（冒頭のコメント）・`resources/fonts/ipaex/`（IPAex フォントとライセンス）・`resources/views/pdf/`　**実例**：履歴書（`Admin\MemberController::resume()`・`MypageController::resume()`・`resources/views/pdf/resume.blade.php`）
+**ファイル**：`packages/neobit/core/src/Pdf/PdfDownload.php`（冒頭のコメント）・`resources/fonts/ipaex/`（IPAex フォントとライセンス）・`resources/views/pdf/`　**実例**：履歴書（`Admin\MemberController::resume()`・`MypageController::resume()`・`resources/views/pdf/resume.blade.php`）
 
 PDF の見た目は、普通の画面と同じく Blade のテンプレート（HTML と CSS）で書き、mPDF（composer の `mpdf/mpdf`）で PDF にします。
 
@@ -1525,14 +1525,14 @@ public function resume(Member $member): Response
 
 <p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
 
-**ファイル**：`routes/console.php`（スケジュールの一覧）・`app/Console/Commands/`（コマンド）　**実例**：一時データの後片付け（`app/Support/TemporaryDataCleaner.php`・`app/Console/Commands/CleanupTemporaryData.php`）
+**ファイル**：`routes/console.php`（スケジュールの一覧）・`packages/neobit/core/src/Console/`（コマンド）　**実例**：一時データの後片付け（`packages/neobit/core/src/Operations/TemporaryDataCleaner.php`・`packages/neobit/core/src/Console/CleanupTemporaryData.php`）
 
 「決まった時刻に何かを実行する」処理は、Artisan のコマンドとして作り、`routes/console.php` でいつ動かすかを決めます。表示するたびに今の時刻と比べれば済むもの（ニュースの掲載期間など）は、スケジューラーを使いません。
 
 ### コマンドとスケジュール
 
 ```php
-// app/Console/Commands/CleanupTemporaryData.php（php artisan make:command で作る）
+// packages/neobit/core/src/Console/CleanupTemporaryData.php（php artisan make:command で作る）
 #[Signature('app:cleanup-temporary-data')]
 #[Description('一時ファイル・期限の切れたキャッシュなどの一時データを消す')]
 class CleanupTemporaryData extends Command
@@ -1551,13 +1551,13 @@ class CleanupTemporaryData extends Command
 Schedule::command(CleanupTemporaryData::class)->hourly()->withoutOverlapping();
 ```
 
-- コマンドからしか呼ばない処理は、`app/Console/Commands/` のコマンドのクラスの中に書きます。画面からも呼ぶ処理は、`app/Services/` のクラスに置いて、コマンドは呼ぶだけにします。同じ処理を2か所に書かないためです。フレームワークの部品は `app/Support/` にあり、上の例の `TemporaryDataCleaner` は、アップロードのついでの片付けからも呼んでいます。
+- コマンドからしか呼ばない処理は、`app/Console/Commands/` のコマンドのクラスの中に書きます。画面からも呼ぶ処理は、`app/Services/` のクラスに置いて、コマンドは呼ぶだけにします。同じ処理を2か所に書かないためです。フレームワークの部品は `packages/neobit/core/src/Operations/` にあり、上の例の `TemporaryDataCleaner` は、アップロードのついでの片付けからも呼んでいます。
 - `withoutOverlapping()` で、前の回が終わっていなければ重ねて動かしません。
 - 登録した一覧と次に動く時刻は `php artisan schedule:list`、すぐに動かすときは `php artisan app:cleanup-temporary-data` のようにコマンドを直接実行します。
 
 ### 一時データの後片付け（TemporaryDataCleaner）
 
-**ファイル**：`app/Support/TemporaryDataCleaner.php`（冒頭のコメント）・`config/cleanup.php`（残す日数と、プロジェクトの片付け）
+**ファイル**：`packages/neobit/core/src/Operations/TemporaryDataCleaner.php`（冒頭のコメント）・`config/cleanup.php`（残す日数と、プロジェクトの片付け）
 
 フレームワークが片付けるものは、次のとおりです。
 
@@ -1616,7 +1616,7 @@ Schedule::command(CleanupTemporaryData::class)->hourly()->withoutOverlapping();
 
 <p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
 
-**ファイル**：`app/Support/ErrorNotifyHandler.php`・`config/logging.php`（`error_notify` のチャンネル）・`resources/mail-templates/error_notify.blade.php`
+**ファイル**：`packages/neobit/core/src/Operations/ErrorNotifyHandler.php`・`config/logging.php`（`error_notify` のチャンネル）・`resources/mail-templates/error_notify.blade.php`
 
 本番で起きたエラーを、ログを見に行かなくても気付けるよう、ログに書くのと一緒に開発者へメールで知らせます。ログのチャンネルとして働くので、例外も `Log::error()` も同じ仕組みで届き、コントローラーや部品のコードに通知のための処理は書きません。独自に知らせたい事象があるときも、`ERROR_NOTIFY_LEVEL` 以上のレベルでログに書けば、メールで届きます。
 
@@ -1781,7 +1781,7 @@ Mail::send(new TemplatedMail('bulk_mail', [
 
 <p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
 
-**ファイル**：`app/Support/OperationRecorder.php`（冒頭のコメント）・`app/Models/OperationLog.php`・`app/Enums/OperationLogAction.php`・`app/Enums/OperationLogSubject.php`　**実例**：`Admin\OperationLogController`（一覧）・`Admin\MemberController::show()`（詳細の閲覧）
+**ファイル**：`packages/neobit/core/src/Operations/OperationRecorder.php`（冒頭のコメント）・`packages/neobit/core/src/Models/OperationLog.php`・`packages/neobit/core/src/Enums/OperationLogAction.php`・`packages/neobit/core/src/Enums/OperationLogSubject.php`　**実例**：`Admin\OperationLogController`（一覧）・`Admin\MemberController::show()`（詳細の閲覧）
 
 誰が・いつ・どこから・何に・何をしたかを、`operation_logs` に1行ずつ残します。情報が漏れたときや、「変えていないのに変わっている」という問い合わせがあったときに、後からたどれるようにするためです。
 
@@ -1844,7 +1844,7 @@ OperationRecorder::record(OperationLogAction::Update, $company, ['status'], ['st
 
 ### 管理画面の回数の制限（AdminRequestLimit）
 
-**ファイル**：`app/Support/AdminRequestLimit.php`（冒頭のコメント）・`routes/web.php`（管理画面のグループの `throttle:admin-screen`）
+**ファイル**：`packages/neobit/core/src/Security/AdminRequestLimit.php`（冒頭のコメント）・`routes/web.php`（管理画面のグループの `throttle:admin-screen`）
 
 ログイン後の管理画面の全体に、スタッフごとの回数の制限を掛けています。一覧や詳細を、プログラムで続けて開いてデータを取り出す動きを止めるためです。
 
@@ -1868,7 +1868,7 @@ OperationRecorder::record(OperationLogAction::Update, $company, ['status'], ['st
 
 ### 件数の集計（OperationLogStats）
 
-**ファイル**：`app/Support/OperationLogStats.php`　**実例**：`Admin\OperationLogController::index()`・`resources/views/admin/operation_logs/index.blade.php`
+**ファイル**：`packages/neobit/core/src/Operations/OperationLogStats.php`　**実例**：`Admin\OperationLogController::index()`・`resources/views/admin/operation_logs/index.blade.php`
 
 操作ログの一覧の上に、件数の棒グラフと、操作の多い人の表を出します。出すのは1ページ目だけです。2ページ目から先は、一覧を読み進めているので出しません。件数の多い時間帯や、ふだんと違う使われ方に気付けるようにするためです。
 
@@ -1884,7 +1884,7 @@ OperationRecorder::record(OperationLogAction::Update, $company, ['status'], ['st
 
 ### 1日1回の報告のメール（OperationLogReport）
 
-**ファイル**：`app/Support/OperationLogReport.php`（冒頭のコメント）・`app/Console/Commands/ReportOperationLogs.php`・`resources/mail-templates/operation_log_report.blade.php`
+**ファイル**：`packages/neobit/core/src/Operations/OperationLogReport.php`（冒頭のコメント）・`packages/neobit/core/src/Console/ReportOperationLogs.php`・`resources/mail-templates/operation_log_report.blade.php`
 
 毎朝8時に、前の日の操作ログの報告を管理者へ送ります（`routes/console.php`）。**気になる点があった日だけ**送ります。毎日届くと読まれなくなり、肝心の日に埋もれるためです。
 
@@ -1923,7 +1923,7 @@ private function afterSave(Member $member, array $validated, array $changedField
 
 <p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
 
-**ファイル**：`app/Support/LoginAccount.php`・`IsLoginAccount.php`・`TwoFactorLogin.php`・`TeamInvitationManager.php`・`TeamInvitationOwner.php`・`TeamInvitationRelation.php`・`LoginIdMemory.php`、`config/login.php`、設計の詳細は「個人会員と企業会員を共存させる設計」（`docs/member-types-spec.md`）　**実例**：個人会員は `AuthSessionController` ほか、企業会員は `app/Http/Controllers/Company/` の下と `Admin\CompanyController`・`Admin\CompanyUserController`
+**ファイル**：`packages/neobit/core/src/Auth/LoginAccount.php`・`IsLoginAccount.php`・`TwoFactorLogin.php`・`TeamInvitationManager.php`・`TeamInvitationOwner.php`・`TeamInvitationRelation.php`・`LoginIdMemory.php`、`config/login.php`、設計の詳細は「個人会員と企業会員を共存させる設計」（`docs/member-types-spec.md`）　**実例**：個人会員は `AuthSessionController` ほか、企業会員は `app/Http/Controllers/Company/` の下と `Admin\CompanyController`・`Admin\CompanyUserController`
 
 訪問者側でログインする人は、個人会員と、企業の担当者の2種類です。ログインの仕組み（14章）は同じ共通部品を使い、画面・URL・コントローラーは種類ごとに分けて書きます。企業会員を使わないサイトは、企業会員のファイルを消します。
 
@@ -2102,7 +2102,7 @@ Route::prefix('company')->name('company.')->group(function () {
 | `database/` | 企業（`t_companies`）と担当者（`t_company_users`）のテーブルのマイグレーション、`CompanySeeder` と、`DatabaseSeeder` の呼び出し。招待のテーブル（`team_invitations`）は、共通のテーブルなので残す |
 | `tests/Feature/Company/` | 全部 |
 
-`app/Support/` の共通部品は、消しません。`LoginIdMemory`（ログイン画面の入力の記憶）や、招待の部品（`TeamInvitationManager` ほか）は、今は企業会員だけが使っていますが、企業に限らない部品です。
+`packages/neobit/core/` の共通部品は、消しません。`LoginIdMemory`（ログイン画面の入力の記憶）や、招待の部品（`TeamInvitationManager` ほか）は、今は企業会員だけが使っていますが、企業に限らない部品です。
 
 共通部品の中にも、企業会員の名前を書いた行があります。残しておいても動きますが、消すなら次の所です。
 
@@ -2113,7 +2113,7 @@ Route::prefix('company')->name('company.')->group(function () {
 
 ### 個人会員をログインID でログインさせるサイト
 
-ログインに使う値は、モデルの定数 `LOGIN_ID_TYPE`（`App\Enums\LoginIdType`）で選びます。見本のサイトでは、個人会員はメールアドレス（`Email`）、企業の担当者は、担当者ID でもメールアドレスでも入れる形（`Either`）です。ログインのコントローラーは、`Member::loginIdCondition($入力された値)` で、探す条件（`[列の名前 => 値]`）をモデルに聞きます。定数を変えれば、探す列が切り替わります。個人会員をログインID でログインさせるには、定数のほかに、ログインID の列と、入力させる画面が要ります。直す所は、次のとおりです。
+ログインに使う値は、モデルの定数 `LOGIN_ID_TYPE`（`Neobit\Core\Enums\LoginIdType`）で選びます。見本のサイトでは、個人会員はメールアドレス（`Email`）、企業の担当者は、担当者ID でもメールアドレスでも入れる形（`Either`）です。ログインのコントローラーは、`Member::loginIdCondition($入力された値)` で、探す条件（`[列の名前 => 値]`）をモデルに聞きます。定数を変えれば、探す列が切り替わります。個人会員をログインID でログインさせるには、定数のほかに、ログインID の列と、入力させる画面が要ります。直す所は、次のとおりです。
 
 | 直す所 | 中身 | 写す元 |
 |---|---|---|

@@ -72,14 +72,14 @@ grep -rnE "->intended\(|redirect\(\\\$|redirect\(\)->to\(\\\$|url\(\)->previous|
 
 ### 7. ファイルを返す処理
 
-`app/Http/Controllers/UploadedFileController.php` を読みます。
+`packages/neobit/core/src/Http/Controllers/UploadedFileController.php` を読みます。
 
 - **見るところ**：ファイル名の形（`UploadFilePath::SAFE_FILENAME`）、DB にそのファイルの記録があるか、見てよい人か（ポリシーの `viewFiles()`）の3つを確かめてから返していること。
 - 非公開のフィールドを足したら、そのモデルのポリシーに `viewFiles()` があることを確かめます。無いと、誰も見られません（安全な側に倒れます）。
 
 ### 8. アップロード
 
-`app/Support/AjaxFileUpload.php` の `uploadAjaxFile()` を読みます。
+`packages/neobit/core/src/Upload/AjaxFileUpload.php` の `uploadAjaxFile()` を読みます。
 
 - **見るところ**：種類を、拡張子と中身の両方で確かめていること（`mimes:`）。保存する名前が、利用者の付けた名前ではなく、ランダムな名前であること。受け付ける種類に、ブラウザやサーバーで動くもの（`html`・`svg`・`php`）が無いこと。
 

@@ -100,7 +100,7 @@
 
 ### 2.1 ログインするモデルの共通の型と、名前の決まり
 
-ログインするモデル（`Member`・`CompanyUser`・`Staff`）は、共通の型 `App\Support\LoginAccount`（インターフェース）を実装し、トレイト `IsLoginAccount` を付ける。共通部品は、`Member` や `Staff` と書いていた所を、この型で受け取る。会員とスタッフで、型と定数の名前を分けない。
+ログインするモデル（`Member`・`CompanyUser`・`Staff`）は、共通の型 `Neobit\Core\Auth\LoginAccount`（インターフェース）を実装し、トレイト `IsLoginAccount` を付ける。共通部品は、`Member` や `Staff` と書いていた所を、この型で受け取る。会員とスタッフで、型と定数の名前を分けない。
 
 | メソッド | 返すもの | 使う所 |
 |---|---|---|
@@ -137,8 +137,8 @@ return [
         // 初回のログインで担当者の情報を登録するときに、照合する企業の列（2.8）
         'identity_check_column' => 'tel',
         'legacy_passwords' => [
-            App\Support\Legacy\Md5Password::class,
-            App\Support\Legacy\Sha1Password::class,
+            Neobit\Core\Auth\Legacy\Md5Password::class,
+            Neobit\Core\Auth\Legacy\Sha1Password::class,
         ],
     ],
 ];

@@ -81,8 +81,8 @@ TOTPの代わりに2段階目としてだけ使う方法（B案）は採らな�
 | パッケージの部品 | memsysでの扱い |
 |---|---|
 | Actionクラス（`GenerateRegistrationOptions`・`StorePasskey`・`GenerateVerificationOptions`・`VerifyPasskey`・`DeletePasskey`） | そのまま使う |
-| `Passkey` モデル | 継承した `App\Models\Passkey` に差し替える（`Passkeys::usePasskeyModel()`） |
-| `PasskeyUser` インターフェース | `Member`・`Staff` に実装する（`App\Support\HasPasskeys`） |
+| `Passkey` モデル | 継承した `Neobit\Core\Models\Passkey` に差し替える（`Passkeys::usePasskeyModel()`） |
+| `PasskeyUser` インターフェース | `Member`・`Staff` に実装する（`Neobit\Core\Auth\HasPasskeys`） |
 | マイグレーション | 使わない（自前のマイグレーションで作る） |
 | ルート・コントローラー | 使わない（`Passkeys::ignoreRoutes()`） |
 
@@ -138,7 +138,7 @@ TOTPの代わりに2段階目としてだけ使う方法（B案）は採らな�
 | スタッフの削除（論理削除） | 残す。削除中はパスキーでもログインできず、削除を取り消すと元どおり使える（パスワード・2段階認証の設定と同じ扱い） |
 | パスワードの変更・再設定（会員・スタッフ、本人・管理画面のどちらからでも） | 削除する |
 
-パスワードを変えたときは、パスワードと別に持っているログインの手段（信頼済み端末とパスキー）をすべて無効にし、登録されているメールアドレスへ「パスワードが変更されました」のお知らせを送る（`App\Support\PasswordChange`。スタッフはメールアドレスが空なら送らない）。乗っ取りを疑ってパスワードを変えた場合に、他人が足したパスキーが残らないようにするためで、変えた理由を問わず「パスワードを変えたら、ほかのログインの手段はすべてリセットされる」と説明できる形にしている。スタッフの2段階認証（認証アプリ）は消さない。秘密鍵は本人のスマートフォンの中にあり、パスワードとは別の要素だからである。お知らせのメールは、本人以外が変えた場合に本人が気付けるようにするもので、管理画面から変えたときはその旨（スタッフへは変えた管理者の名前）を添える。
+パスワードを変えたときは、パスワードと別に持っているログインの手段（信頼済み端末とパスキー）をすべて無効にし、登録されているメールアドレスへ「パスワードが変更されました」のお知らせを送る（`Neobit\Core\Auth\PasswordChange`。スタッフはメールアドレスが空なら送らない）。乗っ取りを疑ってパスワードを変えた場合に、他人が足したパスキーが残らないようにするためで、変えた理由を問わず「パスワードを変えたら、ほかのログインの手段はすべてリセットされる」と説明できる形にしている。スタッフの2段階認証（認証アプリ）は消さない。秘密鍵は本人のスマートフォンの中にあり、パスワードとは別の要素だからである。お知らせのメールは、本人以外が変えた場合に本人が気付けるようにするもので、管理画面から変えたときはその旨（スタッフへは変えた管理者の名前）を添える。
 
 2段階認証の登録解除でパスキーも消すのは、パスキーでのログインは2段階目（TOTP）を求めないためである。パスキーを残すと、TOTPを登録し直さないまま使い続けられ、パスキーを追加するときの本人確認（TOTP）ができない状態になる。「スタッフのパスキーは、TOTPを登録済みの間だけ存在する」という形に揃えている。
 
@@ -156,15 +156,15 @@ TOTPの代わりに2段階目としてだけ使う方法（B案）は採らな�
 
 | ファイル | 役割 |
 |---|---|
-| `app/Support/PasskeyLogin.php` | パスキーでのログイン（ログインのコントローラーに `use`） |
-| `app/Support/PasskeyManagement.php` | 本人によるパスキーの一覧・登録・削除（コントローラーに `use`） |
-| `app/Support/PasskeyCeremony.php` | オプションのセッションへの控え・取り出しと、ブラウザから届いた結果の読み取り（上の2つが共通で使う） |
-| `app/Support/HasPasskeys.php` | `Member`・`Staff` に付けるトレイト（`PasskeyUser` の実装） |
-| `app/Support/UserAgentLabel.php` | User-Agentから「Windows・Chrome」のような名前を作る |
-| `app/Models/Passkey.php` | パッケージの `Passkey` モデルを継承し、持ち主を2列で表す |
+| `packages/neobit/core/src/Auth/PasskeyLogin.php` | パスキーでのログイン（ログインのコントローラーに `use`） |
+| `packages/neobit/core/src/Auth/PasskeyManagement.php` | 本人によるパスキーの一覧・登録・削除（コントローラーに `use`） |
+| `packages/neobit/core/src/Auth/PasskeyCeremony.php` | オプションのセッションへの控え・取り出しと、ブラウザから届いた結果の読み取り（上の2つが共通で使う） |
+| `packages/neobit/core/src/Auth/HasPasskeys.php` | `Member`・`Staff` に付けるトレイト（`PasskeyUser` の実装） |
+| `packages/neobit/core/src/Auth/UserAgentLabel.php` | User-Agentから「Windows・Chrome」のような名前を作る |
+| `packages/neobit/core/src/Models/Passkey.php` | パッケージの `Passkey` モデルを継承し、持ち主を2列で表す |
 | `resources/views/_passkeys.blade.php` | 一覧・本人確認・登録の画面の中身（会員・管理共通） |
 | `resources/js/passkeys.js` | ボタンと `@laravel/passkeys` のつなぎ込み、エラーの文言、削除の確認 |
-| `app/Support/PasswordChange.php` | パスワードを変えたときの後始末（信頼済み端末・パスキーの無効化と、お知らせのメール `member_password_changed`・`staff_password_changed`） |
+| `packages/neobit/core/src/Auth/PasswordChange.php` | パスワードを変えたときの後始末（信頼済み端末・パスキーの無効化と、お知らせのメール `member_password_changed`・`staff_password_changed`） |
 
 `Member`・`Staff` の `HasPasskeys`、`passkeys` テーブル、パッケージは、フレームワークの標準構成として常に入れておく。パスキーを使うかどうかは、次の3.2・3.3のとおり、ルートとコントローラーの `use` で切り替える。
 
@@ -206,7 +206,7 @@ private const PASSKEY_VIEW = 'mypage.passkeys';               // 一覧画面の
 | `passkeyConfirm()` | POST | `.confirm` | 本人確認のコードを照合する |
 | `passkeyRegistrationOptions()` | GET | `.options` | 登録用のオプション（JSON） |
 | `passkeyStore()` | POST | `.store` | 登録（JSON） |
-| `passkeyDestroy()` | DELETE | `.destroy` | 削除（ルートの `{passkey}` はパッケージが `App\Models\Passkey` として読み込む） |
+| `passkeyDestroy()` | DELETE | `.destroy` | 削除（ルートの `{passkey}` はパッケージが `Neobit\Core\Models\Passkey` として読み込む） |
 
 本人確認の方法は、トレイトが持ち主の種類（`Member`・`Staff`）で決める。画面ごとの設定ではなく「その人のログインの2段階目と同じ」という決まりなので、定数にはしていない。
 

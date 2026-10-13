@@ -87,7 +87,7 @@
 
 ### 2.1 ログインする人の共通の型（LoginAccount）
 
-2段階認証の部品は、相手が会員かスタッフかを知らない。ログインするモデルは、共通の型 `App\Support\LoginAccount` を実装し、次の問いに答える。
+2段階認証の部品は、相手が会員かスタッフかを知らない。ログインするモデルは、共通の型 `Neobit\Core\Auth\LoginAccount` を実装し、次の問いに答える。
 
 | メソッド | 答えるもの | 例（スタッフ） |
 |---|---|---|
@@ -128,12 +128,12 @@
 
 | 部品 | 種類 | 役割 |
 |---|---|---|
-| `App\Enums\TwoFactorMethod` | 列挙型 | 方式の種類 |
-| `App\Support\LoginAccount` | インターフェース | ログインする人の共通の型（2.1） |
-| `App\Support\HasTwoFactor` | モデルのトレイト | 方式とバックアップコードを使うかの読み出し、認証アプリの登録・バックアップコード・信頼済みの端末の関連、解除 |
-| `App\Support\TwoFactorChallenge` | クラス | その人の方式で「確かめる」。コードの送信と照合、試行制限 |
-| `App\Support\TwoFactorLogin` | コントローラーのトレイト | パスワードを確かめた後の流れ（1.2）と、2段階目の画面 |
-| `App\Support\TwoFactorManagement` | コントローラーのトレイト | ログイン中の本人による、バックアップコードの発行と TOTP の解除 |
+| `Neobit\Core\Enums\TwoFactorMethod` | 列挙型 | 方式の種類 |
+| `Neobit\Core\Auth\LoginAccount` | インターフェース | ログインする人の共通の型（2.1） |
+| `Neobit\Core\Auth\HasTwoFactor` | モデルのトレイト | 方式とバックアップコードを使うかの読み出し、認証アプリの登録・バックアップコード・信頼済みの端末の関連、解除 |
+| `Neobit\Core\Auth\TwoFactorChallenge` | クラス | その人の方式で「確かめる」。コードの送信と照合、試行制限 |
+| `Neobit\Core\Auth\TwoFactorLogin` | コントローラーのトレイト | パスワードを確かめた後の流れ（1.2）と、2段階目の画面 |
+| `Neobit\Core\Auth\TwoFactorManagement` | コントローラーのトレイト | ログイン中の本人による、バックアップコードの発行と TOTP の解除 |
 | `app:reset-two-factor` | コマンド | サーバーからの解除（3.5） |
 | `resources/views/_two_factor.blade.php` | 部分ビュー | 2段階目の画面の中身。方式と状態で、コードの入力か QR コードの登録かを出し分ける |
 

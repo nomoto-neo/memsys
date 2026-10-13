@@ -1,6 +1,6 @@
 # memsys CSV取り込み（CsvImport）の設計
 
-CSVダウンロード（`App\Support\CsvDownload`）と同じ項目の定義（`csvColumns()`）を使って、CSVからデータを追加・更新する仕組みの設計メモ。野元さんとの検討で決めた内容をまとめたもの。
+CSVダウンロード（`Neobit\Core\Csv\CsvDownload`）と同じ項目の定義（`csvColumns()`）を使って、CSVからデータを追加・更新する仕組みの設計メモ。野元さんとの検討で決めた内容をまとめたもの。
 
 ## 1. 基本の考え方
 
