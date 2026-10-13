@@ -2,7 +2,6 @@
 
 namespace Neobit\Core\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
@@ -35,7 +34,7 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
  * マイページからも同じURLで見る）と、アップロードの一時保存ファイルtmp()
  * はログインしていない訪問者（お問い合わせの添付ファイルなど）でも使うため。
  */
-class UploadedFileController extends Controller
+class UploadedFileController
 {
     /** 非公開のフィールドの保存済みファイルの処理（GET /uploads/{type}/{id}/{field}/{filename}） */
     public function show(Request $request, string $type, int $id, string $field, string $filename): BinaryFileResponse
