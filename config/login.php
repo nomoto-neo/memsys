@@ -15,7 +15,7 @@ return [
     | legacy_passwords
     |   既存のシステムから会員を移したサイトだけで使う。古い方式のパスワードを計算する
     |   クラスを、試す順に書く（Neobit\Core\Auth\LegacyPasswordUserProvider）。
-    |   ソルトの無いMD5・SHA-1・SHA-256は、App\Support\Legacyに用意してある。
+    |   ソルトの無いMD5・SHA-1・SHA-256は、Neobit\Core\Auth\Legacyに用意してある。
     |   そのサイトだけの方式は、Neobit\Core\Auth\LegacyPasswordを実装したクラスを書いて足す。
     |   新しく始めるサイトでは、空のままにする。
     |

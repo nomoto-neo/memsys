@@ -8,7 +8,7 @@ namespace Neobit\Core\Auth;
  * 入力されたパスワードを、既存のシステムと同じ方式でハッシュ値にして返す。照合と、今の方式への
  * 置き換えは、LegacyPasswordUserProviderが受け持つ。
  *
- * よくある方式（ソルトの無いMD5・SHA-1・SHA-256）は、App\Support\Legacyに用意してある。
+ * よくある方式（ソルトの無いMD5・SHA-1・SHA-256）は、Neobit\Core\Auth\Legacyに用意してある。
  * ソルトを付ける、何度も繰り返す、といったそのサイトだけの方式は、サイトごとにクラスを書いて、
  * config/login.phpのlegacy_passwordsに足す。会員を受け取るので、会員ごとのソルトの列も読める。
  */

@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Schema;
  *
  * 会員のパスワード再設定は、このテーブルを使うリンク方式ではなく、
  * メールで送る確認コードをセッションで完結させる方式
- * （App\Support\MemberVerificationCode）なので、現時点では
+ * （Neobit\Core\Auth\LoginVerificationCode）なので、現時点では
  * どのモデル・どのコントローラーからも参照していない。
  * Laravel標準のテーブルとして残してある。
  */

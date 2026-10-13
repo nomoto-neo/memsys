@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Schema;
  * - name・email     既存のシステムから移した企業の最初の担当者では、初回のログインで登録するまで空
  * - password        既存のシステムから移した担当者では、ログインするまで空
  * - legacy_password 既存のシステムの古い方式のパスワードを、今の方式で包んだもの
- *                   （App\Support\LegacyPasswordUserProvider）
+ *                   （Neobit\Core\Auth\LegacyPasswordUserProvider）
  */
 return new class extends Migration
 {

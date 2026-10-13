@@ -21,9 +21,9 @@ return new class extends Migration
      * キー（都道府県コード）。unsignedTinyIntegerで揃えている。
      *
      * attach_file・attach_file_originは、t_news.list_image・
-     * list_image_originと同じ、App\Support\AjaxFileUploadトレイトが
+     * list_image_originと同じ、Neobit\Core\Upload\AjaxFileUploadトレイトが
      * 前提にする単数アップロード欄の形（ファイル名のみを保存し、
-     * 保存先ディレクトリはApp\Support\UploadFilePathの規則で組み立てる）。
+     * 保存先ディレクトリはNeobit\Core\Upload\UploadFilePathの規則で組み立てる）。
      */
     public function up(): void
     {

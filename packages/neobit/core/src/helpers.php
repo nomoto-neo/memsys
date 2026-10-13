@@ -2,7 +2,7 @@
 
 /*
  * 画面やコントローラーから短く呼ぶためのヘルパー関数。
- * 中身の多くは、App\Support\の共通部品を呼ぶだけ。
+ * 中身の多くは、Neobit\Core\の共通部品を呼ぶだけ。
  */
 
 use Illuminate\Database\Eloquent\Model;

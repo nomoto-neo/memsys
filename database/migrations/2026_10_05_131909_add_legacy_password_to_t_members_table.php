@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Schema;
  *
  * 既存のシステムから移した会員の、古い方式（MD5など）のハッシュ値を、今の方式でもう一度
  * ハッシュ値にしたものを入れる。本人が次にログインしたときに、今の方式のパスワードに置き換えて
- * 空にする（App\Support\LegacyPasswordUserProvider）。新しく登録した会員では、ずっと空。
+ * 空にする（Neobit\Core\Auth\LegacyPasswordUserProvider）。新しく登録した会員では、ずっと空。
  *
  * 移した会員は、ログインするまで今の方式のパスワードを持たないので、passwordを空にできるようにする。
  */
