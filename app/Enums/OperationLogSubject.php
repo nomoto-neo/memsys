@@ -37,13 +37,6 @@ enum OperationLogSubject: string implements CodeTableEnum
         self::BulkMailTemplate->value => '一斉メールの文面',
     ];
 
-    /** 操作した人になれる種類。ログインできるモデルだけ */
-    public const OPERATORS = [
-        self::Staff,
-        self::Member,
-        self::CompanyUser,
-    ];
-
     public function label(): string
     {
         return self::LABELS[$this->value];

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Unique;
 use Laravel\Passkeys\Contracts\PasskeyUser;
@@ -13,6 +14,7 @@ use Neobit\Core\Auth\IsLoginAccount;
 use Neobit\Core\Auth\LoginAccount;
 use Neobit\Core\Enums\LoginIdType;
 use Neobit\Core\Enums\TwoFactorMethod;
+use Neobit\Core\Models\OperationLogSubjectModel;
 
 /**
  * 企業会員の担当者。企業（Company）に属し、ログインする（companyガード）。
@@ -21,7 +23,7 @@ use Neobit\Core\Enums\TwoFactorMethod;
  * 担当者に、権限の区別は無い。同じ企業の担当者は、だれでも同じことができる。
  * 設計は docs/member-types-spec.md。
  */
-class CompanyUser extends Authenticatable implements LoginAccount, PasskeyUser
+class CompanyUser extends Authenticatable implements LoginAccount, OperationLogSubjectModel, PasskeyUser
 {
     // パスキーを持てるようにする（Neobit\Core\Auth\PasskeyLogin・PasskeyManagement参照）
     use HasPasskeys;
@@ -130,5 +132,12 @@ class CompanyUser extends Authenticatable implements LoginAccount, PasskeyUser
     public function loginId(): string
     {
         return $this->company->code.'/'.$this->login_id;
+    }
+
+    /** 操作ログに出す名前。どの企業の担当者かが分かるよう、企業名を前に付ける */
+    public static function operationLogNames(array $ids): Collection
+    {
+        return static::query()->with('company')->whereIn('id', $ids)->get()
+            ->mapWithKeys(fn (self $user) => [$user->id => $user->displayName()]);
     }
 }

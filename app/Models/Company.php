@@ -6,6 +6,8 @@ use App\Enums\CompanyStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection;
+use Neobit\Core\Models\OperationLogSubjectModel;
 use Neobit\Core\Team\TeamInvitationOwner;
 use Neobit\Core\Team\TeamInvitationRelation;
 
@@ -13,7 +15,7 @@ use Neobit\Core\Team\TeamInvitationRelation;
  * 企業会員の企業。企業の情報だけを持ち、ログインはしない。
  * ログインするのは、この企業に属する担当者（CompanyUser）。設計は docs/member-types-spec.md。
  */
-class Company extends Model implements TeamInvitationOwner
+class Company extends Model implements OperationLogSubjectModel, TeamInvitationOwner
 {
     // 担当者の招待の関連（invitations()）。Neobit\Core\Team\TeamInvitationManagerが使う
     use TeamInvitationRelation;
@@ -100,5 +102,11 @@ class Company extends Model implements TeamInvitationOwner
     public function isSuspended(): bool
     {
         return $this->status === CompanyStatus::Suspended;
+    }
+
+    /** 操作ログに出す名前 */
+    public static function operationLogNames(array $ids): Collection
+    {
+        return static::query()->whereIn('id', $ids)->pluck('name', 'id');
     }
 }

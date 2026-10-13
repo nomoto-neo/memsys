@@ -2,14 +2,8 @@
 
 namespace Neobit\Core\Models;
 
-use App\Enums\BulkMailStatus;
-use App\Enums\OperationLogSubject;
-use App\Models\BulkMail;
-use App\Models\Company;
-use App\Models\CompanyUser;
-use App\Models\Member;
-use App\Models\Staff;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Neobit\Core\Enums\OperationLogAction;
 use Neobit\Core\Models\Casts\OperationLogActionCast;
 
@@ -47,24 +41,22 @@ class OperationLog extends Model
 
     /**
      * 画面に出すための、今の名前。[種類 => [id => 名前]]で返す。
-     * スタッフ・個人会員・企業の担当者は氏名、企業は企業名。企業の担当者は、どの企業の人かが
-     * 分かるよう、企業名を前に付ける。
+     * 名前は、操作した人と対象のモデルが、operationLogNames()で返す
+     * （OperationLogSubjectModelを実装したもの）。
      * 操作ログには名前を持たせていないので、渡された行の操作した人と対象を、種類ごとに
-     * まとめて1回ずつで読む。削除したスタッフも名前を出せるよう、削除済みも含めて探す。
-     * 退会した会員のように、もう行が無いものは出ない。
+     * まとめて1回ずつで読む。退会した会員のように、もう行が無いものは出ない。
      *
      * @param  iterable<object>  $logs  操作ログの行。operator_type・operator_idを持つ集計の行でもよい
      */
     public static function subjectNames(iterable $logs): array
     {
-        // 名前を引く種類と、その読み方。idの一覧を受け取って、[id => 名前]を返す
-        $readers = [
-            OperationLogSubject::Staff->value => fn (array $ids) => Staff::withTrashed()->whereIn('id', $ids)->pluck('name', 'id'),
-            OperationLogSubject::Member->value => fn (array $ids) => Member::query()->whereIn('id', $ids)->pluck('name', 'id'),
-            OperationLogSubject::Company->value => fn (array $ids) => Company::query()->whereIn('id', $ids)->pluck('name', 'id'),
-            OperationLogSubject::CompanyUser->value => fn (array $ids) => CompanyUser::query()->with('company')->whereIn('id', $ids)->get()
-                ->mapWithKeys(fn (CompanyUser $user) => [$user->id => $user->displayName()]),
-        ];
+        // 名前を引ける種類（モーフの別名）と、そのモデルのクラス
+        $readers = [];
+        foreach (Relation::morphMap() as $type => $class) {
+            if (is_subclass_of($class, OperationLogSubjectModel::class)) {
+                $readers[$type] = $class;
+            }
+        }
 
         $ids = array_fill_keys(array_keys($readers), []);
 
@@ -78,8 +70,8 @@ class OperationLog extends Model
         }
 
         $names = [];
-        foreach ($readers as $type => $read) {
-            $names[$type] = $ids[$type] !== [] ? $read(array_unique($ids[$type])) : collect();
+        foreach ($readers as $type => $class) {
+            $names[$type] = $ids[$type] !== [] ? $class::operationLogNames(array_unique($ids[$type])) : collect();
         }
 
         return $names;
@@ -98,7 +90,7 @@ class OperationLog extends Model
         // 退会した会員のように、もう行が無い人は氏名が出ない
         $name = $names[$type][$id] ?? '';
 
-        return code_label('operation_log_subject', $type).'ID:'.$id.($name !== '' ? '　'.$name : '');
+        return code_label('operation_log_subject', $type, $type).'ID:'.$id.($name !== '' ? '　'.$name : '');
     }
 
     /**
@@ -108,7 +100,7 @@ class OperationLog extends Model
      * 画面に件数と内訳を出すときに、渡された行の分をまとめて読む。
      *
      * @param  iterable<self>  $logs
-     * @return array<int, CsvDownloadLog|CsvImportLog|BulkMail>
+     * @return array<int, OperationLogRelatedRecord>
      */
     public static function relatedRecords(iterable $logs): array
     {
@@ -154,28 +146,27 @@ class OperationLog extends Model
      * 件数を1行にまとめた文字。一覧の画面と、操作ログのCSVで使う。
      * $relatedはrelatedRecords()で読んだ、この行の相手の記録。無ければ空の文字。
      */
-    public function countSummary(CsvDownloadLog|CsvImportLog|BulkMail|null $related): string
+    public function countSummary(?OperationLogRelatedRecord $related): string
     {
-        if ($related instanceof CsvDownloadLog) {
-            return number_format($related->row_count).'件';
+        return $related?->operationLogSummary() ?? '';
+    }
+
+    /**
+     * 操作した人になれる種類（モーフの別名）。ログインできるモデル（config('auth.providers')の
+     * モデル）の別名で、認証の設定の順に返す。
+     *
+     * @return string[]
+     */
+    public static function operatorTypes(): array
+    {
+        $types = [];
+        foreach (config('auth.providers') as $provider) {
+            if (isset($provider['model'])) {
+                $types[] = Relation::getMorphAlias($provider['model']);
+            }
         }
 
-        if ($related instanceof CsvImportLog) {
-            return number_format($related->row_count).'行（追加 '.number_format($related->inserted_count)
-                .'・更新 '.number_format($related->updated_count)
-                .'・変更なし '.number_format($related->unchanged_count).'）';
-        }
-
-        if ($related instanceof BulkMail) {
-            // 送信済みと失敗の件数は、送信が終わったときに記録に入る
-            $progress = $related->status === BulkMailStatus::Finished
-                ? '送信済み '.number_format($related->sent_count).'・失敗 '.number_format($related->failed_count)
-                : '送信中';
-
-            return '宛先 '.number_format($related->recipient_count).'件（'.$progress.'）';
-        }
-
-        return '';
+        return array_values(array_unique($types));
     }
 
     /**

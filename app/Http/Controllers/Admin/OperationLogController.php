@@ -2,10 +2,8 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Enums\OperationLogSubject;
 use App\Http\Controllers\Controller;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -17,6 +15,7 @@ use Neobit\Core\Crud\SearchableList;
 use Neobit\Core\Csv\CsvDownload;
 use Neobit\Core\Enums\CsvEncoding;
 use Neobit\Core\Models\OperationLog;
+use Neobit\Core\Models\OperationLogRelatedRecord;
 use Neobit\Core\Operations\OperationLogStats;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -200,8 +199,8 @@ class OperationLogController extends Controller
     private function operatorOptions(): array
     {
         $options = [];
-        foreach (OperationLogSubject::OPERATORS as $subject) {
-            $options[$subject->value] = $subject->label();
+        foreach (OperationLog::operatorTypes() as $type) {
+            $options[$type] = code_label('operation_log_subject', $type, $type);
         }
 
         return $options + [self::GUEST => '訪問者'];
@@ -322,7 +321,7 @@ class OperationLogController extends Controller
     }
 
     /** 1行の操作ログの、件数を持っている別の記録。CSVに1行ずつ書き出すときに使う。無ければnull */
-    private function relatedRecordOf(OperationLog $log): ?Model
+    private function relatedRecordOf(OperationLog $log): ?OperationLogRelatedRecord
     {
         [$class, $id] = $log->relatedKey();
 

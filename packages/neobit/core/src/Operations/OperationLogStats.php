@@ -2,11 +2,11 @@
 
 namespace Neobit\Core\Operations;
 
-use App\Enums\OperationLogSubject;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Neobit\Core\Enums\OperationLogAction;
+use Neobit\Core\Models\OperationLog;
 
 /**
  * 操作ログ（operation_logs）の件数の集計。件数の多い時間帯や、操作の多い人に気付けるようにする。
@@ -86,8 +86,8 @@ final class OperationLogStats
 
         $rows = collect();
 
-        foreach (OperationLogSubject::OPERATORS as $subject) {
-            $rows = $rows->concat((clone $base)->where('operator_type', $subject->value)->limit(self::TOP_COUNT)->get());
+        foreach (OperationLog::operatorTypes() as $type) {
+            $rows = $rows->concat((clone $base)->where('operator_type', $type)->limit(self::TOP_COUNT)->get());
         }
 
         return $rows->concat((clone $base)->whereNull('operator_type')->get())

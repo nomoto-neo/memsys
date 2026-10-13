@@ -6,6 +6,7 @@ use App\Enums\StaffAcl;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Support\Collection;
 use Laravel\Passkeys\Contracts\PasskeyUser;
 use Neobit\Core\Auth\HasPasskeys;
 use Neobit\Core\Auth\HasTwoFactor;
@@ -13,6 +14,7 @@ use Neobit\Core\Auth\IsLoginAccount;
 use Neobit\Core\Auth\LoginAccount;
 use Neobit\Core\Enums\LoginIdType;
 use Neobit\Core\Enums\TwoFactorMethod;
+use Neobit\Core\Models\OperationLogSubjectModel;
 
 /**
  * 管理画面のスタッフ。会員とは別のテーブル・別のガード（admin）でログインする。
@@ -28,7 +30,7 @@ use Neobit\Core\Enums\TwoFactorMethod;
  * 会員と同じ共通の型（Neobit\Core\Auth\LoginAccount）を実装している。2段階認証などのログインまわりの
  * 共通部品は、スタッフと会員を同じ形で扱う。
  */
-class Staff extends Authenticatable implements LoginAccount, PasskeyUser
+class Staff extends Authenticatable implements LoginAccount, OperationLogSubjectModel, PasskeyUser
 {
     use HasFactory;
     use SoftDeletes;
@@ -122,5 +124,11 @@ class Staff extends Authenticatable implements LoginAccount, PasskeyUser
     public function getPasskeyUsername(): string
     {
         return '管理画面：'.$this->login_id;
+    }
+
+    /** 操作ログに出す名前。論理削除したスタッフも名前を出す */
+    public static function operationLogNames(array $ids): Collection
+    {
+        return static::withTrashed()->whereIn('id', $ids)->pluck('name', 'id');
     }
 }

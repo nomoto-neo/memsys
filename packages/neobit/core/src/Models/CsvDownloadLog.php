@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
  * 誰が・いつ・何のCSVを・どの検索条件で・何件出したかを残す。
  * 行は足すだけで更新しないので、updated_atは持たない。
  */
-class CsvDownloadLog extends Model
+class CsvDownloadLog extends Model implements OperationLogRelatedRecord
 {
     public const UPDATED_AT = null;
 
@@ -28,4 +28,10 @@ class CsvDownloadLog extends Model
         'row_count' => 'integer',
         'conditions' => 'array',
     ];
+
+    /** 操作ログに出す件数 */
+    public function operationLogSummary(): string
+    {
+        return number_format($this->row_count).'件';
+    }
 }

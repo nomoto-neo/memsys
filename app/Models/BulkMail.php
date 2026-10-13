@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Bus;
+use Neobit\Core\Models\OperationLogRelatedRecord;
 use Neobit\Core\Upload\UploadFilePath;
 
 /**
@@ -20,7 +21,7 @@ use Neobit\Core\Upload\UploadFilePath;
  * サーバーの中の処理を何でも動かせてしまうため。{{ $name }}のように空白が入ってもよい。
  * ほかの{{…}}は書き間違いとして、入力のときにBulkMailPlaceholderRuleでエラーにする。
  */
-class BulkMail extends Model
+class BulkMail extends Model implements OperationLogRelatedRecord
 {
     /** ログインしたスタッフだけが見られる場所に置くアップロードのフィールド。見てよいかはBulkMailPolicyが決める */
     public const PRIVATE_FILE_FIELDS = ['attach'];
@@ -96,5 +97,15 @@ class BulkMail extends Model
         return Attribute::make(
             get: fn () => UploadFilePath::path(self::class, $this->getKey(), 'attach', $this->attach),
         );
+    }
+
+    /** 操作ログに出す件数。送信済みと失敗の件数は、送信が終わったときに記録に入る */
+    public function operationLogSummary(): string
+    {
+        $progress = $this->status === BulkMailStatus::Finished
+            ? '送信済み '.number_format($this->sent_count).'・失敗 '.number_format($this->failed_count)
+            : '送信中';
+
+        return '宛先 '.number_format($this->recipient_count).'件（'.$progress.'）';
     }
 }

@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Collection;
 use Laravel\Passkeys\Contracts\PasskeyUser;
 use Neobit\Core\Auth\HasPasskeys;
 use Neobit\Core\Auth\HasTwoFactor;
@@ -15,13 +16,14 @@ use Neobit\Core\Auth\IsLoginAccount;
 use Neobit\Core\Auth\LoginAccount;
 use Neobit\Core\Enums\LoginIdType;
 use Neobit\Core\Enums\TwoFactorMethod;
+use Neobit\Core\Models\OperationLogSubjectModel;
 use Neobit\Core\Upload\UploadFilePath;
 
 /**
  * 個人会員。ログインできるモデルなので、Authenticatableを継承している（webガード）。
  * ログインするモデルの共通の型（Neobit\Core\Auth\LoginAccount）を実装している。
  */
-class Member extends Authenticatable implements LoginAccount, PasskeyUser
+class Member extends Authenticatable implements LoginAccount, OperationLogSubjectModel, PasskeyUser
 {
     // ログインするモデルの、決まった中身（種類の名前からルートなどの名前を作る）
     use IsLoginAccount;
@@ -167,5 +169,11 @@ class Member extends Authenticatable implements LoginAccount, PasskeyUser
         return Attribute::make(
             get: fn () => UploadFilePath::path(self::class, $this->getKey(), 'photo', $this->photo),
         );
+    }
+
+    /** 操作ログに出す名前 */
+    public static function operationLogNames(array $ids): Collection
+    {
+        return static::query()->whereIn('id', $ids)->pluck('name', 'id');
     }
 }
