@@ -4,15 +4,15 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Page;
-use App\Support\AjaxFileUpload;
-use App\Support\FormFlow;
-use App\Support\SearchableList;
 use Closure;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Neobit\Core\Crud\FormFlow;
+use Neobit\Core\Crud\SearchableList;
+use Neobit\Core\Upload\AjaxFileUpload;
 
 /**
  * 固定ページの管理。会社概要のように、本文を書いて、訪問者の側に決まったURLで出すページ。
@@ -281,5 +281,5 @@ class PageController extends Controller
     }
 
     // Ajaxアップロード処理の function がトレイトから取り込まれる。
-    // 実体はApp\Support\AjaxFileUpload::uploadAjaxFile()
+    // 実体はNeobit\Core\Upload\AjaxFileUpload::uploadAjaxFile()
 }

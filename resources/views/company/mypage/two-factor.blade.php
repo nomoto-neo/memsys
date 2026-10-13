@@ -14,7 +14,7 @@
 @section('content')
 {{--
     本人による、2段階認証の管理。バックアップコードの発行と、認証アプリの登録の解除。
-    入口はApp\Support\TwoFactorManagementトレイト。
+    入口はNeobit\Core\Auth\TwoFactorManagementトレイト。
 --}}
 <div class="row justify-content-center">
     <div class="col-md-8">

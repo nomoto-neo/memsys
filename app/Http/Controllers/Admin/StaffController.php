@@ -2,19 +2,9 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Enums\OperationLogAction;
 use App\Enums\StaffAcl;
-use App\Enums\TwoFactorMethod;
 use App\Http\Controllers\Controller;
 use App\Models\Staff;
-use App\Support\FormFlow;
-use App\Support\OperationRecorder;
-use App\Support\LoginAccount;
-use App\Support\PasskeyManagement;
-use App\Support\PasswordChange;
-use App\Support\SearchableList;
-use App\Support\TrustedDeviceManager;
-use App\Support\TwoFactorManagement;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,6 +14,16 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Neobit\Core\Auth\LoginAccount;
+use Neobit\Core\Auth\PasskeyManagement;
+use Neobit\Core\Auth\PasswordChange;
+use Neobit\Core\Auth\TrustedDeviceManager;
+use Neobit\Core\Auth\TwoFactorManagement;
+use Neobit\Core\Crud\FormFlow;
+use Neobit\Core\Crud\SearchableList;
+use Neobit\Core\Enums\OperationLogAction;
+use Neobit\Core\Enums\TwoFactorMethod;
+use Neobit\Core\Operations\OperationRecorder;
 
 /**
  * 管理画面のスタッフ管理と、ログイン中の本人のパスキーの管理。
@@ -44,12 +44,12 @@ class StaffController extends Controller
     use FormFlow;
 
     // ログイン中の本人による、パスキーの一覧・登録・削除（passkeyIndex()など）。
-    // App\Support\PasskeyManagement参照。使わないサイトでは、このuseと
+    // Neobit\Core\Auth\PasskeyManagement参照。使わないサイトでは、このuseと
     // routes/web.phpのadmin.passkeysのルートを消す。
     use PasskeyManagement;
 
     // ログイン中の本人による、バックアップコードの発行と、認証アプリの登録の解除
-    // （regenerateBackupCodes()など。App\Support\TwoFactorManagement参照）。
+    // （regenerateBackupCodes()など。Neobit\Core\Auth\TwoFactorManagement参照）。
     use TwoFactorManagement;
 
     // ---- 一覧・検索（SearchableList）の設定 ----
@@ -196,7 +196,7 @@ class StaffController extends Controller
     {
         if ($staff->wasChanged('password')) {
             // パスワードが変わったら、信頼済み端末とパスキーを無効にし、本人へ
-            // お知らせのメールを送る（App\Support\PasswordChange参照）。
+            // お知らせのメールを送る（Neobit\Core\Auth\PasswordChange参照）。
             PasswordChange::resetAndNotify($staff, changedBy: Auth::guard('admin')->user());
 
             if ($staff->id === Auth::guard('admin')->id()) {
@@ -215,7 +215,7 @@ class StaffController extends Controller
         // 論理削除では行が残るので、信頼済み端末はここで明示的に消しておく
         // （復元したときに、削除前の信頼が一緒に戻らないようにするため）。
         // パスキーは、パスワード・2段階認証の設定と同じく消さずに残す。削除済みの
-        // スタッフは、パスキーでもログインできない（App\Models\Passkey::user()参照）。
+        // スタッフは、パスキーでもログインできない（Neobit\Core\Models\Passkey::user()参照）。
         TrustedDeviceManager::for(Staff::class)->forgetAll($staff);
     }
 
@@ -433,7 +433,7 @@ class StaffController extends Controller
      * スマートフォンの紛失・機種変更などで本人がログインできなくなった際に、
      * 管理者が代わりに実行する。次回そのスタッフがログインすると、QRコードの登録から
      * やり直しになる（バックアップコード・信頼済み端末・パスキーも合わせて失効させる。
-     * パスキーを消す理由はApp\Support\HasTwoFactor::resetTwoFactor()参照）。
+     * パスキーを消す理由はNeobit\Core\Auth\HasTwoFactor::resetTwoFactor()参照）。
      */
     public function resetTwoFactor(Staff $staff): RedirectResponse
     {

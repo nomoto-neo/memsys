@@ -130,7 +130,7 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
-    // ログイン後の管理画面で、1人のスタッフが1分に送れる回数（App\Support\AdminRequestLimit）。
+    // ログイン後の管理画面で、1人のスタッフが1分に送れる回数（Neobit\Core\Security\AdminRequestLimit）。
     // 超えた回は処理せず、操作ログとwarningのログに残す。人が普通に使って届かない数にする
     'admin_requests_per_minute' => 120,
 
@@ -149,13 +149,13 @@ return [
 
     // サイト全体を開けるIPアドレス。公開前のデモの運用やメンテナンスの間に、カンマ区切りで書く
     // （192.168.0.0/24のような範囲も書ける）。ここに無いIPアドレスには、メンテナンス中の画面を出す
-    // （App\Http\Middleware\RestrictSiteAccess）。空なら、制限しない。
+    // （Neobit\Core\Http\Middleware\RestrictSiteAccess）。空なら、制限しない。
     'site_allowed_ips' => array_values(array_filter(
         array_map('trim', explode(',', (string) env('SITE_ALLOWED_IPS', '')))
     )),
 
     // 管理画面を開けるIPアドレス。書き方はsite_allowed_ipsと同じ。ここに無いIPアドレスには、
-    // ログイン画面も含めて404を返す（App\Http\Middleware\RestrictAdminAccess）。空なら、制限しない。
+    // ログイン画面も含めて404を返す（Neobit\Core\Http\Middleware\RestrictAdminAccess）。空なら、制限しない。
     'admin_allowed_ips' => array_values(array_filter(
         array_map('trim', explode(',', (string) env('ADMIN_ALLOWED_IPS', '')))
     )),

@@ -1,6 +1,6 @@
 {{--
     発行した直後のバックアップコードを、1回だけ見せる画面の中身。本人が発行した直後に出す。
-    入口はApp\Support\TwoFactorManagementトレイト。
+    入口はNeobit\Core\Auth\TwoFactorManagementトレイト。
 
     渡される変数：
     - $codes             バックアップコードの一覧

@@ -8,8 +8,8 @@ use Tests\TestCase;
 
 /**
  * 接続元のIPアドレスの制限。.envに書いたときだけ働く。
- * サイト全体の制限（App\Http\Middleware\RestrictSiteAccess）はメンテナンス中の画面を、
- * 管理画面の制限（App\Http\Middleware\RestrictAdminAccess）は404を返す。
+ * サイト全体の制限（Neobit\Core\Http\Middleware\RestrictSiteAccess）はメンテナンス中の画面を、
+ * 管理画面の制限（Neobit\Core\Http\Middleware\RestrictAdminAccess）は404を返す。
  */
 class AccessRestrictionTest extends TestCase
 {

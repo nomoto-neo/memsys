@@ -3,10 +3,10 @@
 namespace Tests\Feature;
 
 use App\Enums\StaffAcl;
-use App\Http\Middleware\AjaxFormResponse;
 use App\Models\Staff;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Neobit\Core\Http\Middleware\AjaxFormResponse;
 use PragmaRX\Google2FA\Google2FA;
 use Tests\TestCase;
 

@@ -2,22 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\OperationLogAction;
-use App\Mail\TemplatedMail;
 use App\Models\Member;
-use App\Rules\KatakanaRule;
-use App\Rules\PhoneNumberRule;
-use App\Support\AjaxFileUpload;
-use App\Support\EmailChange;
-use App\Support\FormFlow;
-use App\Support\LoginSession;
 use App\Services\MemberActivityLog;
-use App\Support\LoginProfileNotice;
-use App\Support\OperationRecorder;
-use App\Support\LoginAccount;
-use App\Support\PasskeyManagement;
-use App\Support\TwoFactorManagement;
-use App\Support\PdfDownload;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -27,6 +13,20 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Neobit\Core\Auth\EmailChange;
+use Neobit\Core\Auth\LoginAccount;
+use Neobit\Core\Auth\LoginProfileNotice;
+use Neobit\Core\Auth\LoginSession;
+use Neobit\Core\Auth\PasskeyManagement;
+use Neobit\Core\Auth\TwoFactorManagement;
+use Neobit\Core\Crud\FormFlow;
+use Neobit\Core\Enums\OperationLogAction;
+use Neobit\Core\Mail\TemplatedMail;
+use Neobit\Core\Operations\OperationRecorder;
+use Neobit\Core\Pdf\PdfDownload;
+use Neobit\Core\Rules\KatakanaRule;
+use Neobit\Core\Rules\PhoneNumberRule;
+use Neobit\Core\Upload\AjaxFileUpload;
 
 /**
  * マイページ。ログイン中の会員本人が、プロフィールの表示と編集、履歴書のPDF、退会、
@@ -51,15 +51,15 @@ class MypageController extends Controller
     // 履歴書のPDF。クラス側は入口でdownloadPdf()を呼ぶだけ。
     use PdfDownload;
 
-    // パスキーの一覧・登録・削除（passkeyIndex()など。App\Support\PasskeyManagement参照）。
+    // パスキーの一覧・登録・削除（passkeyIndex()など。Neobit\Core\Auth\PasskeyManagement参照）。
     // 使わないサイトでは、このuseとroutes/web.phpのmypage.passkeysのルートを消す。
     use PasskeyManagement;
 
     // ログイン中の本人による、バックアップコードの発行と、認証アプリの登録の解除（twoFactorIndex()など。
-    // App\Support\TwoFactorManagement参照）。
+    // Neobit\Core\Auth\TwoFactorManagement参照）。
     use TwoFactorManagement;
 
-    // メールアドレスが変わる保存に、確認コードの入力を挟む（emailChangeForm()など。App\Support\EmailChange参照）。
+    // メールアドレスが変わる保存に、確認コードの入力を挟む（emailChangeForm()など。Neobit\Core\Auth\EmailChange参照）。
     // クラス側は EMAIL_CHANGE_ の定数を用意し、update()でholdForEmailChange()を呼ぶ。
     use EmailChange;
 
@@ -174,7 +174,7 @@ class MypageController extends Controller
 
     /**
      * 保存の直後の処理。会員情報が変わったことを、本人へメールで知らせる
-     * （App\Support\LoginProfileNotice参照）。
+     * （Neobit\Core\Auth\LoginProfileNotice参照）。
      */
     private function afterSave(Member $member, array $validated, array $changedFields): void
     {
@@ -217,7 +217,7 @@ class MypageController extends Controller
         $member = Auth::user();
 
         // メールアドレスが変わるときは、保存せずに確認コードの入力画面へ進む。
-        // 保存は、コードが入力できた時点で行う（App\Support\EmailChange）
+        // 保存は、コードが入力できた時点で行う（Neobit\Core\Auth\EmailChange）
         $toVerify = $this->holdForEmailChange($request, $member);
 
         if ($toVerify !== null) {
@@ -283,7 +283,7 @@ class MypageController extends Controller
         $name = $member->name;
 
         // ログアウト（行を消す前に。理由は上のコメント）。会員のログインだけを終わらせ、
-        // このブラウザのセッションも作り直す（App\Support\LoginSession）
+        // このブラウザのセッションも作り直す（Neobit\Core\Auth\LoginSession）
         LoginSession::logout($request, Member::loginGuard());
 
         // 会員と、会員に付いている記録・ファイルをまとめて消す

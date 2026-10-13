@@ -4,17 +4,17 @@ namespace Tests\Feature;
 
 use App\Enums\BulkMailStatus;
 use App\Enums\NoticeMail;
-use App\Enums\OperationLogAction;
 use App\Enums\StaffAcl;
 use App\Jobs\SendBulkMail;
 use App\Models\BulkMail;
 use App\Models\Member;
-use App\Models\OperationLog;
 use App\Models\Staff;
 use App\Services\MailUnsubscribe;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
+use Neobit\Core\Enums\OperationLogAction;
+use Neobit\Core\Models\OperationLog;
 use Tests\Support\ReadsSentMail;
 use Tests\TestCase;
 

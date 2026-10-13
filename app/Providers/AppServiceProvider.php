@@ -2,7 +2,6 @@
 
 namespace App\Providers;
 
-use App\Enums\OperationLogAction;
 use App\Models\BulkMail;
 use App\Models\BulkMailTemplate;
 use App\Models\Category;
@@ -12,11 +11,7 @@ use App\Models\Inquiry;
 use App\Models\Member;
 use App\Models\News;
 use App\Models\Page;
-use App\Models\Passkey;
 use App\Models\Staff;
-use App\Support\AdminRequestLimit;
-use App\Support\LegacyPasswordUserProvider;
-use App\Support\OperationRecorder;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -27,6 +22,11 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Passkeys\Passkeys;
+use Neobit\Core\Auth\LegacyPasswordUserProvider;
+use Neobit\Core\Enums\OperationLogAction;
+use Neobit\Core\Models\Passkey;
+use Neobit\Core\Operations\OperationRecorder;
+use Neobit\Core\Security\AdminRequestLimit;
 
 /**
  * アプリ全体の設定を、起動のときに行う。

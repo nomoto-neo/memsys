@@ -1,6 +1,6 @@
 {{--
     パスキーの一覧・登録・削除の画面の中身（会員：mypage/passkeys、管理：admin/staff/passkeys）。
-    コントローラー側はApp\Support\PasskeyManagementトレイトで、変数はそのpasskeyIndex()が渡す。
+    コントローラー側はNeobit\Core\Auth\PasskeyManagementトレイトで、変数はそのpasskeyIndex()が渡す。
     - $passkeys：このアカウントのパスキー（新しい順）
     - $passkeyRoute：一覧画面のルート名。登録・削除などのルート名は、この後ろに.confirmなどを付けたもの
     - $confirmBy：登録の前の本人確認の方法。その人のログインの2段階目の方式と同じ

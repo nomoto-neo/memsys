@@ -2,18 +2,18 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\OperationLogAction;
 use App\Models\Member;
-use App\Support\LoginRedirect;
-use App\Support\LoginThrottle;
-use App\Support\OperationRecorder;
-use App\Support\PasskeyLogin;
-use App\Support\TwoFactorLogin;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Neobit\Core\Auth\LoginRedirect;
+use Neobit\Core\Auth\LoginThrottle;
+use Neobit\Core\Auth\PasskeyLogin;
+use Neobit\Core\Auth\TwoFactorLogin;
+use Neobit\Core\Enums\OperationLogAction;
+use Neobit\Core\Operations\OperationRecorder;
 
 /**
  * 個人会員のログイン・ログアウト。
@@ -51,7 +51,7 @@ class AuthSessionController extends Controller
 
     // ---- パスキーでのログイン（PasskeyLogin）の設定 ----
 
-    /** パスキーでログインさせるガード（App\Support\PasskeyLogin参照）。 */
+    /** パスキーでログインさせるガード（Neobit\Core\Auth\PasskeyLogin参照）。 */
     private const PASSKEY_GUARD = 'web';
 
     // ---- ログイン・ログアウト ----
@@ -70,7 +70,7 @@ class AuthSessionController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        // 失敗回数による試行制限（IP単位・メールアドレス単位。App\Support\LoginThrottle）
+        // 失敗回数による試行制限（IP単位・メールアドレス単位。Neobit\Core\Auth\LoginThrottle）
         $throttle = new LoginThrottle(self::THROTTLE_SCOPE, $request->ip(), $credentials['email']);
 
         if ($throttle->isBlocked()) {
@@ -107,7 +107,7 @@ class AuthSessionController extends Controller
 
     /**
      * ログインが確定した後の移動先。ログインが必要な画面から来た場合はその画面へ、
-     * そうでなければマイページへ（App\Support\LoginRedirect）。
+     * そうでなければマイページへ（Neobit\Core\Auth\LoginRedirect）。
      */
     private function loginRedirectUrl(): string
     {

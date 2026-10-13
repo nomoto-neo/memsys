@@ -7,8 +7,8 @@ return [
     | アップロードできるファイルの種類と大きさ
     |--------------------------------------------------------------------
     |
-    | 画面からアップロードするファイル（App\Support\AjaxFileUpload）と、
-    | CSVの取り込み（App\Support\CsvReader）で受け付けるファイルの条件。
+    | 画面からアップロードするファイル（Neobit\Core\Upload\AjaxFileUpload）と、
+    | CSVの取り込み（Neobit\Core\Csv\CsvReader）で受け付けるファイルの条件。
     | サイト全体の方針として、プロジェクトごとにここで決める。
     | コーナーごとには変えない。
     |

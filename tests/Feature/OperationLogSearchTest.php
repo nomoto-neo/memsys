@@ -2,14 +2,14 @@
 
 namespace Tests\Feature;
 
-use App\Enums\OperationLogAction;
 use App\Enums\StaffAcl;
-use App\Models\OperationLog;
 use App\Models\Staff;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Testing\TestResponse;
+use Neobit\Core\Enums\OperationLogAction;
+use Neobit\Core\Models\OperationLog;
 use Tests\TestCase;
 
 /**

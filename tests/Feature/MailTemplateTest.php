@@ -2,15 +2,15 @@
 
 namespace Tests\Feature;
 
-use App\Support\MailTemplate;
-use App\Support\MailTemplateException;
-use App\Support\MailTemplateParser;
 use Illuminate\Support\Facades\Validator;
+use Neobit\Core\Mail\MailTemplate;
+use Neobit\Core\Mail\MailTemplateException;
+use Neobit\Core\Mail\MailTemplateParser;
 use Tests\TestCase;
 
 /**
- * メールのテンプレートの展開（App\Support\MailTemplate）と、見出しの読み取り
- * （App\Support\MailTemplateParser）。見出しの行に入る値に改行があっても、宛先の行を
+ * メールのテンプレートの展開（Neobit\Core\Mail\MailTemplate）と、見出しの読み取り
+ * （Neobit\Core\Mail\MailTemplateParser）。見出しの行に入る値に改行があっても、宛先の行を
  * 足されないこと（メールヘッダインジェクション）。
  */
 class MailTemplateTest extends TestCase

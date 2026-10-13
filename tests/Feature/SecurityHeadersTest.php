@@ -6,7 +6,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * ブラウザに守り方を伝えるヘッダー（App\Http\Middleware\SecurityHeaders）。
+ * ブラウザに守り方を伝えるヘッダー（Neobit\Core\Http\Middleware\SecurityHeaders）。
  * 全部の応答に付く。HTTPSだけで開かせる指定は、HTTPSで届いたときだけ付く。
  */
 class SecurityHeadersTest extends TestCase

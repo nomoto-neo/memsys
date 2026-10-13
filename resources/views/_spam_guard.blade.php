@@ -1,5 +1,5 @@
 {{--
-    訪問者向けフォームのスパム対策の欄（App\Support\SpamGuard）。入力画面の<form>の中に
+    訪問者向けフォームのスパム対策の欄（Neobit\Core\Security\SpamGuard）。入力画面の<form>の中に
     @include('_spam_guard') と書くだけでよい。送信を受け取る側で SpamGuard::check() を呼ぶ。
 
     - ハニーポット：人には見えない入力欄。画面の外に出して隠し、Tabキーでも入らないように
@@ -13,11 +13,11 @@
       案内の文を出して、フォームの送信ボタンを押せなくする。下の<script>が切り替える
 --}}
 <div style="position: absolute; left: -10000px; top: auto; width: 1px; height: 1px; overflow: hidden;" aria-hidden="true">
-    <label for="{{ \App\Support\SpamGuard::HONEYPOT_FIELD }}">ホームページ（入力しないでください）</label>
-    <input id="{{ \App\Support\SpamGuard::HONEYPOT_FIELD }}" type="text" name="{{ \App\Support\SpamGuard::HONEYPOT_FIELD }}"
+    <label for="{{ \Neobit\Core\Security\SpamGuard::HONEYPOT_FIELD }}">ホームページ（入力しないでください）</label>
+    <input id="{{ \Neobit\Core\Security\SpamGuard::HONEYPOT_FIELD }}" type="text" name="{{ \Neobit\Core\Security\SpamGuard::HONEYPOT_FIELD }}"
            value="" tabindex="-1" autocomplete="off">
 </div>
-<input type="hidden" name="{{ \App\Support\SpamGuard::STARTED_FIELD }}" value="{{ \App\Support\SpamGuard::startedToken() }}">
+<input type="hidden" name="{{ \Neobit\Core\Security\SpamGuard::STARTED_FIELD }}" value="{{ \Neobit\Core\Security\SpamGuard::startedToken() }}">
 
 @if (config('services.turnstile.site_key'))
     <div class="mb-3">

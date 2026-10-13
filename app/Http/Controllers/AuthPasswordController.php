@@ -3,15 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Models\Member;
-use App\Support\LoginThrottle;
-use App\Support\LoginVerificationCode;
-use App\Support\PasswordChange;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View;
+use Neobit\Core\Auth\LoginThrottle;
+use Neobit\Core\Auth\LoginVerificationCode;
+use Neobit\Core\Auth\PasswordChange;
 
 /**
  * マイページからのパスワード変更。本人確認は、メールで送る確認コードで行う。
@@ -81,7 +81,7 @@ class AuthPasswordController extends Controller
     {
         $validated = $request->validate($this->rules());
 
-        // 失敗回数による試行制限（IP単位・会員id単位。App\Support\LoginThrottle）
+        // 失敗回数による試行制限（IP単位・会員id単位。Neobit\Core\Auth\LoginThrottle）
         $throttle = new LoginThrottle(self::THROTTLE_SCOPE, $request->ip(), Auth::id());
 
         if ($throttle->isBlocked()) {
@@ -108,7 +108,7 @@ class AuthPasswordController extends Controller
         $member = Auth::user();
 
         // パスワードを変え、記憶済みの端末（この端末も含む。次のログインは確認コードの入力になる）と
-        // パスキーを無効にして、お知らせのメールを送る（App\Support\PasswordChange）
+        // パスキーを無効にして、お知らせのメールを送る（Neobit\Core\Auth\PasswordChange）
         $deletedPasskeys = DB::transaction(function () use ($member, $validated) {
             $member->update([
                 'password' => Hash::make($validated['password']),

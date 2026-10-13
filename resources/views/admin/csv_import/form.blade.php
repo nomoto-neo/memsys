@@ -1,7 +1,7 @@
 {{--
     CSV取り込みの画面（ファイルを選ぶ）。どのコーナーでも同じこの画面を使う
-    （App\Support\CsvImport::csvImport()）。取り込みの設定は、コントローラーの
-    csvImportSettings()（App\Support\CsvImportSettings）で決まる。
+    （Neobit\Core\Csv\CsvImport::csvImport()）。取り込みの設定は、コントローラーの
+    csvImportSettings()（Neobit\Core\Csv\CsvImportSettings）で決まる。
 --}}
 @extends('layouts.admin')
 

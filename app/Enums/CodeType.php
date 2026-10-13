@@ -2,6 +2,8 @@
 
 namespace App\Enums;
 
+use Neobit\Core\Enums\CodeTableEnum;
+
 /**
  * 管理画面の項目見出し一覧で編集できる、DBのコード表の一覧。値がコード名になる。
  *

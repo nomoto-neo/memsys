@@ -36,7 +36,7 @@
     _ajax_upload_blockに$readonlyを渡すだけで、編集画面ではアップロードの
     UI、確認・詳細画面では表示だけになる。会員の写真は非公開のファイル
     なので、表示のURLはログインした本人とスタッフだけが開ける
-    （App\Support\UploadFilePathの「非公開」参照）。
+    （Neobit\Core\Upload\UploadFilePathの「非公開」参照）。
 --}}
 @php
     $uploadUrl = route('admin.members.ajaxUpload');

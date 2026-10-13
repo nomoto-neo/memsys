@@ -3,17 +3,17 @@
 namespace Tests\Feature\Company;
 
 use App\Enums\CompanyStatus;
-use App\Enums\OperationLogAction;
 use App\Models\Company;
 use App\Models\CompanyUser;
-use App\Models\OperationLog;
-use App\Support\Legacy\Md5Password;
-use App\Support\LegacyPasswordUserProvider;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Testing\TestResponse;
+use Neobit\Core\Auth\Legacy\Md5Password;
+use Neobit\Core\Auth\LegacyPasswordUserProvider;
+use Neobit\Core\Enums\OperationLogAction;
+use Neobit\Core\Models\OperationLog;
 use Tests\Support\ReadsSentMail;
 use Tests\TestCase;
-use Illuminate\Testing\TestResponse;
 
 /**
  * 既存のシステムから移した企業の、初回のログインでの登録。最初の担当者は氏名とメールアドレスが

@@ -1,7 +1,7 @@
 <?php
 
 use App\Services\InquiryCleanup;
-use App\Support\TeamInvitationManager;
+use Neobit\Core\Team\TeamInvitationManager;
 
 return [
 
@@ -12,11 +12,11 @@ return [
     |
     | 使い終わった後も残り続けるものを、何日残すかと、プロジェクトで足す片付け。
     | 片付けは、スケジューラーから1時間ごとに動く（app:cleanup-temporary-data。
-    | App\Support\TemporaryDataCleaner）。
+    | Neobit\Core\Operations\TemporaryDataCleaner）。
     |
     */
 
-    // 操作ログ（operation_logs。App\Support\OperationRecorder）を残す日数
+    // 操作ログ（operation_logs。Neobit\Core\Operations\OperationRecorder）を残す日数
     'operation_log_days' => 365,
 
     // 試し直しても送れなかったキューのジョブ（failed_jobs）を残す日数。この間なら、

@@ -2,6 +2,8 @@
 
 namespace App\Enums;
 
+use Neobit\Core\Enums\CodeTableEnum;
+
 /**
  * 企業会員の企業の状態（t_companies.status）。DBには文字列（value）で保存する。
  * 画面ではコード表code_table('company_status')として使う。

@@ -11,10 +11,6 @@ use App\Models\CompanyUser;
 use App\Models\Member;
 use App\Models\News;
 use App\Models\Staff;
-use App\Rules\HiraganaRule;
-use App\Rules\KatakanaRule;
-use App\Support\CsvColumnSet;
-use App\Support\CsvImportSettings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -22,10 +18,14 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Neobit\Core\Csv\CsvColumnSet;
+use Neobit\Core\Csv\CsvImportSettings;
+use Neobit\Core\Rules\HiraganaRule;
+use Neobit\Core\Rules\KatakanaRule;
 use Tests\TestCase;
 
 /**
- * 入力された文字の、全角と半角の揺らぎをそろえる処理（App\Support\InputNormalizer）。
+ * 入力された文字の、全角と半角の揺らぎをそろえる処理（Neobit\Core\Crud\InputNormalizer）。
  * 画面からの入力とCSV取り込みの両方に、検証の前に掛かる。そろえないのは、パスワードと、
  * モデルで指定した項目だけ。ひらがなとカタカナは変換せず、フリガナは検証でエラーにする。
  */

@@ -2,15 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\SpamCheckResult;
-use App\Mail\TemplatedMail;
 use App\Models\Inquiry;
-use App\Rules\KatakanaRule;
-use App\Rules\PhoneNumberRule;
-use App\Support\AjaxFileUpload;
-use App\Support\FormFlow;
-use App\Support\SpamGuard;
-use App\Support\UploadFilePath;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -18,6 +10,14 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Neobit\Core\Crud\FormFlow;
+use Neobit\Core\Enums\SpamCheckResult;
+use Neobit\Core\Mail\TemplatedMail;
+use Neobit\Core\Rules\KatakanaRule;
+use Neobit\Core\Rules\PhoneNumberRule;
+use Neobit\Core\Security\SpamGuard;
+use Neobit\Core\Upload\AjaxFileUpload;
+use Neobit\Core\Upload\UploadFilePath;
 
 /**
  * お問い合わせフォーム。入力、確認、送信の順に進む。
@@ -170,7 +170,7 @@ class ContactController extends Controller
     /** 入力内容のバリデーションと、確認画面の表示 */
     public function confirmStore(Request $request): View|RedirectResponse
     {
-        // スパム対策（App\Support\SpamGuard）。確認画面から先は、ここを通った人にだけ発行する
+        // スパム対策（Neobit\Core\Security\SpamGuard）。確認画面から先は、ここを通った人にだけ発行する
         // confirm_tokenで守るので、送信（store()）では確かめない
         $spam = SpamGuard::check($request, minSeconds: self::SPAM_GUARD_MIN_SECONDS);
 
@@ -278,5 +278,5 @@ class ContactController extends Controller
     }
 
     // 添付ファイルのAjaxアップロード（contact.ajaxUploadのルート）は、トレイトの
-    // App\Support\AjaxFileUpload::uploadAjaxFile()をそのまま使う。
+    // Neobit\Core\Upload\AjaxFileUpload::uploadAjaxFile()をそのまま使う。
 }

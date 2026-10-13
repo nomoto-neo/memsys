@@ -2,28 +2,28 @@
 
 namespace App\Models;
 
-use App\Enums\LoginIdType;
-use App\Enums\TwoFactorMethod;
-use App\Support\HasPasskeys;
-use App\Support\HasTwoFactor;
-use App\Support\IsLoginAccount;
-use App\Support\LoginAccount;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Unique;
 use Laravel\Passkeys\Contracts\PasskeyUser;
+use Neobit\Core\Auth\HasPasskeys;
+use Neobit\Core\Auth\HasTwoFactor;
+use Neobit\Core\Auth\IsLoginAccount;
+use Neobit\Core\Auth\LoginAccount;
+use Neobit\Core\Enums\LoginIdType;
+use Neobit\Core\Enums\TwoFactorMethod;
 
 /**
  * 企業会員の担当者。企業（Company）に属し、ログインする（companyガード）。
- * ログインするモデルの共通の型（App\Support\LoginAccount）を実装している。
+ * ログインするモデルの共通の型（Neobit\Core\Auth\LoginAccount）を実装している。
  *
  * 担当者に、権限の区別は無い。同じ企業の担当者は、だれでも同じことができる。
  * 設計は docs/member-types-spec.md。
  */
 class CompanyUser extends Authenticatable implements LoginAccount, PasskeyUser
 {
-    // パスキーを持てるようにする（App\Support\PasskeyLogin・PasskeyManagement参照）
+    // パスキーを持てるようにする（Neobit\Core\Auth\PasskeyLogin・PasskeyManagement参照）
     use HasPasskeys;
 
     // ログインするモデルの、決まった中身。種類の名前から、ガード（company）、
@@ -77,7 +77,7 @@ class CompanyUser extends Authenticatable implements LoginAccount, PasskeyUser
     /** 配列やJSONにしたときに出さない項目 */
     protected $hidden = [
         'password',
-        // 既存のシステムから移した担当者の、古い方式のパスワード（App\Support\LegacyPasswordUserProvider）
+        // 既存のシステムから移した担当者の、古い方式のパスワード（Neobit\Core\Auth\LegacyPasswordUserProvider）
         'legacy_password',
         'remember_token',
     ];

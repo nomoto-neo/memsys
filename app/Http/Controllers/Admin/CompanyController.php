@@ -3,20 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Enums\CompanyStatus;
-use App\Enums\CsvEncoding;
-use App\Enums\OperationLogAction;
 use App\Http\Controllers\Controller;
-use App\Mail\TemplatedMail;
 use App\Models\Company;
-use App\Models\TeamInvitation;
 use App\Models\CompanyUser;
-use App\Rules\KatakanaRule;
-use App\Rules\PhoneNumberRule;
-use App\Support\TeamInvitationManager;
-use App\Support\CsvDownload;
-use App\Support\FormFlow;
-use App\Support\OperationRecorder;
-use App\Support\SearchableList;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -26,6 +15,17 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Neobit\Core\Crud\FormFlow;
+use Neobit\Core\Crud\SearchableList;
+use Neobit\Core\Csv\CsvDownload;
+use Neobit\Core\Enums\CsvEncoding;
+use Neobit\Core\Enums\OperationLogAction;
+use Neobit\Core\Mail\TemplatedMail;
+use Neobit\Core\Models\TeamInvitation;
+use Neobit\Core\Operations\OperationRecorder;
+use Neobit\Core\Rules\KatakanaRule;
+use Neobit\Core\Rules\PhoneNumberRule;
+use Neobit\Core\Team\TeamInvitationManager;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -41,7 +41,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  * 承認・却下・停止・再開のボタンで変える。
  * 企業の側に退会の画面は無い。退会の連絡を受けたら、ここで停止してから削除する。
  * 担当者を足すのは企業の側の役目だが、招待のメールを送ることだけは、ここからもできる。
- * 担当者が1人もいなくなった企業の立て直しに要るため（App\Support\TeamInvitationManager）。
+ * 担当者が1人もいなくなった企業の立て直しに要るため（Neobit\Core\Team\TeamInvitationManager）。
  */
 class CompanyController extends Controller
 {
@@ -192,7 +192,7 @@ class CompanyController extends Controller
     {
         if ($company->wasRecentlyCreated) {
             // 新しく登録した企業の最初の担当者へ、招待のメールを送る
-            // （メールは保存が確定した後に送られる。App\Support\TeamInvitationManager参照）。
+            // （メールは保存が確定した後に送られる。Neobit\Core\Team\TeamInvitationManager参照）。
             TeamInvitationManager::invite($company, $validated['invite_email']);
         }
     }
@@ -293,7 +293,7 @@ class CompanyController extends Controller
         );
     }
 
-    /** CSVに出す項目。見出し => 値の場所（書き方はApp\Support\CsvDownload参照） */
+    /** CSVに出す項目。見出し => 値の場所（書き方はNeobit\Core\Csv\CsvDownload参照） */
     private function csvColumns(): array
     {
         return [

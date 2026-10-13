@@ -8,15 +8,17 @@
         "framework"
     ],
     "license": "MIT",
+    "repositories": [
+        {
+            "type": "path",
+            "url": "packages/neobit/core"
+        }
+    ],
     "require": {
         "php": "^8.3",
-        "bacon/bacon-qr-code": "^3.1",
-        "ezyang/htmlpurifier": "^4.19",
         "laravel/framework": "^13.17",
-        "laravel/passkeys": "^0.2.1",
         "laravel/tinker": "^3.0",
-        "mpdf/mpdf": "^8.3",
-        "pragmarx/google2fa": "^9.1"
+        "neobit/core": "*@dev"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
@@ -34,10 +36,7 @@
             "App\\": "app/",
             "Database\\Factories\\": "database/factories/",
             "Database\\Seeders\\": "database/seeders/"
-        },
-        "files": [
-            "app/helpers.php"
-        ]
+        }
     },
     "autoload-dev": {
         "psr-4": {

@@ -2,18 +2,18 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Enums\OperationLogAction;
 use App\Http\Controllers\Controller;
 use App\Models\Staff;
-use App\Support\LoginRedirect;
-use App\Support\LoginThrottle;
-use App\Support\OperationRecorder;
-use App\Support\PasskeyLogin;
-use App\Support\TwoFactorLogin;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
+use Neobit\Core\Auth\LoginRedirect;
+use Neobit\Core\Auth\LoginThrottle;
+use Neobit\Core\Auth\PasskeyLogin;
+use Neobit\Core\Auth\TwoFactorLogin;
+use Neobit\Core\Enums\OperationLogAction;
+use Neobit\Core\Operations\OperationRecorder;
 
 /**
  * 管理画面のログイン・ログアウト。
@@ -32,7 +32,7 @@ class AuthSessionController extends Controller
     use TwoFactorLogin;
 
     // パスキーでのログイン（passkeyLoginOptions()・passkeyLogin()）。パスキーで
-    // 通ったときは、2段階目も求めない（App\Support\PasskeyLogin参照）。
+    // 通ったときは、2段階目も求めない（Neobit\Core\Auth\PasskeyLogin参照）。
     // 使わないサイトでは、このuseとroutes/web.phpのadmin.login.passkeyのルートを消す。
     use PasskeyLogin;
 
@@ -46,7 +46,7 @@ class AuthSessionController extends Controller
 
     // ---- パスキーでのログイン（PasskeyLogin）の設定 ----
 
-    /** パスキーでログインさせるガード（App\Support\PasskeyLogin参照）。 */
+    /** パスキーでログインさせるガード（Neobit\Core\Auth\PasskeyLogin参照）。 */
     private const PASSKEY_GUARD = 'admin';
 
     /**
@@ -69,7 +69,7 @@ class AuthSessionController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        // 失敗回数による試行制限（IP単位・ログインID単位。App\Support\LoginThrottle）
+        // 失敗回数による試行制限（IP単位・ログインID単位。Neobit\Core\Auth\LoginThrottle）
         $throttle = new LoginThrottle(self::THROTTLE_SCOPE, $request->ip(), $credentials['login_id']);
 
         if ($throttle->isBlocked()) {
@@ -102,7 +102,7 @@ class AuthSessionController extends Controller
 
     /**
      * ログインが確定した後の移動先。ログインが必要な画面から来た場合はその画面へ、
-     * そうでなければ管理画面TOPへ（App\Support\LoginRedirect）。
+     * そうでなければ管理画面TOPへ（Neobit\Core\Auth\LoginRedirect）。
      */
     private function loginRedirectUrl(): string
     {

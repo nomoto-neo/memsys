@@ -3,7 +3,7 @@
 @section('title', '確認コードの入力')
 
 {{-- プロフィール編集でメールアドレスを変えたときだけ通る画面。入力内容は、
-     確認コードが入力できた時点で保存される（App\Support\EmailChange）。 --}}
+     確認コードが入力できた時点で保存される（Neobit\Core\Auth\EmailChange）。 --}}
 @section('content')
 <div class="row justify-content-center">
     <div class="col-md-6">

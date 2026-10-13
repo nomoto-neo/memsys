@@ -64,7 +64,7 @@
         <div class="invalid-feedback" data-item="body">{{ $errors->first('body') }}</div>
     @else
         {{-- 確認・詳細では、保存されるHTMLを表示するだけにする。{!! !!}で出すので、必ずsafe_html()で
-             許可していないタグと属性を取り除く（App\Support\HtmlSanitizer）。
+             許可していないタグと属性を取り除く（Neobit\Core\Upload\HtmlSanitizer）。
              class="sun-editor-editable"は、SunEditorの表示用のCSS（wysiwyg_suneditor_content.css）が効く印 --}}
         <div class="form-control wysiwyg-content sun-editor-editable" style="height: auto; min-height: 4rem;">
             @if (filled($input['body']))

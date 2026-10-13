@@ -3,17 +3,17 @@
 namespace Tests\Feature\Company;
 
 use App\Enums\CompanyStatus;
-use App\Enums\OperationLogAction;
 use App\Enums\StaffAcl;
 use App\Models\Company;
-use App\Models\TeamInvitation;
 use App\Models\CompanyUser;
-use App\Models\OperationLog;
 use App\Models\Staff;
-use App\Support\TeamInvitationManager;
-use App\Support\TrustedDeviceManager;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Neobit\Core\Auth\TrustedDeviceManager;
+use Neobit\Core\Enums\OperationLogAction;
+use Neobit\Core\Models\OperationLog;
+use Neobit\Core\Models\TeamInvitation;
+use Neobit\Core\Team\TeamInvitationManager;
 use Tests\Support\ReadsSentMail;
 use Tests\TestCase;
 

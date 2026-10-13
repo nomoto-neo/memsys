@@ -2,6 +2,8 @@
 
 namespace App\Enums;
 
+use Neobit\Core\Enums\CodeTableEnum;
+
 /**
  * 一斉メールの送信の状態（t_bulk_mails.status）。DBには文字列（value）で保存する。
  * 画面ではコード表code_table('bulk_mail_status')として使う。

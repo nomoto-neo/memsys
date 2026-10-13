@@ -14,7 +14,7 @@
  * 送り、サーバー側はそれをコントローラーのWYSIWYG_FIELDSで引いて横幅を
  * 決める。サーバーはtmpに保存したURLを返し、それを<img src>にして本文に
  * 入れる(正式な保存先へ移すのは、登録/更新の確定時。詳しくは
- * App\Support\AjaxFileUploadの「エディタの欄の画像」参照)。
+ * Neobit\Core\Upload\AjaxFileUploadの「エディタの欄の画像」参照)。
  */
 import suneditor from 'suneditor';
 import {
@@ -41,7 +41,7 @@ import { postUploadFile } from './upload_request.js';
  * SunEditorは、使う機能(プラグイン)を選んで組む。太字や元に戻すのような基本のボタンは
  * 本体に入っていて、PLUGINSに書くのは、見出し・表・画像のような追加の機能だけ。
  * 機能を足すときは、上のimportとPLUGINSに足し、TOOLBARにボタンの名前を足す。
- * 本文に新しいタグや属性が出るようになるので、App\Support\HtmlSanitizerの許可も合わせる。
+ * 本文に新しいタグや属性が出るようになるので、Neobit\Core\Upload\HtmlSanitizerの許可も合わせる。
  * 動画の埋め込み(video)は入れていない。SunEditorは動画をpositionの指定で配置するが、
  * HtmlSanitizerがstyleのpositionを許可していないので、保存すると崩れるため。
  */

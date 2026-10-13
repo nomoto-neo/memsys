@@ -1,0 +1,32 @@
+{
+    "name": "neobit/core",
+    "description": "ネオビットフレームワークの共通部品。",
+    "type": "library",
+    "license": "proprietary",
+    "require": {
+        "php": "^8.3",
+        "bacon/bacon-qr-code": "^3.1",
+        "ezyang/htmlpurifier": "^4.19",
+        "laravel/framework": "^13.17",
+        "laravel/passkeys": "^0.2.1",
+        "mpdf/mpdf": "^8.3",
+        "pragmarx/google2fa": "^9.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "Neobit\\Core\\": "src/"
+        },
+        "files": [
+            "src/helpers.php"
+        ]
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Neobit\\Core\\NeobitServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

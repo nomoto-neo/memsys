@@ -1,6 +1,6 @@
 {{--
     メンテナンス中の画面。サイト全体のIPアドレスの制限（.envのSITE_ALLOWED_IPS）で、
-    入ってよいIPアドレスのほかから開かれたときに出す（App\Http\Middleware\RestrictSiteAccess）。
+    入ってよいIPアドレスのほかから開かれたときに出す（Neobit\Core\Http\Middleware\RestrictSiteAccess）。
     公開前のデモの運用のときも、この画面が出る。
 
     DBを止めている間も出せるよう、レイアウトを継承しない1枚のHTMLにしている。

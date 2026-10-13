@@ -1,11 +1,11 @@
 {{--
     CSV取り込みの確認画面。どのコーナーでも同じこの画面を使う
-    （App\Support\CsvImport::csvImportConfirm()）。
+    （Neobit\Core\Csv\CsvImport::csvImportConfirm()）。
 
     - エラー・警告のある行は、最初の$previewRows行まで並べる。それより多ければ、
       省略した行数を出す（変更の例・処理だけのモードの読み込んだ内容も同じ）。
     - 正常な行は1行ずつ並べず、項目ごとの変更件数だけを出す。変更の例は項目ごとに
-      開いて見られる（App\Support\CsvImport::csvImportChangeSummary()）。
+      開いて見られる（Neobit\Core\Csv\CsvImport::csvImportChangeSummary()）。
     - 処理だけのモードは、読み込んだ内容を最初の$previewRows行まで、閉じた状態で出す。
     - 行番号は、どれも$row->lineLabel()で「2行目（山田太郎）」の形に出す（添える列は
       CsvImportSettingsのlabelColumn）。

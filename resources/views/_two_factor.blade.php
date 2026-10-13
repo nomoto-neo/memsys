@@ -1,7 +1,7 @@
 {{--
     ログインの2段階目の画面の中身。個人会員・企業会員・管理画面で同じものを使う。
     各ログインの2段階目のビュー（auth/login-verify など）が、レイアウトの中で@includeする。
-    入口はApp\Support\TwoFactorLoginトレイト。設計は docs/two-factor-spec.md。
+    入口はNeobit\Core\Auth\TwoFactorLoginトレイト。設計は docs/two-factor-spec.md。
 
     渡される変数：
     - $twoFactorState    今出す画面。email＝メールの確認コードの入力、totp＝認証アプリのコードの入力、

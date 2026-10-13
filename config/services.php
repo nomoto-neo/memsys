@@ -28,7 +28,7 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
-    // Cloudflare Turnstile（訪問者向けフォームのスパム対策。App\Support\SpamGuard）。
+    // Cloudflare Turnstile（訪問者向けフォームのスパム対策。Neobit\Core\Security\SpamGuard）。
     // 鍵はCloudflareのダッシュボードでサイトのドメインごとに発行する。手元の開発では、
     // Cloudflareが公開しているテスト用の鍵を使う（SpamGuardのコメント参照）。
     'turnstile' => [

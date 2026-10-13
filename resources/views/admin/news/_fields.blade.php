@@ -175,7 +175,7 @@
              HTMLをレンダリングした結果を見せるだけにしている。{!! !!}で
              出力するので、必ずsafe_html()で許可リスト以外のタグ・属性を
              取り除いてから出す（管理画面でスクリプトが動くと、開いた管理者の
-             権限で操作されてしまうため。詳しくはApp\Support\HtmlSanitizer
+             権限で操作されてしまうため。詳しくはNeobit\Core\Upload\HtmlSanitizer
              のコメント参照）。 --}}
         <div class="form-control wysiwyg-content" style="height: auto; min-height: 4rem;">
             @if (filled($input['body'] ?? null))

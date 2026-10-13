@@ -3,23 +3,23 @@
 namespace App\Models;
 
 use App\Enums\NoticeMail;
-use App\Enums\LoginIdType;
-use App\Enums\TwoFactorMethod;
-use App\Support\HasPasskeys;
-use App\Support\HasTwoFactor;
-use App\Support\IsLoginAccount;
-use App\Support\LoginAccount;
-use App\Support\UploadFilePath;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Passkeys\Contracts\PasskeyUser;
+use Neobit\Core\Auth\HasPasskeys;
+use Neobit\Core\Auth\HasTwoFactor;
+use Neobit\Core\Auth\IsLoginAccount;
+use Neobit\Core\Auth\LoginAccount;
+use Neobit\Core\Enums\LoginIdType;
+use Neobit\Core\Enums\TwoFactorMethod;
+use Neobit\Core\Upload\UploadFilePath;
 
 /**
  * 個人会員。ログインできるモデルなので、Authenticatableを継承している（webガード）。
- * ログインするモデルの共通の型（App\Support\LoginAccount）を実装している。
+ * ログインするモデルの共通の型（Neobit\Core\Auth\LoginAccount）を実装している。
  */
 class Member extends Authenticatable implements LoginAccount, PasskeyUser
 {
@@ -31,7 +31,7 @@ class Member extends Authenticatable implements LoginAccount, PasskeyUser
     use Notifiable;
 
     // パスキーを持てるようにする。パスキーでログインさせるかどうかは、ルートと
-    // コントローラーで決める（App\Support\PasskeyLogin・PasskeyManagement参照）
+    // コントローラーで決める（Neobit\Core\Auth\PasskeyLogin・PasskeyManagement参照）
     use HasPasskeys;
 
     // Member::factory()を使えるようにする（database/factories/MemberFactory.php）
@@ -39,7 +39,7 @@ class Member extends Authenticatable implements LoginAccount, PasskeyUser
 
     /**
      * ガードとルートの名前は、今のまま変えない。決まりのとおりなら、ガードはmember、
-     * ルートはmember.loginのようになる（App\Support\IsLoginAccount）
+     * ルートはmember.loginのようになる（Neobit\Core\Auth\IsLoginAccount）
      */
     public const LOGIN_GUARD = 'web';
 
@@ -80,7 +80,7 @@ class Member extends Authenticatable implements LoginAccount, PasskeyUser
 
     /**
      * 操作ログで、変わった列に数えない列。最後に更新したスタッフのidは、入力とは関係なく
-     * 変わるため（App\Support\OperationRecorder::loggableFields()）。
+     * 変わるため（Neobit\Core\Operations\OperationRecorder::loggableFields()）。
      */
     public const OPERATION_LOG_IGNORE = ['staff_id'];
 
@@ -108,7 +108,7 @@ class Member extends Authenticatable implements LoginAccount, PasskeyUser
     /** 配列やJSONにしたときに出さない項目。パスワードのハッシュ値などを、うっかり出さないように */
     protected $hidden = [
         'password',
-        // 既存のシステムから移した会員の、古い方式のパスワード（App\Support\LegacyPasswordUserProvider）
+        // 既存のシステムから移した会員の、古い方式のパスワード（Neobit\Core\Auth\LegacyPasswordUserProvider）
         'legacy_password',
         'remember_token',
     ];

@@ -19,7 +19,7 @@
  * 送り、サーバー側はそれをコントローラーのWYSIWYG_FIELDSで引いて横幅を
  * 決める。サーバーはtmpに保存したURLを返し、それを<img src>にして本文に
  * 入れる(正式な保存先へ移すのは、登録/更新の確定時。詳しくは
- * App\Support\AjaxFileUploadの「WYSIWYG欄の画像」参照)。
+ * Neobit\Core\Upload\AjaxFileUploadの「WYSIWYG欄の画像」参照)。
  */
 import { postUploadFile } from './upload_request.js';
 

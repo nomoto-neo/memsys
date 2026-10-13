@@ -5,14 +5,14 @@ namespace App\Http\Controllers\Company;
 use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Models\CompanyUser;
-use App\Support\LoginVerificationCode;
-use App\Support\PasswordChange;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View;
+use Neobit\Core\Auth\LoginVerificationCode;
+use Neobit\Core\Auth\PasswordChange;
 
 /**
  * パスワードを忘れた担当者のための再設定。ログインしていない状態から使う。
@@ -100,7 +100,7 @@ class PasswordResetController extends Controller
         }
 
         // パスワードを変え、記憶済みの端末とパスキーを無効にして、お知らせのメールを送る
-        // （App\Support\PasswordChange）
+        // （Neobit\Core\Auth\PasswordChange）
         $deletedPasskeys = DB::transaction(function () use ($user, $validated) {
             $user->update([
                 'password' => Hash::make($validated['password']),

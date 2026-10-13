@@ -29,12 +29,12 @@
  * - 「列_origin」が無くても、photo・imageのような名前の文字の列は、アップロードの欄と推測する
  */
 
-use App\Enums\CodeTableEnum;
 use App\Enums\CodeType;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Neobit\Core\Enums\CodeTableEnum;
 
 // ---- 設定 ----
 
@@ -136,14 +136,14 @@ const NAME_RULES = [
         'types' => STRING_TYPES,
         'add' => ['new KatakanaRule()'],
         'note' => 'フリガナと推測',
-        'use' => ['App\Rules\KatakanaRule'],
+        'use' => ['Neobit\Core\Rules\KatakanaRule'],
     ],
     '/(^|_)(phone|tel|fax|mobile)\d*$/' => [
         'types' => STRING_TYPES,
         'add' => ['new PhoneNumberRule()'],
         'remove' => ["'max:{length}'"],
         'note' => '電話番号と推測',
-        'use' => ['App\Rules\PhoneNumberRule'],
+        'use' => ['Neobit\Core\Rules\PhoneNumberRule'],
     ],
     '/(^|_)(zip|zipcode|postal_code)$/' => [
         'types' => STRING_TYPES,

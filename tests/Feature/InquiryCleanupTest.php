@@ -4,15 +4,15 @@ namespace Tests\Feature;
 
 use App\Models\Inquiry;
 use App\Services\InquiryCleanup;
-use App\Support\TemporaryDataCleaner;
-use App\Support\UploadFilePath;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
+use Neobit\Core\Operations\TemporaryDataCleaner;
+use Neobit\Core\Upload\UploadFilePath;
 use Tests\TestCase;
 
 /**
  * お問い合わせの自動の削除（App\Services\InquiryCleanup）。一時データの後片付け
- * （App\Support\TemporaryDataCleaner）が、config/cleanup.phpのtasksに書いた日数を渡して呼ぶ。
+ * （Neobit\Core\Operations\TemporaryDataCleaner）が、config/cleanup.phpのtasksに書いた日数を渡して呼ぶ。
  * 日数を決めたときだけ、過ぎた行と添付ファイルを消す。
  */
 class InquiryCleanupTest extends TestCase

@@ -4,13 +4,13 @@ namespace App\Http\Controllers\Company;
 
 use App\Http\Controllers\Controller;
 use App\Models\CompanyUser;
-use App\Support\EmailChange;
-use App\Support\FormFlow;
-use App\Support\LoginProfileNotice;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
+use Neobit\Core\Auth\EmailChange;
+use Neobit\Core\Auth\LoginProfileNotice;
+use Neobit\Core\Crud\FormFlow;
 
 /**
  * 企業会員の担当者による、自分の情報（氏名・メールアドレス）の変更。
@@ -27,7 +27,7 @@ class ProfileController extends Controller
     // クラス側は rules() saveFieldNames() inputFromModel() を用意する。
     use FormFlow;
 
-    // メールアドレスが変わる保存に、確認コードの入力を挟む（emailChangeForm()など。App\Support\EmailChange参照）。
+    // メールアドレスが変わる保存に、確認コードの入力を挟む（emailChangeForm()など。Neobit\Core\Auth\EmailChange参照）。
     // クラス側は EMAIL_CHANGE_ の定数を用意し、update()でholdForEmailChange()を呼ぶ。
     use EmailChange;
 
@@ -90,7 +90,7 @@ class ProfileController extends Controller
 
     /**
      * 保存の直後の処理。担当者の情報が変わったことを、本人へメールで知らせる
-     * （App\Support\LoginProfileNotice参照）。
+     * （Neobit\Core\Auth\LoginProfileNotice参照）。
      */
     private function afterSave(CompanyUser $user, array $validated, array $changedFields): void
     {
@@ -124,7 +124,7 @@ class ProfileController extends Controller
         $user = Auth::guard(CompanyUser::loginGuard())->user();
 
         // メールアドレスが変わるときは、保存せずに確認コードの入力画面へ進む。
-        // 保存は、コードが入力できた時点で行う（App\Support\EmailChange）
+        // 保存は、コードが入力できた時点で行う（Neobit\Core\Auth\EmailChange）
         $toVerify = $this->holdForEmailChange($request, $user);
 
         if ($toVerify !== null) {

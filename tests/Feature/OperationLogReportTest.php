@@ -2,15 +2,15 @@
 
 namespace Tests\Feature;
 
-use App\Enums\OperationLogAction;
-use App\Models\OperationLog;
-use App\Support\OperationLogReport;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Neobit\Core\Enums\OperationLogAction;
+use Neobit\Core\Models\OperationLog;
+use Neobit\Core\Operations\OperationLogReport;
 use Tests\TestCase;
 
 /**
- * 操作ログの1日ぶんの報告（App\Support\OperationLogReport）の、気になる点。
+ * 操作ログの1日ぶんの報告（Neobit\Core\Operations\OperationLogReport）の、気になる点。
  * 目安の数は、設定（config/logging.phpのoperation_report_thresholds）で決める。
  */
 class OperationLogReportTest extends TestCase

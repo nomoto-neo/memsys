@@ -5,17 +5,17 @@ namespace Tests\Feature;
 use App\Enums\StaffAcl;
 use App\Models\Member;
 use App\Models\Staff;
-use App\Support\ErrorNotifyHandler;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Monolog\Level;
 use Monolog\LogRecord;
+use Neobit\Core\Operations\ErrorNotifyHandler;
 use ReflectionProperty;
 use Tests\Support\ReadsSentMail;
 use Tests\TestCase;
 
 /**
- * エラーの通知のメール（App\Support\ErrorNotifyHandler）の「起きたところ」に載せる、ログイン中の人。
+ * エラーの通知のメール（Neobit\Core\Operations\ErrorNotifyHandler）の「起きたところ」に載せる、ログイン中の人。
  * 設定にあるガードを全部見て、操作ログの「操作した人」と同じ呼び名で載せる。
  */
 class ErrorNotifyHandlerTest extends TestCase

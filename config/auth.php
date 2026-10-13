@@ -74,7 +74,7 @@ return [
 
     'providers' => [
         // 会員。driverのeloquent-legacyは、既存のシステムから移した会員の、古い方式のパスワードも
-        // 受け付ける照合（App\Support\LegacyPasswordUserProvider）。移した会員がいなければ、
+        // 受け付ける照合（Neobit\Core\Auth\LegacyPasswordUserProvider）。移した会員がいなければ、
         // 標準のeloquentと同じに働く
         'users' => [
             'driver' => 'eloquent-legacy',

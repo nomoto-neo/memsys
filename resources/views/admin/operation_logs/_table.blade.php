@@ -1,7 +1,7 @@
 {{--
     操作ログの表。操作ログの一覧と、会員ごとの操作ログで使う。
-    $logsは操作ログの行、$namesはApp\Models\OperationLog::subjectNames()の結果、
-    $relatedはApp\Models\OperationLog::relatedRecords()の結果。
+    $logsは操作ログの行、$namesはNeobit\Core\Models\OperationLog::subjectNames()の結果、
+    $relatedはNeobit\Core\Models\OperationLog::relatedRecords()の結果。
 
     操作した人と対象は「種類ID:番号　氏名」で出す。氏名は操作ログに残していないので、今の氏名を
     $names[種類][id]から引く。退会した会員のように、もう行が無いものは氏名が出ない。
@@ -82,7 +82,7 @@
                     <div class="modal-body">
                         <p class="text-muted small">{{ $log->created_at->format('Y-m-d H:i:s') }}</p>
 
-                        @if ($record instanceof \App\Models\CsvDownloadLog)
+                        @if ($record instanceof \Neobit\Core\Models\CsvDownloadLog)
                             <dl class="row mb-0">
                                 <dt class="col-sm-4">名前</dt>
                                 <dd class="col-sm-8">{{ $record->name }}</dd>
@@ -100,7 +100,7 @@
                                     @endforelse
                                 </dd>
                             </dl>
-                        @elseif ($record instanceof \App\Models\CsvImportLog)
+                        @elseif ($record instanceof \Neobit\Core\Models\CsvImportLog)
                             <dl class="row mb-0">
                                 <dt class="col-sm-4">名前</dt>
                                 <dd class="col-sm-8">{{ $record->name }}</dd>

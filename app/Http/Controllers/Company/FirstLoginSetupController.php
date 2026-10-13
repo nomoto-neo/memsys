@@ -2,13 +2,8 @@
 
 namespace App\Http\Controllers\Company;
 
-use App\Enums\OperationLogAction;
 use App\Http\Controllers\Controller;
 use App\Models\CompanyUser;
-use App\Support\LoginRedirect;
-use App\Support\LoginThrottle;
-use App\Support\LoginVerificationCode;
-use App\Support\OperationRecorder;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,6 +14,11 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Neobit\Core\Auth\LoginRedirect;
+use Neobit\Core\Auth\LoginThrottle;
+use Neobit\Core\Auth\LoginVerificationCode;
+use Neobit\Core\Enums\OperationLogAction;
+use Neobit\Core\Operations\OperationRecorder;
 
 /**
  * 既存のシステムから移した企業の、初回のログインでの登録。入力、確認コードの入力の順に進む。
@@ -133,7 +133,7 @@ class FirstLoginSetupController extends Controller
             return $this->backToForm($request, ['password' => 'このパスワードは使えません。']);
         }
 
-        // 企業の情報の照合。失敗回数による試行制限（IP単位・担当者id単位。App\Support\LoginThrottle）
+        // 企業の情報の照合。失敗回数による試行制限（IP単位・担当者id単位。Neobit\Core\Auth\LoginThrottle）
         $throttle = new LoginThrottle(self::IDENTITY_THROTTLE_SCOPE, $request->ip(), $user->id);
 
         if ($throttle->isBlocked()) {
@@ -200,7 +200,7 @@ class FirstLoginSetupController extends Controller
             'code' => ['required', 'string'],
         ]);
 
-        // 失敗回数による試行制限（IP単位・担当者id単位。App\Support\LoginThrottle）
+        // 失敗回数による試行制限（IP単位・担当者id単位。Neobit\Core\Auth\LoginThrottle）
         $throttle = new LoginThrottle(self::CODE_THROTTLE_SCOPE, $request->ip(), $user->id);
 
         if ($throttle->isBlocked()) {

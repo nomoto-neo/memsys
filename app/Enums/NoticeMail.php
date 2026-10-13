@@ -2,6 +2,8 @@
 
 namespace App\Enums;
 
+use Neobit\Core\Enums\CodeTableEnum;
+
 /**
  * 会員がお知らせメールを受け取るかどうか（t_members.notice_mail）。DBには数値（value）で保存する。
  * 画面の選択肢・検証・CSVでは、コード表code_table('notice_mail')として使う。

@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Models\Code;
 use Illuminate\Database\Seeder;
+use Neobit\Core\Models\Code;
 
 class CodeSeeder extends Seeder
 {

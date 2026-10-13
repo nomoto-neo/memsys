@@ -1,4 +1,4 @@
-{{-- App\Mail\Contact2Notificationの本文ビュー。App\Mail\TemplatedMailの
+{{-- App\Mail\Contact2Notificationの本文ビュー。Neobit\Core\Mail\TemplatedMailの
      resources/views/mail/_raw_text.blade.php（{!! $body !!}だけの
      プレーンテキスト用ビュー）とは違い、こちらは"view:"（HTMLメール）
      として使う普通のBladeビューなので、{{ }}で普通にエスケープしてよい

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "881bbd022c2cc233a55cabeeb54879c3",
+    "content-hash": "40c966653f388e37613497899b5e6aff",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -2652,6 +2652,47 @@
                 }
             ],
             "time": "2026-08-11T10:17:44+00:00"
+        },
+        {
+            "name": "neobit/core",
+            "version": "dev-packaging",
+            "dist": {
+                "type": "path",
+                "url": "packages/neobit/core",
+                "reference": "d6b4d3ed2720bee5994ae32480252af4f2b3f49c"
+            },
+            "require": {
+                "bacon/bacon-qr-code": "^3.1",
+                "ezyang/htmlpurifier": "^4.19",
+                "laravel/framework": "^13.17",
+                "laravel/passkeys": "^0.2.1",
+                "mpdf/mpdf": "^8.3",
+                "php": "^8.3",
+                "pragmarx/google2fa": "^9.1"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Neobit\\Core\\NeobitServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Neobit\\Core\\": "src/"
+                },
+                "files": [
+                    "src/helpers.php"
+                ]
+            },
+            "license": [
+                "proprietary"
+            ],
+            "description": "ネオビットフレームワークの共通部品。",
+            "transport-options": {
+                "relative": true
+            }
         },
         {
             "name": "nesbot/carbon",
@@ -10655,7 +10696,9 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {},
+    "stability-flags": {
+        "neobit/core": 20
+    },
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {

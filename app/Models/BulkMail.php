@@ -3,13 +3,13 @@
 namespace App\Models;
 
 use App\Enums\BulkMailStatus;
-use App\Support\UploadFilePath;
 use Illuminate\Bus\Batch;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Bus;
+use Neobit\Core\Upload\UploadFilePath;
 
 /**
  * 一斉メールの送信の記録。送るたびに1件作る。宛先は個人情報なので持たず、件数だけを持つ。
@@ -26,7 +26,7 @@ class BulkMail extends Model
     public const PRIVATE_FILE_FIELDS = ['attach'];
 
     /**
-     * 入力の全角と半角をそろえない項目（App\Support\InputNormalizer）。
+     * 入力の全角と半角をそろえない項目（Neobit\Core\Crud\InputNormalizer）。
      * メールの件名と本文は、書いたとおりに送る
      */
     public const RAW_INPUT_FIELDS = ['subject', 'body'];

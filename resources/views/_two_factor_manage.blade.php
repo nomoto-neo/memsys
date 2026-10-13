@@ -1,7 +1,7 @@
 {{--
     ログイン中の本人による、2段階認証の管理。バックアップコードの発行と、認証アプリの登録の解除の
     ボタンと、その確認の画面。スタッフの詳細と、会員の2段階認証の画面から@includeする。
-    本人が見ているときだけ@includeする。入口はApp\Support\TwoFactorManagementトレイト。
+    本人が見ているときだけ@includeする。入口はNeobit\Core\Auth\TwoFactorManagementトレイト。
 
     ■ バックアップコードの発行
     バックアップコードを使うモデルの人に出す（モデルの定数 BACKUP_CODES）。発行の前に、その人の
@@ -24,15 +24,15 @@
 --}}
 @php
     $usesBackupCodes = $twoFactorAccount::usesBackupCodes();
-    $confirmByEmail = $twoFactorAccount::twoFactorMethod() === \App\Enums\TwoFactorMethod::Email;
+    $confirmByEmail = $twoFactorAccount::twoFactorMethod() === \Neobit\Core\Enums\TwoFactorMethod::Email;
     $totpConfirmed = $twoFactorAccount::usesTotp() && $twoFactorAccount->hasTwoFactorConfirmed();
 
     // 発行したことがあれば「再発行」、無ければ「発行」
     $issueLabel = $usesBackupCodes && $twoFactorAccount->backupCodes()->exists() ? '再発行' : '発行';
 
     // メールの方式：確認コードを送って入力を待っているか
-    $backupCodesCodeSent = (new \App\Support\TwoFactorChallenge($twoFactorAccount))
-        ->hasSent(request(), \App\Support\TwoFactorChallenge::PURPOSE_BACKUP_CODES);
+    $backupCodesCodeSent = (new \Neobit\Core\Auth\TwoFactorChallenge($twoFactorAccount))
+        ->hasSent(request(), \Neobit\Core\Auth\TwoFactorChallenge::PURPOSE_BACKUP_CODES);
 
     // 解除で消えるもの
     $resetAlso = array_filter([

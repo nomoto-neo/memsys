@@ -2,16 +2,16 @@
 
 namespace Tests\Feature;
 
-use App\Enums\OperationLogAction;
-use App\Models\OperationLog;
-use App\Support\TemporaryDataCleaner;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Neobit\Core\Enums\OperationLogAction;
+use Neobit\Core\Models\OperationLog;
+use Neobit\Core\Operations\TemporaryDataCleaner;
 use Tests\TestCase;
 
 /**
- * 送れなかったキューのジョブの自動の削除（App\Support\TemporaryDataCleaner::oldFailedJobs()）。
+ * 送れなかったキューのジョブの自動の削除（Neobit\Core\Operations\TemporaryDataCleaner::oldFailedJobs()）。
  * failed_jobsの行のうち、config/cleanup.phpのfailed_job_daysの日数を過ぎたものを消す。
  */
 class FailedJobCleanupTest extends TestCase

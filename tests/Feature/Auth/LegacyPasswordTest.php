@@ -3,12 +3,12 @@
 namespace Tests\Feature\Auth;
 
 use App\Models\Member;
-use App\Support\Legacy\Md5Password;
-use App\Support\Legacy\Sha1Password;
-use App\Support\Legacy\Sha256Password;
-use App\Support\LegacyPasswordUserProvider;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Neobit\Core\Auth\Legacy\Md5Password;
+use Neobit\Core\Auth\Legacy\Sha1Password;
+use Neobit\Core\Auth\Legacy\Sha256Password;
+use Neobit\Core\Auth\LegacyPasswordUserProvider;
 use Tests\Support\ReadsSentMail;
 use Tests\TestCase;
 

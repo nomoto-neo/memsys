@@ -3,7 +3,7 @@
     切り替わる。
 
     - $readonlyが空（create/edit）: Ajaxアップロード用のインタラクティブな
-      UI一式（App\Support\AjaxFileUploadトレイト・resources/js/ajax_upload.js
+      UI一式（Neobit\Core\Upload\AjaxFileUploadトレイト・resources/js/ajax_upload.js
       と対応するマークアップ）。1枠が.ajax_upload_blockという単位になって
       いて、複数展開フィールド(attachなど)はこの単位ごと増減する。
     - $readonlyが空でない（confirm/show）: 表示専用の、ごく単純な
@@ -14,7 +14,7 @@
     create・edit・confirm・showの4画面すべてから同じ書き方でこの部分
     ビューを呼べる（呼び出し側で画面ごとに書き分ける必要が無い）。
 
-    App\Support\AjaxFileUploadトレイト自体が管理画面専用の仕組みではない
+    Neobit\Core\Upload\AjaxFileUploadトレイト自体が管理画面専用の仕組みではない
     （どのコントローラーでも use できる）のと同じく、この部分ビューも
     admin/配下ではなくresources/views直下に置いている
     （@include('_ajax_upload_block', ...)）。訪問者向けの問い合わせ
@@ -107,7 +107,7 @@
         <input type="file" class="ajax_file_input d-none" accept="{{ $isImage ? 'image/*' : '' }}">
 
         {{-- データ更新に必要な情報を持ち回るための4つのhidden。
-             意味はApp\Support\AjaxFileUploadのコメント参照。 --}}
+             意味はNeobit\Core\Upload\AjaxFileUploadのコメント参照。 --}}
         <input type="hidden" class="ajax_value" name="{{ $nameValue }}" value="{{ $value }}">
         <input type="hidden" class="ajax_tmp" name="{{ $nameTmp }}" value="{{ $tmp }}">
         <input type="hidden" class="ajax_origin" name="{{ $nameOrigin }}" value="{{ $origin }}">

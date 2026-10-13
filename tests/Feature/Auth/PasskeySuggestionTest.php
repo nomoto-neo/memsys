@@ -15,7 +15,7 @@ use Tests\TestCase;
 
 /**
  * パスキーの登録の案内。パスワードでログインした直後に、パスキーを持っていない人へ1回だけ出す
- * （App\Support\PasskeySuggestion）。見せたかどうかは、ブラウザのCookieで覚える。
+ * （Neobit\Core\Auth\PasskeySuggestion）。見せたかどうかは、ブラウザのCookieで覚える。
  */
 class PasskeySuggestionTest extends TestCase
 {

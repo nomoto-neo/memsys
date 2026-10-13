@@ -1,6 +1,6 @@
 {{--
     パスキーの登録の案内。パスワードでログインした直後の画面に、1回だけ出す。
-    各レイアウトのメッセージ欄から@includeする。出すかどうかはApp\Support\PasskeySuggestionが決めて、
+    各レイアウトのメッセージ欄から@includeする。出すかどうかはNeobit\Core\Auth\PasskeySuggestionが決めて、
     パスキーの一覧画面のルート名をセッションに仮置きする。
 --}}
 @if (session('passkeySuggest') && Route::has(session('passkeySuggest')))

@@ -1,18 +1,18 @@
 <?php
 
-use App\Http\Middleware\AjaxFormResponse;
 use App\Http\Middleware\EnsureCompanyIsApproved;
 use App\Http\Middleware\EnsureStaffIsManager;
-use App\Http\Middleware\NormalizeInput;
-use App\Http\Middleware\RestrictAdminAccess;
-use App\Http\Middleware\RestrictSiteAccess;
-use App\Http\Middleware\SecurityHeaders;
-use App\Support\LoginRedirect;
 use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Neobit\Core\Auth\LoginRedirect;
+use Neobit\Core\Http\Middleware\AjaxFormResponse;
+use Neobit\Core\Http\Middleware\NormalizeInput;
+use Neobit\Core\Http\Middleware\RestrictAdminAccess;
+use Neobit\Core\Http\Middleware\RestrictSiteAccess;
+use Neobit\Core\Http\Middleware\SecurityHeaders;
 use Psr\Log\LogLevel;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -25,7 +25,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // 非ログイン時の飛び先：管理画面(admin.*)はadmin.loginへ、企業会員の画面(company.*)は
         // company.loginへ、それ以外はloginへ
         $middleware->redirectGuestsTo(function (Request $request) {
-            // 開こうとした画面を覚えておき、ログインの後でそこへ戻す（App\Support\LoginRedirect）
+            // 開こうとした画面を覚えておき、ログインの後でそこへ戻す（Neobit\Core\Auth\LoginRedirect）
             LoginRedirect::remember($request);
 
             return match (true) {
@@ -43,15 +43,15 @@ return Application::configure(basePath: dirname(__DIR__))
         });
 
         // 画面を読み直さずに送るフォーム（ajax_submit）への返事を、JSONに読み替える
-        // （App\Http\Middleware\AjaxFormResponse）。セッションを使うので、画面のルートのグループに足す
+        // （Neobit\Core\Http\Middleware\AjaxFormResponse）。セッションを使うので、画面のルートのグループに足す
         $middleware->web(append: [AjaxFormResponse::class]);
 
-        // ブラウザに守り方を伝えるヘッダーを付ける（App\Http\Middleware\SecurityHeaders）。
+        // ブラウザに守り方を伝えるヘッダーを付ける（Neobit\Core\Http\Middleware\SecurityHeaders）。
         // ルートが見つからないときのエラーの画面にも付けるので、全体のミドルウェアに足す
         $middleware->append(SecurityHeaders::class);
 
         // サイト全体を、.envのSITE_ALLOWED_IPSのIPアドレスからだけ開けるようにする
-        // （App\Http\Middleware\RestrictSiteAccess）。メンテナンス中の画面にもヘッダーが付くよう、
+        // （Neobit\Core\Http\Middleware\RestrictSiteAccess）。メンテナンス中の画面にもヘッダーが付くよう、
         // SecurityHeadersの後ろに足す。制限の間も通すのは、死活監視と、お知らせメールの配信停止。
         // 止めている間に届いたメールからも、停止できるようにするため
         $middleware->append(RestrictSiteAccess::class);
@@ -65,7 +65,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // 確かめる（App\Services\MailUnsubscribe）
         $middleware->preventRequestForgery(except: ['mail/unsubscribe']);
 
-        // 入力された文字の、全角と半角の揺らぎをそろえる（App\Support\InputNormalizer）。
+        // 入力された文字の、全角と半角の揺らぎをそろえる（Neobit\Core\Crud\InputNormalizer）。
         // 画面のルートの全部に掛ける。コントローラーの定数を見て、そろえない項目を決めるので、
         // 全体のミドルウェアではなく、ルートが決まった後に通るwebのグループに足す
         $middleware->web(append: [NormalizeInput::class]);

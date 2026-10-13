@@ -12,7 +12,7 @@ use App\Models\Staff;
  * このクラスを見つけるので、どこかに登録する必要は無い。
  *
  * 1つ目の引数$userは、ログイン中の会員（webガード）かスタッフ（adminガード）。
- * App\Http\Controllers\UploadedFileControllerは、ログイン中のガードごとに
+ * Neobit\Core\Http\Controllers\UploadedFileControllerは、ログイン中のガードごとに
  * Gate::forUser()で順に聞くので、どちらも渡ってくる。
  */
 class MemberPolicy

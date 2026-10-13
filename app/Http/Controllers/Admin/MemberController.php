@@ -2,33 +2,33 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Enums\CsvEncoding;
-use App\Enums\CsvImportMode;
-use App\Enums\OperationLogAction;
 use App\Http\Controllers\Controller;
 use App\Models\Member;
-use App\Models\OperationLog;
-use App\Rules\KatakanaRule;
-use App\Rules\PhoneNumberRule;
-use App\Support\AjaxFileUpload;
-use App\Support\CsvDownload;
-use App\Support\CsvImport;
-use App\Support\CsvImportSettings;
-use App\Support\FormFlow;
-use App\Support\OperationRecorder;
-use App\Support\PasswordChange;
-use App\Support\PdfDownload;
-use App\Support\SearchableList;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Neobit\Core\Auth\PasswordChange;
+use Neobit\Core\Crud\FormFlow;
+use Neobit\Core\Crud\SearchableList;
+use Neobit\Core\Csv\CsvDownload;
+use Neobit\Core\Csv\CsvImport;
+use Neobit\Core\Csv\CsvImportSettings;
+use Neobit\Core\Enums\CsvEncoding;
+use Neobit\Core\Enums\CsvImportMode;
+use Neobit\Core\Enums\OperationLogAction;
+use Neobit\Core\Models\OperationLog;
+use Neobit\Core\Operations\OperationRecorder;
+use Neobit\Core\Pdf\PdfDownload;
+use Neobit\Core\Rules\KatakanaRule;
+use Neobit\Core\Rules\PhoneNumberRule;
+use Neobit\Core\Upload\AjaxFileUpload;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class MemberController extends Controller
@@ -189,7 +189,7 @@ class MemberController extends Controller
     {
         if ($member->wasChanged('password')) {
             // パスワードが変わったら、信頼済み端末とパスキーを無効にし、会員へ
-            // お知らせのメールを送る（App\Support\PasswordChange参照）。
+            // お知らせのメールを送る（Neobit\Core\Auth\PasswordChange参照）。
             PasswordChange::resetAndNotify($member, changedBy: Auth::guard('admin')->user());
         }
     }
@@ -265,7 +265,7 @@ class MemberController extends Controller
         );
     }
 
-    /** CSVに出す項目。見出し => 値の場所（書き方はApp\Support\CsvDownload参照） */
+    /** CSVに出す項目。見出し => 値の場所（書き方はNeobit\Core\Csv\CsvDownload参照） */
     private function csvColumns(): array
     {
         $prefectures = code_table('prefectures');
@@ -302,7 +302,7 @@ class MemberController extends Controller
     // ---- CSV取り込み ----
 
     /**
-     * CSV取り込みの設定（書き方はApp\Support\CsvImportSettings参照）。
+     * CSV取り込みの設定（書き方はNeobit\Core\Csv\CsvImportSettings参照）。
      * 会員の登録は本人が行うので、取り込みは更新だけ（追加はしない）。
      */
     private function csvImportSettings(): CsvImportSettings
@@ -408,7 +408,7 @@ class MemberController extends Controller
     /**
      * 2段階認証（認証アプリ）の登録解除。スマートフォンの紛失などで本人がログインできなく
      * なったときに、スタッフが代わりに行う。次のログインで、QRコードの登録からやり直しになる。
-     * バックアップコード・信頼済み端末・パスキーも無効になる（App\Support\HasTwoFactor）。
+     * バックアップコード・信頼済み端末・パスキーも無効になる（Neobit\Core\Auth\HasTwoFactor）。
      */
     public function resetTwoFactor(Member $member): RedirectResponse
     {

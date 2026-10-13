@@ -2,20 +2,20 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Enums\OperationLogAction;
 use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Models\CompanyUser;
-use App\Support\FormFlow;
-use App\Support\OperationRecorder;
-use App\Support\PasswordChange;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View;
+use Neobit\Core\Auth\PasswordChange;
+use Neobit\Core\Crud\FormFlow;
+use Neobit\Core\Enums\OperationLogAction;
+use Neobit\Core\Operations\OperationRecorder;
 
 /**
  * 管理画面の、企業会員の担当者の確認・編集・削除。入口は、企業の詳細画面の担当者の一覧。
@@ -87,7 +87,7 @@ class CompanyUserController extends Controller
     {
         if ($user->wasChanged('password')) {
             // パスワードが変わったら、信頼済み端末とパスキーを無効にし、担当者へ
-            // お知らせのメールを送る（App\Support\PasswordChange参照）。
+            // お知らせのメールを送る（Neobit\Core\Auth\PasswordChange参照）。
             PasswordChange::resetAndNotify($user, changedBy: Auth::guard('admin')->user());
         }
     }
@@ -173,7 +173,7 @@ class CompanyUserController extends Controller
     /**
      * 2段階認証（認証アプリ）の登録解除。スマートフォンの紛失などで本人がログインできなく
      * なったときに、スタッフが代わりに行う。次のログインで、QRコードの登録からやり直しになる。
-     * バックアップコード・信頼済み端末・パスキーも無効になる（App\Support\HasTwoFactor）。
+     * バックアップコード・信頼済み端末・パスキーも無効になる（Neobit\Core\Auth\HasTwoFactor）。
      */
     public function resetTwoFactor(Company $company, CompanyUser $user): RedirectResponse
     {

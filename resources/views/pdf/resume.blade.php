@@ -1,5 +1,5 @@
 {{--
-    履歴書（A4縦1枚）。App\Support\PdfDownloadがmPDFでPDFにする。
+    履歴書（A4縦1枚）。Neobit\Core\Pdf\PdfDownloadがmPDFでPDFにする。
     マイページ（MypageController::resume()）と管理画面
     （Admin\MemberController::resume()）の両方から使う。
 

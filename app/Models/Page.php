@@ -23,7 +23,7 @@ class Page extends Model
     public const BODY_IMAGE_WIDTH = 1000;
 
     /**
-     * 入力の全角と半角をそろえない項目（App\Support\InputNormalizer）。
+     * 入力の全角と半角をそろえない項目（Neobit\Core\Crud\InputNormalizer）。
      * 本文は、書いたとおりに残す。タイトルとURLの名前はそろえる
      */
     public const RAW_INPUT_FIELDS = ['body'];

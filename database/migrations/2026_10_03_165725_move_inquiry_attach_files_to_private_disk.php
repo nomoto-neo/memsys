@@ -1,10 +1,10 @@
 <?php
 
 use App\Models\Inquiry;
-use App\Support\UploadFilePath;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Neobit\Core\Upload\UploadFilePath;
 
 /**
  * お問い合わせの添付ファイル（t_inquiries.attach_file）を、公開のディスク（"public"）から

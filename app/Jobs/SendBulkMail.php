@@ -2,7 +2,6 @@
 
 namespace App\Jobs;
 
-use App\Mail\TemplatedMail;
 use App\Models\BulkMail;
 use App\Services\MailUnsubscribe;
 use DateTimeInterface;
@@ -11,6 +10,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Queue\Middleware\RateLimited;
 use Illuminate\Support\Facades\Mail;
+use Neobit\Core\Mail\TemplatedMail;
 
 /**
  * 一斉メールを1通送るジョブ。BulkMailControllerが宛先の数だけ1つのバッチに積み、

@@ -2,14 +2,14 @@
 
 namespace Tests\Support;
 
-use App\Enums\TwoFactorMethod;
 use App\Models\CompanyUser;
 use App\Models\Member;
 use App\Models\Staff;
+use Neobit\Core\Enums\TwoFactorMethod;
 
 /**
  * テストの間だけ、ログインの2段階目の方式と、バックアップコードを使うかを差し替える。どちらもモデルの定数で決まり、
- * 実行中には変えられないので、モデルの側に用意した差し替えの口を使う（App\Support\HasTwoFactor）。
+ * 実行中には変えられないので、モデルの側に用意した差し替えの口を使う（Neobit\Core\Auth\HasTwoFactor）。
  *
  * 差し替えはモデルのクラスに残るので、テストが終わったら必ず元に戻す。戻し忘れると、
  * 後に続く別のテストが、差し替えた方式のまま動いてしまう。

@@ -59,7 +59,7 @@ import { postUploadFile } from './upload_request.js';
                     return;
                 }
 
-                // アップロード成功時の状態遷移（詳しくはApp\Support\AjaxFileUploadのコメント）。
+                // アップロード成功時の状態遷移（詳しくはNeobit\Core\Upload\AjaxFileUploadのコメント）。
                 // 既存画像の差し替えの場合に備えて_delも1にしておく
                 // (保存のときに古いファイルが外れるようにするため)。
                 block.querySelector('.ajax_tmp').value = data.tmp_name;

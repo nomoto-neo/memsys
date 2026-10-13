@@ -1,10 +1,10 @@
 <?php
 
 use App\Models\News;
-use App\Support\UploadFilePath;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Neobit\Core\Upload\UploadFilePath;
 
 /**
  * ニュース記事のファイル（一覧用画像・添付ファイル・本文の画像）を、公開のディスク

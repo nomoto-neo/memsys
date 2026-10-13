@@ -5,23 +5,23 @@ namespace App\Http\Controllers\Company;
 use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Models\CompanyUser;
-use App\Rules\KatakanaRule;
-use App\Rules\PhoneNumberRule;
-use App\Support\FormFlow;
-use App\Support\LoginAccount;
-use App\Support\PasskeyManagement;
-use App\Support\TwoFactorManagement;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Neobit\Core\Auth\LoginAccount;
+use Neobit\Core\Auth\PasskeyManagement;
+use Neobit\Core\Auth\TwoFactorManagement;
+use Neobit\Core\Crud\FormFlow;
+use Neobit\Core\Rules\KatakanaRule;
+use Neobit\Core\Rules\PhoneNumberRule;
 
 /**
  * 企業会員のマイページ。ログイン中の担当者が、自分の企業の情報の表示と編集、パスキーの管理を行う。
  *
  * 担当者に権限の区別は無いので、どの担当者も企業の情報を変えられる。誰が変えたかは、
- * 操作ログ（App\Support\OperationRecorder）に残る。企業の情報の編集は、確認画面を挟まずに保存する。
+ * 操作ログ（Neobit\Core\Operations\OperationRecorder）に残る。企業の情報の編集は、確認画面を挟まずに保存する。
  * 担当者自身の情報の変更はProfileController、パスワードの変更はAuthPasswordControllerが受け持つ。
  */
 class MypageController extends Controller
@@ -32,12 +32,12 @@ class MypageController extends Controller
     // クラス側は rules() saveFieldNames() inputFromModel() を用意する。
     use FormFlow;
 
-    // パスキーの一覧・登録・削除（passkeyIndex()など。App\Support\PasskeyManagement参照）。
+    // パスキーの一覧・登録・削除（passkeyIndex()など。Neobit\Core\Auth\PasskeyManagement参照）。
     // 使わないサイトでは、このuseとroutes/web.phpのcompany.mypage.passkeysのルートを消す。
     use PasskeyManagement;
 
     // ログイン中の本人による、バックアップコードの発行と、認証アプリの登録の解除（twoFactorIndex()など。
-    // App\Support\TwoFactorManagement参照）。
+    // Neobit\Core\Auth\TwoFactorManagement参照）。
     use TwoFactorManagement;
 
     // ---- 2段階認証の管理（TwoFactorManagement）の設定 ----

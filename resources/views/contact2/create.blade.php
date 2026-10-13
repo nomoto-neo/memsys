@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 {{--
-    /contact（App\Support\MailTemplate方式・AjaxFileUpload方式）との
+    /contact（Neobit\Core\Mail\MailTemplate方式・AjaxFileUpload方式）との
     比較用フォーム。confirm画面を挟まない一段階の送信で、添付ファイルも
     普通の<input type="file">＋enctype="multipart/form-data"で送る
     （resources/js/ajax_upload.js・upload_request.jsのような、送信より

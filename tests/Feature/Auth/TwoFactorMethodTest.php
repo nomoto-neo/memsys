@@ -2,17 +2,17 @@
 
 namespace Tests\Feature\Auth;
 
-use App\Enums\OperationLogAction;
 use App\Enums\StaffAcl;
-use App\Enums\TwoFactorMethod;
 use App\Models\Member;
-use App\Models\OperationLog;
-use App\Models\Passkey;
 use App\Models\Staff;
-use App\Support\BackupCodeGenerator;
-use App\Support\TrustedDeviceManager;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Neobit\Core\Auth\BackupCodeGenerator;
+use Neobit\Core\Auth\TrustedDeviceManager;
+use Neobit\Core\Enums\OperationLogAction;
+use Neobit\Core\Enums\TwoFactorMethod;
+use Neobit\Core\Models\OperationLog;
+use Neobit\Core\Models\Passkey;
 use PragmaRX\Google2FA\Google2FA;
 use Tests\Support\FakesTwoFactorMethod;
 use Tests\Support\ReadsSentMail;

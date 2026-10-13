@@ -1,10 +1,10 @@
 <?php
 
-use App\Support\ErrorNotifyHandler;
 use Monolog\Handler\NullHandler;
 use Monolog\Handler\StreamHandler;
 use Monolog\Handler\SyslogUdpHandler;
 use Monolog\Processor\PsrLogMessageProcessor;
+use Neobit\Core\Operations\ErrorNotifyHandler;
 
 return [
 
@@ -51,7 +51,7 @@ return [
     |
     */
 
-    // 操作ログの報告のメール（App\Support\OperationLogReport）の宛先。カンマ区切りで複数書ける。
+    // 操作ログの報告のメール（Neobit\Core\Operations\OperationLogReport）の宛先。カンマ区切りで複数書ける。
     // 空なら送らない。エラーの通知（ERROR_NOTIFY_TO）は開発者、こちらは管理者と、読む人が違うので分けている
     'operation_report_to' => (string) env('OPERATION_REPORT_TO', ''),
 
@@ -79,7 +79,7 @@ return [
             'ignore_exceptions' => false,
         ],
 
-        // エラーをメールで知らせる。App\Support\ErrorNotifyHandler。
+        // エラーをメールで知らせる。Neobit\Core\Operations\ErrorNotifyHandler。
         // levelは知らせる最低のレベル、toはカンマ区切りの宛先、intervalMinutesは同じ内容を送る間隔の分数
         'error_notify' => [
             'driver' => 'monolog',

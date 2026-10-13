@@ -2,22 +2,22 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Enums\CsvEncoding;
-use App\Enums\CsvImportMode;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\News;
-use App\Support\AjaxFileUpload;
-use App\Support\CsvDownload;
-use App\Support\CsvImport;
-use App\Support\CsvImportSettings;
-use App\Support\FormFlow;
-use App\Support\SearchableList;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Neobit\Core\Crud\FormFlow;
+use Neobit\Core\Crud\SearchableList;
+use Neobit\Core\Csv\CsvDownload;
+use Neobit\Core\Csv\CsvImport;
+use Neobit\Core\Csv\CsvImportSettings;
+use Neobit\Core\Enums\CsvEncoding;
+use Neobit\Core\Enums\CsvImportMode;
+use Neobit\Core\Upload\AjaxFileUpload;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class NewsController extends Controller
@@ -260,7 +260,7 @@ class NewsController extends Controller
     }
 
     /**
-     * CSVに出す項目。見出し => 値の場所（書き方はApp\Support\CsvColumnSet参照）。
+     * CSVに出す項目。見出し => 値の場所（書き方はNeobit\Core\Csv\CsvColumnSet参照）。
      * CSV取り込みも同じ定義を使う。
      */
     private function csvColumns(): array
@@ -295,7 +295,7 @@ class NewsController extends Controller
     // ---- CSV取り込み ----
 
     /**
-     * CSV取り込みの設定（書き方はApp\Support\CsvImportSettings参照）。
+     * CSV取り込みの設定（書き方はNeobit\Core\Csv\CsvImportSettings参照）。
      * 記事IDが空欄の行は、新しい記事として追加する。
      */
     private function csvImportSettings(): CsvImportSettings
@@ -418,5 +418,5 @@ class NewsController extends Controller
     }
 
     // Ajaxアップロード処理の function がトレイトから取り込まれる。
-    // 実体はApp\Support\AjaxFileUpload::uploadAjaxFile()
+    // 実体はNeobit\Core\Upload\AjaxFileUpload::uploadAjaxFile()
 }

@@ -2,14 +2,8 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Enums\CsvEncoding;
-use App\Enums\OperationLogAction;
 use App\Enums\OperationLogSubject;
 use App\Http\Controllers\Controller;
-use App\Models\OperationLog;
-use App\Support\CsvDownload;
-use App\Support\OperationLogStats;
-use App\Support\SearchableList;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
@@ -19,10 +13,16 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Neobit\Core\Crud\SearchableList;
+use Neobit\Core\Csv\CsvDownload;
+use Neobit\Core\Enums\CsvEncoding;
+use Neobit\Core\Enums\OperationLogAction;
+use Neobit\Core\Models\OperationLog;
+use Neobit\Core\Operations\OperationLogStats;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
- * 操作ログの一覧と検索。App\Support\OperationRecorderが書いた記録を見るだけの画面で、
+ * 操作ログの一覧と検索。Neobit\Core\Operations\OperationRecorderが書いた記録を見るだけの画面で、
  * 登録・編集・削除は無い。記録を取っていることを全員に見せる必要は無いので、
  * 管理者だけが開ける（routes/web.phpのacl.managerの内側）。
  */

@@ -14,7 +14,7 @@
     <div class="card-body">
         {{--
             本文はSunEditorで入力したHTMLなので、{!! !!}で出す。必ずsafe_html()で、許可していない
-            タグと属性を取り除いてから出す（App\Support\HtmlSanitizer）。保存のときにも同じ処理を
+            タグと属性を取り除いてから出す（Neobit\Core\Upload\HtmlSanitizer）。保存のときにも同じ処理を
             掛けているが、DBを直接書き換えた本文があっても安全に出せるよう、表示のときにも掛ける。
             class="sun-editor-editable"は、SunEditorの表示用のCSSが効く印。
         --}}

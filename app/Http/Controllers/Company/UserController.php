@@ -3,22 +3,22 @@
 namespace App\Http\Controllers\Company;
 
 use App\Http\Controllers\Controller;
-use App\Models\TeamInvitation;
 use App\Models\CompanyUser;
-use App\Support\TeamInvitationManager;
-use App\Support\FormFlow;
-use App\Support\LoginProfileNotice;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
+use Neobit\Core\Auth\LoginProfileNotice;
+use Neobit\Core\Crud\FormFlow;
+use Neobit\Core\Models\TeamInvitation;
+use Neobit\Core\Team\TeamInvitationManager;
 
 /**
  * 企業会員のマイページの、担当者の管理。同じ企業の担当者の一覧・招待・編集・削除。
  *
  * 担当者に権限の区別は無いので、どの担当者も、招待と、ほかの担当者の編集・削除ができる。
- * 誰が行ったかは、操作ログ（App\Support\OperationRecorder）に残る。
- * - 担当者は、招待のメールで足す（App\Support\TeamInvitationManager）。ここで担当者IDや
+ * 誰が行ったかは、操作ログ（Neobit\Core\Operations\OperationRecorder）に残る。
+ * - 担当者は、招待のメールで足す（Neobit\Core\Team\TeamInvitationManager）。ここで担当者IDや
  *   パスワードを決めて作ることはしない
  * - ほかの担当者の編集は、氏名とメールアドレスだけ。担当者IDとパスワードは変えない
  * - 自分自身は削除できない。担当者が1人もいない企業を、企業の側の操作では作らないため
@@ -72,7 +72,7 @@ class UserController extends Controller
 
     /**
      * 保存の直後の処理。情報が変わったことを、変えられた担当者へメールで知らせる。
-     * 本人が変えたのではないので、本人が気付けるようにする（App\Support\LoginProfileNotice参照）。
+     * 本人が変えたのではないので、本人が気付けるようにする（Neobit\Core\Auth\LoginProfileNotice参照）。
      */
     private function afterSave(CompanyUser $user, array $validated, array $changedFields): void
     {

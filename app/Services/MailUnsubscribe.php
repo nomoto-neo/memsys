@@ -3,12 +3,12 @@
 namespace App\Services;
 
 use App\Enums\NoticeMail;
-use App\Enums\OperationLogAction;
 use App\Models\Member;
-use App\Support\OperationRecorder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\URL;
+use Neobit\Core\Enums\OperationLogAction;
+use Neobit\Core\Operations\OperationRecorder;
 
 /**
  * お知らせメール（一斉メール）の配信停止。メールに載せるURLを作り、そのURLからの停止を受け付ける。

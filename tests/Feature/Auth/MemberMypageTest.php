@@ -2,13 +2,13 @@
 
 namespace Tests\Feature\Auth;
 
-use App\Enums\OperationLogAction;
 use App\Enums\StaffAcl;
 use App\Models\Member;
-use App\Models\OperationLog;
 use App\Models\Staff;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Neobit\Core\Enums\OperationLogAction;
+use Neobit\Core\Models\OperationLog;
 use Tests\Support\ReadsSentMail;
 use Tests\TestCase;
 

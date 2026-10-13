@@ -3,21 +3,21 @@
 namespace App\Http\Controllers\Company;
 
 use App\Enums\CompanyStatus;
-use App\Enums\OperationLogAction;
 use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Models\CompanyUser;
-use App\Support\LoginIdMemory;
-use App\Support\LoginRedirect;
-use App\Support\LoginThrottle;
-use App\Support\OperationRecorder;
-use App\Support\PasskeyLogin;
-use App\Support\TwoFactorLogin;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Neobit\Core\Auth\LoginIdMemory;
+use Neobit\Core\Auth\LoginRedirect;
+use Neobit\Core\Auth\LoginThrottle;
+use Neobit\Core\Auth\PasskeyLogin;
+use Neobit\Core\Auth\TwoFactorLogin;
+use Neobit\Core\Enums\OperationLogAction;
+use Neobit\Core\Operations\OperationRecorder;
 
 /**
  * 企業会員のログイン・ログアウト。ログインするのは、企業に属する担当者（CompanyUser）。
@@ -53,12 +53,12 @@ class AuthSessionController extends Controller
      */
     private const THROTTLE_SCOPE = 'company-login';
 
-    /** 「企業IDと担当者IDを記憶する」の値を入れるCookieの名前（App\Support\LoginIdMemory）。 */
+    /** 「企業IDと担当者IDを記憶する」の値を入れるCookieの名前（Neobit\Core\Auth\LoginIdMemory）。 */
     private const LOGIN_ID_COOKIE = 'company_login_ids';
 
     // ---- パスキーでのログイン（PasskeyLogin）の設定 ----
 
-    /** パスキーでログインさせるガード（App\Support\PasskeyLogin参照）。 */
+    /** パスキーでログインさせるガード（Neobit\Core\Auth\PasskeyLogin参照）。 */
     private const PASSKEY_GUARD = 'company';
 
     // ---- ログイン・ログアウト ----
@@ -94,7 +94,7 @@ class AuthSessionController extends Controller
         // 企業IDと担当者IDの組。この組で、1人の担当者に決まる
         $loginId = $credentials['company_code'].'/'.$credentials['login_id'];
 
-        // 失敗回数による試行制限（IP単位・企業IDと担当者IDの組の単位。App\Support\LoginThrottle）
+        // 失敗回数による試行制限（IP単位・企業IDと担当者IDの組の単位。Neobit\Core\Auth\LoginThrottle）
         $throttle = new LoginThrottle(self::THROTTLE_SCOPE, $request->ip(), $loginId);
 
         if ($throttle->isBlocked()) {
@@ -111,7 +111,7 @@ class AuthSessionController extends Controller
             ->first();
 
         // パスワードの確認だけ行う（まだログインはしない）。古い方式のパスワードの置き換えも、
-        // ここで働く（App\Support\LegacyPasswordUserProvider）
+        // ここで働く（Neobit\Core\Auth\LegacyPasswordUserProvider）
         $provider = Auth::guard(self::LOGIN_ACCOUNT::loginGuard())->getProvider();
 
         if ($user === null || ! $provider->validateCredentials($user, ['password' => $credentials['password']])) {
@@ -159,7 +159,7 @@ class AuthSessionController extends Controller
 
     /**
      * ログインが確定した後の移動先。ログインが必要な画面から来た場合はその画面へ、
-     * そうでなければマイページへ（App\Support\LoginRedirect）。
+     * そうでなければマイページへ（Neobit\Core\Auth\LoginRedirect）。
      */
     private function loginRedirectUrl(): string
     {

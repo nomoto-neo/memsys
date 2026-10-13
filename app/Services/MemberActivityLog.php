@@ -2,9 +2,9 @@
 
 namespace App\Services;
 
-use App\Support\LoginAccount;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Neobit\Core\Auth\LoginAccount;
 
 /**
  * 会員の登録と退会をログに記録する。書き出し先はstorage/logs/member-日付.log。

@@ -2,13 +2,13 @@
 
 namespace App\Models;
 
-use App\Support\UploadFilePath;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Neobit\Core\Upload\UploadFilePath;
 
 /**
  * ニュース記事。
@@ -33,7 +33,7 @@ class News extends Model
     public const PRIVATE_FILE_FIELDS = ['list_image', 'attach', 'body'];
 
     /**
-     * 入力の全角と半角をそろえない項目（App\Support\InputNormalizer）。
+     * 入力の全角と半角をそろえない項目（Neobit\Core\Crud\InputNormalizer）。
      * 本文は、書いたとおりに残す。件名はそろえる
      */
     public const RAW_INPUT_FIELDS = ['body'];
@@ -126,7 +126,7 @@ class News extends Model
     }
 
     /**
-     * この記事に付いている添付ファイル。アップロードの処理（App\Support\AjaxFileUpload）は、
+     * この記事に付いている添付ファイル。アップロードの処理（Neobit\Core\Upload\AjaxFileUpload）は、
      * 複数のフィールド'attach.*'と同じ名前のこのリレーションを通して、保存・削除を行う。
      */
     public function attach(): HasMany

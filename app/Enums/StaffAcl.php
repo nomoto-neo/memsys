@@ -2,6 +2,8 @@
 
 namespace App\Enums;
 
+use Neobit\Core\Enums\CodeTableEnum;
+
 /**
  * スタッフの権限（t_staffs.acl）。DBには数値（value）で保存する。
  *

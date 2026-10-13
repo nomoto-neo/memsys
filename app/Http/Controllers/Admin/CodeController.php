@@ -4,8 +4,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\CodeType;
 use App\Http\Controllers\Controller;
-use App\Models\Code;
-use App\Support\CodeTable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -13,6 +11,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Neobit\Core\Code\CodeTable;
+use Neobit\Core\Models\Code;
 
 /**
  * 項目見出し一覧：DBで管理するコード表（t_codes）の編集。

@@ -8,15 +8,15 @@ return [
     |--------------------------------------------------------------------
     |
     | ログインする人の種類ごとに、サイトで変わるものを書く。
-    | キーは、種類の名前（モデルの短い名前。App\Support\IsLoginAccount）。member・company_userなど。
+    | キーは、種類の名前（モデルの短い名前。Neobit\Core\Auth\IsLoginAccount）。member・company_userなど。
     | ガード・ルート・メールのテンプレートの名前は、種類の名前から決まりで作るので、
     | ここには書かない。設計は docs/member-types-spec.md。
     |
     | legacy_passwords
     |   既存のシステムから会員を移したサイトだけで使う。古い方式のパスワードを計算する
-    |   クラスを、試す順に書く（App\Support\LegacyPasswordUserProvider）。
+    |   クラスを、試す順に書く（Neobit\Core\Auth\LegacyPasswordUserProvider）。
     |   ソルトの無いMD5・SHA-1・SHA-256は、App\Support\Legacyに用意してある。
-    |   そのサイトだけの方式は、App\Support\LegacyPasswordを実装したクラスを書いて足す。
+    |   そのサイトだけの方式は、Neobit\Core\Auth\LegacyPasswordを実装したクラスを書いて足す。
     |   新しく始めるサイトでは、空のままにする。
     |
     | registration_staff_email
@@ -35,9 +35,9 @@ return [
     // 個人会員
     'member' => [
         'legacy_passwords' => [
-            // App\Support\Legacy\Md5Password::class,
-            // App\Support\Legacy\Sha1Password::class,
-            // App\Support\Legacy\Sha256Password::class,
+            // Neobit\Core\Auth\Legacy\Md5Password::class,
+            // Neobit\Core\Auth\Legacy\Sha1Password::class,
+            // Neobit\Core\Auth\Legacy\Sha256Password::class,
         ],
     ],
 

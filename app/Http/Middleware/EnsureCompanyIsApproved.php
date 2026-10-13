@@ -3,10 +3,10 @@
 namespace App\Http\Middleware;
 
 use App\Models\CompanyUser;
-use App\Support\LoginSession;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Neobit\Core\Auth\LoginSession;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -23,7 +23,7 @@ class EnsureCompanyIsApproved
         $user = Auth::guard(CompanyUser::loginGuard())->user();
 
         if (! $user->company->isApproved()) {
-            // 企業会員のログインだけを終わらせる（App\Support\LoginSession）
+            // 企業会員のログインだけを終わらせる（Neobit\Core\Auth\LoginSession）
             LoginSession::logout($request, CompanyUser::loginGuard());
 
             return redirect()->route(CompanyUser::loginRoute('login'))

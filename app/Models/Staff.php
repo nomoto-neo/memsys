@@ -3,16 +3,16 @@
 namespace App\Models;
 
 use App\Enums\StaffAcl;
-use App\Enums\LoginIdType;
-use App\Enums\TwoFactorMethod;
-use App\Support\HasPasskeys;
-use App\Support\HasTwoFactor;
-use App\Support\IsLoginAccount;
-use App\Support\LoginAccount;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Laravel\Passkeys\Contracts\PasskeyUser;
+use Neobit\Core\Auth\HasPasskeys;
+use Neobit\Core\Auth\HasTwoFactor;
+use Neobit\Core\Auth\IsLoginAccount;
+use Neobit\Core\Auth\LoginAccount;
+use Neobit\Core\Enums\LoginIdType;
+use Neobit\Core\Enums\TwoFactorMethod;
 
 /**
  * 管理画面のスタッフ。会員とは別のテーブル・別のガード（admin）でログインする。
@@ -25,7 +25,7 @@ use Laravel\Passkeys\Contracts\PasskeyUser;
  * クエリやルートにwithTrashed()を付ける。
  *
  * ■ ログインする人の共通の型
- * 会員と同じ共通の型（App\Support\LoginAccount）を実装している。2段階認証などのログインまわりの
+ * 会員と同じ共通の型（Neobit\Core\Auth\LoginAccount）を実装している。2段階認証などのログインまわりの
  * 共通部品は、スタッフと会員を同じ形で扱う。
  */
 class Staff extends Authenticatable implements LoginAccount, PasskeyUser

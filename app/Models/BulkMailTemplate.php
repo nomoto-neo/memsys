@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 class BulkMailTemplate extends Model
 {
     /**
-     * 入力の全角と半角をそろえない項目（App\Support\InputNormalizer）。
+     * 入力の全角と半角をそろえない項目（Neobit\Core\Crud\InputNormalizer）。
      * メールの件名と本文は、書いたとおりに残す。管理用の名前はそろえる
      */
     public const RAW_INPUT_FIELDS = ['subject', 'body'];

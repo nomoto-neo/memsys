@@ -1,6 +1,10 @@
 <?php
 
 use App\Http\Controllers\Admin\AuthSessionController as AdminSessionController;
+use App\Http\Controllers\Admin\BulkMailController as AdminBulkMailController;
+use App\Http\Controllers\Admin\BulkMailTemplateController as AdminBulkMailTemplateController;
+use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
+use App\Http\Controllers\Admin\CodeController as AdminCodeController;
 use App\Http\Controllers\Admin\CompanyController as AdminCompanyController;
 use App\Http\Controllers\Admin\CompanyUserController as AdminCompanyUserController;
 use App\Http\Controllers\Admin\MemberController as AdminMemberController;
@@ -8,15 +12,11 @@ use App\Http\Controllers\Admin\NewsController as AdminNewsController;
 use App\Http\Controllers\Admin\OperationLogController as AdminOperationLogController;
 use App\Http\Controllers\Admin\PageController as AdminPageController;
 use App\Http\Controllers\Admin\StaffController as AdminStaffController;
-use App\Http\Controllers\Admin\CodeController as AdminCodeController;
-use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
-use App\Http\Controllers\Admin\BulkMailController as AdminBulkMailController;
-use App\Http\Controllers\Admin\BulkMailTemplateController as AdminBulkMailTemplateController;
 use App\Http\Controllers\AuthPasswordController;
 use App\Http\Controllers\AuthRegisteredMemberController;
 use App\Http\Controllers\AuthSessionController;
-use App\Http\Controllers\Company\AuthSessionController as CompanySessionController;
 use App\Http\Controllers\Company\AuthPasswordController as CompanyPasswordController;
+use App\Http\Controllers\Company\AuthSessionController as CompanySessionController;
 use App\Http\Controllers\Company\FirstLoginSetupController as CompanyFirstLoginSetupController;
 use App\Http\Controllers\Company\InvitationController as CompanyInvitationController;
 use App\Http\Controllers\Company\MypageController as CompanyMypageController;
@@ -24,17 +24,17 @@ use App\Http\Controllers\Company\PasswordResetController as CompanyPasswordReset
 use App\Http\Controllers\Company\ProfileController as CompanyProfileController;
 use App\Http\Controllers\Company\RegistrationController as CompanyRegistrationController;
 use App\Http\Controllers\Company\UserController as CompanyUserController;
-use App\Http\Controllers\ContactController;
 use App\Http\Controllers\Contact2Controller;
+use App\Http\Controllers\ContactController;
 use App\Http\Controllers\MailUnsubscribeController;
 use App\Http\Controllers\MypageController;
 use App\Http\Controllers\NewsController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\TopController;
-use App\Http\Controllers\UploadedFileController;
 use App\Models\Page;
 use Illuminate\Support\Facades\Route;
+use Neobit\Core\Http\Controllers\UploadedFileController;
 
 // 静的なページを表示する場合
 //Route::view('/', 'welcome');
@@ -52,7 +52,7 @@ Route::post('/contact/ajax-upload', [ContactController::class, 'uploadAjaxFile']
     ->middleware('throttle:20,1,contact-upload')
     ->name('contact.ajaxUpload');
 Route::get('/contact', [ContactController::class, 'create'])->name('contact.create');
-// 確認画面へ進むたびにCloudflare Turnstileへ問い合わせる（App\Support\SpamGuard）ので、回数を制限する
+// 確認画面へ進むたびにCloudflare Turnstileへ問い合わせる（Neobit\Core\Security\SpamGuard）ので、回数を制限する
 Route::post('/contact/confirm', [ContactController::class, 'confirmStore'])
     ->middleware('throttle:20,1,contact-confirm')
     ->name('contact.confirm');
@@ -70,7 +70,7 @@ Route::post('/mail/unsubscribe', [MailUnsubscribeController::class, 'store'])
     ->name('mail.unsubscribe.store');
 
 // ログインした人だけが見られるアップロードファイルと、アップロード直後の一時ファイル
-// （App\Http\Controllers\UploadedFileController）。会員・スタッフのどちらのガードでも使い、
+// （Neobit\Core\Http\Controllers\UploadedFileController）。会員・スタッフのどちらのガードでも使い、
 // 訪問者のお問い合わせの一時ファイルにも使うので、authのグループには入れない。
 Route::get('/uploads/tmp/{filename}', [UploadedFileController::class, 'tmp'])->name('uploads.tmp');
 Route::get('/uploads/{type}/{id}/{field}/{filename}', [UploadedFileController::class, 'show'])
@@ -81,7 +81,7 @@ Route::get('/uploads/{type}/{id}/{field}/{filename}', [UploadedFileController::c
 // MailTemplate方式・AjaxFileUpload方式を使わない、普通のLaravelの書き方によるお問い合わせフォーム。
 // 比較用・技術習得のため残置（提携先向けのデモには含めない）
 Route::get('/contact2', [Contact2Controller::class, 'create'])->name('contact2.create');
-// 送るたびにスタッフへメールが届くので、回数を制限する。スパムの確認（App\Support\SpamGuard）は
+// 送るたびにスタッフへメールが届くので、回数を制限する。スパムの確認（Neobit\Core\Security\SpamGuard）は
 // 付けていないので、公開するサイトでは、この2つのルートを消す
 Route::post('/contact2', [Contact2Controller::class, 'store'])
     ->middleware('throttle:5,1,contact2-store')
@@ -108,7 +108,7 @@ Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthSessionController::class, 'create'])->name('login');
     Route::post('/login', [AuthSessionController::class, 'store'])->name('login.store');
 
-    // パスキーでのログイン（App\Support\PasskeyLogin）。使わない場合はこの2つを消す
+    // パスキーでのログイン（Neobit\Core\Auth\PasskeyLogin）。使わない場合はこの2つを消す
     // （ログイン画面のボタンも消える）
     Route::get('/login/passkey/options', [AuthSessionController::class, 'passkeyLoginOptions'])
         ->middleware('throttle:20,1,member-passkey-options')
@@ -128,7 +128,7 @@ Route::middleware('guest')->group(function () {
         ->name('password.reset.update');
 });
 
-// ログインの2段階目（入口はApp\Support\TwoFactorLoginトレイト。方式はMember::TWO_FACTOR_METHOD）。
+// ログインの2段階目（入口はNeobit\Core\Auth\TwoFactorLoginトレイト。方式はMember::TWO_FACTOR_METHOD）。
 // パスワード通過後で2段階目の前という中間の状態なので、ミドルウェアでは守らず、セッションで判定する。
 // 照合の試行制限はコントローラーの側で行う。再送は、メールの方式のときだけ使う
 Route::get('/login/verify', [AuthSessionController::class, 'showVerification'])->name('login.verify');
@@ -144,7 +144,7 @@ Route::post('/login/verify/resend', [AuthSessionController::class, 'resendCode']
 // 保持する」のCookieも、Cookieに入っているパスワードのハッシュ値で同じように比べる。
 // これにより、パスワードを変えると、ほかの端末のログインと保持用のCookieが無効になる
 // （変えた本人の端末は、変えたリクエストの最後に新しい値を控え直すので、そのまま使える）。
-// ガードの名前（auth:web）を省かずに書く。ログインの後に元の画面へ戻す仕組み（App\Support\LoginRedirect）が、
+// ガードの名前（auth:web）を省かずに書く。ログインの後に元の画面へ戻す仕組み（Neobit\Core\Auth\LoginRedirect）が、
 // どのガードの画面かを、ここから読むため。
 Route::middleware(['auth:web', 'auth.session'])->group(function () {
     // マイページ
@@ -152,7 +152,7 @@ Route::middleware(['auth:web', 'auth.session'])->group(function () {
     // 会員情報の変更
     Route::get('/mypage/edit', [MypageController::class, 'edit'])->name('mypage.edit');
     Route::patch('/mypage/update', [MypageController::class, 'update'])->name('mypage.update');
-    // メールアドレスが変わるときの、確認コードの入力（App\Support\EmailChange）。
+    // メールアドレスが変わるときの、確認コードの入力（Neobit\Core\Auth\EmailChange）。
     // コード照合のthrottle制御はコントローラー側で行う
     Route::get('/mypage/email/verify', [MypageController::class, 'emailChangeForm'])->name('mypage.email');
     Route::post('/mypage/email/verify', [MypageController::class, 'emailChangeConfirm'])->name('mypage.email.confirm');
@@ -160,7 +160,7 @@ Route::middleware(['auth:web', 'auth.session'])->group(function () {
         ->middleware('throttle:3,1,mypage-email-resend')
         ->name('mypage.email.resend');
     Route::post('/mypage/email/verify/back', [MypageController::class, 'emailChangeBack'])->name('mypage.email.back');
-    // 顔写真のアップロード先（App\Support\AjaxFileUpload）
+    // 顔写真のアップロード先（Neobit\Core\Upload\AjaxFileUpload）
     Route::post('/mypage/ajax-upload', [MypageController::class, 'uploadAjaxFile'])
         ->middleware('throttle:20,1,mypage-upload')
         ->name('mypage.ajaxUpload');
@@ -177,9 +177,9 @@ Route::middleware(['auth:web', 'auth.session'])->group(function () {
         ->middleware('throttle:3,1,password-resend')
         ->name('password.resend');
 
-    // パスキーの一覧・登録・削除（App\Support\PasskeyManagement）。使わない場合はこの6つを消す
+    // パスキーの一覧・登録・削除（Neobit\Core\Auth\PasskeyManagement）。使わない場合はこの6つを消す
     // （マイページの入口も消える）
-    // 本人による、2段階認証の管理（App\Support\TwoFactorManagement）。バックアップコードの発行と、
+    // 本人による、2段階認証の管理（Neobit\Core\Auth\TwoFactorManagement）。バックアップコードの発行と、
     // 認証アプリの登録の解除。入口は、どちらかができるときだけ出る。.code（確認コードの送信）は、
     // メールの方式のときだけ使う
     Route::get('/mypage/two-factor', [MypageController::class, 'twoFactorIndex'])->name('mypage.twoFactor');
@@ -228,7 +228,7 @@ Route::prefix('company')->name('company.')->group(function () {
         Route::get('/regist/thanks', [CompanyRegistrationController::class, 'thanks'])->name('regist.thanks');
 
         // 招待された人の、担当者としての登録。招待のメールのリンクから開く
-        // （App\Support\TeamInvitationManager）。リンクの値を総当たりで探られないよう、回数を制限する。
+        // （Neobit\Core\Team\TeamInvitationManager）。リンクの値を総当たりで探られないよう、回数を制限する。
         // ログイン中の人が開いてもマイページへ移さないよう、guest:companyは外す。同じパソコンに
         // 前の人のログインが残っていたときは、コントローラーがそのログインを終わらせる
         Route::middleware('throttle:20,1,company-invitation')->withoutMiddleware('guest:company')->group(function () {
@@ -240,7 +240,7 @@ Route::prefix('company')->name('company.')->group(function () {
         Route::get('/login', [CompanySessionController::class, 'create'])->name('login');
         Route::post('/login', [CompanySessionController::class, 'store'])->name('login.store');
 
-        // パスキーでのログイン（App\Support\PasskeyLogin）。使わない場合はこの2つを消す
+        // パスキーでのログイン（Neobit\Core\Auth\PasskeyLogin）。使わない場合はこの2つを消す
         Route::get('/login/passkey/options', [CompanySessionController::class, 'passkeyLoginOptions'])
             ->middleware('throttle:20,1,company-passkey-options')
             ->name('login.passkey.options');
@@ -259,7 +259,7 @@ Route::prefix('company')->name('company.')->group(function () {
             ->name('password.reset.update');
     });
 
-    // ログインの2段階目（入口はApp\Support\TwoFactorLoginトレイト。方式はCompanyUser::TWO_FACTOR_METHOD）。
+    // ログインの2段階目（入口はNeobit\Core\Auth\TwoFactorLoginトレイト。方式はCompanyUser::TWO_FACTOR_METHOD）。
     // パスワード通過後で2段階目の前という中間の状態なので、ミドルウェアでは守らず、セッションで判定する
     Route::get('/login/verify', [CompanySessionController::class, 'showVerification'])->name('login.verify');
     Route::post('/login/verify', [CompanySessionController::class, 'verifyCode'])->name('login.verify.confirm');
@@ -293,7 +293,7 @@ Route::prefix('company')->name('company.')->group(function () {
         // 自分の情報（氏名・メールアドレス）の変更
         Route::get('/mypage/profile', [CompanyProfileController::class, 'edit'])->name('mypage.profile');
         Route::patch('/mypage/profile', [CompanyProfileController::class, 'update'])->name('mypage.profile.update');
-        // メールアドレスが変わるときの、確認コードの入力（App\Support\EmailChange）。
+        // メールアドレスが変わるときの、確認コードの入力（Neobit\Core\Auth\EmailChange）。
         // コード照合のthrottle制御はコントローラー側で行う
         Route::get('/mypage/profile/email/verify', [CompanyProfileController::class, 'emailChangeForm'])->name('mypage.profile.email');
         Route::post('/mypage/profile/email/verify', [CompanyProfileController::class, 'emailChangeConfirm'])->name('mypage.profile.email.confirm');
@@ -324,9 +324,9 @@ Route::prefix('company')->name('company.')->group(function () {
             ->middleware('throttle:3,1,company-password-resend')
             ->name('password.resend');
 
-        // パスキーの一覧・登録・削除（App\Support\PasskeyManagement）。使わない場合はこの6つを消す
+        // パスキーの一覧・登録・削除（Neobit\Core\Auth\PasskeyManagement）。使わない場合はこの6つを消す
         // （マイページの入口も消える）
-        // 本人による、2段階認証の管理（App\Support\TwoFactorManagement）。バックアップコードの発行と、
+        // 本人による、2段階認証の管理（Neobit\Core\Auth\TwoFactorManagement）。バックアップコードの発行と、
         // 認証アプリの登録の解除。入口は、どちらかができるときだけ出る。.code（確認コードの送信）は、
         // メールの方式のときだけ使う
         Route::get('/mypage/two-factor', [CompanyMypageController::class, 'twoFactorIndex'])->name('mypage.twoFactor');
@@ -353,7 +353,7 @@ Route::prefix('company')->name('company.')->group(function () {
 });
 
 // 管理画面：会員用の"web"ガードとは別の"admin"ガードで保護する。
-// admin.ipは、接続元のIPアドレスの制限（App\Http\Middleware\RestrictAdminAccess）。
+// admin.ipは、接続元のIPアドレスの制限（Neobit\Core\Http\Middleware\RestrictAdminAccess）。
 // .envのADMIN_ALLOWED_IPSに無いIPアドレスには、ログイン画面も含めて404を返す。
 Route::prefix('admin')->name('admin.')->middleware('admin.ip')->group(function () {
     Route::middleware('guest:admin')->group(function () {
@@ -361,7 +361,7 @@ Route::prefix('admin')->name('admin.')->middleware('admin.ip')->group(function (
         Route::get('/login', [AdminSessionController::class, 'create'])->name('login');
         Route::post('/login', [AdminSessionController::class, 'store'])->name('login.store');
 
-        // パスキーでのログイン（App\Support\PasskeyLogin）。パスキーで通ったときは2段階目も求めない
+        // パスキーでのログイン（Neobit\Core\Auth\PasskeyLogin）。パスキーで通ったときは2段階目も求めない
         Route::get('/login/passkey/options', [AdminSessionController::class, 'passkeyLoginOptions'])
             ->middleware('throttle:20,1,admin-passkey-options')
             ->name('login.passkey.options');
@@ -370,7 +370,7 @@ Route::prefix('admin')->name('admin.')->middleware('admin.ip')->group(function (
             ->name('login.passkey');
     });
 
-    // ログインの2段階目（入口はApp\Support\TwoFactorLoginトレイト。方式はStaff::TWO_FACTOR_METHOD）。
+    // ログインの2段階目（入口はNeobit\Core\Auth\TwoFactorLoginトレイト。方式はStaff::TWO_FACTOR_METHOD）。
     // パスワード通過後で2段階目の前という中間の状態なので、ミドルウェアでは守らず、セッションで判定する。
     // 照合の試行制限はコントローラーの側で行う。再送は、メールの方式のときだけ使う
     Route::get('/login/verify', [AdminSessionController::class, 'showVerification'])->name('login.verify');
@@ -381,7 +381,7 @@ Route::prefix('admin')->name('admin.')->middleware('admin.ip')->group(function (
 
     // ログイン中のスタッフだけが使う画面。auth.sessionは会員側と同じ
     // （パスワードが変わったら、ほかの端末のログインと保持用のCookieを無効にする）。
-    // throttle:admin-screenは、スタッフごとの回数の制限（App\Support\AdminRequestLimit）。
+    // throttle:admin-screenは、スタッフごとの回数の制限（Neobit\Core\Security\AdminRequestLimit）。
     // 一覧や詳細を、プログラムで続けて開いてデータを取り出す動きを止める。
     Route::middleware(['auth:admin', 'auth.session', 'throttle:admin-screen'])->group(function () {
         // 管理画面TOP
@@ -401,7 +401,7 @@ Route::prefix('admin')->name('admin.')->middleware('admin.ip')->group(function (
             ->name('twoFactor.regenerateBackupCodes');
         Route::delete('/2fa', [AdminStaffController::class, 'selfReset'])->name('twoFactor.selfReset');
 
-        // 本人によるパスキーの一覧・登録・削除（App\Support\PasskeyManagement）。
+        // 本人によるパスキーの一覧・登録・削除（Neobit\Core\Auth\PasskeyManagement）。
         // 登録の前の本人確認は、ログインの2段階目の方式で行う。.code（確認コードの送信）は、
         // メールの方式のときだけ使う。
         Route::get('/passkeys', [AdminStaffController::class, 'passkeyIndex'])->name('passkeys');
@@ -418,11 +418,11 @@ Route::prefix('admin')->name('admin.')->middleware('admin.ip')->group(function (
         Route::post('/members', [AdminMemberController::class, 'storeSearchCondition'])->name('members.search');
         // CSVダウンロード（/members/{member}より前に書く。後ろだと"csv"が会員のidとして扱われる）
         Route::get('/members/csv', [AdminMemberController::class, 'csv'])->name('members.csv');
-        // CSV取り込み（入口はApp\Support\CsvImportトレイト。これも/members/{member}より前に書く）
+        // CSV取り込み（入口はNeobit\Core\Csv\CsvImportトレイト。これも/members/{member}より前に書く）
         Route::get('/members/csv-import', [AdminMemberController::class, 'csvImport'])->name('members.csv-import');
         Route::post('/members/csv-import/confirm', [AdminMemberController::class, 'csvImportConfirm'])->name('members.csv-import.confirm');
         Route::post('/members/csv-import/execute', [AdminMemberController::class, 'csvImportExecute'])->name('members.csv-import.execute');
-        // 顔写真のアップロード先（App\Support\AjaxFileUpload。これも/members/{member}より前に書く）
+        // 顔写真のアップロード先（Neobit\Core\Upload\AjaxFileUpload。これも/members/{member}より前に書く）
         Route::post('/members/ajax-upload', [AdminMemberController::class, 'uploadAjaxFile'])->name('members.ajaxUpload');
         Route::get('/members/{member}', [AdminMemberController::class, 'show'])->name('members.show');
         Route::get('/members/{member}/edit', [AdminMemberController::class, 'edit'])->name('members.edit');
@@ -460,7 +460,7 @@ Route::prefix('admin')->name('admin.')->middleware('admin.ip')->group(function (
         Route::patch('/companies/{company}/resume', [AdminCompanyController::class, 'resume'])->name('companies.resume');
         // 削除。停止の企業だけ。企業の側に退会の画面は無いので、退会の連絡を受けたときに使う
         Route::delete('/companies/{company}/delete', [AdminCompanyController::class, 'destroy'])->name('companies.destroy');
-        // 担当者の招待のメールの送信・送り直し・取り消し（App\Support\TeamInvitationManager）。
+        // 担当者の招待のメールの送信・送り直し・取り消し（Neobit\Core\Team\TeamInvitationManager）。
         // scopeBindings()で、{invitation}をその{company}の招待に限る
         Route::post('/companies/{company}/invitations', [AdminCompanyController::class, 'storeInvitation'])->name('companies.invitations.store');
         Route::prefix('/companies/{company}/invitations/{invitation}')->name('companies.invitations.')->scopeBindings()->group(function () {
@@ -545,7 +545,7 @@ Route::prefix('admin')->name('admin.')->middleware('admin.ip')->group(function (
             Route::post('/bulk-mails', [AdminBulkMailController::class, 'store'])->name('bulk-mails.store');
             Route::get('/bulk-mails/{bulkMail}', [AdminBulkMailController::class, 'show'])->name('bulk-mails.show');
 
-            // 操作ログの一覧・検索（App\Support\OperationRecorderが書いた記録を見るだけ）
+            // 操作ログの一覧・検索（Neobit\Core\Operations\OperationRecorderが書いた記録を見るだけ）
             Route::get('/operation-logs', [AdminOperationLogController::class, 'index'])->name('operation-logs.index');
             Route::post('/operation-logs', [AdminOperationLogController::class, 'storeSearchCondition'])->name('operation-logs.search');
             Route::get('/operation-logs/csv', [AdminOperationLogController::class, 'csv'])->name('operation-logs.csv');
@@ -588,7 +588,7 @@ Route::prefix('admin')->name('admin.')->middleware('admin.ip')->group(function (
         Route::post('/news/store', [AdminNewsController::class, 'store'])->name('news.store');
         // CSVダウンロード（/news/{news}より前に書く）
         Route::get('/news/csv', [AdminNewsController::class, 'csv'])->name('news.csv');
-        // CSV取り込み（入口はApp\Support\CsvImportトレイト。これも/news/{news}より前に書く）
+        // CSV取り込み（入口はNeobit\Core\Csv\CsvImportトレイト。これも/news/{news}より前に書く）
         Route::get('/news/csv-import', [AdminNewsController::class, 'csvImport'])->name('news.csv-import');
         Route::post('/news/csv-import/confirm', [AdminNewsController::class, 'csvImportConfirm'])->name('news.csv-import.confirm');
         Route::post('/news/csv-import/execute', [AdminNewsController::class, 'csvImportExecute'])->name('news.csv-import.execute');

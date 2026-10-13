@@ -71,7 +71,7 @@
             <div class="col-sm-3 text-muted">2段階認証</div>
             <div class="col-sm-9">
                 @if (! $staff::usesTotp())
-                    {{ $staff::twoFactorMethod() === \App\Enums\TwoFactorMethod::Email ? 'メールの確認コード' : 'なし' }}
+                    {{ $staff::twoFactorMethod() === \Neobit\Core\Enums\TwoFactorMethod::Email ? 'メールの確認コード' : 'なし' }}
                 @elseif ($staff->hasTwoFactorConfirmed())
                     登録済み（{{ $staff->twoFactorConfirmedAt()->format('Y年n月j日 H:i') }}確認）
                 @else

@@ -2,14 +2,9 @@
 
 namespace App\Http\Controllers\Company;
 
-use App\Enums\OperationLogAction;
 use App\Http\Controllers\Controller;
 use App\Models\Company;
-use App\Models\TeamInvitation;
 use App\Models\CompanyUser;
-use App\Support\TeamInvitationManager;
-use App\Support\LoginSession;
-use App\Support\OperationRecorder;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,6 +14,11 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Neobit\Core\Auth\LoginSession;
+use Neobit\Core\Enums\OperationLogAction;
+use Neobit\Core\Models\TeamInvitation;
+use Neobit\Core\Operations\OperationRecorder;
+use Neobit\Core\Team\TeamInvitationManager;
 
 /**
  * 招待された人の、担当者としての登録。招待のメールのリンク（/company/invitation/{token}）から開く。
@@ -29,7 +29,7 @@ use Illuminate\View\View;
  * 終わらせるのは、使える招待のリンクのときだけ。期限切れや、でたらめな値のリンクでは終わらせない。
  * リンクは宛先のメールアドレスにしか届かないので、確認コードは求めず、登録が済んだら
  * そのままログインさせる。招待は1回使ったら消す。
- * 招待の発行と照合は、App\Support\TeamInvitationManagerが行う。
+ * 招待の発行と照合は、Neobit\Core\Team\TeamInvitationManagerが行う。
  */
 class InvitationController extends Controller
 {
@@ -134,7 +134,7 @@ class InvitationController extends Controller
 
     /**
      * 企業会員としてログイン中なら、そのログインを終わらせる。同じブラウザの、管理画面や
-     * 個人会員のログインは残す（App\Support\LoginSession）。
+     * 個人会員のログインは残す（Neobit\Core\Auth\LoginSession）。
      */
     private function logoutIfLoggedIn(Request $request): void
     {

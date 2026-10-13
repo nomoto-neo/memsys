@@ -13,9 +13,9 @@
 {{-- 改行入りの値は、変換せずそのままstyle="white-space: pre-wrap;"の中に
      出している。{{ }}なのでBladeが自動でhtmlspecialchars()する
      （$bodyは訪問者の入力値なので、無変換のままHTMLへ差し込むと
-     HTMLインジェクションが成立してしまう。App\Support\MailTemplateの
+     HTMLインジェクションが成立してしまう。Neobit\Core\Mail\MailTemplateの
      コメント参照）。このファイルは本当にBladeとしてコンパイルされる
-     （App\Support\MailTemplate::renderHtmlCompanion()がBlade::render()
+     （Neobit\Core\Mail\MailTemplate::renderHtmlCompanion()がBlade::render()
      に通す）ので、このコメント自体もふつうに出力からは消える。 --}}
 <div style="white-space: pre-wrap;">{{ $body }}</div>
 

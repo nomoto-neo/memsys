@@ -4,15 +4,15 @@ namespace App\Http\Controllers\Company;
 
 use App\Http\Controllers\Controller;
 use App\Models\CompanyUser;
-use App\Support\LoginThrottle;
-use App\Support\LoginVerificationCode;
-use App\Support\PasswordChange;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View;
+use Neobit\Core\Auth\LoginThrottle;
+use Neobit\Core\Auth\LoginVerificationCode;
+use Neobit\Core\Auth\PasswordChange;
 
 /**
  * 企業会員のマイページからのパスワード変更。本人確認は、担当者のメールアドレスに送る
@@ -88,7 +88,7 @@ class AuthPasswordController extends Controller
         // 更新すると、次のリクエストで本人までログアウトされる
         $user = Auth::guard(CompanyUser::loginGuard())->user();
 
-        // 失敗回数による試行制限（IP単位・担当者のid単位。App\Support\LoginThrottle）
+        // 失敗回数による試行制限（IP単位・担当者のid単位。Neobit\Core\Auth\LoginThrottle）
         $throttle = new LoginThrottle(self::THROTTLE_SCOPE, $request->ip(), $user->id);
 
         if ($throttle->isBlocked()) {
@@ -110,7 +110,7 @@ class AuthPasswordController extends Controller
         $throttle->clear();
 
         // パスワードを変え、記憶済みの端末（この端末も含む。次のログインは確認コードの入力になる）と
-        // パスキーを無効にして、お知らせのメールを送る（App\Support\PasswordChange）
+        // パスキーを無効にして、お知らせのメールを送る（Neobit\Core\Auth\PasswordChange）
         $deletedPasskeys = DB::transaction(function () use ($user, $validated) {
             $user->update([
                 'password' => Hash::make($validated['password']),

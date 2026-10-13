@@ -4,11 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\NoticeMail;
 use App\Models\Member;
-use App\Rules\KatakanaRule;
-use App\Rules\PhoneNumberRule;
-use App\Support\LoginThrottle;
 use App\Services\MemberActivityLog;
-use App\Support\LoginVerificationCode;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,6 +15,10 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Neobit\Core\Auth\LoginThrottle;
+use Neobit\Core\Auth\LoginVerificationCode;
+use Neobit\Core\Rules\KatakanaRule;
+use Neobit\Core\Rules\PhoneNumberRule;
 
 /**
  * 会員登録。入力、確認、確認コードの入力、登録完了の順に進む。
@@ -181,7 +181,7 @@ class AuthRegisteredMemberController extends Controller
             'code' => ['required', 'string'],
         ]);
 
-        // 失敗回数による試行制限（IP単位・メールアドレス単位。App\Support\LoginThrottle）
+        // 失敗回数による試行制限（IP単位・メールアドレス単位。Neobit\Core\Auth\LoginThrottle）
         $throttle = new LoginThrottle(self::THROTTLE_SCOPE, $request->ip(), $pending['email']);
 
         if ($throttle->isBlocked()) {

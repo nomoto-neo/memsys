@@ -5,10 +5,10 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\BulkMailTemplate;
 use App\Rules\BulkMailPlaceholderRule;
-use App\Support\FormFlow;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Neobit\Core\Crud\FormFlow;
 
 /**
  * 一斉メールの文面の管理。よく送る案内の件名と本文を登録しておき、送るときに選んで使う。
