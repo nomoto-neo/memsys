@@ -8,7 +8,7 @@ use Neobit\Core\Models\Code;
 class CodeSeeder extends Seeder
 {
     /**
-     * DBで管理するコード表（t_codes）のサンプル。
+     * DBで管理するコード表（code_tables）のサンプル。
      *
      * コード表ごとに、行が1つも無いときだけ入れるので、何度実行しても重複しない。
      * 行があるコード表には何もしない。管理画面で書き換えた内容や、足したり消したりした行を、

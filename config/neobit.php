@@ -36,7 +36,7 @@ return [
     |
     */
 
-    // DBのコード表（t_codes）のコード名の一覧。ここに載せた名前は、DBから読む
+    // DBのコード表（code_tables）のコード名の一覧。ここに載せた名前は、DBから読む
     'db_code_types' => array_column(CodeType::cases(), 'value'),
 
     // 複数の列挙型を1つにまとめるコード表。コード名 => 列挙型の一覧

@@ -15,7 +15,7 @@ use Neobit\Core\Code\CodeTable;
 use Neobit\Core\Models\Code;
 
 /**
- * 項目見出し一覧：DBで管理するコード表（t_codes）の編集。
+ * 項目見出し一覧：DBで管理するコード表（code_tables）の編集。
  *
  * 編集できるコード表は、App\Enums\CodeTypeに載せたもの。画面のプルダウンで
  * コード表を選ぶと（?type=gender）、そのコード表の行を表示順に並べ、

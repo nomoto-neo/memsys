@@ -18,7 +18,7 @@ use Neobit\Core\Models\Code;
  *    全部の値と名前の一覧にする。スタッフの権限のように、プログラムが値で動きを変えるもの
  * 2. CSV：code/<コード名>.csv。都道府県のように選択肢として並べるだけのもの。
  *    ファイルを直すだけで項目を増やせる
- * 3. DB：config('neobit.db_code_types')にあるコード名なら、t_codesテーブルを表示順に読む。CSVと同じく
+ * 3. DB：config('neobit.db_code_types')にあるコード名なら、code_tablesテーブルを表示順に読む。CSVと同じく
  *    並べるだけのもので、管理画面の項目見出し一覧から書き換えられる。値と名称の扱いはCSVと同じ
  *
  * 複数の列挙型を1つに合わせたいコード表（フレームワークの操作とサイトの操作を合わせた、操作ログの
@@ -118,7 +118,7 @@ class CodeTable
             throw new CodeTableException("コード表（{$codeName}）が、".implode('と', $sources).'にあります。どれか1つにしてください。');
         }
 
-        // DBのコード表：t_codesを表示順に読む
+        // DBのコード表：code_tablesを表示順に読む
         if ($isDb) {
             $options = [];
             $rows = Code::where('type', $codeName)->orderBy('sort_order')->orderBy('id')->get(['code', 'name']);

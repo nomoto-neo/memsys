@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 class Code extends Model
 {
-    protected $table = 't_codes';
+    protected $table = 'code_tables';
 
     protected $fillable = [
         'type',

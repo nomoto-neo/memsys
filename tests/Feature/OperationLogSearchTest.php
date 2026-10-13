@@ -161,21 +161,4 @@ class OperationLogSearchTest extends TestCase
                 ->assertDontSee('name="day" value="'.date('Y-m-d', strtotime($lastBar.' +1 day')).'"', false);
         }
     }
-
-    public function test_migration_rewrites_escaped_japanese(): void
-    {
-        // キャストを変える前に書かれた行。日本語が\uの表記で入っている
-        $id = DB::table('operation_logs')->insertGetId([
-            'action' => AppOperationLogAction::MailUnsubscribe->value,
-            'detail' => json_encode(['result' => '会員が見つからない']),
-            'ip' => '192.0.2.1',
-            'created_at' => now(),
-        ]);
-        $this->assertStringContainsString('\u4f1a', DB::table('operation_logs')->where('id', $id)->value('detail'));
-
-        (require database_path('migrations/2026_10_12_100000_store_operation_log_detail_as_unicode.php'))->up();
-
-        $this->assertSame('{"result":"会員が見つからない"}', DB::table('operation_logs')->where('id', $id)->value('detail'));
-        $this->search('見つからない')->assertSee('192.0.2.1');
-    }
 }

@@ -514,7 +514,7 @@ Route::prefix('admin')->name('admin.')->middleware('admin.ip')->group(function (
 
         // 項目見出し管理
         Route::middleware('acl.manager')->group(function () {
-            // 項目見出し一覧（DBで管理するコード表 t_codes の編集）
+            // 項目見出し一覧（DBで管理するコード表 code_tables の編集）
             Route::get('/codes', [AdminCodeController::class, 'index'])->name('codes.index');
             Route::patch('/codes', [AdminCodeController::class, 'update'])->name('codes.update');
 

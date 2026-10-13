@@ -7,7 +7,7 @@ use Neobit\Core\Enums\CodeTableEnum;
 /**
  * 管理画面の項目見出し一覧で編集できる、DBのコード表の一覧。値がコード名になる。
  *
- * ここに載せたコード表はt_codesテーブルに保存し、code_table('gender')のように読み出す。
+ * ここに載せたコード表はcode_tablesテーブルに保存し、code_table('gender')のように読み出す。
  * CSVのコード表と同じく、選択肢として並べるだけのものに使い、管理画面から書き換えられる。
  * コード表を増やすときは、caseとSETTINGSに1行ずつ足し、初期データはCodeSeederに書く。
  * この列挙型自体も、項目見出し一覧のプルダウンとして、code_table('code_type')で使える。
