@@ -33,26 +33,26 @@
                     @if ($isCreate)
                         <form method="POST" action="{{ route('admin.companies.confirm.create.back') }}">
                             @csrf
-                            @include('_confirm_hidden', ['input' => $input])
+                            @include('neobit::_confirm_hidden', ['input' => $input])
                             <button type="submit" class="btn btn-outline-secondary">戻る</button>
                         </form>
 
                         <form method="POST" action="{{ route('admin.companies.store') }}">
                             @csrf
-                            @include('_confirm_hidden', ['input' => $input])
+                            @include('neobit::_confirm_hidden', ['input' => $input])
                             <button type="submit" class="btn btn-primary">登録する</button>
                         </form>
                     @else
                         <form method="POST" action="{{ route('admin.companies.confirm.edit.back', $company) }}">
                             @csrf
-                            @include('_confirm_hidden', ['input' => $input])
+                            @include('neobit::_confirm_hidden', ['input' => $input])
                             <button type="submit" class="btn btn-outline-secondary">戻る</button>
                         </form>
 
                         <form method="POST" action="{{ route('admin.companies.update', $company) }}">
                             @csrf
                             @method('PATCH')
-                            @include('_confirm_hidden', ['input' => $input])
+                            @include('neobit::_confirm_hidden', ['input' => $input])
                             <button type="submit" class="btn btn-primary">更新する</button>
                         </form>
                     @endif

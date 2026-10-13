@@ -14,9 +14,18 @@ use Neobit\Core\Console\SetNextId;
  */
 class NeobitServiceProvider extends ServiceProvider
 {
-    /** 共通部品のArtisanコマンドを登録する */
+    /** 設定の既定値を登録する。アプリの config/neobit.php に書いたキーが、これに優先する */
+    public function register(): void
+    {
+        $this->mergeConfigFrom(__DIR__.'/../config/neobit.php', 'neobit');
+    }
+
+    /** 画面（neobit::）と、共通部品のArtisanコマンドを登録する */
     public function boot(): void
     {
+        // アプリは、resources/views/vendor/neobit/ に同じ名前で置いて、画面を上書きする
+        $this->loadViewsFrom(__DIR__.'/../resources/views', 'neobit');
+
         if ($this->app->runningInConsole()) {
             $this->commands([
                 CleanupTemporaryData::class,

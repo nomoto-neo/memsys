@@ -41,7 +41,7 @@
                     </p>
                 @endif
 
-                @include('_two_factor_manage', [
+                @include('neobit::_two_factor_manage', [
                     'twoFactorRoutes' => [
                         'regenerate' => 'twoFactor.regenerateBackupCodes',
                         'code' => 'twoFactor.backupCodes.code',

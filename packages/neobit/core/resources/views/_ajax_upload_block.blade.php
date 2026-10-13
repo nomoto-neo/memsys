@@ -17,7 +17,7 @@
     Neobit\Core\Upload\AjaxFileUploadトレイト自体が管理画面専用の仕組みではない
     （どのコントローラーでも use できる）のと同じく、この部分ビューも
     admin/配下ではなくresources/views直下に置いている
-    （@include('_ajax_upload_block', ...)）。訪問者向けの問い合わせ
+    （@include('neobit::_ajax_upload_block', ...)）。訪問者向けの問い合わせ
     フォーム（resources/views/contact/create.blade.php・confirm.blade.php）も、
     この同じ部分ビューを添付ファイル欄にそのまま使う（_confirm_hidden.blade.php
     と同じ理由）。

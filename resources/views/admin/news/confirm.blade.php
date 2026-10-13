@@ -50,7 +50,7 @@
                     URLのような表示専用の値は、_ajax_upload_blockの中で
                     その場で求めているので、hiddenに紛れ込むことは無い。
                 --}}
-                @include('_confirm_hidden', ['input' => $input])
+                @include('neobit::_confirm_hidden', ['input' => $input])
                 <button type="submit" class="btn btn-outline-secondary">戻る</button>
             </form>
 
@@ -59,7 +59,7 @@
                 @if (! $isCreate)
                     @method('PATCH')
                 @endif
-                @include('_confirm_hidden', ['input' => $input])
+                @include('neobit::_confirm_hidden', ['input' => $input])
                 <button type="submit" class="btn btn-primary">
                     {{ $isCreate ? '登録する' : '更新する' }}
                 </button>

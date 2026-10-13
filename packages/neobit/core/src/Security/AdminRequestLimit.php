@@ -80,6 +80,6 @@ final class AdminRequestLimit
             return response()->json(['message' => $message], Response::HTTP_TOO_MANY_REQUESTS);
         }
 
-        return response()->view('admin.too_many_requests', ['message' => $message], Response::HTTP_TOO_MANY_REQUESTS);
+        return response()->view('neobit::admin.too_many_requests', ['message' => $message], Response::HTTP_TOO_MANY_REQUESTS);
     }
 }

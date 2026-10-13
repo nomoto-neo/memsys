@@ -46,7 +46,7 @@
                     --}}
                     <form method="POST" action="{{ route('admin.members.confirm.edit.back', $member) }}">
                         @csrf
-                        @include('_confirm_hidden', [
+                        @include('neobit::_confirm_hidden', [
                             'input' => $input,
                             'exclude' => ['password', 'password_confirmation'],
                         ])
@@ -56,7 +56,7 @@
                     <form method="POST" action="{{ route('admin.members.update', $member) }}">
                         @csrf
                         @method('PATCH')
-                        @include('_confirm_hidden', ['input' => $input])
+                        @include('neobit::_confirm_hidden', ['input' => $input])
                         <button type="submit" class="btn btn-primary">更新する</button>
                     </form>
                 </div>

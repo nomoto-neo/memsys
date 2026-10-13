@@ -22,7 +22,7 @@
 
             <dt class="col-sm-2">添付ファイル</dt>
             <dd class="col-sm-10">
-                @include('_ajax_upload_block', [
+                @include('neobit::_ajax_upload_block', [
                     'model' => null,
                     'input' => $input,
                     'field' => 'attach',
@@ -99,7 +99,7 @@
         <div class="d-flex gap-2 mt-3">
             <form method="POST" action="{{ route('admin.bulk-mails.back') }}">
                 @csrf
-                @include('_confirm_hidden', ['input' => $input])
+                @include('neobit::_confirm_hidden', ['input' => $input])
                 <button type="submit" class="btn btn-outline-secondary">戻る</button>
             </form>
 
@@ -107,7 +107,7 @@
                 <form method="POST" action="{{ route('admin.bulk-mails.store') }}">
                     @csrf
                     <input type="hidden" name="confirm_token" value="{{ $token }}">
-                    @include('_confirm_hidden', ['input' => $input])
+                    @include('neobit::_confirm_hidden', ['input' => $input])
                     <button type="submit" class="btn btn-primary">{{ number_format(count($result->rows)) }}件に送信する</button>
                 </form>
             @endif

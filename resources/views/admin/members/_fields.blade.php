@@ -112,7 +112,7 @@
 
 <div class="mb-3">
     <label class="form-label d-block">顔写真</label>
-    @include('_ajax_upload_block', [
+    @include('neobit::_ajax_upload_block', [
         'model' => $model,
         'input' => $input,
         'field' => 'photo',

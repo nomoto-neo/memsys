@@ -83,8 +83,8 @@ class TemplatedMail extends Mailable
         // HTML版のテンプレートがあれば、HTMLとテキストの両方を付けたマルチパートにする
         if ($this->parsed['html'] !== null) {
             return new Content(
-                view: 'mail._raw_html',
-                text: 'mail._raw_text',
+                view: 'neobit::mail._raw_html',
+                text: 'neobit::mail._raw_text',
                 with: [
                     'body' => $this->parsed['body'],
                     'htmlBody' => $this->parsed['html'],
@@ -94,7 +94,7 @@ class TemplatedMail extends Mailable
 
         // それ以外は、テキストだけのメール
         return new Content(
-            text: 'mail._raw_text',
+            text: 'neobit::mail._raw_text',
             with: ['body' => $this->parsed['body']],
         );
     }

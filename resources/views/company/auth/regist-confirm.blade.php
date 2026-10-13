@@ -68,7 +68,7 @@
                          入力画面で入力し直してもらう。 --}}
                     <form method="POST" action="{{ route('company.regist.back') }}">
                         @csrf
-                        @include('_confirm_hidden', [
+                        @include('neobit::_confirm_hidden', [
                             'input' => $input,
                             'exclude' => ['password', 'password_confirmation'],
                         ])
@@ -81,7 +81,7 @@
                          パスワードも含めてすべて展開する。 --}}
                     <form method="POST" action="{{ route('company.regist.send') }}">
                         @csrf
-                        @include('_confirm_hidden', ['input' => $input])
+                        @include('neobit::_confirm_hidden', ['input' => $input])
                         <button type="submit" class="btn btn-primary">確認コードを送信する</button>
                     </form>
                 </div>

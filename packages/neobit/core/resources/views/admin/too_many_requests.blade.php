@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+@extends(config('neobit.layouts.admin'))
 
 {{-- 管理画面の回数の制限（Neobit\Core\Security\AdminRequestLimit）を超えたときに出す画面 --}}
 @section('content')

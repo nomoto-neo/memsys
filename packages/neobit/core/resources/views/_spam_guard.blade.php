@@ -1,6 +1,6 @@
 {{--
     訪問者向けフォームのスパム対策の欄（Neobit\Core\Security\SpamGuard）。入力画面の<form>の中に
-    @include('_spam_guard') と書くだけでよい。送信を受け取る側で SpamGuard::check() を呼ぶ。
+    @include('neobit::_spam_guard') と書くだけでよい。送信を受け取る側で SpamGuard::check() を呼ぶ。
 
     - ハニーポット：人には見えない入力欄。画面の外に出して隠し、Tabキーでも入らないように
       している（display:noneだと、見えない欄を読み飛ばすプログラムがあるため）。

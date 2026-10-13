@@ -27,7 +27,7 @@
                          「戻る」では、パスワードをhiddenに出さず、入力し直してもらう --}}
                     <form method="POST" action="{{ route('admin.companies.users.confirm.edit.back', [$company, $user]) }}">
                         @csrf
-                        @include('_confirm_hidden', [
+                        @include('neobit::_confirm_hidden', [
                             'input' => $input,
                             'exclude' => ['password', 'password_confirmation'],
                         ])
@@ -37,7 +37,7 @@
                     <form method="POST" action="{{ route('admin.companies.users.update', [$company, $user]) }}">
                         @csrf
                         @method('PATCH')
-                        @include('_confirm_hidden', ['input' => $input])
+                        @include('neobit::_confirm_hidden', ['input' => $input])
                         <button type="submit" class="btn btn-primary">更新する</button>
                     </form>
                 </div>

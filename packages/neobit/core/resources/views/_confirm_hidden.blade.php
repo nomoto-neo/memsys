@@ -3,7 +3,7 @@
     $input（送信される項目だけを集めた配列）から機械的に組み立てる共通パーツ。
 
     管理画面・訪問者側のどちらからも使うので、admin/配下ではなく
-    resources/views直下に置いている（@include('_confirm_hidden', ...)）。
+    resources/views直下に置いている（@include('neobit::_confirm_hidden', ...)）。
 
     ■ このパーツが前提にしている規約
 

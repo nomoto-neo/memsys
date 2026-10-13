@@ -105,7 +105,7 @@ trait CsvImport
     {
         $settings = $this->csvImportSettings();
 
-        return view('admin.csv_import.form', [
+        return view('neobit::admin.csv_import.form', [
             'settings' => $settings,
             'isSave' => $settings->mode === CsvImportMode::Save,
             'encodingLabel' => match ($settings->encoding) {
@@ -156,7 +156,7 @@ trait CsvImport
 
         $isSave = $settings->mode === CsvImportMode::Save;
 
-        return view('admin.csv_import.confirm', [
+        return view('neobit::admin.csv_import.confirm', [
             'settings' => $settings,
             'result' => $result,
             'token' => $token,

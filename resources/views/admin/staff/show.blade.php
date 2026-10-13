@@ -105,7 +105,7 @@
     対象が重ならないので、両方のボタンが同時に並ぶことは無い。
 --}}
 @if ($actor->id === $staff->id)
-    @include('_two_factor_manage', [
+    @include('neobit::_two_factor_manage', [
         'twoFactorAccount' => $staff,
         'twoFactorRoutes' => [
             'regenerate' => 'admin.twoFactor.regenerateBackupCodes',

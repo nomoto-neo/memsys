@@ -50,7 +50,7 @@
             </form>
 
             @if ($twoFactorBackupCodes)
-                @include('_two_factor_backup_code_form', ['backupCodeLead' => 'メールが届かない場合は、発行済みのバックアップコードでもログインできます。'])
+                @include('neobit::_two_factor_backup_code_form', ['backupCodeLead' => 'メールが届かない場合は、発行済みのバックアップコードでもログインできます。'])
             @endif
         </div>
     @elseif ($twoFactorState === 'totp')
@@ -82,7 +82,7 @@
             </form>
 
             @if ($twoFactorBackupCodes)
-                @include('_two_factor_backup_code_form', ['backupCodeLead' => 'スマートフォンが手元に無い場合は、発行済みのバックアップコードでもログインできます。'])
+                @include('neobit::_two_factor_backup_code_form', ['backupCodeLead' => 'スマートフォンが手元に無い場合は、発行済みのバックアップコードでもログインできます。'])
             @endif
 
             <div class="mt-3">

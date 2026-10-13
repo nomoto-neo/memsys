@@ -27,7 +27,7 @@ class RestrictSiteAccess
     private const CONFIG_KEY = 'app.site_allowed_ips';
 
     /** メンテナンス中の画面のビュー */
-    private const VIEW = 'maintenance';
+    private const VIEW = 'neobit::maintenance';
 
     // 制限の間も、IPアドレスに関係なく通すパス。「mail/unsubscribe」「admin/*」の形
     /** @var string[] */

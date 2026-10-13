@@ -62,7 +62,7 @@
                     --}}
                     <form method="POST" action="{{ $isCreate ? route('admin.staff.confirm.create.back') : route('admin.staff.confirm.edit.back', $staff) }}">
                         @csrf
-                        @include('_confirm_hidden', [
+                        @include('neobit::_confirm_hidden', [
                             'input' => $input,
                             'exclude' => ['password', 'password_confirmation'],
                         ])
@@ -74,7 +74,7 @@
                         @if (! $isCreate)
                             @method('PATCH')
                         @endif
-                        @include('_confirm_hidden', ['input' => $input])
+                        @include('neobit::_confirm_hidden', ['input' => $input])
                         <button type="submit" class="btn btn-primary">
                             {{ $isCreate ? '登録する' : '更新する' }}
                         </button>

@@ -50,7 +50,7 @@
 
                     <div class="mb-3">
                         <label class="form-label d-block">添付ファイル</label>
-                        @include('_ajax_upload_block', [
+                        @include('neobit::_ajax_upload_block', [
                             'model' => null,
                             'input' => $input,
                             'field' => 'attach',

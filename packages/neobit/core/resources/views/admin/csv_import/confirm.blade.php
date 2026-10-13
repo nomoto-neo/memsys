@@ -13,7 +13,7 @@
       合言葉（confirm_token）だけを送る。取り込むファイルはサーバーに一時保存してあり、
       実行のときにもう一度読んで検証し直す。
 --}}
-@extends('layouts.admin')
+@extends(config('neobit.layouts.admin'))
 
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-3">

@@ -55,7 +55,7 @@
         <ul class="ps-3 mb-0">
             @foreach ($visibleIndexes as $i)
                 <li>
-                    @include('_ajax_upload_block', [
+                    @include('neobit::_ajax_upload_block', [
                         'model' => $model,
                         'input' => $input,
                         'field' => $field,
@@ -72,7 +72,7 @@
         @for ($i = 0; $i < max($count, 1); $i++)
             {{-- 1件も無いときは$i=0の1回だけ回る。$input[$field]が空なので
                  どの値もnullになり、空の枠が1つ表示される。 --}}
-            @include('_ajax_upload_block', [
+            @include('neobit::_ajax_upload_block', [
                 'model' => $model,
                 'input' => $input,
                 'field' => $field,
@@ -92,7 +92,7 @@
              $idxの0は「複数展開フィールドの行である」（name属性に[]を付ける）
              ことを示すためのもので、何行目かという意味は持たない。 --}}
         <template class="ajax_block_template">
-            @include('_ajax_upload_block', [
+            @include('neobit::_ajax_upload_block', [
                 'model' => null,
                 'input' => [],
                 'field' => $field,

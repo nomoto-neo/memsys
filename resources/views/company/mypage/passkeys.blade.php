@@ -17,7 +17,7 @@
                 <a href="{{ route('company.mypage') }}" class="btn btn-sm btn-outline-secondary">マイページへ戻る</a>
             </div>
             <div class="card-body">
-                @include('_passkeys')
+                @include('neobit::_passkeys')
             </div>
         </div>
     </div>

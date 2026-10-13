@@ -28,7 +28,7 @@
             {{-- hiddenは、$input（送信される項目だけを集めた配列）から_confirm_hiddenが組み立てる --}}
             <form method="POST" action="{{ $isCreate ? route('admin.pages.confirm.create.back') : route('admin.pages.confirm.edit.back', $page) }}">
                 @csrf
-                @include('_confirm_hidden', ['input' => $input])
+                @include('neobit::_confirm_hidden', ['input' => $input])
                 <button type="submit" class="btn btn-outline-secondary">戻る</button>
             </form>
 
@@ -37,7 +37,7 @@
                 @if (! $isCreate)
                     @method('PATCH')
                 @endif
-                @include('_confirm_hidden', ['input' => $input])
+                @include('neobit::_confirm_hidden', ['input' => $input])
                 <button type="submit" class="btn btn-primary">
                     {{ $isCreate ? '登録する' : '更新する' }}
                 </button>

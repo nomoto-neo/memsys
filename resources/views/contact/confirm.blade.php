@@ -53,7 +53,7 @@
 
             <dt class="col-sm-4">添付ファイル</dt>
             <dd class="col-sm-8">
-                @include('_ajax_upload_block', [
+                @include('neobit::_ajax_upload_block', [
                     'model' => null,
                     'input' => $input,
                     'field' => 'attach_file',
@@ -71,7 +71,7 @@
                  （戻るはDBやメールに影響しない）。 --}}
             <form method="POST" action="{{ route('contact.back') }}">
                 @csrf
-                @include('_confirm_hidden', ['input' => $input])
+                @include('neobit::_confirm_hidden', ['input' => $input])
                 <button type="submit" class="btn btn-outline-secondary">戻る</button>
             </form>
 
@@ -90,7 +90,7 @@
             <form method="POST" action="{{ route('contact.store') }}" data-guard-double-submit>
                 @csrf
                 <input type="hidden" name="confirm_token" value="{{ $confirmToken }}">
-                @include('_confirm_hidden', ['input' => $input])
+                @include('neobit::_confirm_hidden', ['input' => $input])
                 <button type="submit" class="btn btn-primary">送信する</button>
             </form>
         </div>
