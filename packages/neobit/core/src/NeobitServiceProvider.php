@@ -26,6 +26,9 @@ class NeobitServiceProvider extends ServiceProvider
         // アプリは、resources/views/vendor/neobit/ に同じ名前で置いて、画面を上書きする
         $this->loadViewsFrom(__DIR__.'/../resources/views', 'neobit');
 
+        // アップロードファイルのルート（uploads.tmp・uploads.show）
+        $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
+
         if ($this->app->runningInConsole()) {
             $this->commands([
                 CleanupTemporaryData::class,

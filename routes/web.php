@@ -34,7 +34,6 @@ use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\TopController;
 use App\Models\Page;
 use Illuminate\Support\Facades\Route;
-use Neobit\Core\Http\Controllers\UploadedFileController;
 
 // 静的なページを表示する場合
 //Route::view('/', 'welcome');
@@ -68,15 +67,6 @@ Route::get('/mail/unsubscribe', [MailUnsubscribeController::class, 'show'])->nam
 Route::post('/mail/unsubscribe', [MailUnsubscribeController::class, 'store'])
     ->middleware('throttle:10,1,mail-unsubscribe')
     ->name('mail.unsubscribe.store');
-
-// ログインした人だけが見られるアップロードファイルと、アップロード直後の一時ファイル
-// （Neobit\Core\Http\Controllers\UploadedFileController）。会員・スタッフのどちらのガードでも使い、
-// 訪問者のお問い合わせの一時ファイルにも使うので、authのグループには入れない。
-Route::get('/uploads/tmp/{filename}', [UploadedFileController::class, 'tmp'])->name('uploads.tmp');
-Route::get('/uploads/{type}/{id}/{field}/{filename}', [UploadedFileController::class, 'show'])
-    ->whereNumber('id')
-    ->where('field', '[a-z0-9_]+')
-    ->name('uploads.show');
 
 // MailTemplate方式・AjaxFileUpload方式を使わない、普通のLaravelの書き方によるお問い合わせフォーム。
 // 比較用・技術習得のため残置（提携先向けのデモには含めない）

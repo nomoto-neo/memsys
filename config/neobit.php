@@ -56,4 +56,7 @@ return [
     // 操作の種類（operation_logs.action）にする列挙型。Neobit\Core\Enums\OperationLogActionTypeを実装する
     'operation_log_actions' => $operationLogActions,
 
+    // 操作ログの画面のルート名。日々の報告のメールに、この画面のURLを載せる
+    'operation_log_route' => 'admin.operation-logs.index',
+
 ];

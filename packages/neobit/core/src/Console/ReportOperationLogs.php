@@ -8,6 +8,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Route;
 use Neobit\Core\Mail\TemplatedMail;
 use Neobit\Core\Operations\OperationLogReport;
 use Throwable;
@@ -54,7 +55,7 @@ class ReportOperationLogs extends Command
                 'from_name' => config('mail.from.name'),
                 'to' => implode(', ', $recipients),
                 'app_name' => config('app.site_name'),
-                'url' => route('admin.operation-logs.index'),
+                'url' => $this->operationLogUrl(),
             ]));
         } catch (Throwable $e) {
             // 送れなかったことはログに残す。エラーの通知が設定されていれば、開発者に届く
@@ -67,5 +68,13 @@ class ReportOperationLogs extends Command
         $this->info($report['date'].'の操作ログの報告を送りました。');
 
         return self::SUCCESS;
+    }
+
+    /** 報告のメールに載せる、操作ログの画面のURL。ルートの名前は設定で渡す。無ければ空にする */
+    private function operationLogUrl(): string
+    {
+        $route = config('neobit.operation_log_route');
+
+        return $route !== null && Route::has($route) ? route($route) : '';
     }
 }
