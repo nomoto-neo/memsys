@@ -191,34 +191,6 @@ class StaffController extends Controller
         return ['acl' => StaffAcl::Staff->value];
     }
 
-    /** 保存の直後の処理。 */
-    private function afterSave(Staff $staff, array $validated): void
-    {
-        if ($staff->wasChanged('password')) {
-            // パスワードが変わったら、信頼済み端末とパスキーを無効にし、本人へ
-            // お知らせのメールを送る（Neobit\Core\Auth\PasswordChange参照）。
-            PasswordChange::resetAndNotify($staff, changedBy: Auth::guard('admin')->user());
-
-            if ($staff->id === Auth::guard('admin')->id()) {
-                // 自分のパスワードを変えたときは、ログイン中のスタッフを更新後のインスタンスに
-                // 差し替える。auth.session（routes/web.php）はリクエストの最後に、ログイン中の
-                // スタッフのパスワードのハッシュ値をセッションに控え直すので、差し替えないと
-                // 古い値が控えられ、次のリクエストで自分までログアウトされてしまう。
-                Auth::guard('admin')->setUser($staff);
-            }
-        }
-    }
-
-    /** 削除の直前の処理。 */
-    private function beforeDelete(Staff $staff): void
-    {
-        // 論理削除では行が残るので、信頼済み端末はここで明示的に消しておく
-        // （復元したときに、削除前の信頼が一緒に戻らないようにするため）。
-        // パスキーは、パスワード・2段階認証の設定と同じく消さずに残す。削除済みの
-        // スタッフは、パスキーでもログインできない（Neobit\Core\Models\Passkey::user()参照）。
-        TrustedDeviceManager::for(Staff::class)->forgetAll($staff);
-    }
-
     /**
      * 操作しているスタッフが、権限（acl）を変えてよいか（判断はStaffPolicy::updateAcl()）。
      * 新規登録（$staffがnull）のときは、対象が無いのでクラス名で問い合わせる。
@@ -446,6 +418,36 @@ class StaffController extends Controller
 
         return redirect()->route('admin.staff.show', $staff)
             ->with('status', '2段階認証の登録を解除しました。次回ログイン時にQRコードから登録し直せます。');
+    }
+
+    // ---- 保存・削除の前後の処理（FormFlow） ----
+
+    /** 保存の直後の処理。 */
+    private function afterSave(Staff $staff, array $validated): void
+    {
+        if ($staff->wasChanged('password')) {
+            // パスワードが変わったら、信頼済み端末とパスキーを無効にし、本人へ
+            // お知らせのメールを送る（Neobit\Core\Auth\PasswordChange参照）。
+            PasswordChange::resetAndNotify($staff, changedBy: Auth::guard('admin')->user());
+
+            if ($staff->id === Auth::guard('admin')->id()) {
+                // 自分のパスワードを変えたときは、ログイン中のスタッフを更新後のインスタンスに
+                // 差し替える。auth.session（routes/web.php）はリクエストの最後に、ログイン中の
+                // スタッフのパスワードのハッシュ値をセッションに控え直すので、差し替えないと
+                // 古い値が控えられ、次のリクエストで自分までログアウトされてしまう。
+                Auth::guard('admin')->setUser($staff);
+            }
+        }
+    }
+
+    /** 削除の直前の処理。 */
+    private function beforeDelete(Staff $staff): void
+    {
+        // 論理削除では行が残るので、信頼済み端末はここで明示的に消しておく
+        // （復元したときに、削除前の信頼が一緒に戻らないようにするため）。
+        // パスキーは、パスワード・2段階認証の設定と同じく消さずに残す。削除済みの
+        // スタッフは、パスキーでもログインできない（Neobit\Core\Models\Passkey::user()参照）。
+        TrustedDeviceManager::for(Staff::class)->forgetAll($staff);
     }
 
     // ---- 2段階認証の管理（TwoFactorManagement） ----

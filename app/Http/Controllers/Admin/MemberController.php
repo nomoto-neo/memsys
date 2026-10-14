@@ -184,16 +184,6 @@ class MemberController extends Controller
         ];
     }
 
-    /** 保存の直後の処理。 */
-    private function afterSave(Member $member, array $validated): void
-    {
-        if ($member->wasChanged('password')) {
-            // パスワードが変わったら、信頼済み端末とパスキーを無効にし、会員へ
-            // お知らせのメールを送る（Neobit\Core\Auth\PasswordChange参照）。
-            PasswordChange::resetAndNotify($member, changedBy: Auth::guard('admin')->user());
-        }
-    }
-
     // ---- 一覧・検索 ----
 
     /**
@@ -442,5 +432,17 @@ class MemberController extends Controller
             orientation: 'P',
             inline: true,
         );
+    }
+
+    // ---- 保存・削除の前後の処理（FormFlow） ----
+
+    /** 保存の直後の処理。 */
+    private function afterSave(Member $member, array $validated): void
+    {
+        if ($member->wasChanged('password')) {
+            // パスワードが変わったら、信頼済み端末とパスキーを無効にし、会員へ
+            // お知らせのメールを送る（Neobit\Core\Auth\PasswordChange参照）。
+            PasswordChange::resetAndNotify($member, changedBy: Auth::guard('admin')->user());
+        }
     }
 }

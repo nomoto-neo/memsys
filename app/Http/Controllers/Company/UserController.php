@@ -70,24 +70,6 @@ class UserController extends Controller
         ];
     }
 
-    /**
-     * 保存の直後の処理。情報が変わったことを、変えられた担当者へメールで知らせる。
-     * 本人が変えたのではないので、本人が気付けるようにする（Neobit\Core\Auth\LoginProfileNotice参照）。
-     */
-    private function afterSave(CompanyUser $user, array $validated, array $changedFields): void
-    {
-        LoginProfileNotice::send($user, $changedFields);
-    }
-
-    /**
-     * 削除の直前の処理。ログインのための記録（認証アプリの登録・バックアップコード・信頼済み端末・
-     * パスキー）は、担当者の行と一緒に消す
-     */
-    private function beforeDelete(CompanyUser $user): void
-    {
-        $user->resetTwoFactor();
-    }
-
     // ---- 担当者の一覧 ----
 
     /** 担当者の一覧（GET /company/mypage/users）。招待中の人も出す */
@@ -208,6 +190,26 @@ class UserController extends Controller
         $this->deleteData($user);
 
         return redirect()->route('company.users.index')->with('status', '担当者を削除しました。');
+    }
+
+    // ---- 保存・削除の前後の処理（FormFlow） ----
+
+    /**
+     * 保存の直後の処理。情報が変わったことを、変えられた担当者へメールで知らせる。
+     * 本人が変えたのではないので、本人が気付けるようにする（Neobit\Core\Auth\LoginProfileNotice参照）。
+     */
+    private function afterSave(CompanyUser $user, array $validated, array $changedFields): void
+    {
+        LoginProfileNotice::send($user, $changedFields);
+    }
+
+    /**
+     * 削除の直前の処理。ログインのための記録（認証アプリの登録・バックアップコード・信頼済み端末・
+     * パスキー）は、担当者の行と一緒に消す
+     */
+    private function beforeDelete(CompanyUser $user): void
+    {
+        $user->resetTwoFactor();
     }
 
     // ---- 共通 ----

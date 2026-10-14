@@ -173,15 +173,6 @@ class MypageController extends Controller
         ];
     }
 
-    /**
-     * 保存の直後の処理。会員情報が変わったことを、本人へメールで知らせる
-     * （Neobit\Core\Auth\LoginProfileNotice参照）。
-     */
-    private function afterSave(Member $member, array $validated, array $changedFields): void
-    {
-        LoginProfileNotice::send($member, $changedFields);
-    }
-
     // ---- マイページ・プロフィール編集 ----
 
     /**
@@ -352,6 +343,17 @@ class MypageController extends Controller
                 'message' => $e->getMessage(),
             ]);
         }
+    }
+
+    // ---- 保存・削除の前後の処理（FormFlow） ----
+
+    /**
+     * 保存の直後の処理。会員情報が変わったことを、本人へメールで知らせる
+     * （Neobit\Core\Auth\LoginProfileNotice参照）。
+     */
+    private function afterSave(Member $member, array $validated, array $changedFields): void
+    {
+        LoginProfileNotice::send($member, $changedFields);
     }
 
     // ---- 2段階認証の管理（TwoFactorManagement） ----

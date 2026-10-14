@@ -290,7 +290,7 @@ class NewsController extends Controller
     private function rules(): array { ... }
     private function saveFieldNames(...): array { ... }
     private function inputFromModel(...): array { ... }
-    // defaultInput()・prepareInput()・additionalFields()・afterSave()・beforeDelete() は必要なときだけ
+    // defaultInput()・prepareInput()・additionalFields() は必要なときだけ
 
     // ---- 一覧・検索 ----
     public function index(...) { ... }
@@ -300,8 +300,16 @@ class NewsController extends Controller
     // ---- CSVダウンロード ----  ---- CSV取り込み ----
     // ---- 登録 ----
     // ---- 詳細・編集・削除 ----
+
+    // ---- 保存・削除の前後の処理（FormFlow） ----
+    private function afterSave(...): void { ... }
+    private function beforeDelete(...): void { ... }
+    // どちらも必要なときだけ
 }
 ```
+
+- 「このコーナーの項目の定義」には、値を返すだけのメソッドを置きます。`additionalFields()` も、保存する列の値を返すだけなので、`saveFieldNames()` と並べてここに置きます。
+- メールを送る・関連の行を書き換えるといった処理をする `afterSave()`・`beforeDelete()` は、ルートから呼ばれる入口のブロックの後ろに、「保存・削除の前後の処理」のブロックを作って置きます。入口の後ろに、トレイトから呼ばれるメソッドのブロック（2段階認証の管理など）や、コントローラーの中で使い回す処理のブロックがあるときは、それらより前に置きます。
 
 - 定数はクラスの冒頭にまとめ、何で使うものか（一覧・検索の設定、アップロードの設定など）でブロックに区切ります。
 - 1か所からしか呼ばれない数行の処理は、細かいメソッドに分けず、コメントを1行入れて呼び元に書きます。

@@ -88,15 +88,6 @@ class ProfileController extends Controller
         ];
     }
 
-    /**
-     * 保存の直後の処理。担当者の情報が変わったことを、本人へメールで知らせる
-     * （Neobit\Core\Auth\LoginProfileNotice参照）。
-     */
-    private function afterSave(CompanyUser $user, array $validated, array $changedFields): void
-    {
-        LoginProfileNotice::send($user, $changedFields);
-    }
-
     // ---- 自分の情報の編集 ----
 
     /**
@@ -134,5 +125,16 @@ class ProfileController extends Controller
         $this->saveData($user, $request);
 
         return redirect()->route('company.mypage')->with('status', self::EMAIL_CHANGE_DONE_MESSAGE);
+    }
+
+    // ---- 保存・削除の前後の処理（FormFlow） ----
+
+    /**
+     * 保存の直後の処理。担当者の情報が変わったことを、本人へメールで知らせる
+     * （Neobit\Core\Auth\LoginProfileNotice参照）。
+     */
+    private function afterSave(CompanyUser $user, array $validated, array $changedFields): void
+    {
+        LoginProfileNotice::send($user, $changedFields);
     }
 }

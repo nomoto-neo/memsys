@@ -171,19 +171,6 @@ class NewsController extends Controller
         return $validated;
     }
 
-    /** 保存の直後に行う、関連テーブルの更新。 */
-    private function afterSave(News $news, array $validated): void
-    {
-        // 掲載カテゴリーを、選ばれたものだけにそろえる
-        $news->categories()->sync($validated['category_ids']);
-    }
-
-    /** 削除の直前に行う、関連テーブルの削除。 */
-    private function beforeDelete(News $news): void
-    {
-        $news->categories()->detach();
-    }
-
     /** すべてのカテゴリーを表示順で取得（プルダウンやチェックボックスの選択肢の表示に使う）。 */
     private function allCategories()
     {
@@ -415,6 +402,21 @@ class NewsController extends Controller
 
         return redirect()->route(self::INDEX_ROUTE, ['back'])
             ->with('status', 'ニュース記事を削除しました。');
+    }
+
+    // ---- 保存・削除の前後の処理（FormFlow） ----
+
+    /** 保存の直後に行う、関連テーブルの更新。 */
+    private function afterSave(News $news, array $validated): void
+    {
+        // 掲載カテゴリーを、選ばれたものだけにそろえる
+        $news->categories()->sync($validated['category_ids']);
+    }
+
+    /** 削除の直前に行う、関連テーブルの削除。 */
+    private function beforeDelete(News $news): void
+    {
+        $news->categories()->detach();
     }
 
     // Ajaxアップロード処理の function がトレイトから取り込まれる。

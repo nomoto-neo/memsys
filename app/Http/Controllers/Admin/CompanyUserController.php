@@ -82,25 +82,6 @@ class CompanyUserController extends Controller
         ];
     }
 
-    /** 保存の直後の処理。 */
-    private function afterSave(CompanyUser $user, array $validated): void
-    {
-        if ($user->wasChanged('password')) {
-            // パスワードが変わったら、信頼済み端末とパスキーを無効にし、担当者へ
-            // お知らせのメールを送る（Neobit\Core\Auth\PasswordChange参照）。
-            PasswordChange::resetAndNotify($user, changedBy: Auth::guard('admin')->user());
-        }
-    }
-
-    /**
-     * 削除の直前の処理。ログインのための記録（認証アプリの登録・バックアップコード・信頼済み端末・
-     * パスキー）は、担当者の行と一緒に消す
-     */
-    private function beforeDelete(CompanyUser $user): void
-    {
-        $user->resetTwoFactor();
-    }
-
     // ---- 詳細・編集・削除 ----
 
     /** 詳細画面の表示 */
@@ -185,5 +166,26 @@ class CompanyUserController extends Controller
 
         return redirect()->route('admin.companies.users.show', [$company, $user])
             ->with('status', '2段階認証の登録を解除しました。次回ログイン時にQRコードから登録し直せます。');
+    }
+
+    // ---- 保存・削除の前後の処理（FormFlow） ----
+
+    /** 保存の直後の処理。 */
+    private function afterSave(CompanyUser $user, array $validated): void
+    {
+        if ($user->wasChanged('password')) {
+            // パスワードが変わったら、信頼済み端末とパスキーを無効にし、担当者へ
+            // お知らせのメールを送る（Neobit\Core\Auth\PasswordChange参照）。
+            PasswordChange::resetAndNotify($user, changedBy: Auth::guard('admin')->user());
+        }
+    }
+
+    /**
+     * 削除の直前の処理。ログインのための記録（認証アプリの登録・バックアップコード・信頼済み端末・
+     * パスキー）は、担当者の行と一緒に消す
+     */
+    private function beforeDelete(CompanyUser $user): void
+    {
+        $user->resetTwoFactor();
     }
 }

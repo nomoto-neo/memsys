@@ -188,31 +188,6 @@ class CompanyController extends Controller
         return $additional;
     }
 
-    /** 保存の直後の処理。 */
-    private function afterSave(Company $company, array $validated): void
-    {
-        if ($company->wasRecentlyCreated) {
-            // 新しく登録した企業の最初の担当者へ、招待のメールを送る
-            // （メールは保存が確定した後に送られる。Neobit\Core\Team\TeamInvitationManager参照）。
-            TeamInvitationManager::invite($company, $validated['invite_email']);
-        }
-    }
-
-    /**
-     * 削除の直前の処理。却下と削除の両方で働く。外部キー制約を付けていないので、
-     * 企業に属する招待と担当者、担当者のログインのための記録（認証アプリの登録・バックアップコード・
-     * 信頼済みの端末・パスキー）を、ここで消す
-     */
-    private function beforeDelete(Company $company): void
-    {
-        $company->invitations()->delete();
-
-        foreach ($company->users as $user) {
-            $user->resetTwoFactor();
-            $user->delete();
-        }
-    }
-
     /** モデルの今の値から、_fields.blade.phpに渡す$inputを組み立てる（詳細・編集で使う）。 */
     private function inputFromModel(Company $company): array
     {
@@ -565,6 +540,33 @@ class CompanyController extends Controller
 
         return redirect()->route('admin.companies.show', $company)
             ->with('status', '招待を取り消しました。');
+    }
+
+    // ---- 保存・削除の前後の処理（FormFlow） ----
+
+    /** 保存の直後の処理。 */
+    private function afterSave(Company $company, array $validated): void
+    {
+        if ($company->wasRecentlyCreated) {
+            // 新しく登録した企業の最初の担当者へ、招待のメールを送る
+            // （メールは保存が確定した後に送られる。Neobit\Core\Team\TeamInvitationManager参照）。
+            TeamInvitationManager::invite($company, $validated['invite_email']);
+        }
+    }
+
+    /**
+     * 削除の直前の処理。却下と削除の両方で働く。外部キー制約を付けていないので、
+     * 企業に属する招待と担当者、担当者のログインのための記録（認証アプリの登録・バックアップコード・
+     * 信頼済みの端末・パスキー）を、ここで消す
+     */
+    private function beforeDelete(Company $company): void
+    {
+        $company->invitations()->delete();
+
+        foreach ($company->users as $user) {
+            $user->resetTwoFactor();
+            $user->delete();
+        }
     }
 
     // ---- 状態を変える処理の共通 ----
