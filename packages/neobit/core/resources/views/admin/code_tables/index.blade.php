@@ -1,6 +1,6 @@
 {{--
     項目見出し一覧（Neobit\Core\Http\Controllers\CodeTableController）。編集できるコード表は
-    config('neobit.code_tables')に載せたもの。ルートの名前（$indexRoute・$updateRoute）は、
+    config('neobit.code_table_db')に載せたもの。ルートの名前（$indexRoute・$updateRoute）は、
     アプリが付けた名前をコントローラーが渡す。
 --}}
 @extends(config('neobit.layouts.admin'))

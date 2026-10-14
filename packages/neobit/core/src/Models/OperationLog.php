@@ -40,6 +40,23 @@ class OperationLog extends Model
     ];
 
     /**
+     * コード表 operation_log_action（Neobit\Core\Code\CodeTableが自分で持つ）。操作の値 => 名前。
+     * config('neobit.operation_log_actions')の列挙型を書いた順に合わせ、フレームワークの操作と
+     * サイトの操作を、1つの選択肢の一覧にする。
+     */
+    public static function actionOptions(): array
+    {
+        $options = [];
+        foreach (config('neobit.operation_log_actions', []) as $class) {
+            foreach ($class::cases() as $case) {
+                $options[$case->value] = $case->label();
+            }
+        }
+
+        return $options;
+    }
+
+    /**
      * 画面に出すための、今の名前。[種類 => [id => 名前]]で返す。
      * 名前は、操作した人と対象のモデルが、operationLogNames()で返す
      * （OperationLogSubjectModelを実装したもの）。

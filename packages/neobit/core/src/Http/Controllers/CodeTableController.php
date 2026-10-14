@@ -15,7 +15,7 @@ use Neobit\Core\Models\Code;
 /**
  * 項目見出し一覧：DBで管理するコード表（code_tables）の編集。
  *
- * 編集できるコード表は、config('neobit.code_tables')に載せたもの。画面のプルダウンで
+ * 編集できるコード表は、config('neobit.code_table_db')に載せたもの。画面のプルダウンで
  * コード表を選ぶと（?type=gender）、そのコード表の行を表示順に並べ、
  * コード値・表示名の書き換え、行の追加・削除、ドラッグでの並び替えをして、
  * 「更新する」でまとめて保存する。画面の動き（行の追加・削除・並び替え、
@@ -185,7 +185,7 @@ class CodeTableController
      */
     private function codeTables(): array
     {
-        return (array) config('neobit.code_tables', []);
+        return (array) config('neobit.code_table_db', []);
     }
 
     /** コード値を固定するコード表か。並び替えと表示名の変更だけができる */

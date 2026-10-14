@@ -35,14 +35,11 @@ return [
     // 編集できる。コード名 => ['label' => 項目見出し一覧に出す名前, 'fixed' => コード値を固定するか]。
     // fixedをtrueにすると、並び替えと表示名の変更だけができる。プログラムが特定のコード値を
     // 前提に動くコード表は、trueにする。初期データは、アプリのシーダーで入れる
-    'code_tables' => [],
+    'code_table_db' => [],
 
     // ほかのテーブルなどから、プログラムで作るコード表。コード名 => [クラス, 静的メソッドの名前]。
     // メソッドは「値 => 名称」の配列を返す
     'code_table_method' => [],
-
-    // 複数の列挙型を1つにまとめるコード表。コード名 => 列挙型の一覧
-    'code_table_merge' => [],
 
     // 列挙型のコード表を探す、アプリの名前空間。書いた順に探す。末尾に \ を付ける
     'code_table_enum_namespaces' => [
@@ -58,7 +55,8 @@ return [
     |
     */
 
-    // 操作の種類（operation_logs.action）にする列挙型。Neobit\Core\Enums\OperationLogActionTypeを実装する
+    // 操作の種類（operation_logs.action）にする列挙型。Neobit\Core\Enums\OperationLogActionTypeを実装する。
+    // 操作のコード表（operation_log_action）も、ここに書いた順に合わせて作る
     'operation_log_actions' => [
         OperationLogAction::class,
     ],

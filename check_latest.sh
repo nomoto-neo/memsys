@@ -145,10 +145,11 @@ echo "--  消したファイルの確認を終えました（NG が無ければ�
 has   vendor/neobit/core/composer.json                                  '"name": "neobit/core"'
 has   packages/neobit/core/src/Mail/MailTemplate.php                    'private static function locate('
 has   packages/neobit/core/src/NeobitServiceProvider.php                'neobit-mail-templates'
-has   packages/neobit/core/src/Code/CodeTable.php                       "config('neobit.code_tables'"
-has   packages/neobit/core/src/Http/Controllers/CodeTableController.php 'class CodeTableController'
+has   packages/neobit/core/src/Code/CodeTable.php                       "'operation_log_action' => [OperationLog::class, 'actionOptions']"
+has   packages/neobit/core/src/Models/OperationLog.php                  'public static function actionOptions('
+has   packages/neobit/core/src/Http/Controllers/CodeTableController.php "config('neobit.code_table_db'"
 has   packages/neobit/core/config/neobit.php                            "'code_table_enum_namespaces'"
-has   packages/neobit/core/stubs/config/neobit.php                      "// 'code_tables'"
+has   packages/neobit/core/stubs/config/neobit.php                      "// 'code_table_method'"
 has   packages/neobit/core/resources/mail-templates/verification_code.blade.php '【{!! $site_name !!}】'
 has   packages/neobit/core/resources/js/global.js                       'ajax_submit'
 has   packages/neobit/core/resources/css/global.css                     '.invalid-feedback:not(:empty)'
@@ -159,7 +160,9 @@ has   vite.config.js                                                    'preserv
 has   resources/views/layouts/admin.blade.php                           'vendor/neobit/core/resources/css/global.css'
 has   resources/views/layouts/app.blade.php                             'vendor/neobit/core/resources/css/global.css'
 has   resources/views/layouts/company.blade.php                         'vendor/neobit/core/resources/css/global.css'
-has   config/neobit.php                                                 "'code_tables' => ["
+has   config/neobit.php                                                 "'code_table_method' => ["
+lacks config/neobit.php                                                 'code_table_merge'
+has   app/Models/Staff.php                                              'public static function nameOptions('
 lacks config/app.php                                                    'admin_requests_per_minute'
 lacks config/logging.php                                                'operation_report_thresholds'
 has   resources/mail-templates/member_verification_code.blade.php       '【{!! $site_name !!}】'

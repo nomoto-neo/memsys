@@ -10,12 +10,6 @@ use App\Enums\AppOperationLogAction;
 use App\Models\Staff;
 use Neobit\Core\Enums\OperationLogAction;
 
-// 操作ログの操作の種類にする列挙型。フレームワークの操作と、このサイトの操作
-$operationLogActions = [
-    OperationLogAction::class,
-    AppOperationLogAction::class,
-];
-
 return [
 
     /*
@@ -48,7 +42,7 @@ return [
     // 編集できる。コード名 => ['label' => 項目見出し一覧に出す名前, 'fixed' => コード値を固定するか]。
     // fixedをtrueにすると、並び替えと表示名の変更だけができる。プログラムが特定のコード値を
     // 前提に動くコード表は、trueにする。初期データは、アプリのシーダーで入れる
-    'code_tables' => [
+    'code_table_db' => [
         'gender' => ['label' => '性別', 'fixed' => true],
         'contact' => ['label' => '連絡方法', 'fixed' => false],
     ],
@@ -60,11 +54,6 @@ return [
         'staff' => [Staff::class, 'nameOptions'],
         // 担当者を選ぶプルダウンの用。今いるスタッフだけ
         'active_staff' => [Staff::class, 'activeNameOptions'],
-    ],
-
-    // 複数の列挙型を1つにまとめるコード表。コード名 => 列挙型の一覧
-    'code_table_merge' => [
-        'operation_log_action' => $operationLogActions,
     ],
 
     // 列挙型のコード表を探す、アプリの名前空間。書いた順に探す。末尾に \ を付ける。
@@ -83,8 +72,12 @@ return [
     */
 
     // 操作の種類（operation_logs.action）にする列挙型。Neobit\Core\Enums\OperationLogActionTypeを実装する。
+    // 操作のコード表（operation_log_action）も、ここに書いた順に合わせて作る。
     // サイトの操作を足すときは、フレームワークの列挙型の後ろに並べる
-    'operation_log_actions' => $operationLogActions,
+    'operation_log_actions' => [
+        OperationLogAction::class,
+        AppOperationLogAction::class,
+    ],
 
     // 操作ログの画面のルート名。日々の報告のメールに、この画面のURLを載せる。nullなら載せない
     'operation_log_route' => 'admin.operation-logs.index',

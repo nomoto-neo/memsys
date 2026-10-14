@@ -11,7 +11,7 @@ use Tests\TestCase;
 
 /**
  * 項目見出し一覧（Neobit\Core\Http\Controllers\CodeTableController）。DBで管理するコード表を、
- * 管理画面からまとめて書き換える。編集できるコード表は、config('neobit.code_tables')に載せたもの。
+ * 管理画面からまとめて書き換える。編集できるコード表は、config('neobit.code_table_db')に載せたもの。
  */
 class CodeTableEditTest extends TestCase
 {
@@ -22,7 +22,7 @@ class CodeTableEditTest extends TestCase
         parent::setUp();
 
         // 見本のサイトの設定と同じ。性別はコード値を固定、連絡方法は自由に書き換えられる
-        config(['neobit.code_tables' => [
+        config(['neobit.code_table_db' => [
             'gender' => ['label' => '性別', 'fixed' => true],
             'contact' => ['label' => '連絡方法', 'fixed' => false],
         ]]);
