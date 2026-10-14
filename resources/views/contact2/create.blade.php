@@ -4,10 +4,10 @@
     /contact（Neobit\Core\Mail\MailTemplate方式・AjaxFileUpload方式）との
     比較用フォーム。confirm画面を挟まない一段階の送信で、添付ファイルも
     普通の<input type="file">＋enctype="multipart/form-data"で送る
-    （resources/js/ajax_upload.js・upload_request.jsのような、送信より
+    （vendor/neobit/core/resources/js/ajax_upload.js・upload_request.jsのような、送信より
     前にファイルだけ別送りするJavaScriptは一切使わない）。
 
-    required属性・is-invalidクラスの自動付与（resources/js/app.js）
+    required属性・is-invalidクラスの自動付与（vendor/neobit/core/resources/js/global.js）
     はlayouts.appが読み込んでいるものをそのまま使えるので、ここでも
     .required-mark・.invalid-feedback[data-item]の書き方だけ揃えている
     （rules()から必須マークを組み立てる仕組み（required_fields()）は比較を単純にするため

@@ -15,6 +15,11 @@
  * 決める。サーバーはtmpに保存したURLを返し、それを<img src>にして本文に
  * 入れる(正式な保存先へ移すのは、登録/更新の確定時。詳しくは
  * Neobit\Core\Upload\AjaxFileUploadの「エディタの欄の画像」参照)。
+ *
+ * ツールバーなどを変えたいときは、このファイルをアプリのresources/js/へコピーして直し、
+ * vite.config.jsと画面の@vite()をコピーのほうへ向ける。アップロードの送信は
+ * @neobit/upload_request.js（vite.config.jsで決めた、フレームワークのスクリプトの場所）から
+ * 読み込んでいるので、コピーしてもそのまま動く。
  */
 import suneditor from 'suneditor';
 import {
@@ -33,7 +38,7 @@ import {
 import ja from 'suneditor/langs/ja';
 import 'suneditor/css/editor';
 import 'suneditor/css/contents';
-import { postUploadFile } from './upload_request.js';
+import { postUploadFile } from '@neobit/upload_request.js';
 
 /*
  * エディタに入れる機能と、ツールバーの並び。

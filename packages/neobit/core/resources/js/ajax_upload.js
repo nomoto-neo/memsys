@@ -1,6 +1,6 @@
 /*
  * 画像・添付ファイルのAjaxアップロードUI用のスクリプト。
- * app/Support/AjaxFileUpload.php・resources/views/admin/_ajax_upload_block.blade.php
+ * Neobit\Core\Upload\AjaxFileUpload・resources/views/_ajax_upload_block.blade.php
  * ・_ajax_upload_group.blade.phpと対応している。
  *
  * .ajax_upload_blockという単位が1ファイル分のアップロード枠で、画面内に
@@ -12,7 +12,7 @@
  * サーバーへの送信そのものは、WYSIWYGエディタの画像アップロードと共通の
  * upload_request.jsのpostUploadFile()で行う。
  */
-import { postUploadFile } from './upload_request.js';
+import { postUploadFile } from '@neobit/upload_request.js';
 
 (() => {
 

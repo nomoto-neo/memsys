@@ -82,7 +82,7 @@
 |---|---|---|
 | 1 | `composer install --no-dev --optimize-autoloader` | `composer.json`・`composer.lock` を変えたとき |
 | 2 | `npm ci` | `package.json`・`package-lock.json` を変えたとき |
-| 3 | `npm run build` | `resources/js`・`resources/css`・`vite.config.js` を変えたとき |
+| 3 | `npm run build` | `resources/js`・`resources/css`・`vite.config.js` を変えたとき、フレームワークを更新したとき |
 | 4 | `php artisan migrate` | マイグレーションを足したとき |
 | 5 | `php artisan config:cache` | 毎回。`.env` か `config/` を変えたときは必ず |
 | 6 | `php artisan view:clear` | 毎回 |
@@ -260,7 +260,7 @@ GRANT ALL PRIVILEGES ON memsys_testing.* TO 'memsys'@'localhost';
 | `AdminRequestLimit` | `packages/neobit/core/src/Security/` | ログイン後の管理画面の全体に掛ける、スタッフごとの回数の制限 | 22 |
 | `LoginProfileNotice` | `packages/neobit/core/src/Auth/` | 会員情報が変わったことを、本人へメールで知らせる | 22 |
 | `SpamGuard`・`_spam_guard` | `packages/neobit/core/src/Security/`・`packages/neobit/core/resources/views/` | 訪問者向けフォームのスパム対策（ハニーポット・送信までの時間・Cloudflare Turnstile） | 12 |
-| `app.js` | `resources/js/` | フォームの補助（必須マークから required 属性、エラー表示） | 17 |
+| `global.js`・`global.css` | `packages/neobit/core/resources/js/`・`css/` | 全画面で使うスクリプトと CSS。フォームの補助（必須マークから required 属性、エラー表示）など | 17 |
 
 トレイトは、コントローラーが `use` するだけで働きます。コントローラーに書くのは「このコーナーの項目の定義」と「ルートから呼ばれる入口」だけ、というのが全体の考え方です。
 
@@ -465,7 +465,7 @@ Route::post('/members', [AdminMemberController::class, 'storeSearchCondition'])-
 - 検索フォームは `route('admin.xxx.search')` へ POST。値は `$filters['項目名']` から出す（配列の項目は文字列の配列）。
 - 並び順のプルダウンは `$orderOptions` をそのまま並べ、`$selectedOrder` を選択状態にする。
 - ページ送りは `{{ $list->links('pagination::bootstrap-5') }}`。
-- 削除済み（論理削除）の行は `<tr @class(['row-deleted' => $row->trashed()])>` で赤字になります（CSS は `resources/css/app.css` にあります）。
+- 削除済み（論理削除）の行は `<tr @class(['row-deleted' => $row->trashed()])>` で赤字になります（CSS はフレームワークの `global.css` にあります）。
 
 ページ分けしない一覧（並び替えのためにすべて並べるカテゴリーなど）は、`SearchableList` を使わず `index()` で普通に取得します。
 
@@ -723,36 +723,56 @@ private function prepareInput(array $validated): array
 ```
 
 - `$readonly` を渡すだけで、入力画面ではアップロードの UI、確認・詳細画面では表示だけに切り替わります。
-- アップロード欄のある画面（新規登録・編集）は、`@push('head-extra')` で CSRF の `<meta>` と `resources/js/ajax_upload.js` を読み込みます。
+- アップロード欄のある画面（新規登録・編集）は、`@push('head-extra')` で CSRF の `<meta>` と `vendor/neobit/core/resources/js/ajax_upload.js` を読み込みます。
 - **WYSIWYG**：`<textarea class="wysiwyg" data-upload-url="...">` を置き、`wysiwyg_suneditor.js` か `wysiwyg_summernote.js` を読み込みます（どちらでもサーバー側は同じ）。確認・詳細画面では `{!! safe_html($input['body']) !!}` で表示します。
 - **エディタは、1つの画面に1種類だけ読み込みます**。どちらのスクリプトも `textarea.wysiwyg` を探して置き換えるので、両方を読み込むとぶつかります。見本のサイトでは、ニュースの本文を summernote、固定ページの本文を SunEditor にして、両方の動作の見本にしています。
 
 ### SunEditor
 
-**ファイル**：`resources/js/wysiwyg_suneditor.js`・`resources/css/wysiwyg_suneditor_content.css`　**実例**：固定ページ（`Admin\PageController`・`PageController`、画面は `admin/pages/`・`pages/show.blade.php`）
+**ファイル**：`packages/neobit/core/resources/js/wysiwyg_suneditor.js`・`packages/neobit/core/resources/css/wysiwyg_suneditor_content.css`　**実例**：固定ページ（`Admin\PageController`・`PageController`、画面は `admin/pages/`・`pages/show.blade.php`）
 
 ```blade
 {{-- 入力の画面。エディタの見た目のCSSは、JSが一緒に読み込む --}}
 @push('head-extra')
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    @vite(['resources/js/wysiwyg_suneditor.js'])
+    @vite(['vendor/neobit/core/resources/js/wysiwyg_suneditor.js'])
 @endpush
 
 {{-- 表示の画面（確認・詳細・訪問者の側）。本文を class="sun-editor-editable" で囲む --}}
 @push('head-extra')
-    @vite(['resources/css/wysiwyg_suneditor_content.css'])
+    @vite(['vendor/neobit/core/resources/css/wysiwyg_suneditor_content.css'])
 @endpush
 
 <div class="wysiwyg-content sun-editor-editable">{!! safe_html($page->body) !!}</div>
 ```
 
 - **パッケージは `suneditor`（3版）** です。MIT ライセンスで、ほかのパッケージにも jQuery にも頼りません。案件ごとにライセンスを確かめたり、キーを入れたりする必要はありません。
-- **使う機能は、自分で選んで組みます**。入れる機能は `wysiwyg_suneditor.js` の冒頭の `PLUGINS`、ツールバーの並びは `TOOLBAR` です。太字や元に戻すのような基本のボタンは本体に入っているので、`PLUGINS` に書くのは、見出し・表・画像のような追加の機能だけです。
+- **使う機能は、自分で選んで組みます**。入れる機能は `wysiwyg_suneditor.js` の冒頭の `PLUGINS`、ツールバーの並びは `TOOLBAR` です。変えるときは、スクリプトをアプリへコピーして直します（下の「エディタのスクリプトを変えるとき・選ぶとき」）。太字や元に戻すのような基本のボタンは本体に入っているので、`PLUGINS` に書くのは、見出し・表・画像のような追加の機能だけです。
 - **機能を足したら、`HtmlSanitizer` の許可も合わせます**。本文に新しいタグや属性が出るようになるためです。動画の埋め込み（`video`）は、配置に使う `style` の `position` を `HtmlSanitizer` が許可していないので、入れていません。
 - **画像は、アップロードするか、URL を指定して入れます**。ファイルを選んだとき（ボタン・ドラッグ＆ドロップ・貼り付け）は、`onImageUploadBefore` がほかのエディタと同じ送り先へ送ります。URL を指定したときは何も送らず、その URL のまま本文に入ります。URL で入れた画像は、保存先へ移しも消しもしません（`AjaxFileUpload` が扱うのは、`src` が一時ファイルかそのレコードの保存先の画像だけです）。大きさ・配置・キャプション・代替テキストは、画像の画面で決められます。
 - **表示は日本語です**。同梱の翻訳（`suneditor/langs/ja`）を読み込んでいます。
 - **表示の画面には、表示用の CSS が要ります**。SunEditor は、画像の回り込みや表の罫線を、クラス（`se-component`・`__se__float-left` など）で保存します。`class="sun-editor-editable"` で囲んで `wysiwyg_suneditor_content.css` を読み込むと、エディタの中と同じ見た目になります。書体・文字の大きさ・色は、表示する画面のものに合わせてあります。summernote は見た目を `style` 属性で保存するので、この CSS は要りません。
 - **保存のときに、`data-se-` で始まる属性は消えます**。SunEditor が画像に付ける管理用の属性で、`HtmlSanitizer` が取り除きます。表示にも、編集し直すときにも影響しません。
+
+### エディタのスクリプトを変えるとき・選ぶとき
+
+エディタのスクリプト（`wysiwyg_suneditor.js`・`wysiwyg_summernote.js`）は、フレームワークの `packages/neobit/core/resources/js/` にあります。そのまま使える既定の形です。
+
+**ツールバーや使う機能を変えるとき**は、アプリへコピーして直します。
+
+1. `vendor/neobit/core/resources/js/wysiwyg_suneditor.js` を、アプリの `resources/js/` へコピーして直す
+2. `vite.config.js` の `input` と、画面の `@vite()` を、コピーのほうへ書き換える
+
+アップロードの送信は `@neobit/upload_request.js` から読み込んでいます。`@neobit` は `vite.config.js` で決めたフレームワークのスクリプトの場所なので、コピーしてもそのまま動きます。コピーした後は、フレームワークを更新しても、そのスクリプトには直しが届きません。
+
+**使わないエディタは、外せます**。どちらも使わないサイトは、両方を外します。
+
+| 使わないエディタ | 外すもの |
+|---|---|
+| SunEditor | `package.json` の `suneditor`、`vite.config.js` の `input` の `wysiwyg_suneditor.js`・`wysiwyg_suneditor_content.css` |
+| summernote | `vite.config.js` の `input` の `wysiwyg_summernote.js`、画面で CDN から読み込んでいる summernote の行。jQuery を使う画面がほかに無ければ、レイアウトの jQuery も |
+
+SunEditor は npm のパッケージなので、`package.json` から外したのに `vite.config.js` に `wysiwyg_suneditor.js` が残っていると、`npm run build` が失敗します。両方を合わせて外します。summernote は CDN から読み込むので、`package.json` には関係しません。
 
 ### 固定ページの URL
 
@@ -1419,7 +1439,7 @@ private const PASSKEY_VIEW = 'mypage.passkeys';                // 一覧画面�
 | `PasskeyLogin` | `passkeyLoginOptions()`（GET）・`passkeyLogin()`（POST） | `login.passkey.options`・`login.passkey`（管理は `admin.` を付ける。ゲスト用のグループに入れ、`throttle` を付ける） |
 | `PasskeyManagement` | `passkeyIndex()`（GET）・`passkeySendCode()`（POST。メールの方式だけ。`throttle` を付ける）・`passkeyConfirm()`（POST）・`passkeyRegistrationOptions()`（GET）・`passkeyStore()`（POST）・`passkeyDestroy()`（DELETE） | `PASSKEY_ROUTE` と、その後ろに `.code`・`.confirm`・`.options`・`.store`・`.destroy` |
 
-- 一覧画面のビューは、`@push('head-extra')` で CSRF の `<meta>` と `resources/js/passkeys.js` を読み込み、`@include('neobit::_passkeys')` するだけにします。
+- 一覧画面のビューは、`@push('head-extra')` で CSRF の `<meta>` と `vendor/neobit/core/resources/js/passkeys.js` を読み込み、`@include('neobit::_passkeys')` するだけにします。
 - 本人確認の失敗は、ログインの2段階目と同じカウンターで数えます（`TwoFactorChallenge::throttle()`）。
 - 認証アプリの方式の人は、認証アプリを登録してある間だけパスキーを持てます。未登録の間は、登録に進めません。
 - パスキーは `APP_URL` のドメインに結び付きます。`APP_URL` をブラウザで開いているアドレスと完全に同じにし、HTTPS（開発時の `localhost` は例外）で使います。
@@ -1470,15 +1490,15 @@ php artisan app:set-next-id t_members 100001
 
 - **レイアウト**：`layouts/` ディレクトリに置かれたテンプレートが、ページ全体の外枠になります。処理結果のメッセージは `->with('status', '...')`（緑）・`->with('error', '...')`（赤）で渡すと、レイアウトが表示します。
 - **画面ごとのスクリプト**：その画面だけで使うもの（アップロード、WYSIWYG、並び替えなど）を head タグ内に差し込むときは、`@push('head-extra')` に書きます。body の終わりに差し込むときは、`@push('scripts')` に書きます。全画面で使うものは `resources/js/app.js` に書きます。
-- **全体で使う CSS**：`resources/css/app.css` に書きます。3つのレイアウトが読み込んでいるので、どの画面にも効きます。画面の CSS は Bootstrap を使い、このファイルには、Bootstrap で足りない分だけを書きます。今あるのは、見本の文字の濃さ、エラー欄の表示、読み取り専用の表示、WYSIWYG の本文の表示、削除済みの行の色です。変えたら、`npm run build` をやり直します。その画面だけで使う CSS は、その画面の `@push('head-extra')` に書きます。
-- **入力欄の見本の文字（placeholder）**：濃さは、`app.css` で全体を `opacity: 0.5` にそろえています。入力した値と見分けやすくするためです。確認コード（6桁）の入力欄には、`placeholder="000000"` を付けます。バックアップコードの入力欄は `0000-0000` です。
-- **フォームの補助（app.js）**：必須マーク（`.required-mark`）の付いたラベルの `for` の欄に `required` 属性を付ける、エラー欄（`.invalid-feedback[data-item]`）に文言があれば同じ名前の欄を赤くする、ブラウザの入力チェックの結果を同じエラー欄に出す、入力し直したらエラー表示を消す、エラーのあるモーダルを開く、クラス名 `ajax_submit` の付いたフォームを画面を読み直さずに送る、フォームを送っている間は二重の送信を止めて処理中の表示を出す。画面ごとの設定は要りません。ラベルの `for` と入力欄の `id` を必ず対応させてください。
-- **フォームの送信中の表示（app.js）**：どのフォームも、送信した瞬間から2回目の送信を止めます。0.3秒経っても画面が切り替わらなければ、画面全体を覆って処理中であることを見せます。目印は要りません。確認コードのメールが2通届く、登録が2件できる、といったことを防ぐためです。すぐ切り替わる画面では、表示は出ません。リンクでの移動には出しません。読み込みを Esc キーで止めたときと、ブラウザの「戻る」で画面が復元されたときは、送信できる状態に戻ります。
-- **ファイルを返すものは、フォームにせずリンクにします（app.js）**。フォームにするときは `target` を付けます。ファイルが返ってくると画面が切り替わらないので、処理中の表示が覆ったままになるためです。`target` の付いたフォームには、送信中の表示の仕組みは働きません。CSV のダウンロードと PDF は、どれもリンクにしてあります。
-- **モーダルの中のフォーム（app.js）**：入力欄のあるフォームには `<form class="ajax_submit" ...>` と書きます。`app.js` が画面を読み直さずに送り、エラーは同じフォームのエラー欄（`.invalid-feedback[data-item]`）に出します。うまくいったときだけ、コントローラーが返した移動先へ移ります。送っている間は、画面全体を覆って処理中であることを見せます。エラーのたびに画面を読み直すと、モーダルが閉じて開き直すことになるためです。
+- **全体で使う CSS**：フレームワークの `global.css` にあります。3つのレイアウトが読み込んでいるので、どの画面にも効きます。サイトだけの全体の CSS を足すときは、アプリに `resources/css/app.css` を作り、レイアウトで `global.css` の後に読み込みます。画面の CSS は Bootstrap を使い、このファイルには、Bootstrap で足りない分だけを書きます。今あるのは、見本の文字の濃さ、エラー欄の表示、読み取り専用の表示、WYSIWYG の本文の表示、削除済みの行の色です。変えたら、`npm run build` をやり直します。その画面だけで使う CSS は、その画面の `@push('head-extra')` に書きます。
+- **入力欄の見本の文字（placeholder）**：濃さは、`global.css` で全体を `opacity: 0.5` にそろえています。入力した値と見分けやすくするためです。確認コード（6桁）の入力欄には、`placeholder="000000"` を付けます。バックアップコードの入力欄は `0000-0000` です。
+- **フォームの補助（global.js）**：必須マーク（`.required-mark`）の付いたラベルの `for` の欄に `required` 属性を付ける、エラー欄（`.invalid-feedback[data-item]`）に文言があれば同じ名前の欄を赤くする、ブラウザの入力チェックの結果を同じエラー欄に出す、入力し直したらエラー表示を消す、エラーのあるモーダルを開く、クラス名 `ajax_submit` の付いたフォームを画面を読み直さずに送る、フォームを送っている間は二重の送信を止めて処理中の表示を出す。画面ごとの設定は要りません。ラベルの `for` と入力欄の `id` を必ず対応させてください。
+- **フォームの送信中の表示（global.js）**：どのフォームも、送信した瞬間から2回目の送信を止めます。0.3秒経っても画面が切り替わらなければ、画面全体を覆って処理中であることを見せます。目印は要りません。確認コードのメールが2通届く、登録が2件できる、といったことを防ぐためです。すぐ切り替わる画面では、表示は出ません。リンクでの移動には出しません。読み込みを Esc キーで止めたときと、ブラウザの「戻る」で画面が復元されたときは、送信できる状態に戻ります。
+- **ファイルを返すものは、フォームにせずリンクにします（global.js）**。フォームにするときは `target` を付けます。ファイルが返ってくると画面が切り替わらないので、処理中の表示が覆ったままになるためです。`target` の付いたフォームには、送信中の表示の仕組みは働きません。CSV のダウンロードと PDF は、どれもリンクにしてあります。
+- **モーダルの中のフォーム（global.js）**：入力欄のあるフォームには `<form class="ajax_submit" ...>` と書きます。`global.js` が画面を読み直さずに送り、エラーは同じフォームのエラー欄（`.invalid-feedback[data-item]`）に出します。うまくいったときだけ、コントローラーが返した移動先へ移ります。送っている間は、画面全体を覆って処理中であることを見せます。エラーのたびに画面を読み直すと、モーダルが閉じて開き直すことになるためです。
     - コントローラーは、ふつうの送信と同じくリダイレクトを返します。JSON への読み替えは、ミドルウェア `AjaxFormResponse` が行います。エラーは `redirect()->withErrors([...])` でも `validate()` でもかまいません。
     - 削除の確認のように入力欄の無いモーダルには、付けなくてかまいません。エラーが出ないためです。
-    - JavaScript が動かなかったときは、ふつうの送信になります。そのときは、エラーのあるモーダルを `app.js` が自動で開きます。
+    - JavaScript が動かなかったときは、ふつうの送信になります。そのときは、エラーのあるモーダルを `global.js` が自動で開きます。
     - モーダルを使う画面には、Bootstrap の JavaScript が要ります。管理画面のレイアウトは読み込んでいますが、訪問者向けと企業会員のレイアウトは読み込んでいないので、その画面の `@push('head-extra')` で読み込みます（例：`mypage/two-factor.blade.php`）。
 - **クラス名と `data-` の使い分け**：JavaScript に「この要素はこの機能で動かす」と伝えるのは、クラス名です（`ajax_upload_block`・`wysiwyg`・`ajax_submit`）。その機能に値を渡すときに、`data-` の属性を使います（`data-upload-url`・`data-item`・`data-confirm`）。
 - **読み取り専用の表示**：管理画面の確認・詳細画面は、入力画面と同じ `_fields` を共有して表示します。`$readonly = ' readonly'`・`$disabled = ' disabled'` を入力欄に展開して、入力できない表示にします。項目が増減したときに、それぞれの画面を書き直さずに済みます。見た目は、全体で使う CSS（`resources/css/app.css`）で整えています。訪問者向けや企業会員の画面でも、同じ仕組みをそのまま使えます。
@@ -1491,6 +1511,37 @@ php artisan app:set-next-id t_members 100001
 - **戻り先**：一覧へ戻るリンクは `route('admin.xxx.index', ['back'])`。
 - **共通の部分ビュー**（`_confirm_hidden`・`_ajax_upload_block` など）は、フレームワークの `packages/neobit/core/resources/views/` に置き、モデル名やコントローラー名を書きません。コーナー専用のテンプレート（`admin/news/_fields` など）は、アプリの `resources/views/` に置き、そのコーナーのモデルの定数を参照してかまいません。フレームワークの画面は、`neobit::` を付けた名前で `@include` します（例：`@include('neobit::_confirm_hidden')`）。見た目や文言を変えたいときは、アプリの `resources/views/vendor/neobit/` に同じ名前（例：`_confirm_hidden.blade.php`）で置くと、そちらが使われます。
 - **フレームワークの画面が継承するレイアウト**は、`config/neobit.php` の `layouts`（`admin`・`app`）で、アプリのレイアウトに差し替えます。既定は、Bootstrap だけの `neobit::layouts.plain` です。レイアウトには、セクション `title`・`content`（必須）・`content-width` と、スタック `head-extra`・`scripts` を用意します。
+
+### スクリプトと CSS のビルド（vite.config.js）
+
+フレームワークのスクリプトと CSS は、`packages/neobit/core/resources/js/`・`css/` にあります。アプリからは、Composer が置いた `vendor/neobit/core/` の下のパスで読み込みます。
+
+```js
+// vite.config.js
+const NEOBIT = 'vendor/neobit/core/resources';
+
+input: [`${NEOBIT}/css/global.css`, `${NEOBIT}/js/global.js`, `${NEOBIT}/js/passkeys.js`, ...],
+resolve: {
+    preserveSymlinks: true,
+    alias: { '@neobit': fileURLToPath(new URL(`./${NEOBIT}/js`, import.meta.url)) },
+},
+```
+
+```blade
+@vite(['vendor/neobit/core/resources/js/passkeys.js'])
+```
+
+- **`preserveSymlinks: true`**：`vendor/neobit/core` がリンクのとき（memsys の手元とサーバー）に要ります。無いと、リンクの先の実体のパスでマニフェストに載り、画面の `@vite()` が見つけられずにエラーになります。リンクでない案件に書いておいても、害はありません。
+- **`@neobit`**：フレームワークのスクリプトの場所の短い名前です。エディタのスクリプトをアプリへコピーしても読み込みが切れないよう、フレームワークのスクリプトは `@neobit/upload_request.js` のように読み込みます（7章）。
+- **ビルドした URL にフレームワークの名前は出ません**。URL は `/build/assets/global-<ハッシュ>.js` のように、ファイルの名前から作られます。`npm run dev` を使っている間だけは、手元の画面で元のパスのまま出ます。
+- **フレームワークを更新したら、`npm run build` をやり直します**。スクリプトや CSS が変わっていることがあるためです。
+
+フレームワークのスクリプトは、npm のパッケージを読み込みます。Composer は npm のパッケージを入れないので、アプリの `package.json` に書きます。
+
+| npm のパッケージ | 読み込むスクリプト | 要るとき |
+|---|---|---|
+| `@laravel/passkeys` | `passkeys.js` | パスキーを使うとき |
+| `suneditor` | `wysiwyg_suneditor.js`・`wysiwyg_suneditor_content.css` | SunEditor を使うとき |
 
 ## 18. PDF 出力（PdfDownload）
 
@@ -1532,6 +1583,7 @@ public function resume(Member $member): Response
 
 - 埋め込める画像は `$images` に入っています。`<img>` の `src` に、そのまま書ける値です。`@if (isset($images['photo'])) <img src="{{ $images['photo'] }}" style="width: 30mm; height: 40mm;"> @endif` のように書きます。画像はファイルのパスや URL ではなく mPDF の「`var:名前`」で渡すので、非公開のファイルも埋め込めます。
 - フォントは、同梱の IPAex ゴシック（`ipaexg`、既定）と IPAex 明朝（`ipaexm`）を `font-family` で指定します。使った文字だけが PDF に埋め込まれるので、どの環境でも同じ見た目になります。
+- **フォントは、アプリの `resources/fonts/ipaex/` に置きます**。フレームワークには入っていません。PDF を使わないサイトに、大きなファイル（14MB）を持たせないためです。無いときは、PDF を作るときに、置き場所を書いた例外になります。
 - 余白は `@page { margin: ... }`、大きさは mm で書きます。
 - mPDF が解釈できる CSS はブラウザより少なく、flex や grid は使えません。枠や罫線は `<table>` で組みます。
 

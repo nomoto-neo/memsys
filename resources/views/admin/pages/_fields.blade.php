@@ -10,7 +10,7 @@
                   表示だけにするかも、これで切り替える
     - $required  必須マークのHTMLの配列。表示だけの画面では[]でよい
 
-    本文は、入力の画面ではSunEditorに置き換わる（画面が読み込むresources/js/wysiwyg_suneditor.js）。
+    本文は、入力の画面ではSunEditorに置き換わる（画面が読み込むvendor/neobit/core/resources/js/wysiwyg_suneditor.js）。
     確認・詳細の画面では、保存されるHTMLを表示するだけにする。
 --}}
 <div class="mb-3">

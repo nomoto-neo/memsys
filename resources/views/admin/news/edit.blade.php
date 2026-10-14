@@ -7,7 +7,7 @@
     <link href="https://cdn.jsdelivr.net/npm/summernote@0.9.0/dist/summernote-bs5.min.css" rel="stylesheet" integrity="sha384-NCIOkH1RWTLh0uk0cWmHMJbcBZE8aFTbBNELvTaRgLwGsGIgaacBRlWynjlAt69p" crossorigin="anonymous">
     <script src="https://cdn.jsdelivr.net/npm/summernote@0.9.0/dist/summernote-bs5.min.js" integrity="sha384-MntjVYiMgh4GvBm6NfOuT9XLA242rIvKp/oGBkGnIQeEPoPaMmfJz9BUa86NE8lB" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/summernote@0.9.0/dist/lang/summernote-ja-JP.min.js" integrity="sha384-dr5H23vIH57PWOg07dJsz2IIwIVI9LgOX4QUryaxPVEY/wedSn6L8xPfnQcKA/cf" crossorigin="anonymous"></script>
-    @vite(['resources/js/ajax_upload.js', 'resources/js/wysiwyg_summernote.js'])
+    @vite(['vendor/neobit/core/resources/js/ajax_upload.js', 'vendor/neobit/core/resources/js/wysiwyg_summernote.js'])
 @endpush
 
 @section('content')

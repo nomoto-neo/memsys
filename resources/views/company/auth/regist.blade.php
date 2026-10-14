@@ -25,7 +25,7 @@
 
                     {{-- required属性・is-invalidクラスはここでは書かない。ラベル内の
                          .required-markと、エラー欄(.invalid-feedback)のdata-itemを見て、
-                         resources/js/app.jsが付ける。 --}}
+                         vendor/neobit/core/resources/js/global.jsが付ける。 --}}
 
                     <h2 class="h6 border-bottom pb-2 mb-3">企業の情報</h2>
 

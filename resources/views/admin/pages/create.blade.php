@@ -8,7 +8,7 @@
 --}}
 @push('head-extra')
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    @vite(['resources/js/wysiwyg_suneditor.js'])
+    @vite(['vendor/neobit/core/resources/js/wysiwyg_suneditor.js'])
 @endpush
 
 @section('content')

@@ -4,7 +4,7 @@
 
 @push('head-extra')
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    @vite(['resources/js/passkeys.js'])
+    @vite(['vendor/neobit/core/resources/js/passkeys.js'])
 @endpush
 
 @section('content')

@@ -4,7 +4,7 @@
 
 {{-- 本文を、エディタの中と同じ見た目で表示するためのCSS。layouts/app.blade.phpの@stack('head-extra')に入る --}}
 @push('head-extra')
-    @vite(['resources/css/wysiwyg_suneditor_content.css'])
+    @vite(['vendor/neobit/core/resources/css/wysiwyg_suneditor_content.css'])
 @endpush
 
 @section('content')

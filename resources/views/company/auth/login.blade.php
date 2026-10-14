@@ -53,11 +53,11 @@
     </form>
 
     {{-- パスキーでのログイン。routes/web.phpにcompany.login.passkeyのルートがあるときだけ出す
-         （ボタンの動きはresources/js/passkeys.js。「ログイン状態を保持する」のチェックも一緒に送る） --}}
+         （ボタンの動きはvendor/neobit/core/resources/js/passkeys.js。「ログイン状態を保持する」のチェックも一緒に送る） --}}
     @if (Route::has('company.login.passkey'))
         @push('head-extra')
             <meta name="csrf-token" content="{{ csrf_token() }}">
-            @vite(['resources/js/passkeys.js'])
+            @vite(['vendor/neobit/core/resources/js/passkeys.js'])
         @endpush
         <div class="mt-4 pt-3 border-top passkey_login" hidden
              data-options-url="{{ route('company.login.passkey.options') }}"

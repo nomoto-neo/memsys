@@ -9,7 +9,7 @@ use Illuminate\Support\ViewErrorBag;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * 画面を読み直さずに送るフォーム（クラス名ajax_submitの付いたフォーム。resources/js/app.js）への返事を、
+ * 画面を読み直さずに送るフォーム（クラス名ajax_submitの付いたフォーム。resources/js/global.js）への返事を、
  * JavaScriptが受け取れる形に読み替える。
  *
  * モーダルの中のフォームは、エラーで画面を読み直すとモーダルが閉じてしまい、エラーが見えない。

@@ -3,7 +3,7 @@
 {{-- 顔写真のアップロード欄があるので、CSRFトークンの<meta>とajax_upload.jsを読み込む。 --}}
 @push('head-extra')
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    @vite(['resources/js/ajax_upload.js'])
+    @vite(['vendor/neobit/core/resources/js/ajax_upload.js'])
 @endpush
 
 @section('content')

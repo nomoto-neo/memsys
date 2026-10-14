@@ -14,7 +14,7 @@
 
                     {{-- required属性・is-invalidクラスはここでは書かない。ラベル内の
                          .required-markと、エラー欄(.invalid-feedback)のdata-itemを見て、
-                         resources/js/app.jsが付ける。 --}}
+                         vendor/neobit/core/resources/js/global.jsが付ける。 --}}
 
                     <div class="mb-3">
                         <label for="name" class="form-label">お名前 {!! $required['name'] !!}</label>

@@ -4,7 +4,7 @@
      （admin/news/create.blade.phpと同じ）。 --}}
 @push('head-extra')
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    @vite(['resources/js/ajax_upload.js'])
+    @vite(['vendor/neobit/core/resources/js/ajax_upload.js'])
 @endpush
 
 @section('content')

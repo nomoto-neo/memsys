@@ -54,7 +54,7 @@ Laravel の標準の構成に、次のものを足している（各ディレク
 | `app/Http/Controllers/Admin/`・`Company/` | 管理画面と企業会員の画面のコントローラー。直下は訪問者と個人会員の側 |
 | `app/Enums/`・`code/` | 選択肢の定義。列挙型と、CSV で持つコード表 |
 | `resources/views/` 直下の `_` で始まるビュー | どのコーナーからも使う部分ビュー |
-| `resources/js/` | 画面ごとの JavaScript。足したら `vite.config.js` の一覧にも足す |
+| `resources/js/` | 画面ごとの JavaScript。足したら `vite.config.js` の一覧にも足す。フレームワークのスクリプトと CSS は `packages/neobit/core/resources/` にあり、`vite.config.js` には `vendor/neobit/core/` の下のパスで書く |
 | `resources/mail-templates/` | メールのテンプレート |
 | `docs/` | このプロジェクトの文書（下の「文書」） |
 | `tools/` | 開発の道具。`table2rules.php` は、テーブルの定義からコントローラーとモデルの下書きを書き出す |

@@ -33,12 +33,12 @@
                 </form>
 
                 {{-- パスキーでのログイン。routes/web.phpにadmin.login.passkeyのルートがあるときだけ出す
-                     （ボタンの動きはresources/js/passkeys.js。パスキーで通ったときは、2段階目の
+                     （ボタンの動きはvendor/neobit/core/resources/js/passkeys.js。パスキーで通ったときは、2段階目の
                      TOTPも求めない）。 --}}
                 @if (Route::has('admin.login.passkey'))
                     @push('head-extra')
                         <meta name="csrf-token" content="{{ csrf_token() }}">
-                        @vite(['resources/js/passkeys.js'])
+                        @vite(['vendor/neobit/core/resources/js/passkeys.js'])
                     @endpush
                     <div class="mt-4 pt-3 border-top passkey_login" hidden
                          data-options-url="{{ route('admin.login.passkey.options') }}"

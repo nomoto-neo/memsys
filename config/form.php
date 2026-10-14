@@ -13,7 +13,7 @@ return [
     | 呼び出し側はrequired_mark()（app/helpers.php）を使い、どちらを
     | 使うかは今の画面から自動で決まる。
     |
-    | required-markクラスは消さないこと。resources/js/app.jsの
+    | required-markクラスは消さないこと。vendor/neobit/core/resources/js/global.jsの
     | JavaScriptが、このクラスの付いたマークを目印にして、入力欄に
     | required属性を付けている。
     |

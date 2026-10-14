@@ -27,7 +27,7 @@ return [
     */
 
     // 画像の欄（一覧の画像・顔写真など）と、WYSIWYGの本文に入れる画像の種類。
-    // 変えたら、エディタでファイルを選ぶときの絞り込み（resources/js/wysiwyg_suneditor.js・
+    // 変えたら、エディタでファイルを選ぶときの絞り込み（vendor/neobit/core/resources/js/wysiwyg_suneditor.js・
     // wysiwyg_summernote.jsのACCEPT_IMAGE_TYPES）も合わせる
     // 'image_types' => ['jpg', 'jpeg', 'png', 'webp'],
 

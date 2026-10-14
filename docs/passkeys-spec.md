@@ -163,7 +163,7 @@ TOTPの代わりに2段階目としてだけ使う方法（B案）は採らな�
 | `packages/neobit/core/src/Auth/UserAgentLabel.php` | User-Agentから「Windows・Chrome」のような名前を作る |
 | `packages/neobit/core/src/Models/Passkey.php` | パッケージの `Passkey` モデルを継承し、持ち主を2列で表す |
 | `packages/neobit/core/resources/views/_passkeys.blade.php` | 一覧・本人確認・登録の画面の中身（会員・管理共通） |
-| `resources/js/passkeys.js` | ボタンと `@laravel/passkeys` のつなぎ込み、エラーの文言、削除の確認 |
+| `packages/neobit/core/resources/js/passkeys.js` | ボタンと `@laravel/passkeys` のつなぎ込み、エラーの文言、削除の確認 |
 | `packages/neobit/core/src/Auth/PasswordChange.php` | パスワードを変えたときの後始末（信頼済み端末・パスキーの無効化と、お知らせのメール `member_password_changed`・`staff_password_changed`） |
 
 `Member`・`Staff` の `HasPasskeys`、`passkeys` テーブル、パッケージは、フレームワークの標準構成として常に入れておく。パスキーを使うかどうかは、次の3.2・3.3のとおり、ルートとコントローラーの `use` で切り替える。

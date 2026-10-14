@@ -43,7 +43,7 @@
 | 1 | 設定の既定の値を、パッケージに持たせる | 済み |
 | 1-2 | 設定の写す元を、値をコメントにした見本にする。見本のサイトの設定ファイルも同じ形にする | 済み |
 | 2 | フレームワークが送るメールのテンプレートを、パッケージに持たせる | 済み |
-| 3 | フレームワークの画面を動かす JavaScript と CSS を、パッケージへ移す | 未着手 |
+| 3 | フレームワークの画面を動かす JavaScript と CSS を、パッケージへ移す | 済み |
 | 4 | `CodeTable` が列挙型を探す名前空間（`App\Enums\`）の決め打ちを外す | 済み |
 | 5 | 配布の形を決める | 未着手 |
 | 6 | 文書を、切り離した後の形に合わせる | 未着手 |
@@ -109,26 +109,22 @@
 
 ### 段階3　JavaScript と CSS
 
-フレームワークの画面や部品を動かすスクリプトが、プロジェクトの `resources/js/` にある。
+済み。フレームワークのスクリプトと CSS は、パッケージの `resources/js/`・`resources/css/` にある。
 
-| ファイル | 対応するフレームワークの部品 | 移すか |
-|---|---|---|
-| `ajax_upload.js`・`upload_request.js` | `AjaxFileUpload`・`_ajax_upload_block`・`_ajax_upload_group` | 移す |
-| `passkeys.js` | `PasskeyLogin`・`PasskeyManagement`・`_passkeys` | 移す |
-| `wysiwyg_suneditor.js`・`wysiwyg_summernote.js`・`wysiwyg_suneditor_content.css` | `AjaxFileUpload`・`HtmlSanitizer` | 着手するときに決める |
-| `app.js`・`app.css` | 全画面で使う。フォームの補助など | 着手するときに中身を見て分ける |
-| `sortable.js`・`code_editor.js`・`contact_form.js` | 見本のサイトの画面 | 移さない見込み |
+| パッケージのファイル | 中身 |
+|---|---|
+| `global.js`・`global.css` | 全画面で使うスクリプトと CSS。元はプロジェクトの `app.js`・`app.css`。HTML のソースにフレームワークの名前を出さないよう、`global` にした |
+| `ajax_upload.js`・`upload_request.js` | アップロードの欄 |
+| `passkeys.js` | パスキー |
+| `wysiwyg_suneditor.js`・`wysiwyg_suneditor_content.css`・`wysiwyg_summernote.js` | エディタ。そのまま使える既定の形。変えたいプロジェクトはコピーして直す |
 
-進め方。
-
-- 移すファイルを `packages/neobit/core/resources/js/` に置く
-- プロジェクトの `vite.config.js` の `input` と、画面の `@vite()` に、`vendor/neobit/core/resources/js/passkeys.js` のように書く
-
-確かめること。
-
-- 手元の `vendor/neobit/core` は、`packages/neobit/core` へのジャンクション。Vite がリンクをたどって実体のパス（`packages/…`）でマニフェストに載せると、`@vite('vendor/…')` が見つけられなくなる。移した直後に `npm run build` で確かめる。手元でビルドした `public/build` は、サーバーへは送らない
-- スクリプトが import している npm のパッケージ（`@laravel/passkeys`・`suneditor`・`sortablejs`）は、プロジェクトの `package.json` に書く。パッケージの側にどう書いて伝えるかを決める
-- PDF のフォント（`resources/fonts/ipaex`。`PdfDownload` が `resource_path()` で読む）の置き場所も、ここで決める
+- プロジェクトの `vite.config.js` と画面の `@vite()` には、`vendor/neobit/core/resources/…` のパスで書く
+- `vite.config.js` に `resolve.preserveSymlinks: true` を書く。`vendor/neobit/core` がリンクのとき（memsys の手元とサーバー）、無いとマニフェストに実体のパス（`packages/…`）で載り、`@vite()` が見つけられない。2026-10-14 に試して確かめた
+- `vite.config.js` に `@neobit`（フレームワークのスクリプトの場所）の短い名前を書く。フレームワークのスクリプトは `@neobit/upload_request.js` のように読み込むので、エディタのスクリプトをプロジェクトへコピーしても動く
+- スクリプトが読み込む npm のパッケージ（`@laravel/passkeys`・`suneditor`）は、プロジェクトの `package.json` に書く。利用ガイド17章に表がある
+- 見本のサイトの画面のスクリプト（`sortable.js`・`code_editor.js`・`contact_form.js`）は、プロジェクトに残した
+- PDF のフォント（`resources/fonts/ipaex/`、14MB）は、プロジェクトに残した。無いときは、`PdfDownload` が置き場所を書いた例外にする
+- 利用ガイド7章に、エディタのスクリプトを変えるとき・選ぶときの手順を書いた
 
 ### 段階4　`CodeTable` の名前空間
 

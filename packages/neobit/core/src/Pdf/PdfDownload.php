@@ -9,6 +9,7 @@ use Mpdf\Config\ConfigVariables;
 use Mpdf\Config\FontVariables;
 use Mpdf\Mpdf;
 use Mpdf\Output\Destination;
+use RuntimeException;
 use Symfony\Component\HttpFoundation\HeaderUtils;
 
 /**
@@ -57,7 +58,7 @@ use Symfony\Component\HttpFoundation\HeaderUtils;
 trait PdfDownload
 {
     /**
-     * 同梱の日本語フォントの場所。IPAフォントライセンスで配られているもの。
+     * 日本語フォントの場所。アプリのresources/の下。IPAフォントライセンスで配られているもの。
      * サイト全体で共通にするものなので、コントローラーからは変えない。
      */
     private const PDF_FONT_DIR = 'fonts/ipaex';
@@ -92,6 +93,13 @@ trait PdfDownload
         $tempDir = storage_path(self::PDF_TEMP_DIR);
         File::ensureDirectoryExists($tempDir);
 
+        // フォントはアプリのresources/に置く。PDFを使わないアプリに大きなファイルを持たせないよう、
+        // フレームワークには入れていない。無ければ、置き場所が分かるように止める
+        $fontDir = resource_path(self::PDF_FONT_DIR);
+        if (! is_dir($fontDir)) {
+            throw new RuntimeException("PDFの日本語フォントがありません。{$fontDir} に、IPAexフォント（ipaexg.ttf・ipaexm.ttf）を置いてください。");
+        }
+
         // mPDFの既定の設定に、同梱のフォントを足す
         $defaultFontDirs = (new ConfigVariables())->getDefaults()['fontDir'];
         $defaultFontData = (new FontVariables())->getDefaults()['fontdata'];
@@ -105,7 +113,7 @@ trait PdfDownload
             'format' => $paper,
             'orientation' => $orientation,
             'tempDir' => $tempDir,
-            'fontDir' => [...$defaultFontDirs, resource_path(self::PDF_FONT_DIR)],
+            'fontDir' => [...$defaultFontDirs, $fontDir],
             'fontdata' => $defaultFontData + $fontData,
             'default_font' => self::PDF_DEFAULT_FONT,
         ]);
