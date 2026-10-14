@@ -1,7 +1,13 @@
 #!/bin/bash
-# memsys の各ファイルが最新版かどうかを、最新版にしか無い記述の有無で確かめる。
+# memsys のサーバーへ送ったファイルが最新版かどうかを確かめる。
 # Laravel プロジェクトのルート（artisan のあるディレクトリ）で実行する。
 #   bash check_latest.sh
+#
+# 確かめるのは次の2つ。
+# 1. パッケージ化（共通部品を packages/neobit/core へ移した作業）で消したファイルが、残っていないこと。
+#    古いマイグレーションが残っていると、サーバーの状態によっては migrate で流れて、
+#    フレームワークのマイグレーションとぶつかる
+# 2. 最新の版にしか無い記述があること
 ng=0
 
 has() {  # has ファイル 文字列 … ファイルに文字列が含まれていればOK
@@ -25,89 +31,145 @@ lacks() {  # lacks ファイル 文字列 … ファイルに文字列が含ま�
 }
 
 gone() {  # gone ファイル … ファイル自体が無ければOK（移動・削除したファイル用）
-    if [ -f "$1" ]; then
-        echo "NG  $1（削除し忘れです。移動先の同名ファイルと二重になっています）"; ng=1
-    else
-        echo "OK  $1（無いことを確認）"
+    if [ -e "$1" ]; then
+        echo "NG  $1（削除し忘れです）"; ng=1
     fi
 }
 
-has   app/Support/UploadFilePath.php                     'function tmpUrl('
-has   app/Support/AjaxFileUpload.php                     "defined('self::WYSIWYG_FIELDS')"
-has   app/Support/HtmlSanitizer.php                      "'Attr.DefaultImageAlt', ''"
-has   app/Rules/SameCountAsRule.php                      'class SameCountAsRule'
-has   app/helpers.php                                    'function upload_preview_url('
-has   app/Models/News.php                                'BODY_IMAGE_WIDTH ='
-has   app/Http/Controllers/Admin/NewsController.php      'private const WYSIWYG_FIELDS'
-lacks app/Http/Controllers/Admin/StaffController.php     'submitRoute'
-lacks app/Http/Controllers/Admin/MemberController.php    'submitRoute'
-has   resources/js/upload_request.js                     'export function postUploadFile('
-has   resources/js/ajax_upload.js                        'link.download = data.origin_name;'
-has   resources/js/wysiwyg_suneditor.js                  'function createImageUploader('
-gone  resources/js/wysiwyg_ckeditor.js
-has   resources/js/wysiwyg_summernote.js                 "\$image.attr('alt', data.origin_name)"
-lacks resources/js/app.js                                'ClassicEditor'
-has   resources/views/layouts/admin.blade.php            '.invalid-feedback:not(:empty)'
-gone  resources/views/layouts/_form_support.blade.php
-has   resources/views/layouts/app.blade.php              '.wysiwyg-content img'
-lacks resources/views/_confirm_hidden.blade.php          'textareaFields'
-has   resources/views/admin/news/_fields.blade.php       'class="form-control wysiwyg"'
-has   resources/views/admin/news/create.blade.php        'resources/js/wysiwyg_summernote.js'
-has   resources/views/admin/news/edit.blade.php          'resources/js/wysiwyg_summernote.js'
-has   resources/views/admin/news/confirm.blade.php       "route('admin.news.store')"
-has   resources/views/admin/staff/confirm.blade.php      "route('admin.staff.store')"
-has   resources/views/admin/members/confirm.blade.php    "route('admin.members.update', \$member)"
-has   resources/views/news/show.blade.php                'download="{{ $attachment->original_name }}"'
+gone_dir() {  # gone_dir ディレクトリ … 中にファイルが1つも無ければOK
+    if [ -d "$1" ] && [ -n "$(find "$1" -type f -print -quit)" ]; then
+        echo "NG  $1（中のファイルの削除し忘れです）"; ng=1
+    fi
+}
 
-# _ajax_upload_block.blade.php・_ajax_upload_group.blade.phpは、問い合わせ
-# フォームからも使えるよう、admin/配下からresources/views直下へ移した
-# （_confirm_hidden.blade.phpと同じ理由）。古い場所に残っていると、
-# どちらが読まれているか分かりにくくなるので、両方確認する。
-has    resources/views/_ajax_upload_block.blade.php      'download="{{ $origin }}"'
-has    resources/views/_ajax_upload_group.blade.php      'ajax_add_block'
-gone   resources/views/admin/_ajax_upload_block.blade.php
-gone   resources/views/admin/_ajax_upload_group.blade.php
+# ---- 1. 消したファイルが残っていないこと ----
+# 問題が無いものは、数が多いので1行ずつは出さない
 
-# 問い合わせフォーム（/contact）関連。
-has   app/Http/Controllers/ContactController.php         'class ContactController'
-has   app/Mail/TemplatedMail.php                         'class TemplatedMail'
-has   app/Support/MailTemplateParser.php                 'class MailTemplateParser'
-has   app/Support/MailTemplate.php                       'class MailTemplate'
-has   config/contact.php                                 "'staff_email'"
-has   resources/mail-templates/contact_staff.blade.php   'FROM_MAIL:'
-has   resources/js/contact_form.js                       'setupZipLookup'
-has   resources/views/contact/create.blade.php           'id="contact_submit"'
-has   resources/views/contact/confirm.blade.php          "route('contact.store')"
-has   resources/views/contact/thanks.blade.php           'ホームへ戻る'
-has   resources/views/layouts/app.blade.php              "route('contact.create')"
-has   routes/web.php                                     'contact.ajaxUpload'
+# 共通部品は、ディレクトリごとフレームワークへ移した
+gone_dir app/Support
 
-# 問い合わせメールのHTML/テキスト マルチパート対応（contact_staff_html.blade.php等の
-# 「同名+_htmlサフィックス」の companion ファイルを自動検出する機能）。
-has   app/Support/MailTemplate.php                       'renderHtmlCompanion'
-has   app/Mail/TemplatedMail.php                         "view: 'mail._raw_html'"
-has   resources/views/mail/_raw_html.blade.php           '{!! $htmlBody !!}'
-has   resources/mail-templates/contact_staff_html.blade.php  'white-space: pre-wrap;'
+# フレームワークへ移した、アプリのそのほかのファイル
+for f in \
+    app/Console/Commands/CleanupTemporaryData.php \
+    app/Console/Commands/ReportOperationLogs.php \
+    app/Console/Commands/ResetTwoFactor.php \
+    app/Console/Commands/SetNextId.php \
+    app/Enums/CodeTableEnum.php \
+    app/Enums/CodeType.php \
+    app/Enums/CsvEncoding.php \
+    app/Enums/CsvImportMode.php \
+    app/Enums/LoginIdType.php \
+    app/Enums/OperationLogAction.php \
+    app/Enums/SpamCheckResult.php \
+    app/Enums/TwoFactorMethod.php \
+    app/Http/Controllers/Admin/CodeController.php \
+    app/Http/Controllers/UploadedFileController.php \
+    app/Http/Middleware/AjaxFormResponse.php \
+    app/Http/Middleware/NormalizeInput.php \
+    app/Http/Middleware/RestrictAdminAccess.php \
+    app/Http/Middleware/RestrictSiteAccess.php \
+    app/Http/Middleware/SecurityHeaders.php \
+    app/Mail/TemplatedMail.php \
+    app/Models/Code.php \
+    app/Models/CsvDownloadLog.php \
+    app/Models/CsvImportLog.php \
+    app/Models/OperationLog.php \
+    app/Models/Passkey.php \
+    app/Models/TeamInvitation.php \
+    app/Models/TrustedDevice.php \
+    app/Models/TwoFactorBackupCode.php \
+    app/Models/TwoFactorSecret.php \
+    app/Rules/HiraganaRule.php \
+    app/Rules/KatakanaRule.php \
+    app/Rules/PhoneNumberRule.php \
+    app/Rules/SameCountAsRule.php \
+    app/helpers.php \
+    resources/css/app.css \
+    resources/css/wysiwyg_suneditor_content.css \
+    resources/js/ajax_upload.js \
+    resources/js/app.js \
+    resources/js/code_editor.js \
+    resources/js/passkeys.js \
+    resources/js/upload_request.js \
+    resources/js/wysiwyg_summernote.js \
+    resources/js/wysiwyg_suneditor.js \
+    resources/mail-templates/error_notify.blade.php \
+    resources/mail-templates/operation_log_report.blade.php \
+    resources/views/_ajax_upload_block.blade.php \
+    resources/views/_ajax_upload_group.blade.php \
+    resources/views/_confirm_hidden.blade.php \
+    resources/views/_passkey_suggest.blade.php \
+    resources/views/_passkeys.blade.php \
+    resources/views/_spam_guard.blade.php \
+    resources/views/_two_factor.blade.php \
+    resources/views/_two_factor_backup_code_form.blade.php \
+    resources/views/_two_factor_backup_codes.blade.php \
+    resources/views/_two_factor_manage.blade.php \
+    resources/views/_two_factor_reset.blade.php \
+    resources/views/admin/codes/index.blade.php \
+    resources/views/admin/csv_import/confirm.blade.php \
+    resources/views/admin/csv_import/form.blade.php \
+    resources/views/admin/too_many_requests.blade.php \
+    resources/views/mail/_raw_html.blade.php \
+    resources/views/mail/_raw_text.blade.php \
+    resources/views/maintenance.blade.php
+do
+    gone "$f"
+done
 
-# メールテンプレートの展開エンジンを、独自の{{変数名}}置換からBladeへ
-# 切り替えた（本文中で@if・@foreachなどの制御構文を使えるようにするため）。
-# 拡張子も.txt/.htmlから.blade.phpへ統一したので、古い名前のファイルが
-# 残っていないことも確認する。
-has    app/Support/MailTemplate.php                      'Blade::render('
-gone   resources/mail-templates/contact_staff.txt
-gone   resources/mail-templates/contact_staff.html
+# フレームワークへ集めた、共通のテーブルのマイグレーション
+for f in \
+    database/migrations/2026_09_27_110000_create_trusted_devices_table.php \
+    database/migrations/2026_09_27_110001_create_two_factor_backup_codes_table.php \
+    database/migrations/2026_09_29_100000_create_t_csv_download_logs_table.php \
+    database/migrations/2026_09_30_100000_create_t_csv_import_logs_table.php \
+    database/migrations/2026_10_01_100000_create_passkeys_table.php \
+    database/migrations/2026_10_01_110000_create_t_codes_table.php \
+    database/migrations/2026_10_04_160000_create_t_operation_logs_table.php \
+    database/migrations/2026_10_05_172426_create_t_company_invitations_table.php \
+    database/migrations/2026_10_11_132351_add_totp_to_t_members_and_t_company_users_table.php \
+    database/migrations/2026_10_11_154809_create_two_factor_secrets_table.php \
+    database/migrations/2026_10_11_180000_rename_log_tables.php \
+    database/migrations/2026_10_12_100000_store_operation_log_detail_as_unicode.php \
+    database/migrations/2026_10_12_110000_rename_company_invitations_to_team_invitations.php \
+    database/migrations/2026_10_12_120000_add_inviter_to_team_invitations_table.php
+do
+    gone "$f"
+done
 
-# /contactのセキュリティ強化（スロットル・confirm_token・二重送信防止）。
-has   routes/web.php                                     "throttle:5,1"
-has   app/Http/Controllers/ContactController.php         'CONFIRM_TOKEN_SESSION_KEY'
-has   app/Http/Controllers/ContactController.php         'hash_equals('
-has   resources/views/contact/confirm.blade.php          'name="confirm_token"'
-has   resources/views/contact/confirm.blade.php          'data-guard-double-submit'
-has   resources/js/contact_form.js                       'setupSubmitOnceGuard'
+echo "--  消したファイルの確認を終えました（NG が無ければ、残っていません）"
+
+# ---- 2. 最新の版であること ----
+
+# フレームワーク。composer install が済み、vendor/ の下にリンクができていること
+has   vendor/neobit/core/composer.json                                  '"name": "neobit/core"'
+has   packages/neobit/core/src/Mail/MailTemplate.php                    'private static function locate('
+has   packages/neobit/core/src/NeobitServiceProvider.php                'neobit-mail-templates'
+has   packages/neobit/core/src/Code/CodeTable.php                       "config('neobit.code_tables'"
+has   packages/neobit/core/src/Http/Controllers/CodeTableController.php 'class CodeTableController'
+has   packages/neobit/core/config/neobit.php                            "'code_table_enum_namespaces'"
+has   packages/neobit/core/stubs/config/neobit.php                      "// 'code_tables'"
+has   packages/neobit/core/resources/mail-templates/verification_code.blade.php '【{!! $site_name !!}】'
+has   packages/neobit/core/resources/js/global.js                       'ajax_submit'
+has   packages/neobit/core/resources/css/global.css                     '.invalid-feedback:not(:empty)'
+has   packages/neobit/core/database/migrations/2026_10_13_000000_create_neobit_core_tables.php 'OLD_CODE_TABLE'
+
+# アプリ
+has   vite.config.js                                                    'preserveSymlinks: true'
+has   resources/views/layouts/admin.blade.php                           'vendor/neobit/core/resources/css/global.css'
+has   resources/views/layouts/app.blade.php                             'vendor/neobit/core/resources/css/global.css'
+has   resources/views/layouts/company.blade.php                         'vendor/neobit/core/resources/css/global.css'
+has   config/neobit.php                                                 "'code_tables' => ["
+lacks config/app.php                                                    'admin_requests_per_minute'
+lacks config/logging.php                                                'operation_report_thresholds'
+has   resources/mail-templates/member_verification_code.blade.php       '【{!! $site_name !!}】'
+has   routes/web.php                                                    'CodeTableController'
+has   app/Http/Controllers/ContactController.php                        'catch (MailTemplateException'
 
 echo
 if [ $ng -eq 0 ]; then
     echo 'すべて最新版です。'
 else
-    echo 'NG のファイルを、この zip の中の同じパスのファイルで置き換えてください。'
+    echo '「ファイルがありません」「古い版です」の NG は、そのファイルを送り直してください。'
+    echo '「削除し忘れです」の NG は、サーバーからそのファイルを消してください。'
 fi
