@@ -317,7 +317,7 @@ class NewsController extends Controller
 - **データ項目の仕様はモデルの定数に持つ**：画像の横幅のように、どの画面から登録しても変わらない仕様はモデルの定数にし、コントローラーや画面はそれを参照します（例：`News::LIST_IMAGE_WIDTH`）。
 - **選択肢のように決まった種類の値は列挙型にする**：`app/Enums/`。区分表として一覧を使うときは、出どころに関係なく `code_table()` 系のヘルパーを通します（8章）。
 - **テンプレートは細かく部品化しない**：デザイナーが触れる HTML のまま保ちます。コーナーの入力欄は `_fields.blade.php` 1つにまとめ、4つの画面から呼びます（5章）。Blade にコントローラー名は書きません。
-- **設定の既定の値は、フレームワークが持つ**：`neobit`・`upload`・`cleanup` の設定は、`packages/neobit/core/config/` に既定の値があります。アプリの `config/` に同じ名前のファイルで書いたキーが、それに優先します。優先するのは、いちばん上の階層のキーごとです。配列の値（`upload.image_types`・`neobit.operation_report_thresholds` など）は、アプリが書くと丸ごと置き換わるので、変えない要素も全部書きます。`php artisan vendor:publish --tag=neobit-config` で、既定の値のファイルを `config/` へ写せます。
+- **設定の既定の値は、フレームワークが持つ**：`neobit`・`upload`・`cleanup` の設定は、`packages/neobit/core/config/` に既定の値があります。アプリの `config/` に同じ名前のファイルで書いたキーが、それに優先します。優先するのは、いちばん上の階層のキーごとです。配列の値（`upload.image_types`・`neobit.operation_report_thresholds` など）は、アプリが書くと丸ごと置き換わるので、変えない要素も全部書きます。アプリの設定ファイルでは、既定と同じ値は頭に `//` を付けて見本として残し、変える値だけ `//` を外して書き換えます。生きている行が、そのプロジェクトで変えた値です。`php artisan vendor:publish --tag=neobit-config` で、全部の値に `//` を付けた見本（`packages/neobit/core/stubs/config/`）を `config/` へ写せます。既定の値を変えたり足したりしたら、見本も合わせます。合っているかは、テスト（`ConfigStubTest`）が確かめます。
 - **Blade のコメントは `{{-- --}}` で書く**：`<style>` や `<script>` の中でも同じです。`/* */`・`//`・`<!-- -->` は HTML のソースに出て、訪問者に見えるので使いません。
 - **コメント**：今のコードが何をしていて、なぜそうなっているかだけを書きます。試行錯誤の経緯は書きません。書き方は 1-5 にまとめてあります。
 

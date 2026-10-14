@@ -14,7 +14,10 @@ use Neobit\Core\Console\SetNextId;
  */
 class NeobitServiceProvider extends ServiceProvider
 {
-    /** 既定値を持つ設定の名前。config/ の同じ名前のファイルが既定値になる */
+    /**
+     * 既定値を持つ設定の名前。config/ の同じ名前のファイルが既定値になる。
+     * stubs/config/ の同じ名前のファイルが、アプリへ写す見本になる。
+     */
     private const CONFIG_NAMES = [
         'neobit',
         'upload',
@@ -45,10 +48,11 @@ class NeobitServiceProvider extends ServiceProvider
         $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
 
         if ($this->app->runningInConsole()) {
-            // 設定の既定値を、アプリの config/ へ写す（php artisan vendor:publish --tag=neobit-config）
+            // 設定の見本を、アプリの config/ へ写す（php artisan vendor:publish --tag=neobit-config）。
+            // 写す元は stubs/config/ で、既定値と同じ値に // を付けてある
             $this->publishes(
                 array_combine(
-                    array_map(fn (string $name) => __DIR__."/../config/{$name}.php", self::CONFIG_NAMES),
+                    array_map(fn (string $name) => __DIR__."/../stubs/config/{$name}.php", self::CONFIG_NAMES),
                     array_map(fn (string $name) => config_path("{$name}.php"), self::CONFIG_NAMES),
                 ),
                 'neobit-config',

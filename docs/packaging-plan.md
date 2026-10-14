@@ -17,6 +17,7 @@
 | 対象 | 方針 |
 |---|---|
 | 設定の値 | パッケージの側に既定の値を持たせる。プロジェクトは Laravel の仕組みで上書きする |
+| プロジェクトの設定ファイル | 既定と同じ値は、頭に `//` を付けて見本として見せる。変えた値だけが生きた行になる。パッケージは、既定の値（`config/`）とは別に、値をコメントにした写す元（`stubs/config/`）を持つ |
 | メールのテンプレート | 設定と同じ。パッケージの側に既定のテンプレートを持たせ、プロジェクトが上書きする |
 | JavaScript・CSS など | パッケージの中に置く。プロジェクトの `vite.config.js` に、`vendor/neobit/` から始まるパスを直接書く |
 
@@ -40,6 +41,7 @@
 | 段階 | 中身 | 状態 |
 |---|---|---|
 | 1 | 設定の既定の値を、パッケージに持たせる | 済み |
+| 1-2 | 設定の写す元を、値をコメントにした見本にする。見本のサイトの設定ファイルも同じ形にする | 済み |
 | 2 | フレームワークが送るメールのテンプレートを、パッケージに持たせる | 未着手 |
 | 3 | フレームワークの画面を動かす JavaScript と CSS を、パッケージへ移す | 未着手 |
 | 4 | `CodeTable` が列挙型を探す名前空間（`App\Enums\`）の決め打ちを外す | 未着手 |
@@ -64,11 +66,25 @@
 - 管理画面の回数の制限と、操作ログの報告の設定は、`config/app.php`・`config/logging.php` から `neobit.*` へ移した。フレームワークだけが読む値で、Laravel 自身の設定ファイルに間借りしたままだと、パッケージが既定の値を持てないため
 - `app.site_name`・`services.turnstile.*`・`login.*` は動かしていない。`site_name` はプロジェクトの画面も読み、`turnstile` は Laravel の習わしどおりの場所にあり、`login` は種類の名前がプロジェクトごとに違う。どれも、無ければ空として動く
 - 期限の切れた招待の片付けは、`TemporaryDataCleaner` が自分で呼ぶ。プロジェクトの `cleanup.tasks` には、業務のデータの片付けだけを書く
-- `php artisan vendor:publish --tag=neobit-config` で、既定の値のファイルをプロジェクトの `config/` へ写せる
+- `php artisan vendor:publish --tag=neobit-config` で、設定の見本をプロジェクトの `config/` へ写せる。写す元は段階1-2
 
 後の段階でも気を付けること。
 
 - `mergeConfigFrom()` が混ぜるのは、いちばん上の階層のキーだけ。配列の値（`upload.image_types`、`cleanup.tasks`、`neobit.operation_report_thresholds`）は、プロジェクトが書くと丸ごと置き換わる。中の1つだけを変えるつもりで一部だけ書くと、残りが消える
+
+### 段階1-2　設定の写す元
+
+済み。2026-10-14 に決めた形。
+
+| 役割 | 置き場所 | 中身 | 使われ方 |
+|---|---|---|---|
+| 既定の値 | パッケージの `config/upload.php` など | 値が生きている | `mergeConfigFrom()` が読む |
+| 写す元 | パッケージの `stubs/config/upload.php` など | 値に `//` を付けた見本 | `vendor:publish --tag=neobit-config` がプロジェクトの `config/` へ写す |
+
+- 見本のサイトの `config/upload.php`・`config/cleanup.php`・`config/neobit.php` も、既定と同じ値をコメントにしてある
+- 既定の値と写す元は別のファイルなので、ずれる。写す元の `//` を外した結果が既定の値と一致することを、テスト（`ConfigStubTest`）で確かめている
+- `neobit` の設定のキーは、全部に既定の値がある。`db_code_types`・`code_table_merge` は空の配列、`operation_log_actions` はフレームワークの操作の種類だけ、`operation_log_route` は `null`
+- 写す元では、値の行を「`//` の後ろが `'`・`[`・`]`・`\` で始まる行」と決めている。テストがこの決まりで `//` を外すので、説明のコメントをこれらの文字で始めない
 
 ### 段階2　メールのテンプレート
 

@@ -1,5 +1,11 @@
 <?php
 
+/**
+ * ネオビットフレームワークの設定。頭に // を付けた行は、フレームワークの既定の値の見本。
+ * 変える値だけ、// を外して書き換える。配列の値は丸ごと置き換わるので、変えない要素も
+ * 一緒に // を外す。
+ */
+
 use App\Enums\AppOperationLogAction;
 use App\Enums\CodeType;
 use Neobit\Core\Enums\OperationLogAction;
@@ -17,7 +23,9 @@ return [
     | レイアウト
     |--------------------------------------------------------------------
     |
-    | フレームワークの画面（CSV取り込み、2段階認証など）が継承する、このサイトのレイアウト。
+    | フレームワークの画面（CSV取り込み、2段階認証など）が継承するレイアウト。
+    | レイアウトは、セクション title・content（必須）・content-width と、
+    | スタック head-extra・scripts を持つ。
     |
     */
 
@@ -53,24 +61,53 @@ return [
     |
     */
 
-    // 操作の種類（operation_logs.action）にする列挙型。Neobit\Core\Enums\OperationLogActionTypeを実装する
+    // 操作の種類（operation_logs.action）にする列挙型。Neobit\Core\Enums\OperationLogActionTypeを実装する。
+    // サイトの操作を足すときは、フレームワークの列挙型の後ろに並べる
     'operation_log_actions' => $operationLogActions,
 
-    // 操作ログの画面のルート名。日々の報告のメールに、この画面のURLを載せる
+    // 操作ログの画面のルート名。日々の報告のメールに、この画面のURLを載せる。nullなら載せない
     'operation_log_route' => 'admin.operation-logs.index',
 
-    // 操作ログの報告のメール（Neobit\Core\Operations\OperationLogReport）で、「気になる点」として
-    // 挙げる目安の数。これ以上なら挙げる。サイトの規模（スタッフや会員の数、1日の操作の量）に
-    // 合わせて、プロジェクトごとに決める。0にすると、その項目は見ない。
-    // 宛先は.envのOPERATION_REPORT_TO。エラーの通知（ERROR_NOTIFY_TO）は開発者、こちらは管理者と、
-    // 読む人が違うので分けている
-    'operation_report_thresholds' => [
-        // 1人が、1時間に開いた詳細の件数
-        'views_per_hour' => 50,
-        // 1人が、1日にCSVをダウンロードした回数
-        'csv_downloads_per_day' => 5,
-        // 1日のログインの失敗の件数
-        'login_failures_per_day' => 10,
-    ],
+    /*
+    |--------------------------------------------------------------------
+    | 管理画面の回数の制限
+    |--------------------------------------------------------------------
+    |
+    | ログイン後の管理画面の全体に掛ける、回数の制限（Neobit\Core\Security\AdminRequestLimit）。
+    |
+    */
+
+    // 1人のスタッフが1分に送れる回数。超えた回は処理せず、操作ログとwarningのログに残す。
+    // 人が普通に使って届かない数にする
+    // 'admin_requests_per_minute' => 120,
+
+    // 上の回数を超えたときに出す、案内の文。画面と、アップロードのようなJavaScriptからの送信に
+    // 返すJSONの両方に、この文をそのまま出す。タグは書けない
+    // 'admin_requests_exceeded_message' => '操作の回数が上限を超えました。1分ほど待ってから、もう一度お試しください。',
+
+    /*
+    |--------------------------------------------------------------------
+    | 操作ログの報告
+    |--------------------------------------------------------------------
+    |
+    | 1日1回の、操作ログの報告のメール（Neobit\Core\Operations\OperationLogReport）。
+    |
+    */
+
+    // 報告のメールの宛先。カンマ区切りで複数書ける。空なら送らない。
+    // エラーの通知（ERROR_NOTIFY_TO）は開発者、こちらは管理者と、読む人が違うので分けている
+    // 'operation_report_to' => (string) env('OPERATION_REPORT_TO', ''),
+
+    // 報告のメールで、「気になる点」として挙げる目安の数。これ以上なら挙げる。
+    // サイトの規模（スタッフや会員の数、1日の操作の量）に合わせて、プロジェクトごとに決める。
+    // 0にすると、その項目は見ない
+    // 'operation_report_thresholds' => [
+    //     // 1人が、1時間に開いた詳細の件数
+    //     'views_per_hour' => 50,
+    //     // 1人が、1日にCSVをダウンロードした回数
+    //     'csv_downloads_per_day' => 5,
+    //     // 1日のログインの失敗の件数
+    //     'login_failures_per_day' => 10,
+    // ],
 
 ];

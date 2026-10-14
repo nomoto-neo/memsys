@@ -1,5 +1,7 @@
 <?php
 
+use Neobit\Core\Enums\OperationLogAction;
+
 return [
 
     /*
@@ -19,6 +21,38 @@ return [
         'admin' => 'neobit::layouts.plain',
         'app' => 'neobit::layouts.plain',
     ],
+
+    /*
+    |--------------------------------------------------------------------
+    | コード表
+    |--------------------------------------------------------------------
+    |
+    | コード表の読み込み（Neobit\Core\Code\CodeTable）に渡す、プロジェクトの設定。
+    |
+    */
+
+    // DBのコード表（code_tables）のコード名の一覧。ここに載せた名前は、DBから読む
+    'db_code_types' => [],
+
+    // 複数の列挙型を1つにまとめるコード表。コード名 => 列挙型の一覧
+    'code_table_merge' => [],
+
+    /*
+    |--------------------------------------------------------------------
+    | 操作ログ
+    |--------------------------------------------------------------------
+    |
+    | 操作ログ（Neobit\Core\Models\OperationLog）に渡す、プロジェクトの設定。
+    |
+    */
+
+    // 操作の種類（operation_logs.action）にする列挙型。Neobit\Core\Enums\OperationLogActionTypeを実装する
+    'operation_log_actions' => [
+        OperationLogAction::class,
+    ],
+
+    // 操作ログの画面のルート名。日々の報告のメールに、この画面のURLを載せる。nullなら載せない
+    'operation_log_route' => null,
 
     /*
     |--------------------------------------------------------------------

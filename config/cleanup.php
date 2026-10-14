@@ -1,5 +1,11 @@
 <?php
 
+/**
+ * 一時データの後片付けの設定。頭に // を付けた行は、フレームワークの既定の値の見本。
+ * 変える値だけ、// を外して書き換える。配列の値は丸ごと置き換わるので、変えない要素も
+ * 一緒に // を外す。
+ */
+
 use App\Services\InquiryCleanup;
 
 return [
@@ -16,12 +22,12 @@ return [
     */
 
     // 操作ログ（operation_logs。Neobit\Core\Operations\OperationRecorder）を残す日数
-    'operation_log_days' => 365,
+    // 'operation_log_days' => 365,
 
     // 試し直しても送れなかったキューのジョブ（failed_jobs）を残す日数。この間なら、
     // php artisan queue:retry all で送り直せる。一斉メールのジョブには宛先の氏名と
     // メールアドレスが入っているので、残し続けない
-    'failed_job_days' => 7,
+    // 'failed_job_days' => 7,
 
     // プロジェクトの片付け。フレームワークの片付けの後に呼ばれる。名前 => 片付けの内容。
     // 名前は、片付けのコマンドの表とログに出る。
