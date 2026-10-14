@@ -20,7 +20,7 @@ use Neobit\Core\Models\Code;
  *    書いた順に探し、無ければフレームワークのNeobit\Core\Enums\を探す
  * 2. CSV：code/<コード名>.csv。都道府県のように選択肢として並べるだけのもの。
  *    ファイルを直すだけで項目を増やせる
- * 3. DB：config('neobit.db_code_types')にあるコード名なら、code_tablesテーブルを表示順に読む。CSVと同じく
+ * 3. DB：config('neobit.code_tables')に載せたコード名なら、code_tablesテーブルを表示順に読む。CSVと同じく
  *    並べるだけのもので、管理画面の項目見出し一覧から書き換えられる。値と名称の扱いはCSVと同じ
  *
  * 複数の列挙型を1つに合わせたいコード表（フレームワークの操作とサイトの操作を合わせた、操作ログの
@@ -109,12 +109,12 @@ class CodeTable
             }
         }
         $path = base_path(self::DIRECTORY.'/'.$codeName.'.csv');
-        $isDb = in_array($codeName, config('neobit.db_code_types', []), true);
+        $isDb = array_key_exists($codeName, (array) config('neobit.code_tables', []));
 
         $sources = array_keys(array_filter([
             "列挙型（{$enumClass}）" => $isEnum,
             "CSV（{$path}）" => is_file($path),
-            'DB（neobit.db_code_types）' => $isDb,
+            'DB（neobit.code_tables）' => $isDb,
         ]));
 
         if (count($sources) > 1) {

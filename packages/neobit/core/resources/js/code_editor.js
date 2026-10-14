@@ -1,5 +1,5 @@
 /*
- * 項目見出し一覧（admin/codes/index）の画面の動き。@push('head-extra')で読み込む。
+ * 項目見出し一覧（resources/views/admin/code_tables/index.blade.php）の画面の動き。@push('head-extra')で読み込む。
  *
  * 1. 行のドラッグでの並び替え（SortableJS。⠿の部分をつかんだときだけ動く）
  * 2. 「追加」で空の行を1行足す。コード値の欄には、画面に出ているコード値が

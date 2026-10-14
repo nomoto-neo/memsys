@@ -17,10 +17,10 @@ export default defineConfig({
                 `${NEOBIT}/js/wysiwyg_suneditor.js`,
                 `${NEOBIT}/css/wysiwyg_suneditor_content.css`,
                 `${NEOBIT}/js/wysiwyg_summernote.js`,
+                `${NEOBIT}/js/code_editor.js`,
                 // このサイトのもの
                 'resources/js/sortable.js',
                 'resources/js/contact_form.js',
-                'resources/js/code_editor.js',
             ],
             refresh: true,
         }),

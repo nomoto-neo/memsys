@@ -4,7 +4,6 @@ use App\Http\Controllers\Admin\AuthSessionController as AdminSessionController;
 use App\Http\Controllers\Admin\BulkMailController as AdminBulkMailController;
 use App\Http\Controllers\Admin\BulkMailTemplateController as AdminBulkMailTemplateController;
 use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
-use App\Http\Controllers\Admin\CodeController as AdminCodeController;
 use App\Http\Controllers\Admin\CompanyController as AdminCompanyController;
 use App\Http\Controllers\Admin\CompanyUserController as AdminCompanyUserController;
 use App\Http\Controllers\Admin\MemberController as AdminMemberController;
@@ -34,6 +33,7 @@ use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\TopController;
 use App\Models\Page;
 use Illuminate\Support\Facades\Route;
+use Neobit\Core\Http\Controllers\CodeTableController;
 
 // 静的なページを表示する場合
 //Route::view('/', 'welcome');
@@ -514,9 +514,10 @@ Route::prefix('admin')->name('admin.')->middleware('admin.ip')->group(function (
 
         // 項目見出し管理
         Route::middleware('acl.manager')->group(function () {
-            // 項目見出し一覧（DBで管理するコード表 code_tables の編集）
-            Route::get('/codes', [AdminCodeController::class, 'index'])->name('codes.index');
-            Route::patch('/codes', [AdminCodeController::class, 'update'])->name('codes.update');
+            // 項目見出し一覧（DBで管理するコード表 code_tables の編集。フレームワークの画面）。
+            // 名前は「頭.index」「頭.update」の組にする。コントローラーが組のもう一方を名前から作る
+            Route::get('/codes', [CodeTableController::class, 'index'])->name('codes.index');
+            Route::patch('/codes', [CodeTableController::class, 'update'])->name('codes.update');
 
             // 一斉メールの文面の管理
             Route::get('/bulk-mail-templates', [AdminBulkMailTemplateController::class, 'index'])->name('bulk-mail-templates.index');

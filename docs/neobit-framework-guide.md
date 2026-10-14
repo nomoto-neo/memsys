@@ -63,7 +63,7 @@
 | 管理画面：企業会員（`Admin\CompanyController`・`Admin\CompanyUserController`） | 一覧・検索、詳細・編集・確認画面、CSVダウンロード、列挙型の状態をボタンで変える操作（承認・却下・停止・再開）と、その操作ログ、お知らせのメール、企業の詳細から入る担当者の確認・編集・削除（親の id を URL に持つコーナー） |
 | 管理画面：スタッフ（`Admin\StaffController`） | 一覧・検索、登録・編集、論理削除と取り消し、権限（Policy）、列挙型、パスワード |
 | 管理画面：カテゴリー（`Admin\CategoryController`） | 確認画面なしの登録・編集、並び替え、ページ分けしない一覧 |
-| 管理画面：項目見出し一覧（`Admin\CodeController`） | DBで管理する区分表の編集（複数行をまとめて保存、行の追加・削除・並び替え） |
+| 管理画面：項目見出し一覧（フレームワークの `CodeTableController`） | DBで管理する区分表の編集（複数行をまとめて保存、行の追加・削除・並び替え） |
 | 管理画面：一斉メール（`Admin\BulkMailController`・`Admin\BulkMailTemplateController`・`app/Jobs/SendBulkMail.php`・`app/Services/MailUnsubscribe.php`） | キュー（宛先の数だけのジョブを1つのバッチにして積む、送る速さの制限、進み具合の表示）、宛先の CSV の読み込みと検証（`CsvReader`）、氏名の差し込み、添付ファイル、配信停止（21章） |
 | 管理画面：操作ログ（`Admin\OperationLogController`） | 登録・編集・削除の無い、見るだけの一覧。検索（日付の範囲・補足の中の語など、列と直接比べられない条件）、件数の棒グラフと、棒を押しての絞り込み、CSVダウンロード（22章） |
 
@@ -200,7 +200,7 @@ GRANT ALL PRIVILEGES ON memsys_testing.* TO 'memsys'@'localhost';
 
 | | 最低バージョン | 根拠の代表例 |
 |---|---|---|
-| PHP | 8.3 | Laravel 13 本体が PHP 8.3 以上を要求する（`laravel/framework` の composer.json が `"php": "^8.3"`）。フレームワーク自身のコードで使っている一番新しい書き方は、列挙型の定数のキーに case の値を使う `self::Gender->value => [...]`（PHP 8.2 から。`CodeType::SETTINGS`・`StaffAcl::LABELS`） |
+| PHP | 8.3 | Laravel 13 本体が PHP 8.3 以上を要求する（`laravel/framework` の composer.json が `"php": "^8.3"`）。フレームワーク自身のコードで使っている一番新しい書き方は、列挙型の定数のキーに case の値を使う `self::Gender->value => [...]`（PHP 8.2 から。`StaffAcl::LABELS`） |
 | Laravel | 13 | 見本のサイト（memsys）の composer.json が `"laravel/framework": "^13.17"` で、この版で開発・動作確認している。フレームワークのコードで使っている機能の一番新しいものは、モデルのスコープを属性で書く `#[Scope]`（Laravel 12 から。`News::visible()`） |
 
 - PHP の最低バージョンは、フレームワーク自身の書き方ではなく、Laravel 13 の要求で決まっています。
@@ -220,6 +220,7 @@ GRANT ALL PRIVILEGES ON memsys_testing.* TO 'memsys'@'localhost';
 | `AjaxFileUpload` | `packages/neobit/core/src/Upload/` | 画像・添付ファイルの Ajax アップロード、WYSIWYG の画像 | 7 |
 | `UploadFilePath` | `packages/neobit/core/src/Upload/` | アップロードしたファイルの保存先と URL の規則（公開・非公開・一時ファイル） | 7 |
 | `UploadedFileController` | `packages/neobit/core/src/Http/Controllers/` | ログインした人だけが見られるファイルと、一時ファイルを返す | 7 |
+| `CodeTableController` | `packages/neobit/core/src/Http/Controllers/` | 管理画面の項目見出し一覧。DB で管理するコード表をまとめて書き換える | 8 |
 | `PdfDownload` | `packages/neobit/core/src/Pdf/` | Blade のテンプレートから PDF を作って返す（mPDF、同梱の IPAex フォント） | 18 |
 | `HtmlSanitizer`（`safe_html()`） | `packages/neobit/core/src/Upload/` | WYSIWYG の HTML の無害化 | 7 |
 | `CodeTable`（`code_table()` など） | `packages/neobit/core/src/Code/`・`packages/neobit/core/src/helpers.php` | 区分表（列挙型・CSV・DB） | 8 |
@@ -833,7 +834,7 @@ public function viewFiles(Member|Staff|null $user, News $news, string $field): b
 
 <p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
 
-**ファイル**：`packages/neobit/core/src/Code/CodeTable.php`・`packages/neobit/core/src/helpers.php`・`app/Enums/`・`code/*.csv`・`App\Enums\CodeType`・`code_tables`（`Admin\CodeController`）
+**ファイル**：`packages/neobit/core/src/Code/CodeTable.php`・`packages/neobit/core/src/helpers.php`・`app/Enums/`・`code/*.csv`・`config/neobit.php` の `code_tables`・`packages/neobit/core/src/Http/Controllers/CodeTableController.php`（項目見出し一覧）
 
 区分表（値と名称の組）は、出どころに関係なく次のヘルパーで使います。
 
@@ -849,9 +850,27 @@ public function viewFiles(Member|Staff|null $user, News $news, string $field): b
 
 - **列挙型**（`App\Enums\<コード名の StudlyCase>`、`CodeTableEnum` を実装し `label()` を持つ）：プログラムが値によって動きを変えるもの（スタッフの権限 `StaffAcl` など）。モデルの `$casts` や判定では列挙型を直接使います。列挙型を探す名前空間は、`config/neobit.php` の `code_table_enum_namespaces` に書きます。既定は `App\Enums\` で、書いた順に探します。フレームワークの列挙型（`Neobit\Core\Enums\`）は、書かなくても最後に探します。
 - **CSV**（`code/<コード名>.csv`、「値,名称」を1行1件、`#` はコメント）：選択肢として並べるだけのもの（都道府県など）。
-- **DB**（`code_tables`。コード名を `App\Enums\CodeType` に載せる）：CSVと同じ扱いのもの（性別・連絡方法など）を、管理画面の「項目見出し一覧」から書き換えたいとき。値・名称の扱い（数字だけの値は int、名称の `\n` は改行）も CSV と同じです。
+- **DB**（`code_tables` テーブル。コード名を `config/neobit.php` の `code_tables` に載せる）：CSVと同じ扱いのもの（性別・連絡方法など）を、管理画面の「項目見出し一覧」から書き換えたいとき。値・名称の扱い（数字だけの値は int、名称の `\n` は改行）も CSV と同じです。
 
-DBのコード表を増やすときは、`CodeType` に `case` と `label()` を足し、必要なら `CodeSeeder` に初期データを書きます。プルダウンは `code_table('code_type')` です。プログラムが特定のコード値を前提に処理するコード表は、`CodeType::isFixed()` で true を返します。そのコード表は、画面で並び替えと表示名の変更だけができ、コード値の変更・追加・削除はできません（サーバー側でも断ります）。
+DBのコード表を増やすときは、`config/neobit.php` の `code_tables` に1行足し、必要なら `CodeSeeder` に初期データを書きます。
+
+```php
+// config/neobit.php
+'code_tables' => [
+    'gender' => ['label' => '性別', 'fixed' => true],          // label：項目見出し一覧に出す名前
+    'contact' => ['label' => '連絡方法', 'fixed' => false],
+],
+```
+
+プログラムが特定のコード値を前提に処理するコード表は、`fixed` を true にします。そのコード表は、画面で並び替えと表示名の変更だけができ、コード値の変更・追加・削除はできません（サーバー側でも断ります）。
+
+項目見出し一覧の画面は、フレームワークにあります（`CodeTableController`・`neobit::admin.code_tables.index`・`code_editor.js`）。ルートはアプリが書きます。管理者だけが入れるグループの中に、「頭.index」（GET）と「頭.update」（PATCH）の組で名前を付けます。コントローラーは、呼ばれたルートの名前から組のもう一方を作るので、頭（見本のサイトでは `admin.codes`）はアプリが決めてかまいません。
+
+```php
+// routes/web.php（管理者だけのグループの中）
+Route::get('/codes', [CodeTableController::class, 'index'])->name('codes.index');
+Route::patch('/codes', [CodeTableController::class, 'update'])->name('codes.update');
+```
 
 列挙型の値ごとの名前や設定は、`match` でメソッドの中に書かず、冒頭の定数に1行ずつまとめ、メソッドはそれを引くだけにします。キーは `case` の値を参照します（PHP 8.2から使える書き方）。
 
