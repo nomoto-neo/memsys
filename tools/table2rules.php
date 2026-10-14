@@ -2,7 +2,7 @@
 
 /**
  * DBのテーブルの定義を読んで、そのテーブルを管理する画面の下書きを書き出すツール。
- * 書き出すのは、コントローラーのrules()・saveFieldNames()・inputFromModel()と、
+ * 書き出すのは、コントローラーのrules()・saveValues()・inputFromModel()と、
  * モデルの$fillable・$casts。列の型や桁数を、人が目で見て書き写す手間を減らすためのもの。
  * 冒頭には、テーブルのCREATE文も参考として書き出す。TODOを直すときに、列の定義を見比べるため。
  *
@@ -46,7 +46,7 @@ const SKIP_COLUMNS = ['id', 'created_at', 'updated_at', 'deleted_at', 'remember_
 
 // rules()には書かず、理由のコメントだけを書く列。列の名前 => コメント
 const NOTE_COLUMNS = [
-    'staff_id' => '最後に更新したスタッフのid。入力させず、additionalFields()で入れる',
+    'staff_id' => '最後に更新したスタッフのid。入力させず、saveValues()で入れる',
     'legacy_password' => '既存のシステムから移した古い方式のパスワード。画面からは入力させない',
 ];
 
@@ -159,7 +159,7 @@ const NAME_RULES = [
         'types' => STRING_TYPES,
         'add' => ["'min:8'", "'confirmed'"],
         'remove' => ["'max:{length}'"],
-        'note' => 'パスワードと推測。保存はsaveFieldNames()に書かず、additionalFields()でハッシュ値にする',
+        'note' => 'パスワードと推測。保存はsaveValues()でハッシュ値にする',
     ],
     '/_id$/' => [
         'types' => ['tinyint', 'smallint', 'mediumint', 'int', 'bigint', 'decimal'],
@@ -533,8 +533,8 @@ final class TableDraft
             $this->renderCreateTable(),
             $this->renderUses(),
             $this->renderRules(),
-            $this->renderSaveFieldNames(),
             $this->renderInputFromModel(),
+            $this->renderSaveValues(),
             $this->renderFillable(),
             $this->renderCasts(),
         ];
@@ -587,7 +587,14 @@ final class TableDraft
             "use App\\Models\\{$this->model};",
         ];
 
+        // saveValues()で使うもの。最後に更新したスタッフのidと、パスワードのハッシュ値
         $uses = array_keys($this->uses);
+        if (isset($this->columns['staff_id'])) {
+            $uses[] = 'Illuminate\Support\Facades\Auth';
+        }
+        if ($this->passwordColumns() !== []) {
+            $uses[] = 'Illuminate\Support\Facades\Hash';
+        }
         sort($uses);
         foreach ($uses as $use) {
             $lines[] = "use {$use};";
@@ -655,20 +662,63 @@ final class TableDraft
         ));
     }
 
-    private function renderSaveFieldNames(): string
+    /** rules()に書いた、パスワードの列の名前 */
+    private function passwordColumns(): array
+    {
+        return array_keys(array_filter(
+            $this->columns,
+            fn ($info, $name) => $info['rules'] !== null && preg_match('/(^|_)password$/', $name),
+            ARRAY_FILTER_USE_BOTH,
+        ));
+    }
+
+    /** 入力値をそのまま保存する列と、加工して保存する列（最後に更新したスタッフのid・パスワード）を書く */
+    private function renderSaveValues(): string
     {
         $names = implode(', ', array_map(fn ($name) => "'{$name}'", $this->savedColumns()));
 
-        return implode("\n", [
+        $lines = [
             '================================================================',
-            'コントローラー：saveFieldNames()',
+            'コントローラー：saveValues()（「保存・削除の処理（FormFlow）」のブロックに置く）',
             '================================================================',
-            '    /** 保存する項目。ここに書いた項目だけを保存する */',
-            "    private function saveFieldNames(array \$validated, {$this->model} {$this->variable}): array",
+            '    /** 保存する値（列 => 値）。ここで返した列だけを保存する */',
+            "    private function saveValues(array \$validated, {$this->model} {$this->variable}): array",
             '    {',
-            "        return [{$names}];",
-            '    }',
-        ])."\n";
+            '        // 入力値をそのまま保存する列。送られてこなかった列は null になる',
+            "        \$saveFieldNames = [{$names}];",
+            '',
+        ];
+
+        // 加工して保存する列が無ければ、取り出した値をそのまま返す
+        $passwords = $this->passwordColumns();
+        if (! isset($this->columns['staff_id']) && $passwords === []) {
+            $lines[] = '        return $this->inputValues($validated, $saveFieldNames);';
+            $lines[] = '    }';
+
+            return implode("\n", $lines)."\n";
+        }
+
+        $lines[] = '        $values = $this->inputValues($validated, $saveFieldNames);';
+
+        if (isset($this->columns['staff_id'])) {
+            $lines[] = '';
+            $lines[] = '        // 最後に更新した操作者（スタッフ）';
+            $lines[] = "        \$values['staff_id'] = Auth::guard('admin')->id();";
+        }
+
+        foreach ($passwords as $name) {
+            $lines[] = '';
+            $lines[] = '        // パスワードは入力があったときだけハッシュ変換して保存する。空欄なら今のまま変えない';
+            $lines[] = "        if (! empty(\$validated['{$name}'])) {";
+            $lines[] = "            \$values['{$name}'] = Hash::make(\$validated['{$name}']);";
+            $lines[] = '        }';
+        }
+
+        $lines[] = '';
+        $lines[] = '        return $values;';
+        $lines[] = '    }';
+
+        return implode("\n", $lines)."\n";
     }
 
     private function renderInputFromModel(): string

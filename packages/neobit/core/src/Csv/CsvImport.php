@@ -26,14 +26,14 @@ use Throwable;
  *
  * 流れは「ファイルを選ぶ → 全行を検証して確認画面 → エラーが無ければ実行」。実行は全行を
  * 1つのトランザクションで反映し、1件でも失敗したら何も反映しない。
- * 検証のrules()、保存する項目のsaveFieldNames()とadditionalFields()、保存した後のafterSave()は、
+ * 検証のrules()、保存する値のsaveValues()、保存した後のafterSave()は、
  * 画面からの登録と更新のFormFlowとまったく同じ処理を通る。
  *
  * ■ コントローラーが用意するもの
  * - csvImportSettings()  取り込みの設定。CsvImportSettingsを返す。確認画面と実行の両方で使う
  * - csvColumns()         CSVの項目の定義。ダウンロードと共通で、書き方はCsvColumnSetにある
  * - rules()              検証のルール。取り込めるのはここにある項目だけ
- * - 追加と更新のCsvImportMode::SaveではFormFlowも使う。inputFromModel()やsaveFieldNames()など
+ * - 追加と更新のCsvImportMode::SaveではFormFlowも使う。inputFromModel()やsaveValues()など
  *
  * ■ 要るときだけ用意するもの。用意しなければ何もしない
  * - csvCustomImport($key, $value, $row)  @名前の列の取り込み。'import'に書いた項目名 => 値を返す

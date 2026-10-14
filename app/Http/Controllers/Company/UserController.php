@@ -30,7 +30,7 @@ class UserController extends Controller
     // ---- 共通処理（トレイト） ----
 
     // ほかの担当者の情報の検証・保存と、削除はFormFlowトレイトが提供する（確認画面は挟まない）。
-    // クラス側は rules() saveFieldNames() inputFromModel() と、afterSave() beforeDelete() を用意する。
+    // クラス側は rules() inputFromModel() saveValues() と、afterSave() beforeDelete() を用意する。
     use FormFlow;
 
     // ---- 担当者の情報の項目の定義 ----
@@ -53,12 +53,6 @@ class UserController extends Controller
         return [
             'email' => ['required', 'string', 'email', 'max:255', CompanyUser::uniqueEmailInCompany($this->me()->company_id)],
         ];
-    }
-
-    /** 保存する項目（t_company_usersのカラム）。担当者IDとパスワードは、ここでは変えない */
-    private function saveFieldNames(array $validated, CompanyUser $user): array
-    {
-        return ['name', 'email'];
     }
 
     /** モデルの今の値から、編集画面に渡す$inputを組み立てる。 */
@@ -192,7 +186,16 @@ class UserController extends Controller
         return redirect()->route('company.users.index')->with('status', '担当者を削除しました。');
     }
 
-    // ---- 保存・削除の前後の処理（FormFlow） ----
+    // ---- 保存・削除の処理（FormFlow） ----
+
+    /** 保存する値（t_company_usersの列 => 値）。担当者IDとパスワードは、ここでは変えない */
+    private function saveValues(array $validated, CompanyUser $user): array
+    {
+        // 入力値をそのまま保存する列。送られてこなかった列は null になる
+        $saveFieldNames = ['name', 'email'];
+
+        return $this->inputValues($validated, $saveFieldNames);
+    }
 
     /**
      * 保存の直後の処理。情報が変わったことを、変えられた担当者へメールで知らせる。

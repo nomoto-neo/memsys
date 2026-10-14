@@ -29,7 +29,7 @@ class NewsController extends Controller
     use SearchableList;
 
     // 入力→確認→保存の共通処理はFormFlowトレイトが提供する。
-    // クラス側は rules() saveFieldNames() inputFromModel() と、必要なら afterSave() などを用意する。
+    // クラス側は rules() inputFromModel() saveValues() と、必要なら afterSave() などを用意する。
     use FormFlow;
 
     // アップロードまわりの共通処理は AjaxFileUpload トレイトが提供する。
@@ -111,26 +111,6 @@ class NewsController extends Controller
             'category_ids' => ['required', 'array', 'min:1'],
             'category_ids.*' => ['integer', Rule::exists('t_categories', 'id')],
         ] + $this->ajaxUploadRules();
-    }
-
-    /**
-     * 保存する項目（t_newsのカラム）。登録・更新ともここに書いた項目だけを保存する。
-     * アップロード項目（list_image等）はcommitUploads()、カテゴリーはafterSave()で
-     * 別に保存するので、ここには書かない。
-     * $validatedは整形後の入力値、$newsは保存先（$news->existsがfalseなら新規登録）。
-     * ここから外した項目は、更新ではDBの今の値がそのまま残る（NULLにするのとは違う）。
-     */
-    private function saveFieldNames(array $validated, News $news): array
-    {
-        return [
-            'title',
-            'body',
-            'article_date',
-            'disp_flg',
-            'members_only',
-            'publish_start_at',
-            'publish_end_at',
-        ];
     }
 
     /**
@@ -404,7 +384,30 @@ class NewsController extends Controller
             ->with('status', 'ニュース記事を削除しました。');
     }
 
-    // ---- 保存・削除の前後の処理（FormFlow） ----
+    // ---- 保存・削除の処理（FormFlow） ----
+
+    /**
+     * 保存する値（t_newsの列 => 値）。登録・更新ともここで返した列だけを保存する。
+     * アップロード項目（list_image等）はcommitUploads()、カテゴリーはafterSave()で
+     * 別に保存するので、ここには書かない。
+     * $validatedは整形後の入力値、$newsは保存先（$news->existsがfalseなら新規登録）。
+     * ここから外した列は、更新ではDBの今の値がそのまま残る（NULLにするのとは違う）。
+     */
+    private function saveValues(array $validated, News $news): array
+    {
+        // 入力値をそのまま保存する列。送られてこなかった列は null になる
+        $saveFieldNames = [
+            'title',
+            'body',
+            'article_date',
+            'disp_flg',
+            'members_only',
+            'publish_start_at',
+            'publish_end_at',
+        ];
+
+        return $this->inputValues($validated, $saveFieldNames);
+    }
 
     /** 保存の直後に行う、関連テーブルの更新。 */
     private function afterSave(News $news, array $validated): void

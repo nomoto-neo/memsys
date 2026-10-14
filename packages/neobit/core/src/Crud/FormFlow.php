@@ -20,18 +20,17 @@ use Neobit\Core\Operations\OperationRecorder;
  * ■ コントローラーが必ず用意するもの
  * - rules($record)            検証のルール。$recordは新規登録ならnull、更新なら対象のモデル。
  *                             使わないなら引数なしのrules()でよい
- * - saveFieldNames($validated, $record)
- *                             保存する列の一覧。ここに書いた列だけを保存する
+ * - saveValues($validated, $record)
+ *                             保存する値（列 => 値）。ここで返した列だけを保存する。入力値を
+ *                             そのまま保存する列はinputValues()で取り出し、入力値をそのまま
+ *                             使わない列（ハッシュ値にしたパスワード、操作したスタッフのidなど）は
+ *                             その後に足す
  * - inputFromModel($record)   モデルの今の値から画面に渡す$inputを作る。詳細・編集の画面が
  *                             無いコーナーでは要らない
  *
  * ■ 必要なときだけ用意するもの
  * - defaultInput()                    新規登録の初期値
  * - prepareInput($validated)          検証の後、確認画面と保存の前の整形。例：safe_html()
- * - additionalFields($validated, $record)
- *                                     入力値をそのまま使わずに保存する列。例：ハッシュ値にした
- *                                     パスワード、操作したスタッフのid。saveFieldNames()と同じ列は
- *                                     こちらの値が勝つ
  * - afterSave($record, $validated, $changedFields)
  *                                     保存の直後の処理。例：関連テーブルのsync()。$changedFieldsは
  *                                     更新で値が変わった列で、列の名前 => 変わる前の値。使わなければ
@@ -125,6 +124,21 @@ trait FormFlow
         return method_exists($this, 'ajaxUploadInput') ? $this->ajaxUploadInput($record, $source) : [];
     }
 
+    /**
+     * 入力値から、$fieldNamesの列の値を取り出す（列 => 値）。コントローラーのsaveValues()で使う。
+     * 送られてこなかった列はnullにする。チェックの無いチェックボックスのように、送られてこない項目も
+     * DBの値を空にできるようにするため。
+     */
+    private function inputValues(array $validated, array $fieldNames): array
+    {
+        $values = [];
+        foreach ($fieldNames as $field) {
+            $values[$field] = $validated[$field] ?? null;
+        }
+
+        return $values;
+    }
+
     /** 登録・更新の実行。新規登録はnew モデル()を、更新は対象のモデルを渡す */
     private function saveData(Model $record, Request $request): void
     {
@@ -143,14 +157,8 @@ trait FormFlow
      */
     private function saveValidated(Model $record, array $validated, array $input, bool $fromImport = false): void
     {
-        // saveFieldNames()の列だけを入力値から取り出し、additionalFields()の列も足して保存する。
-        // 送られてこなかった列はnullで、同じ列はadditionalFields()の値が勝つ
-        $attributes = [];
-        foreach ($this->saveFieldNames($validated, $record) as $field) {
-            $attributes[$field] = $validated[$field] ?? null;
-        }
-
-        $record->fill($this->additionalFields($validated, $record) + $attributes);
+        // saveValues()が返した列だけを保存する
+        $record->fill($this->saveValues($validated, $record));
 
         // 新規登録か更新かと、この保存で値が変わる列を控えておく。列の名前 => 変わる前の値
         $created = ! $record->exists;
@@ -221,12 +229,6 @@ trait FormFlow
     private function prepareInput(array $validated): array
     {
         return $validated;
-    }
-
-    /** 入力値をそのまま使わずに保存する列 */
-    private function additionalFields(array $validated, Model $record): array
-    {
-        return [];
     }
 
     /**

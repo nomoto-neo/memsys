@@ -31,7 +31,7 @@ class ContactController extends Controller
     // ---- 共通処理（トレイト） ----
 
     // 入力→確認→保存の共通処理はFormFlowトレイトが提供する。
-    // クラス側は rules() saveFieldNames() と、必要なら prepareInput() などを用意する。
+    // クラス側は rules() saveValues() と、必要なら prepareInput() などを用意する。
     use FormFlow;
 
     // 添付ファイルのAjaxアップロードまわりの共通処理はAjaxFileUploadトレイトが提供する。
@@ -93,16 +93,6 @@ class ContactController extends Controller
             // 含まないので、必須マークはcreate()で別に足している
             'agree' => ['accepted'],
         ] + $this->ajaxUploadRules();
-    }
-
-    /**
-     * 保存する項目（t_inquiriesのカラム）。ここに書いた項目だけを保存する。
-     * 添付ファイル（attach_file等）はcommitUploads()で保存するので、ここには書かない。
-     * agree（同意のチェック）は確認のためだけの項目なので保存しない。
-     */
-    private function saveFieldNames(array $validated, Inquiry $inquiry): array
-    {
-        return ['name', 'kana', 'email', 'phone', 'zip', 'prefecture', 'city', 'address_other', 'body'];
     }
 
     /** 検証の後、確認画面の表示・保存の前に行う整形。 */
@@ -233,6 +223,21 @@ class ContactController extends Controller
     public function thanks(): View
     {
         return view('contact.thanks');
+    }
+
+    // ---- 保存・削除の処理（FormFlow） ----
+
+    /**
+     * 保存する値（t_inquiriesの列 => 値）。ここで返した列だけを保存する。
+     * 添付ファイル（attach_file等）はcommitUploads()で保存するので、ここには書かない。
+     * agree（同意のチェック）は確認のためだけの項目なので保存しない。
+     */
+    private function saveValues(array $validated, Inquiry $inquiry): array
+    {
+        // 入力値をそのまま保存する列。送られてこなかった列は null になる
+        $saveFieldNames = ['name', 'kana', 'email', 'phone', 'zip', 'prefecture', 'city', 'address_other', 'body'];
+
+        return $this->inputValues($validated, $saveFieldNames);
     }
 
     // ---- 通知メール ----

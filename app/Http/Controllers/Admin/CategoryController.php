@@ -22,7 +22,7 @@ class CategoryController extends Controller
     // ---- 共通処理（トレイト） ----
 
     // 入力→保存の共通処理はFormFlowトレイトが提供する。
-    // クラス側は rules() saveFieldNames() inputFromModel() と、必要なら additionalFields() などを用意する。
+    // クラス側は rules() inputFromModel() saveValues() を用意する。
     use FormFlow;
 
     // ---- 一覧の設定 ----
@@ -38,27 +38,6 @@ class CategoryController extends Controller
         return [
             'name' => ['required', 'string', 'max:255'],
         ];
-    }
-
-    /**
-     * 保存する項目（t_categoriesのカラム）。ここに書いた項目だけを保存する。
-     * 表示順（display_order）は入力値ではないので、additionalFields()で扱う。
-     */
-    private function saveFieldNames(array $validated, Category $category): array
-    {
-        return ['name'];
-    }
-
-    /** saveFieldNames()に加えて保存する項目（項目名 => 値）。 */
-    private function additionalFields(array $validated, Category $category): array
-    {
-        if ($category->exists) {
-            // 更新では表示順を変えない（並び替えはreorder()で行う）
-            return [];
-        }
-
-        // 新しいカテゴリーは常に一覧の末尾に追加する（既存の最大display_order + 1。1件も無ければ0）
-        return ['display_order' => (int) (Category::max('display_order') ?? -1) + 1];
     }
 
     /** モデルの今の値から、_fields.blade.phpに渡す$inputを組み立てる（編集で使う）。 */
@@ -173,5 +152,24 @@ class CategoryController extends Controller
 
         return redirect()->route(self::INDEX_ROUTE)
             ->with('status', 'カテゴリーを削除しました。');
+    }
+
+    // ---- 保存・削除の処理（FormFlow） ----
+
+    /** 保存する値（t_categoriesの列 => 値）。ここで返した列だけを保存する。 */
+    private function saveValues(array $validated, Category $category): array
+    {
+        // 入力値をそのまま保存する列。送られてこなかった列は null になる
+        $saveFieldNames = ['name'];
+
+        $values = $this->inputValues($validated, $saveFieldNames);
+
+        // 新しいカテゴリーは常に一覧の末尾に追加する（既存の最大display_order + 1。1件も無ければ0）。
+        // 更新では表示順を変えない（並び替えはreorder()で行う）
+        if (! $category->exists) {
+            $values['display_order'] = (int) (Category::max('display_order') ?? -1) + 1;
+        }
+
+        return $values;
     }
 }

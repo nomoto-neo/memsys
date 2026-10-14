@@ -31,7 +31,7 @@ class CompanyUserController extends Controller
     // ---- 共通処理（トレイト） ----
 
     // 入力→確認→保存と削除の共通処理はFormFlowトレイトが提供する。
-    // クラス側は rules() saveFieldNames() inputFromModel() と、必要なら afterSave() などを用意する。
+    // クラス側は rules() inputFromModel() saveValues() と、必要なら afterSave() などを用意する。
     use FormFlow;
 
     // ---- このコーナーの項目の定義 ----
@@ -50,27 +50,6 @@ class CompanyUserController extends Controller
             ],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
         ];
-    }
-
-    /**
-     * 保存する項目（t_company_usersのカラム）。ここに書いた項目だけを保存する。
-     * パスワードは入力値をそのまま保存しないので、additionalFields()で扱う。
-     */
-    private function saveFieldNames(array $validated, CompanyUser $user): array
-    {
-        return ['name', 'email'];
-    }
-
-    /** saveFieldNames()に加えて保存する項目（項目名 => 値）。入力値をそのまま使わないものをここに書く。 */
-    private function additionalFields(array $validated, CompanyUser $user): array
-    {
-        // パスワードが空欄なら、今のまま変えない
-        if (empty($validated['password'])) {
-            return [];
-        }
-
-        // パスワードは入力があったときだけハッシュ変換して更新
-        return ['password' => Hash::make($validated['password'])];
     }
 
     /** モデルの今の値から、_fields.blade.phpに渡す$inputを組み立てる（詳細・編集で使う）。 */
@@ -168,7 +147,23 @@ class CompanyUserController extends Controller
             ->with('status', '2段階認証の登録を解除しました。次回ログイン時にQRコードから登録し直せます。');
     }
 
-    // ---- 保存・削除の前後の処理（FormFlow） ----
+    // ---- 保存・削除の処理（FormFlow） ----
+
+    /** 保存する値（t_company_usersの列 => 値）。ここで返した列だけを保存する。 */
+    private function saveValues(array $validated, CompanyUser $user): array
+    {
+        // 入力値をそのまま保存する列。送られてこなかった列は null になる
+        $saveFieldNames = ['name', 'email'];
+
+        $values = $this->inputValues($validated, $saveFieldNames);
+
+        // パスワードは入力があったときだけハッシュ変換して保存する。空欄なら今のまま変えない
+        if (! empty($validated['password'])) {
+            $values['password'] = Hash::make($validated['password']);
+        }
+
+        return $values;
+    }
 
     /** 保存の直後の処理。 */
     private function afterSave(CompanyUser $user, array $validated): void

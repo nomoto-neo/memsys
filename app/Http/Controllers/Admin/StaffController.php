@@ -40,7 +40,7 @@ class StaffController extends Controller
     use SearchableList;
 
     // 入力→確認→保存の共通処理はFormFlowトレイトが提供する。
-    // クラス側は rules() saveFieldNames() inputFromModel() と、必要なら afterSave() などを用意する。
+    // クラス側は rules() inputFromModel() saveValues() と、必要なら afterSave() などを用意する。
     use FormFlow;
 
     // ログイン中の本人による、パスキーの一覧・登録・削除（passkeyIndex()など）。
@@ -119,7 +119,7 @@ class StaffController extends Controller
         }
 
         // 権限：変えられない人（StaffPolicy::updateAcl()）の画面には権限欄が無いので、
-        // 'exclude'で検証の対象からも入力値からも外す（保存しないのはsaveFieldNames()側）
+        // 'exclude'で検証の対象からも入力値からも外す（保存しないのはsaveValues()側）
         if ($this->canUpdateAcl($staff)) {
             $aclRules = ['required', 'integer', Rule::in(code_keys('staff_acl'))];
         } else {
@@ -141,36 +141,6 @@ class StaffController extends Controller
             'password' => $passwordRules,
             'acl' => $aclRules,
         ];
-    }
-
-    /**
-     * 保存する項目（t_staffsのカラム）。ここに書いた項目だけを保存する。
-     * パスワードは入力値をそのまま保存しないので、additionalFields()で扱う。
-     * ここから外した項目は、更新ではDBの今の値がそのまま残る（NULLにするのとは違う）。
-     */
-    private function saveFieldNames(array $validated, Staff $staff): array
-    {
-        $fields = ['name', 'login_id', 'email'];
-
-        // 権限を変えられない人が保存したときは、DBの今の値のまま残す
-        // （rules()で入力値から外しているので、ここに入れるとNULLで上書きしてしまう）。
-        if ($this->canUpdateAcl($staff)) {
-            $fields[] = 'acl';
-        }
-
-        return $fields;
-    }
-
-    /** saveFieldNames()に加えて保存する項目（項目名 => 値）。入力値をそのまま使わないものをここに書く。 */
-    private function additionalFields(array $validated, Staff $staff): array
-    {
-        // パスワードが空欄なら、今のまま変えない
-        if (empty($validated['password'])) {
-            return [];
-        }
-
-        // パスワードは入力があったときだけハッシュ変換して更新
-        return ['password' => Hash::make($validated['password'])];
     }
 
     /** モデルの今の値から、_fields.blade.phpに渡す$inputを組み立てる（詳細・編集で使う）。 */
@@ -420,7 +390,32 @@ class StaffController extends Controller
             ->with('status', '2段階認証の登録を解除しました。次回ログイン時にQRコードから登録し直せます。');
     }
 
-    // ---- 保存・削除の前後の処理（FormFlow） ----
+    // ---- 保存・削除の処理（FormFlow） ----
+
+    /**
+     * 保存する値（t_staffsの列 => 値）。ここで返した列だけを保存する。
+     * ここから外した列は、更新ではDBの今の値がそのまま残る（NULLにするのとは違う）。
+     */
+    private function saveValues(array $validated, Staff $staff): array
+    {
+        // 入力値をそのまま保存する列。送られてこなかった列は null になる
+        $saveFieldNames = ['name', 'login_id', 'email'];
+
+        // 権限を変えられない人が保存したときは、DBの今の値のまま残す
+        // （rules()で入力値から外しているので、ここに入れるとNULLで上書きしてしまう）。
+        if ($this->canUpdateAcl($staff)) {
+            $saveFieldNames[] = 'acl';
+        }
+
+        $values = $this->inputValues($validated, $saveFieldNames);
+
+        // パスワードは入力があったときだけハッシュ変換して保存する。空欄なら今のまま変えない
+        if (! empty($validated['password'])) {
+            $values['password'] = Hash::make($validated['password']);
+        }
+
+        return $values;
+    }
 
     /** 保存の直後の処理。 */
     private function afterSave(Staff $staff, array $validated): void

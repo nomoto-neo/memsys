@@ -24,7 +24,7 @@ class ProfileController extends Controller
     // ---- 共通処理（トレイト） ----
 
     // 検証・保存はFormFlowトレイトが提供する（確認画面は挟まない）。
-    // クラス側は rules() saveFieldNames() inputFromModel() を用意する。
+    // クラス側は rules() inputFromModel() saveValues() を用意する。
     use FormFlow;
 
     // メールアドレスが変わる保存に、確認コードの入力を挟む（emailChangeForm()など。Neobit\Core\Auth\EmailChange参照）。
@@ -68,15 +68,6 @@ class ProfileController extends Controller
                 ...($user !== null ? [CompanyUser::uniqueEmailInCompany($user->company_id, $user)] : []),
             ],
         ];
-    }
-
-    /**
-     * 保存する項目（t_company_usersのカラム）。
-     * パスワードはこのフォームでは扱わない（変更はAuthPasswordControllerの専用フォーム）。
-     */
-    private function saveFieldNames(array $validated, CompanyUser $user): array
-    {
-        return ['name', 'email'];
     }
 
     /** モデルの今の値から、編集画面に渡す$inputを組み立てる。 */
@@ -127,7 +118,19 @@ class ProfileController extends Controller
         return redirect()->route('company.mypage')->with('status', self::EMAIL_CHANGE_DONE_MESSAGE);
     }
 
-    // ---- 保存・削除の前後の処理（FormFlow） ----
+    // ---- 保存・削除の処理（FormFlow） ----
+
+    /**
+     * 保存する値（t_company_usersの列 => 値）。
+     * パスワードはこのフォームでは扱わない（変更はAuthPasswordControllerの専用フォーム）。
+     */
+    private function saveValues(array $validated, CompanyUser $user): array
+    {
+        // 入力値をそのまま保存する列。送られてこなかった列は null になる
+        $saveFieldNames = ['name', 'email'];
+
+        return $this->inputValues($validated, $saveFieldNames);
+    }
 
     /**
      * 保存の直後の処理。担当者の情報が変わったことを、本人へメールで知らせる

@@ -53,7 +53,7 @@ class CompanyController extends Controller
     use SearchableList;
 
     // 入力→確認→保存の共通処理はFormFlowトレイトが提供する。
-    // クラス側は rules() saveFieldNames() inputFromModel() と、必要なら additionalFields() などを用意する。
+    // クラス側は rules() inputFromModel() saveValues() と、必要なら afterSave() などを用意する。
     use FormFlow;
 
     // CSVダウンロードの共通処理はCsvDownloadトレイトが提供する。
@@ -160,32 +160,6 @@ class CompanyController extends Controller
         return [
             'email' => ['required', 'string', 'email', 'max:255', CompanyUser::uniqueEmailInCompany($company->id)],
         ];
-    }
-
-    /**
-     * 保存する項目（t_companiesのカラム）。ここに書いた項目だけを保存する。
-     * 最終更新者（staff_id）は入力値をそのまま保存しないので、additionalFields()で扱う。
-     * 招待の宛先（invite_email）は企業の列ではないので、ここには書かない。afterSave()で使う。
-     */
-    private function saveFieldNames(array $validated, Company $company): array
-    {
-        return ['name', 'kana', 'representative', 'zip', 'prefecture', 'address', 'tel', 'url', 'staff_memo'];
-    }
-
-    /** saveFieldNames()に加えて保存する項目（項目名 => 値）。入力値をそのまま使わないものをここに書く。 */
-    private function additionalFields(array $validated, Company $company): array
-    {
-        $additional = [
-            // 最後に更新した操作者（スタッフ）
-            'staff_id' => Auth::guard('admin')->id(),
-        ];
-
-        if (! $company->exists) {
-            // 運営が登録した企業は、初めから承認済みにする
-            $additional['status'] = CompanyStatus::Approved;
-        }
-
-        return $additional;
     }
 
     /** モデルの今の値から、_fields.blade.phpに渡す$inputを組み立てる（詳細・編集で使う）。 */
@@ -542,7 +516,29 @@ class CompanyController extends Controller
             ->with('status', '招待を取り消しました。');
     }
 
-    // ---- 保存・削除の前後の処理（FormFlow） ----
+    // ---- 保存・削除の処理（FormFlow） ----
+
+    /**
+     * 保存する値（t_companiesの列 => 値）。ここで返した列だけを保存する。
+     * 招待の宛先（invite_email）は企業の列ではないので、ここには入れない。afterSave()で使う。
+     */
+    private function saveValues(array $validated, Company $company): array
+    {
+        // 入力値をそのまま保存する列。送られてこなかった列は null になる
+        $saveFieldNames = ['name', 'kana', 'representative', 'zip', 'prefecture', 'address', 'tel', 'url', 'staff_memo'];
+
+        $values = $this->inputValues($validated, $saveFieldNames);
+
+        // 最後に更新した操作者（スタッフ）
+        $values['staff_id'] = Auth::guard('admin')->id();
+
+        // 運営が登録した企業は、初めから承認済みにする
+        if (! $company->exists) {
+            $values['status'] = CompanyStatus::Approved;
+        }
+
+        return $values;
+    }
 
     /** 保存の直後の処理。 */
     private function afterSave(Company $company, array $validated): void

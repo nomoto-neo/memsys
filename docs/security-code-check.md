@@ -60,7 +60,7 @@ grep -rnE "\bdd\(|\bdump\(|var_dump\(|print_r\(|phpinfo\(|env\(" app
 grep -rnE '\$request->all\(\)|->fill\(\$request|::create\(\$request|->update\(\$request|\$guarded|forceFill' app
 ```
 
-- **見るところ**：`$request->all()` を、そのまま `create()`・`update()` に渡していないこと。保存する列は、`FormFlow` の `saveFieldNames()` で絞ります。`forceFill()` は、入力の値ではなく、プログラムが決めた値にだけ使っていること。
+- **見るところ**：`$request->all()` を、そのまま `create()`・`update()` に渡していないこと。保存する列は、コントローラーの `saveValues()` で絞ります。入力値がそのまま入る列は、`inputValues()` に渡す `$saveFieldNames` の一覧だけです。`forceFill()` は、入力の値ではなく、プログラムが決めた値にだけ使っていること。
 
 ### 6. 外のサイトへ飛ばせないか
 

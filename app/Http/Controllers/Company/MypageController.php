@@ -29,7 +29,7 @@ class MypageController extends Controller
     // ---- 共通処理（トレイト） ----
 
     // 企業の情報の検証・保存はFormFlowトレイトが提供する（確認画面は挟まない）。
-    // クラス側は rules() saveFieldNames() inputFromModel() を用意する。
+    // クラス側は rules() inputFromModel() saveValues() を用意する。
     use FormFlow;
 
     // パスキーの一覧・登録・削除（passkeyIndex()など。Neobit\Core\Auth\PasskeyManagement参照）。
@@ -82,12 +82,6 @@ class MypageController extends Controller
             'tel' => ['required', 'string', new PhoneNumberRule()],
             'url' => ['nullable', 'string', 'url', 'max:255'],
         ];
-    }
-
-    /** 保存する項目（t_companiesのカラム）。 */
-    private function saveFieldNames(array $validated, Company $company): array
-    {
-        return ['name', 'kana', 'representative', 'zip', 'prefecture', 'address', 'tel', 'url'];
     }
 
     /** モデルの今の値から、編集画面に渡す$inputを組み立てる。 */
@@ -145,6 +139,17 @@ class MypageController extends Controller
         $this->saveData($company, $request);
 
         return redirect()->route('company.mypage')->with('status', '企業の情報を更新しました。');
+    }
+
+    // ---- 保存・削除の処理（FormFlow） ----
+
+    /** 保存する値（t_companiesの列 => 値）。ここで返した列だけを保存する。 */
+    private function saveValues(array $validated, Company $company): array
+    {
+        // 入力値をそのまま保存する列。送られてこなかった列は null になる
+        $saveFieldNames = ['name', 'kana', 'representative', 'zip', 'prefecture', 'address', 'tel', 'url'];
+
+        return $this->inputValues($validated, $saveFieldNames);
     }
 
     // ---- 2段階認証の管理（TwoFactorManagement） ----

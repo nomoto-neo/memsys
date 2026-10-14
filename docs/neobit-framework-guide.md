@@ -288,9 +288,8 @@ class NewsController extends Controller
 
     // ---- このコーナーの項目の定義 ----
     private function rules(): array { ... }
-    private function saveFieldNames(...): array { ... }
     private function inputFromModel(...): array { ... }
-    // defaultInput()・prepareInput()・additionalFields() は必要なときだけ
+    // defaultInput()・prepareInput() は必要なときだけ
 
     // ---- 一覧・検索 ----
     public function index(...) { ... }
@@ -301,15 +300,16 @@ class NewsController extends Controller
     // ---- 登録 ----
     // ---- 詳細・編集・削除 ----
 
-    // ---- 保存・削除の前後の処理（FormFlow） ----
+    // ---- 保存・削除の処理（FormFlow） ----
+    private function saveValues(...): array { ... }
     private function afterSave(...): void { ... }
     private function beforeDelete(...): void { ... }
-    // どちらも必要なときだけ
+    // afterSave()・beforeDelete() は必要なときだけ
 }
 ```
 
-- 「このコーナーの項目の定義」には、値を返すだけのメソッドを置きます。`additionalFields()` も、保存する列の値を返すだけなので、`saveFieldNames()` と並べてここに置きます。
-- メールを送る・関連の行を書き換えるといった処理をする `afterSave()`・`beforeDelete()` は、ルートから呼ばれる入口のブロックの後ろに、「保存・削除の前後の処理」のブロックを作って置きます。入口の後ろに、トレイトから呼ばれるメソッドのブロック（2段階認証の管理など）や、コントローラーの中で使い回す処理のブロックがあるときは、それらより前に置きます。
+- 「このコーナーの項目の定義」には、検証のルールや入力欄の値のような、項目の定義を返すメソッドを置きます。
+- 保存する値を作る `saveValues()` と、保存の直後・削除の直前に呼ばれる `afterSave()`・`beforeDelete()` は、ルートから呼ばれる入口のブロックの後ろに「保存・削除の処理」のブロックを作り、呼ばれる順に置きます。入口の後ろに、トレイトから呼ばれるメソッドのブロック（2段階認証の管理など）や、コントローラーの中で使い回す処理のブロックがあるときは、それらより前に置きます。
 
 - 定数はクラスの冒頭にまとめ、何で使うものか（一覧・検索の設定、アップロードの設定など）でブロックに区切ります。
 - 1か所からしか呼ばれない数行の処理は、細かいメソッドに分けず、コメントを1行入れて呼び元に書きます。
@@ -386,7 +386,7 @@ class NewsController extends Controller
 2. **モデル**：`$table`・`$fillable`・`$casts`、リレーション、データ項目の仕様の定数（画像の横幅など）、表示用のアクセサ（ファイルの URL など）。
 3. **コントローラー**：1-3 の並びで書く。
    - `use SearchableList;` と一覧の定数、`srchRules()`・`applyCustomSearch()`（3章）
-   - `use FormFlow;` と `rules()`・`saveFieldNames()`・`inputFromModel()`（5章）
+   - `use FormFlow;` と `rules()`・`inputFromModel()`・`saveValues()`（5章）
    - アップロードがあれば `use AjaxFileUpload;` と `UPLOAD_FILES`（7章）
    - 入口：`index`・`create`・`confirmStore`・`backToCreate`・`store`・`show`・`edit`・`confirmUpdate`・`backToEdit`・`update`・`destroy`
 4. **ルート**：`routes/web.php` の管理画面のグループ（`auth:admin`・`auth.session` の内側）に足す。`/xxx/csv` のような固定の URL は、`/xxx/{id}` より前に書く。
@@ -514,21 +514,46 @@ public function show(News $news): View
 
 **ファイル**：`packages/neobit/core/src/Crud/FormFlow.php`　**実例**：`Admin\NewsController`（確認画面あり）・`Admin\CategoryController`（確認画面なし）
 
-### コントローラーに書く「項目の定義」
+### コントローラーに書くメソッド
 
 | メソッド | 必須 | 中身 |
 |---|---|---|
 | `rules($record)` | ○ | 検証のルール。`$record` は新規なら null。使わなければ引数なしの `rules()` でよい |
-| `saveFieldNames($validated, $record)` | ○ | 保存するカラム名の一覧。ここに書いた項目だけを保存する。外した項目は更新でもDBの値が残る |
+| `saveValues($validated, $record)` | ○ | 保存する値（`列 => 値`）。ここで返した列だけを保存する。外した列は更新でもDBの値が残る。書き方は下の「保存する値」 |
 | `inputFromModel($record)` | 詳細・編集があれば○ | モデルの今の値から `$input` を作る（日付は `Y-m-d`、フラグは `'1'`/`'0'`、多対多は id の配列など、フォームの値の形に） |
 | `defaultInput()` | | 新規登録の初期値 |
 | `prepareInput($validated)` | | 検証の後、確認画面と保存の前の整形（例：`safe_html()`、郵便番号の整形） |
-| `additionalFields($validated, $record)` | | 入力値をそのまま使わずに保存する項目（例：ハッシュ化したパスワード、操作したスタッフの id、表示順） |
 | `afterSave($record, $validated, $changedFields)` | | 保存の直後（例：多対多の `sync()`）。`$changedFields` は更新で値が変わった列で、`列の名前 => 変わる前の値`。使わなければ引数に書かなくてよい。新規登録と CSV 取り込みでは空 |
 | `savedLogAction($created)` | | 操作ログ（22章）に残す操作の種類。登録・更新とは別の名前で残したいコーナーで書く（例：一斉メールの送信） |
 | `beforeDelete($record)` | | 削除の直前（6章） |
 
-アップロード項目は `saveFieldNames()` に書きません（`commitUploads()` が保存します）。多対多は `afterSave()` で保存します。
+アップロード項目は `saveValues()` に入れません（`commitUploads()` が保存します）。多対多は `afterSave()` で保存します。
+
+### 保存する値
+
+`saveValues()` は、どのコーナーも「入力値をそのまま保存する列の一覧 → `inputValues()` で取り出す → 加工して保存する列を足す」の順に書きます。`inputValues()` は `FormFlow` にあり、送られてこなかった列は null にします（チェックの無いチェックボックスのように、送られてこない項目も DB の値を空にできるようにするため）。
+
+```php
+/** 保存する値（t_staffsの列 => 値）。ここで返した列だけを保存する。 */
+private function saveValues(array $validated, Staff $staff): array
+{
+    // 入力値をそのまま保存する列。送られてこなかった列は null になる
+    $saveFieldNames = ['name', 'login_id', 'email'];
+
+    $values = $this->inputValues($validated, $saveFieldNames);
+
+    // パスワードは入力があったときだけハッシュ変換して保存する。空欄なら今のまま変えない
+    if (! empty($validated['password'])) {
+        $values['password'] = Hash::make($validated['password']);
+    }
+
+    return $values;
+}
+```
+
+- 加工して保存する列が無いコーナーは、`return $this->inputValues($validated, $saveFieldNames);` で終えます。
+- 入力値がそのまま入る列は、`$saveFieldNames` の一覧で絞られます。`$validated` を丸ごと返さないでください。
+- 加工して保存する列の例は、ハッシュ値にしたパスワード、操作したスタッフの id、新規登録のときだけ決める表示順や状態です。
 
 ### 入口（確認画面あり）
 
@@ -1146,7 +1171,7 @@ if ($spam === SpamCheckResult::Failed) {
   - ルート：`->middleware('can:update,staff')`（false なら 403）
   - 画面：`@can('update', $staff)`（ボタンやリンクの出し分け）
   - コントローラー：`Auth::guard('admin')->user()->can('updateAcl', $staff ?? Staff::class)`
-- 権限によって入力欄を出さない項目は、`rules()` で `'exclude'` にし、`saveFieldNames()` からも外します（外さないと NULL で上書きしてしまう。実例：スタッフの権限）。
+- 権限によって入力欄を出さない項目は、`rules()` で `'exclude'` にし、`saveValues()` の `$saveFieldNames` からも外します（外さないと NULL で上書きしてしまう。実例：スタッフの権限）。
 - 管理者かどうかの判定は `Staff::isManager()` です。
 
 ## 14. ログイン認証

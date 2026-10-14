@@ -42,7 +42,7 @@ class MypageController extends Controller
     // ---- 共通処理（トレイト） ----
 
     // プロフィール編集の検証・保存はFormFlowトレイトが提供する（確認画面は挟まない）。
-    // クラス側は rules() saveFieldNames() inputFromModel() を用意する。
+    // クラス側は rules() inputFromModel() saveValues() を用意する。
     use FormFlow;
 
     // 顔写真のAjaxアップロード（入口のuploadAjaxFile()もトレイト側）。
@@ -148,15 +148,6 @@ class MypageController extends Controller
                 Rule::in(code_keys('notice_mail')),
             ],
         ] + $this->ajaxUploadRules();
-    }
-
-    /**
-     * 保存する項目（t_membersのカラム）。顔写真はcommitUploads()が保存するので書かない。
-     * パスワードはこのフォームでは扱わない（変更はAuthPasswordControllerの専用フォーム）。
-     */
-    private function saveFieldNames(array $validated, Member $member): array
-    {
-        return ['name', 'kana', 'email', 'phone', 'birthdate', 'prefecture', 'notice_mail'];
     }
 
     /** モデルの今の値から、編集画面に渡す$inputを組み立てる。 */
@@ -345,7 +336,19 @@ class MypageController extends Controller
         }
     }
 
-    // ---- 保存・削除の前後の処理（FormFlow） ----
+    // ---- 保存・削除の処理（FormFlow） ----
+
+    /**
+     * 保存する値（t_membersの列 => 値）。顔写真はcommitUploads()が保存するので書かない。
+     * パスワードはこのフォームでは扱わない（変更はAuthPasswordControllerの専用フォーム）。
+     */
+    private function saveValues(array $validated, Member $member): array
+    {
+        // 入力値をそのまま保存する列。送られてこなかった列は null になる
+        $saveFieldNames = ['name', 'kana', 'email', 'phone', 'birthdate', 'prefecture', 'notice_mail'];
+
+        return $this->inputValues($validated, $saveFieldNames);
+    }
 
     /**
      * 保存の直後の処理。会員情報が変わったことを、本人へメールで知らせる

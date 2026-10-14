@@ -40,7 +40,7 @@ class MemberController extends Controller
     use SearchableList;
 
     // 入力→確認→保存の共通処理はFormFlowトレイトが提供する。
-    // クラス側は rules() saveFieldNames() inputFromModel() と、必要なら afterSave() などを用意する。
+    // クラス側は rules() inputFromModel() saveValues() と、必要なら afterSave() などを用意する。
     use FormFlow;
 
     // CSVダウンロードの共通処理はCsvDownloadトレイトが提供する。
@@ -141,32 +141,6 @@ class MemberController extends Controller
             'staff_memo' => ['nullable', 'string', 'max:'.self::STAFF_MEMO_MAX_LENGTH],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
         ] + $this->ajaxUploadRules();
-    }
-
-    /**
-     * 保存する項目（t_membersのカラム）。ここに書いた項目だけを保存する。
-     * パスワードと最終更新者（staff_id）は入力値をそのまま保存しないので、additionalFields()で扱う。
-     * ここから外した項目は、更新ではDBの今の値がそのまま残る（NULLにするのとは違う）。
-     */
-    private function saveFieldNames(array $validated, Member $member): array
-    {
-        return ['name', 'kana', 'email', 'phone', 'birthdate', 'prefecture', 'notice_mail', 'staff_memo'];
-    }
-
-    /** saveFieldNames()に加えて保存する項目（項目名 => 値）。入力値をそのまま使わないものをここに書く。 */
-    private function additionalFields(array $validated, Member $member): array
-    {
-        $additional = [
-            // 最後に更新した操作者（スタッフ）
-            'staff_id' => Auth::guard('admin')->id(),
-        ];
-
-        if (! empty($validated['password'])) {
-            // パスワードは入力があったときだけハッシュ変換して更新
-            $additional['password'] = Hash::make($validated['password']);
-        }
-
-        return $additional;
     }
 
     /** モデルの今の値から、_fields.blade.phpに渡す$inputを組み立てる（詳細・編集で使う）。 */
@@ -434,7 +408,29 @@ class MemberController extends Controller
         );
     }
 
-    // ---- 保存・削除の前後の処理（FormFlow） ----
+    // ---- 保存・削除の処理（FormFlow） ----
+
+    /**
+     * 保存する値（t_membersの列 => 値）。ここで返した列だけを保存する。
+     * ここから外した列は、更新ではDBの今の値がそのまま残る（NULLにするのとは違う）。
+     */
+    private function saveValues(array $validated, Member $member): array
+    {
+        // 入力値をそのまま保存する列。送られてこなかった列は null になる
+        $saveFieldNames = ['name', 'kana', 'email', 'phone', 'birthdate', 'prefecture', 'notice_mail', 'staff_memo'];
+
+        $values = $this->inputValues($validated, $saveFieldNames);
+
+        // 最後に更新した操作者（スタッフ）
+        $values['staff_id'] = Auth::guard('admin')->id();
+
+        // パスワードは入力があったときだけハッシュ変換して保存する
+        if (! empty($validated['password'])) {
+            $values['password'] = Hash::make($validated['password']);
+        }
+
+        return $values;
+    }
 
     /** 保存の直後の処理。 */
     private function afterSave(Member $member, array $validated): void

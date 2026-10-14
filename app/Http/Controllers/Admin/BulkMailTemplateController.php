@@ -45,12 +45,6 @@ class BulkMailTemplateController extends Controller
         ];
     }
 
-    /** 保存する項目 */
-    private function saveFieldNames(array $validated, BulkMailTemplate $template): array
-    {
-        return ['title', 'subject', 'body'];
-    }
-
     /** 新規登録の初期値 */
     private function defaultInput(): array
     {
@@ -125,5 +119,16 @@ class BulkMailTemplateController extends Controller
 
         return redirect()->route(self::INDEX_ROUTE)
             ->with('status', '文面を削除しました。');
+    }
+
+    // ---- 保存・削除の処理（FormFlow） ----
+
+    /** 保存する値（列 => 値）。ここで返した列だけを保存する。 */
+    private function saveValues(array $validated, BulkMailTemplate $template): array
+    {
+        // 入力値をそのまま保存する列。送られてこなかった列は null になる
+        $saveFieldNames = ['title', 'subject', 'body'];
+
+        return $this->inputValues($validated, $saveFieldNames);
     }
 }

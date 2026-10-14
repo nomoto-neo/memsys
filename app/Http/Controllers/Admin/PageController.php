@@ -27,7 +27,7 @@ class PageController extends Controller
     use SearchableList;
 
     // 入力→確認→保存の共通処理はFormFlowトレイトが提供する。
-    // クラス側は rules() saveFieldNames() inputFromModel() を用意する。
+    // クラス側は rules() inputFromModel() saveValues() を用意する。
     use FormFlow;
 
     // 本文のエディタに挿入する画像のアップロード（入口のuploadAjaxFile()もトレイト側）。
@@ -105,12 +105,6 @@ class PageController extends Controller
             'body' => ['nullable', 'string', 'max:'.self::BODY_MAX_LENGTH],
             'disp_flg' => ['required', 'boolean'],
         ] + $this->ajaxUploadRules();
-    }
-
-    /** 保存する項目（t_pagesのカラム）。ここに書いた項目だけを保存する */
-    private function saveFieldNames(array $validated, Page $page): array
-    {
-        return ['title', 'slug', 'body', 'disp_flg'];
     }
 
     /** モデルの今の値から、_fields.blade.phpに渡す$inputを組み立てる（詳細・編集で使う） */
@@ -278,6 +272,17 @@ class PageController extends Controller
 
         return redirect()->route(self::INDEX_ROUTE, ['back'])
             ->with('status', '固定ページを削除しました。');
+    }
+
+    // ---- 保存・削除の処理（FormFlow） ----
+
+    /** 保存する値（t_pagesの列 => 値）。ここで返した列だけを保存する。 */
+    private function saveValues(array $validated, Page $page): array
+    {
+        // 入力値をそのまま保存する列。送られてこなかった列は null になる
+        $saveFieldNames = ['title', 'slug', 'body', 'disp_flg'];
+
+        return $this->inputValues($validated, $saveFieldNames);
     }
 
     // Ajaxアップロード処理の function がトレイトから取り込まれる。

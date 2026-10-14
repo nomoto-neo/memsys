@@ -112,7 +112,7 @@ class BulkMailController extends Controller
     /** 添付ファイルに使える拡張子 */
     private const ATTACH_TYPES = ['pdf'];
 
-    /** 送信の直前に読んだ宛先のCSV。additionalFields()で件数を決めるのに使う */
+    /** 送信の直前に読んだ宛先のCSV。saveValues()で件数を決めるのに使う */
     private ?CsvImportResult $sendingCsv = null;
 
     // ---- 入力をそろえる処理（InputNormalizer）の設定 ----
@@ -146,23 +146,6 @@ class BulkMailController extends Controller
             'subject' => ['required', 'string', 'max:200', 'not_regex:/[\r\n]/', new BulkMailPlaceholderRule()],
             'body' => ['required', 'string', 'max:20000', new BulkMailPlaceholderRule()],
         ] + $this->ajaxUploadRules();
-    }
-
-    /** 保存する項目 */
-    private function saveFieldNames(array $validated, BulkMail $bulkMail): array
-    {
-        return ['subject', 'body'];
-    }
-
-    /** 入力値ではない保存する項目。宛先の件数とCSVのファイル名は、送信の直前に読んだCSVから決める */
-    private function additionalFields(array $validated, BulkMail $bulkMail): array
-    {
-        return [
-            'csv_filename' => $this->sendingCsv->filename,
-            'recipient_count' => count($this->sendingCsv->rows),
-            'status' => BulkMailStatus::Sending,
-            'operator_id' => Auth::id(),
-        ];
     }
 
     /** 新規の入力の初期値 */
@@ -349,6 +332,27 @@ class BulkMailController extends Controller
             return redirect()->route('admin.bulk-mails.show', $bulkMail)
                 ->with('status', "{$bulkMail->recipient_count}件の送信を始めました。");
         });
+    }
+
+    // ---- 保存・削除の処理（FormFlow） ----
+
+    /** 保存する値（列 => 値）。ここで返した列だけを保存する。 */
+    private function saveValues(array $validated, BulkMail $bulkMail): array
+    {
+        // 入力値をそのまま保存する列。送られてこなかった列は null になる
+        $saveFieldNames = ['subject', 'body'];
+
+        $values = $this->inputValues($validated, $saveFieldNames);
+
+        // 宛先の件数とCSVのファイル名は、送信の直前に読んだCSVから決める
+        $values['csv_filename'] = $this->sendingCsv->filename;
+        $values['recipient_count'] = count($this->sendingCsv->rows);
+
+        // 送信中の状態で作り、送信したスタッフを残す
+        $values['status'] = BulkMailStatus::Sending;
+        $values['operator_id'] = Auth::id();
+
+        return $values;
     }
 
     // ---- CSVの検証 ----
