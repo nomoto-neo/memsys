@@ -52,6 +52,12 @@ return [
         'operation_log_action' => $operationLogActions,
     ],
 
+    // 列挙型のコード表を探す、アプリの名前空間。書いた順に探す。末尾に \ を付ける。
+    // フレームワークの列挙型（Neobit\Core\Enums\）は、ここに書かなくても最後に探す
+    // 'code_table_enum_namespaces' => [
+    //     'App\\Enums\\',
+    // ],
+
     /*
     |--------------------------------------------------------------------
     | 操作ログ

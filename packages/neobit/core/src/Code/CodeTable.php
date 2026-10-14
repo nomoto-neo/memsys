@@ -14,8 +14,10 @@ use Neobit\Core\Models\Code;
  *
  * ■ 出どころ
  * コード名から次の3つを探す。2つ以上にあれば、1つにするよう例外を投げる。
- * 1. 列挙型：コード名をクラス名の形にしたApp\Enums\かNeobit\Core\Enums\の列挙型。CodeTableEnumを実装していれば
- *    全部の値と名前の一覧にする。スタッフの権限のように、プログラムが値で動きを変えるもの
+ * 1. 列挙型：コード名をクラス名の形にした列挙型。CodeTableEnumを実装していれば
+ *    全部の値と名前の一覧にする。スタッフの権限のように、プログラムが値で動きを変えるもの。
+ *    アプリの名前空間（config('neobit.code_table_enum_namespaces')。既定はApp\Enums\）を
+ *    書いた順に探し、無ければフレームワークのNeobit\Core\Enums\を探す
  * 2. CSV：code/<コード名>.csv。都道府県のように選択肢として並べるだけのもの。
  *    ファイルを直すだけで項目を増やせる
  * 3. DB：config('neobit.db_code_types')にあるコード名なら、code_tablesテーブルを表示順に読む。CSVと同じく
@@ -55,11 +57,11 @@ class CodeTable
 {
     private const DIRECTORY = 'code';
 
-    /** 列挙型のコード表を探す名前空間。アプリ側を先に探す */
-    private const ENUM_NAMESPACES = [
-        'App\\Enums\\',
-        'Neobit\\Core\\Enums\\',
-    ];
+    /**
+     * フレームワークの列挙型を置く名前空間。列挙型のコード表は、アプリの名前空間
+     * （config('neobit.code_table_enum_namespaces')）を先に探し、最後にここを探す。
+     */
+    private const CORE_ENUM_NAMESPACE = 'Neobit\\Core\\Enums\\';
 
     // コード名ごとの読み込み済みのコード表
     /** @var array<string, array<int|string, string|array<int|string, string>>> */
@@ -92,9 +94,10 @@ class CodeTable
         }
 
         // 3つの出どころのどこにあるかを調べ、2つ以上にあればエラー
-        $enumClass = self::ENUM_NAMESPACES[0].Str::studly($codeName);
+        $enumNamespaces = [...(array) config('neobit.code_table_enum_namespaces', []), self::CORE_ENUM_NAMESPACE];
+        $enumClass = $enumNamespaces[0].Str::studly($codeName);
         $isEnum = false;
-        foreach (self::ENUM_NAMESPACES as $namespace) {
+        foreach ($enumNamespaces as $namespace) {
             $candidate = $namespace.Str::studly($codeName);
 
             if (enum_exists($candidate)

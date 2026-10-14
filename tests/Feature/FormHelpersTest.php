@@ -8,6 +8,8 @@ use App\Models\Member;
 use App\Models\Staff;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Neobit\Core\Code\CodeTableException;
+use Neobit\Core\Enums\CodeTableEnum;
 use Tests\TestCase;
 
 /**
@@ -94,6 +96,25 @@ class FormHelpersTest extends TestCase
         ]), $html);
     }
 
+    public function test_enum_code_table_is_found_in_a_namespace_from_config(): void
+    {
+        // 既定の名前空間（App\Enums\）とフレームワークには無いので、コード表として読めない
+        try {
+            code_table('test_fruit');
+            $this->fail('例外にならない');
+        } catch (CodeTableException $e) {
+            $this->assertStringContainsString('test_fruit', $e->getMessage());
+        }
+
+        // 設定に名前空間を足すと、そこの列挙型がコード表になる
+        config(['neobit.code_table_enum_namespaces' => ['App\\Enums\\', 'Tests\\Feature\\']]);
+
+        $this->assertSame(['apple' => 'りんご', 'orange' => 'みかん'], code_table('test_fruit'));
+
+        // 足す前からの名前空間の列挙型も、今までどおり読める
+        $this->assertSame('管理者', code_label('staff_acl', StaffAcl::Manager->value));
+    }
+
     public function test_csv_with_headings_is_read_as_two_levels(): void
     {
         // テストの間だけ、2階層のコード表を置く
@@ -165,5 +186,23 @@ class FormHelpersTest extends TestCase
         foreach (['q', 'orderby', 'email', 'phone', 'prefecture', 'notice_mail'] as $key) {
             $this->assertArrayHasKey($key, $filters);
         }
+    }
+}
+
+/**
+ * 設定で足した名前空間から、列挙型のコード表を探せることを確かめるための列挙型。
+ * アプリの名前空間（App\Enums\）の外に置くために、このファイルに書いている。
+ */
+enum TestFruit: string implements CodeTableEnum
+{
+    case Apple = 'apple';
+    case Orange = 'orange';
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::Apple => 'りんご',
+            self::Orange => 'みかん',
+        };
     }
 }
