@@ -31,7 +31,7 @@ class CompanyUserController extends Controller
     // ---- 共通処理（トレイト） ----
 
     // 入力→確認→保存と削除の共通処理はFormFlowトレイトが提供する。
-    // クラス側は rules() inputFromModel() saveValues() と、必要なら afterSave() などを用意する。
+    // クラス側は rules() formValues() saveValues() と、必要なら afterSave() などを用意する。
     use FormFlow;
 
     // ---- このコーナーの項目の定義 ----
@@ -53,7 +53,7 @@ class CompanyUserController extends Controller
     }
 
     /** モデルの今の値から、_fields.blade.phpに渡す$inputを組み立てる（詳細・編集で使う）。 */
-    private function inputFromModel(CompanyUser $user): array
+    private function formValues(CompanyUser $user): array
     {
         return [
             'name' => $user->name,
@@ -73,7 +73,7 @@ class CompanyUserController extends Controller
         return view('admin.company_users.show', [
             'company' => $company,
             'user' => $user,
-            'input' => $this->formInput($user),
+            'input' => $this->inputPageValues($user),
         ]);
     }
 
@@ -81,7 +81,7 @@ class CompanyUserController extends Controller
     public function edit(Company $company, CompanyUser $user): View
     {
         // old() があればそちらを優先（パスワードは再表示しないので外す）
-        $input = $this->formInput($user, Arr::except(old(), ['password', 'password_confirmation']));
+        $input = $this->inputPageValues($user, Arr::except(old(), ['password', 'password_confirmation']));
 
         return view('admin.company_users.edit', [
             'company' => $company,
@@ -95,7 +95,7 @@ class CompanyUserController extends Controller
     public function confirmUpdate(Request $request, Company $company, CompanyUser $user): View
     {
         // password_confirmationはrules()に無いので、hiddenで持ち回れるように足しておく
-        $input = $this->confirmInput($request, $user)
+        $input = $this->confirmPageValues($request, $user)
             + ['password_confirmation' => (string) $request->input('password_confirmation')];
 
         return view('admin.company_users.confirm', [

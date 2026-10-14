@@ -28,7 +28,7 @@
     - $uploadUrl  (読み取り専用モードでは未使用)Ajaxアップロード先のURL
 
     行数は$input[$field]（ファイル名の配列）の要素数で決める。4本の並行配列は
-    AjaxFileUpload::ajaxUploadInput()が、0から始まる添え字・同じ要素数に
+    AjaxFileUpload::ajaxUploadValues()が、0から始まる添え字・同じ要素数に
     揃えてあるので、0〜(要素数-1)の添え字で各行を読めばよい。
 --}}
 @php

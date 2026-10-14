@@ -42,7 +42,7 @@ class MypageController extends Controller
     // ---- 共通処理（トレイト） ----
 
     // プロフィール編集の検証・保存はFormFlowトレイトが提供する（確認画面は挟まない）。
-    // クラス側は rules() inputFromModel() saveValues() を用意する。
+    // クラス側は rules() formValues() saveValues() を用意する。
     use FormFlow;
 
     // 顔写真のAjaxアップロード（入口のuploadAjaxFile()もトレイト側）。
@@ -151,7 +151,7 @@ class MypageController extends Controller
     }
 
     /** モデルの今の値から、編集画面に渡す$inputを組み立てる。 */
-    private function inputFromModel(Member $member): array
+    private function formValues(Member $member): array
     {
         return [
             'name' => $member->name,
@@ -183,10 +183,10 @@ class MypageController extends Controller
         $member = Auth::user();
 
         // 入力欄の値。old()があればそちらを優先し、無ければ会員の今の値
-        // （顔写真のhiddenの値も含む）を使う（FormFlow::formInput()）
+        // （顔写真のhiddenの値も含む）を使う（FormFlow::inputPageValues()）
         return view('mypage.edit', [
             'member' => $member,
-            'input' => $this->formInput($member, old()),
+            'input' => $this->inputPageValues($member, old()),
             'required' => $this->requiredFields($member),
         ]);
     }

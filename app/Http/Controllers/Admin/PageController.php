@@ -27,7 +27,7 @@ class PageController extends Controller
     use SearchableList;
 
     // 入力→確認→保存の共通処理はFormFlowトレイトが提供する。
-    // クラス側は rules() inputFromModel() saveValues() を用意する。
+    // クラス側は rules() formValues() saveValues() を用意する。
     use FormFlow;
 
     // 本文のエディタに挿入する画像のアップロード（入口のuploadAjaxFile()もトレイト側）。
@@ -108,7 +108,7 @@ class PageController extends Controller
     }
 
     /** モデルの今の値から、_fields.blade.phpに渡す$inputを組み立てる（詳細・編集で使う） */
-    private function inputFromModel(Page $page): array
+    private function formValues(Page $page): array
     {
         return [
             'title' => $page->title,
@@ -119,7 +119,7 @@ class PageController extends Controller
     }
 
     /** 新規登録フォームの初期値。書きかけのページが出てしまわないよう、非表示から始める */
-    private function defaultInput(): array
+    private function defaultValues(): array
     {
         return ['disp_flg' => '0'];
     }
@@ -184,8 +184,8 @@ class PageController extends Controller
     public function create(): View
     {
         return view('admin.pages.create', [
-            // 初期値はdefaultInput()。old() があればそちらを優先
-            'input' => $this->formInput(null, old()),
+            // 初期値はdefaultValues()。old() があればそちらを優先
+            'input' => $this->inputPageValues(null, old()),
             'required' => $this->requiredFields(),
         ]);
     }
@@ -196,7 +196,7 @@ class PageController extends Controller
         return view('admin.pages.confirm', [
             'isCreate' => true,
             'page' => null,
-            'input' => $this->confirmInput($request),
+            'input' => $this->confirmPageValues($request),
         ]);
     }
 
@@ -224,7 +224,7 @@ class PageController extends Controller
         // 詳細画面にフォームの送信は無いが、_fields.blade.phpに渡す値は$input
         return view('admin.pages.show', [
             'page' => $page,
-            'input' => $this->formInput($page),
+            'input' => $this->inputPageValues($page),
         ]);
     }
 
@@ -234,7 +234,7 @@ class PageController extends Controller
         return view('admin.pages.edit', [
             'page' => $page,
             // old() があればそちらを優先
-            'input' => $this->formInput($page, old()),
+            'input' => $this->inputPageValues($page, old()),
             'required' => $this->requiredFields($page),
         ]);
     }
@@ -245,7 +245,7 @@ class PageController extends Controller
         return view('admin.pages.confirm', [
             'isCreate' => false,
             'page' => $page,
-            'input' => $this->confirmInput($request, $page),
+            'input' => $this->confirmPageValues($request, $page),
         ]);
     }
 

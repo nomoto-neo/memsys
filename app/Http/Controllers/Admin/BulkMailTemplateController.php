@@ -46,13 +46,13 @@ class BulkMailTemplateController extends Controller
     }
 
     /** 新規登録の初期値 */
-    private function defaultInput(): array
+    private function defaultValues(): array
     {
         return ['body' => self::DEFAULT_BODY];
     }
 
     /** モデルの今の値から、_fields.blade.phpに渡す$inputを組み立てる */
-    private function inputFromModel(BulkMailTemplate $template): array
+    private function formValues(BulkMailTemplate $template): array
     {
         return [
             'title' => $template->title,
@@ -77,7 +77,7 @@ class BulkMailTemplateController extends Controller
     public function create(): View
     {
         return view('admin.bulk_mail_templates.create', [
-            'input' => $this->formInput(null, old()),
+            'input' => $this->inputPageValues(null, old()),
             'required' => $this->requiredFields(),
         ]);
     }
@@ -98,7 +98,7 @@ class BulkMailTemplateController extends Controller
     {
         return view('admin.bulk_mail_templates.edit', [
             'template' => $template,
-            'input' => $this->formInput($template, old()),
+            'input' => $this->inputPageValues($template, old()),
             'required' => $this->requiredFields($template),
         ]);
     }

@@ -24,7 +24,7 @@ class ProfileController extends Controller
     // ---- 共通処理（トレイト） ----
 
     // 検証・保存はFormFlowトレイトが提供する（確認画面は挟まない）。
-    // クラス側は rules() inputFromModel() saveValues() を用意する。
+    // クラス側は rules() formValues() saveValues() を用意する。
     use FormFlow;
 
     // メールアドレスが変わる保存に、確認コードの入力を挟む（emailChangeForm()など。Neobit\Core\Auth\EmailChange参照）。
@@ -71,7 +71,7 @@ class ProfileController extends Controller
     }
 
     /** モデルの今の値から、編集画面に渡す$inputを組み立てる。 */
-    private function inputFromModel(CompanyUser $user): array
+    private function formValues(CompanyUser $user): array
     {
         return [
             'name' => $user->name,
@@ -89,10 +89,10 @@ class ProfileController extends Controller
     {
         $user = Auth::guard(CompanyUser::loginGuard())->user();
 
-        // 入力欄の値。old()があればそちらを優先し、無ければ担当者の今の値を使う（FormFlow::formInput()）
+        // 入力欄の値。old()があればそちらを優先し、無ければ担当者の今の値を使う（FormFlow::inputPageValues()）
         return view('company.mypage.profile', [
             'user' => $user,
-            'input' => $this->formInput($user, old()),
+            'input' => $this->inputPageValues($user, old()),
             'required' => $this->requiredFields($user),
         ]);
     }

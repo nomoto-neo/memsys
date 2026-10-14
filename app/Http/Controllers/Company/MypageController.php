@@ -29,7 +29,7 @@ class MypageController extends Controller
     // ---- 共通処理（トレイト） ----
 
     // 企業の情報の検証・保存はFormFlowトレイトが提供する（確認画面は挟まない）。
-    // クラス側は rules() inputFromModel() saveValues() を用意する。
+    // クラス側は rules() formValues() saveValues() を用意する。
     use FormFlow;
 
     // パスキーの一覧・登録・削除（passkeyIndex()など。Neobit\Core\Auth\PasskeyManagement参照）。
@@ -85,7 +85,7 @@ class MypageController extends Controller
     }
 
     /** モデルの今の値から、編集画面に渡す$inputを組み立てる。 */
-    private function inputFromModel(Company $company): array
+    private function formValues(Company $company): array
     {
         return [
             'name' => $company->name,
@@ -120,10 +120,10 @@ class MypageController extends Controller
     {
         $company = Auth::guard(CompanyUser::loginGuard())->user()->company;
 
-        // 入力欄の値。old()があればそちらを優先し、無ければ企業の今の値を使う（FormFlow::formInput()）
+        // 入力欄の値。old()があればそちらを優先し、無ければ企業の今の値を使う（FormFlow::inputPageValues()）
         return view('company.mypage.edit', [
             'company' => $company,
-            'input' => $this->formInput($company, old()),
+            'input' => $this->inputPageValues($company, old()),
             'required' => $this->requiredFields($company),
         ]);
     }

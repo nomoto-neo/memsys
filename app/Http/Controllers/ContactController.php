@@ -152,7 +152,7 @@ class ContactController extends Controller
     {
         return view('contact.create', [
             // old() があればそちらを優先
-            'input' => $this->formInput(null, old()),
+            'input' => $this->inputPageValues(null, old()),
             // agreeは'accepted'ルールで'required'を含まないので、必須マークだけ足す
             'required' => $this->requiredFields(null, ['agree']),
         ]);
@@ -179,7 +179,7 @@ class ContactController extends Controller
 
         // 入力を検証して、確認画面を表示する
         return view('contact.confirm', [
-            'input' => $this->confirmInput($request),
+            'input' => $this->confirmPageValues($request),
             // 確認画面の「送信する」フォームにだけ埋める合言葉。$inputには混ぜない
             // （$inputは送信される業務の項目だけ、という_confirm_hiddenの前提を保つため）
             'confirmToken' => $this->issueConfirmToken(),

@@ -288,8 +288,8 @@ class NewsController extends Controller
 
     // ---- このコーナーの項目の定義 ----
     private function rules(): array { ... }
-    private function inputFromModel(...): array { ... }
-    // defaultInput()・prepareInput() は必要なときだけ
+    private function formValues(...): array { ... }
+    // defaultValues()・prepareInput() は必要なときだけ
 
     // ---- 一覧・検索 ----
     public function index(...) { ... }
@@ -386,7 +386,7 @@ class NewsController extends Controller
 2. **モデル**：`$table`・`$fillable`・`$casts`、リレーション、データ項目の仕様の定数（画像の横幅など）、表示用のアクセサ（ファイルの URL など）。
 3. **コントローラー**：1-3 の並びで書く。
    - `use SearchableList;` と一覧の定数、`srchRules()`・`applyCustomSearch()`（3章）
-   - `use FormFlow;` と `rules()`・`inputFromModel()`・`saveValues()`（5章）
+   - `use FormFlow;` と `rules()`・`formValues()`・`saveValues()`（5章）
    - アップロードがあれば `use AjaxFileUpload;` と `UPLOAD_FILES`（7章）
    - 入口：`index`・`create`・`confirmStore`・`backToCreate`・`store`・`show`・`edit`・`confirmUpdate`・`backToEdit`・`update`・`destroy`
 4. **ルート**：`routes/web.php` の管理画面のグループ（`auth:admin`・`auth.session` の内側）に足す。`/xxx/csv` のような固定の URL は、`/xxx/{id}` より前に書く。
@@ -484,7 +484,7 @@ Route::post('/members', [AdminMemberController::class, 'storeSearchCondition'])-
 
 **実例**：`Admin\MemberController::show()`・`Admin\NewsController::show()`
 
-詳細画面も、入力欄と同じ `_fields.blade.php` を読み取り専用で表示します。値は `formInput($record)` で作ります（モデルの今の値。アップロード項目も含む）。
+詳細画面も、入力欄と同じ `_fields.blade.php` を読み取り専用で表示します。値は `inputPageValues($record)` で作ります（モデルの今の値。アップロード項目も含む）。
 
 ```php
 public function show(News $news): View
@@ -493,7 +493,7 @@ public function show(News $news): View
 
     return view('admin.news.show', [
         'news' => $news,
-        'input' => $this->formInput($news),
+        'input' => $this->inputPageValues($news),
         'categories' => $news->categories,
     ]);
 }
@@ -520,8 +520,8 @@ public function show(News $news): View
 |---|---|---|
 | `rules($record)` | ○ | 検証のルール。`$record` は新規なら null。使わなければ引数なしの `rules()` でよい |
 | `saveValues($validated, $record)` | ○ | 保存する値（`列 => 値`）。ここで返した列だけを保存する。外した列は更新でもDBの値が残る。書き方は下の「保存する値」 |
-| `inputFromModel($record)` | 詳細・編集があれば○ | モデルの今の値から `$input` を作る（日付は `Y-m-d`、フラグは `'1'`/`'0'`、多対多は id の配列など、フォームの値の形に） |
-| `defaultInput()` | | 新規登録の初期値 |
+| `formValues($record)` | 詳細・編集があれば○ | モデルの今の値から `$input` を作る（日付は `Y-m-d`、フラグは `'1'`/`'0'`、多対多は id の配列など、フォームの値の形に） |
+| `defaultValues()` | | 新規登録の初期値 |
 | `prepareInput($validated)` | | 検証の後、確認画面と保存の前の整形（例：`safe_html()`、郵便番号の整形） |
 | `afterSave($record, $validated, $changedFields)` | | 保存の直後（例：多対多の `sync()`）。`$changedFields` は更新で値が変わった列で、`列の名前 => 変わる前の値`。使わなければ引数に書かなくてよい。新規登録と CSV 取り込みでは空 |
 | `savedLogAction($created)` | | 操作ログ（22章）に残す操作の種類。登録・更新とは別の名前で残したいコーナーで書く（例：一斉メールの送信） |
@@ -562,7 +562,7 @@ private function saveValues(array $validated, Staff $staff): array
 public function create(): View
 {
     return view('admin.news.create', [
-        'input' => $this->formInput(null, old()),   // 初期値は defaultInput()、old() が優先
+        'input' => $this->inputPageValues(null, old()),   // 初期値は defaultValues()、old() が優先
         'categories' => $this->allCategories(),
         'required' => $this->requiredFields(),
     ]);
@@ -573,7 +573,7 @@ public function confirmStore(Request $request): View
 {
     return view('admin.news.confirm', [
         'isCreate' => true, 'news' => null,
-        'input' => $this->confirmInput($request),   // 検証（失敗なら入力画面へ戻る）＋整形
+        'input' => $this->confirmPageValues($request),   // 検証（失敗なら入力画面へ戻る）＋整形
         'categories' => $this->allCategories(),
     ]);
 }
@@ -593,7 +593,7 @@ public function store(Request $request): RedirectResponse
 }
 ```
 
-編集は `edit(News $news)` で `formInput($news, old())`・`requiredFields($news)`、`confirmUpdate()` で `confirmInput($request, $news)`、`update()` で `saveData($news, $request)` です。
+編集は `edit(News $news)` で `inputPageValues($news, old())`・`requiredFields($news)`、`confirmUpdate()` で `confirmPageValues($request, $news)`、`update()` で `saveData($news, $request)` です。
 
 **確認画面なし**（項目が少なく、間違えてもすぐ直せるもの）は、`store()`・`update()` からそのまま `saveData()` を呼びます。検証に失敗すれば入力画面へ戻ります（実例：カテゴリー）。
 
@@ -734,7 +734,7 @@ private function prepareInput(array $validated): array
 }
 ```
 
-- `$input` の組み立て（`formInput()`・`confirmInput()`）と保存（`saveData()`）は FormFlow が自動でアップロードの処理を呼ぶので、入口の書き方は変わりません。
+- `$input` の組み立て（`inputPageValues()`・`confirmPageValues()`）と保存（`saveData()`）は FormFlow が自動でアップロードの処理を呼ぶので、入口の書き方は変わりません。
 - ルートにアップロード先を1本足します：`Route::post('/news/ajax-upload', [AdminNewsController::class, 'uploadAjaxFile'])->name('news.ajaxUpload');`（訪問者向けは `throttle` を付ける）。
 - **単数のフィールド**（`list_image`）：テーブルに `list_image`（保存ファイル名）と `list_image_origin`（元のファイル名）のカラムを作り、モデルの `$fillable` に入れます。
 - **複数のフィールド**（`attach.*`）：子テーブル（`filename`・`original_name`（NULL可）・親の id）と、フィールドと同じ名前の HasMany リレーション（`News::attach()`）を用意します。

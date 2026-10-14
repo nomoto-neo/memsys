@@ -40,7 +40,7 @@ class StaffController extends Controller
     use SearchableList;
 
     // 入力→確認→保存の共通処理はFormFlowトレイトが提供する。
-    // クラス側は rules() inputFromModel() saveValues() と、必要なら afterSave() などを用意する。
+    // クラス側は rules() formValues() saveValues() と、必要なら afterSave() などを用意する。
     use FormFlow;
 
     // ログイン中の本人による、パスキーの一覧・登録・削除（passkeyIndex()など）。
@@ -144,7 +144,7 @@ class StaffController extends Controller
     }
 
     /** モデルの今の値から、_fields.blade.phpに渡す$inputを組み立てる（詳細・編集で使う）。 */
-    private function inputFromModel(Staff $staff): array
+    private function formValues(Staff $staff): array
     {
         return [
             'name' => $staff->name,
@@ -155,7 +155,7 @@ class StaffController extends Controller
     }
 
     /** 新規登録フォームの初期値。 */
-    private function defaultInput(): array
+    private function defaultValues(): array
     {
         // 新規スタッフは最小権限から
         return ['acl' => StaffAcl::Staff->value];
@@ -232,8 +232,8 @@ class StaffController extends Controller
     /** 新規登録フォームの表示 */
     public function create(): View
     {
-        // 初期値はdefaultInput()。old() があればそちらを優先（パスワードは再表示しないので外す）
-        $input = $this->formInput(null, Arr::except(old(), ['password', 'password_confirmation']));
+        // 初期値はdefaultValues()。old() があればそちらを優先（パスワードは再表示しないので外す）
+        $input = $this->inputPageValues(null, Arr::except(old(), ['password', 'password_confirmation']));
 
         return view('admin.staff.create', [
             'input' => $input,
@@ -246,7 +246,7 @@ class StaffController extends Controller
     public function confirmStore(Request $request): View
     {
         // password_confirmationはrules()に無いので、hiddenで持ち回れるように足しておく
-        $input = $this->confirmInput($request)
+        $input = $this->confirmPageValues($request)
             + ['password_confirmation' => (string) $request->input('password_confirmation')];
 
         return view('admin.staff.confirm', [
@@ -285,7 +285,7 @@ class StaffController extends Controller
         return view('admin.staff.show', [
             'staff' => $staff,
             'actor' => Auth::guard('admin')->user(),
-            'input' => $this->formInput($staff),
+            'input' => $this->inputPageValues($staff),
         ]);
     }
 
@@ -293,7 +293,7 @@ class StaffController extends Controller
     public function edit(Staff $staff): View
     {
         // old() があればそちらを優先（パスワードは再表示しないので外す）
-        $input = $this->formInput($staff, Arr::except(old(), ['password', 'password_confirmation']));
+        $input = $this->inputPageValues($staff, Arr::except(old(), ['password', 'password_confirmation']));
 
         return view('admin.staff.edit', [
             'staff' => $staff,
@@ -307,7 +307,7 @@ class StaffController extends Controller
     public function confirmUpdate(Request $request, Staff $staff): View
     {
         // password_confirmationはrules()に無いので、hiddenで持ち回れるように足しておく
-        $input = $this->confirmInput($request, $staff)
+        $input = $this->confirmPageValues($request, $staff)
             + ['password_confirmation' => (string) $request->input('password_confirmation')];
 
         return view('admin.staff.confirm', [

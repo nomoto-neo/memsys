@@ -30,7 +30,7 @@ class UserController extends Controller
     // ---- 共通処理（トレイト） ----
 
     // ほかの担当者の情報の検証・保存と、削除はFormFlowトレイトが提供する（確認画面は挟まない）。
-    // クラス側は rules() inputFromModel() saveValues() と、afterSave() beforeDelete() を用意する。
+    // クラス側は rules() formValues() saveValues() と、afterSave() beforeDelete() を用意する。
     use FormFlow;
 
     // ---- 担当者の情報の項目の定義 ----
@@ -56,7 +56,7 @@ class UserController extends Controller
     }
 
     /** モデルの今の値から、編集画面に渡す$inputを組み立てる。 */
-    private function inputFromModel(CompanyUser $user): array
+    private function formValues(CompanyUser $user): array
     {
         return [
             'name' => $user->name,
@@ -145,10 +145,10 @@ class UserController extends Controller
             return redirect()->route('company.mypage.profile');
         }
 
-        // 入力欄の値。old()があればそちらを優先し、無ければ担当者の今の値を使う（FormFlow::formInput()）
+        // 入力欄の値。old()があればそちらを優先し、無ければ担当者の今の値を使う（FormFlow::inputPageValues()）
         return view('company.users.edit', [
             'user' => $user,
-            'input' => $this->formInput($user, old()),
+            'input' => $this->inputPageValues($user, old()),
             'required' => $this->requiredFields($user),
         ]);
     }

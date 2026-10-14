@@ -22,7 +22,7 @@ class CategoryController extends Controller
     // ---- 共通処理（トレイト） ----
 
     // 入力→保存の共通処理はFormFlowトレイトが提供する。
-    // クラス側は rules() inputFromModel() saveValues() を用意する。
+    // クラス側は rules() formValues() saveValues() を用意する。
     use FormFlow;
 
     // ---- 一覧の設定 ----
@@ -41,7 +41,7 @@ class CategoryController extends Controller
     }
 
     /** モデルの今の値から、_fields.blade.phpに渡す$inputを組み立てる（編集で使う）。 */
-    private function inputFromModel(Category $category): array
+    private function formValues(Category $category): array
     {
         return [
             'name' => $category->name,
@@ -100,7 +100,7 @@ class CategoryController extends Controller
     {
         return view('admin.categories.create', [
             // old() があればそちらを優先
-            'input' => $this->formInput(null, old()),
+            'input' => $this->inputPageValues(null, old()),
             'required' => $this->requiredFields(),
         ]);
     }
@@ -122,7 +122,7 @@ class CategoryController extends Controller
         return view('admin.categories.edit', [
             'category' => $category,
             // old() があればそちらを優先
-            'input' => $this->formInput($category, old()),
+            'input' => $this->inputPageValues($category, old()),
             'required' => $this->requiredFields($category),
         ]);
     }

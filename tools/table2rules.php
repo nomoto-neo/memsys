@@ -2,7 +2,7 @@
 
 /**
  * DBのテーブルの定義を読んで、そのテーブルを管理する画面の下書きを書き出すツール。
- * 書き出すのは、コントローラーのrules()・saveValues()・inputFromModel()と、
+ * 書き出すのは、コントローラーのrules()・saveValues()・formValues()と、
  * モデルの$fillable・$casts。列の型や桁数を、人が目で見て書き写す手間を減らすためのもの。
  * 冒頭には、テーブルのCREATE文も参考として書き出す。TODOを直すときに、列の定義を見比べるため。
  *
@@ -178,7 +178,7 @@ const NAME_RULES = [
     ],
 ];
 
-// inputFromModel()で、日付の型の列を入力欄に入れるときの書式。型の名前 => 書式
+// formValues()で、日付の型の列を入力欄に入れるときの書式。型の名前 => 書式
 const INPUT_DATE_FORMATS = [
     'date' => 'Y-m-d',
     'datetime' => 'Y-m-d\TH:i',
@@ -448,7 +448,7 @@ final class TableDraft
         }
 
         if ($info['default'] !== null) {
-            $info['notes'][] = "DBの既定値は {$info['default']}。新規登録の初期値にするなら、defaultInput()に書く";
+            $info['notes'][] = "DBの既定値は {$info['default']}。新規登録の初期値にするなら、defaultValues()に書く";
         }
 
         $info['rules'] = array_values(array_unique($rules));
@@ -533,7 +533,7 @@ final class TableDraft
             $this->renderCreateTable(),
             $this->renderUses(),
             $this->renderRules(),
-            $this->renderInputFromModel(),
+            $this->renderFormValues(),
             $this->renderSaveValues(),
             $this->renderFillable(),
             $this->renderCasts(),
@@ -721,14 +721,14 @@ final class TableDraft
         return implode("\n", $lines)."\n";
     }
 
-    private function renderInputFromModel(): string
+    private function renderFormValues(): string
     {
         $lines = [
             '================================================================',
-            'コントローラー：inputFromModel()',
+            'コントローラー：formValues()',
             '================================================================',
             '    /** モデルの今の値から、_fields.blade.phpに渡す$inputを組み立てる（詳細・編集で使う） */',
-            "    private function inputFromModel({$this->model} {$this->variable}): array",
+            "    private function formValues({$this->model} {$this->variable}): array",
             '    {',
             '        return [',
         ];

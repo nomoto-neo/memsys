@@ -149,7 +149,7 @@ class BulkMailController extends Controller
     }
 
     /** 新規の入力の初期値 */
-    private function defaultInput(): array
+    private function defaultValues(): array
     {
         return ['body' => self::DEFAULT_BODY];
     }
@@ -211,7 +211,7 @@ class BulkMailController extends Controller
         }
 
         return view('admin.bulk_mails.create', [
-            'input' => $this->formInput(null, old()),
+            'input' => $this->inputPageValues(null, old()),
             'required' => $this->requiredFields(null, ['csv_file']),
             'templates' => BulkMailTemplate::orderBy('title')->get(),
             'attachMaxKb' => self::ATTACH_MAX_KB,
@@ -228,7 +228,7 @@ class BulkMailController extends Controller
         }
 
         $request->validate(['csv_file' => $this->csvFileRules()]);
-        $input = $this->confirmInput($request);
+        $input = $this->confirmPageValues($request);
         $this->checkAttachLimit($input['attach_tmp'] ?? null);
 
         // CSVを一時ディレクトリに置いて全行を読む

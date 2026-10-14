@@ -69,10 +69,10 @@ use Neobit\Core\Rules\SameCountAsRule;
  * ■ 画面へ渡す$input
  * コントローラーが画面へ渡す$inputにはフォームから送る項目だけを入れ、表示のためだけの値は
  * 入れない。確認画面の_confirm_hiddenが$inputをそのままhiddenに並べられるようにするため。
- * ajaxUploadInput()もそれに合わせて{field}・{field}_origin・{field}_tmp・{field}_delだけを
+ * ajaxUploadValues()もそれに合わせて{field}・{field}_origin・{field}_tmp・{field}_delだけを
  * 返す。複数の欄ではどれも同じ要素数の配列になる。
  *
- *   $input = old() + [...] + $this->ajaxUploadInput(null, old());
+ *   $input = old() + [...] + $this->ajaxUploadValues(null, old());
  *
  * プレビューのURLはコントローラーでは作らず、_ajax_upload_blockの中でupload_preview_url()が
  * $inputの値から求める。都道府県の名前をcode_table()で引くのと同じ考え方。
@@ -953,7 +953,7 @@ trait AjaxFileUpload
      * - confirm  検証済みの値、$modelは新規ならnull、更新なら対象のレコード
      * - show     空の配列、$modelは対象のレコード。いつも今の値になる
      */
-    public function ajaxUploadInput(?Model $model, array $source = []): array
+    public function ajaxUploadValues(?Model $model, array $source = []): array
     {
         $result = [];
 
@@ -994,7 +994,7 @@ trait AjaxFileUpload
     }
 
     /**
-     * ajaxUploadInput()の複数の欄1つ分。4本の配列を必ず同じ要素数にそろえて返す。
+     * ajaxUploadValues()の複数の欄1つ分。4本の配列を必ず同じ要素数にそろえて返す。
      * $sourceにこの欄のキーが無ければ、$modelのリレーションの今の行を使う。
      */
     private function repeatableUploadInput(?Model $model, string $field, array $source): array

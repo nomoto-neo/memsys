@@ -29,7 +29,7 @@ class NewsController extends Controller
     use SearchableList;
 
     // 入力→確認→保存の共通処理はFormFlowトレイトが提供する。
-    // クラス側は rules() inputFromModel() saveValues() と、必要なら afterSave() などを用意する。
+    // クラス側は rules() formValues() saveValues() と、必要なら afterSave() などを用意する。
     use FormFlow;
 
     // アップロードまわりの共通処理は AjaxFileUpload トレイトが提供する。
@@ -117,7 +117,7 @@ class NewsController extends Controller
      * モデルの今の値から、_fields.blade.phpに渡す$inputを組み立てる（詳細・編集で使う）。
      * アップロード項目はFormFlowが足すので、ここには書かない。
      */
-    private function inputFromModel(News $news): array
+    private function formValues(News $news): array
     {
         return [
             'title' => $news->title,
@@ -133,7 +133,7 @@ class NewsController extends Controller
     }
 
     /** 新規登録フォームの初期値。 */
-    private function defaultInput(): array
+    private function defaultValues(): array
     {
         return [
             'disp_flg' => '0',
@@ -287,8 +287,8 @@ class NewsController extends Controller
     public function create(): View
     {
         return view('admin.news.create', [
-            // 初期値はdefaultInput()。old() があればそちらを優先
-            'input' => $this->formInput(null, old()),
+            // 初期値はdefaultValues()。old() があればそちらを優先
+            'input' => $this->inputPageValues(null, old()),
             'categories' => $this->allCategories(),
             'required' => $this->requiredFields(),
         ]);
@@ -300,7 +300,7 @@ class NewsController extends Controller
         return view('admin.news.confirm', [
             'isCreate' => true,
             'news' => null,
-            'input' => $this->confirmInput($request),
+            'input' => $this->confirmPageValues($request),
             'categories' => $this->allCategories(),
         ]);
     }
@@ -331,7 +331,7 @@ class NewsController extends Controller
         // 詳細画面にフォームの送信は無いが、_fields.blade.phpに渡す値は$input
         return view('admin.news.show', [
             'news' => $news,
-            'input' => $this->formInput($news),
+            'input' => $this->inputPageValues($news),
             'categories' => $news->categories,
         ]);
     }
@@ -342,7 +342,7 @@ class NewsController extends Controller
         return view('admin.news.edit', [
             'news' => $news,
             // old() があればそちらを優先
-            'input' => $this->formInput($news, old()),
+            'input' => $this->inputPageValues($news, old()),
             'categories' => $this->allCategories(),
             'required' => $this->requiredFields($news),
         ]);
@@ -354,7 +354,7 @@ class NewsController extends Controller
         return view('admin.news.confirm', [
             'isCreate' => false,
             'news' => $news,
-            'input' => $this->confirmInput($request, $news),
+            'input' => $this->confirmPageValues($request, $news),
             'categories' => $this->allCategories(),
         ]);
     }

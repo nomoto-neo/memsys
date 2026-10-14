@@ -33,7 +33,7 @@ use Throwable;
  * - csvImportSettings()  取り込みの設定。CsvImportSettingsを返す。確認画面と実行の両方で使う
  * - csvColumns()         CSVの項目の定義。ダウンロードと共通で、書き方はCsvColumnSetにある
  * - rules()              検証のルール。取り込めるのはここにある項目だけ
- * - 追加と更新のCsvImportMode::SaveではFormFlowも使う。inputFromModel()やsaveValues()など
+ * - 追加と更新のCsvImportMode::SaveではFormFlowも使う。formValues()やsaveValues()など
  *
  * ■ 要るときだけ用意するもの。用意しなければ何もしない
  * - csvCustomImport($key, $value, $row)  @名前の列の取り込み。'import'に書いた項目名 => 値を返す
@@ -64,7 +64,7 @@ use Throwable;
  *
  * ■ 値の読み方
  * - 空欄はnull。画面からの入力と同じく前後の空白は取り除く
- * - 更新はinputFromModel()のDBの今の値に、追加はdefaultInput()にCSVの値を重ねて、rules()で
+ * - 更新はformValues()のDBの今の値に、追加はdefaultValues()にCSVの値を重ねて、rules()で
  *   検証する。処理だけのモードはCSVの値だけを検証する
  * - 一覧の表示名・日付・3桁の区切り・数式を無害にする「'」は、CsvColumnSetでダウンロードと逆向きに戻す
  * - 文字コードはファイル全体で、BOM付きUTF-8・UTF-8・Shift_JISの順に判定する

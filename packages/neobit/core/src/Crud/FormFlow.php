@@ -25,11 +25,11 @@ use Neobit\Core\Operations\OperationRecorder;
  *                             そのまま保存する列はinputValues()で取り出し、入力値をそのまま
  *                             使わない列（ハッシュ値にしたパスワード、操作したスタッフのidなど）は
  *                             その後に足す
- * - inputFromModel($record)   モデルの今の値から画面に渡す$inputを作る。詳細・編集の画面が
- *                             無いコーナーでは要らない
+ * - formValues($record)       モデルの今の値を、フォームに出す値の形にする（日付の書式など）。
+ *                             詳細・編集の画面が無いコーナーでは要らない
  *
  * ■ 必要なときだけ用意するもの
- * - defaultInput()                    新規登録の初期値
+ * - defaultValues()                   新規登録のフォームに出す初期値
  * - prepareInput($validated)          検証の後、確認画面と保存の前の整形。例：safe_html()
  * - afterSave($record, $validated, $changedFields)
  *                                     保存の直後の処理。例：関連テーブルのsync()。$changedFieldsは
@@ -78,24 +78,24 @@ trait FormFlow
     }
 
     /** 確認画面に渡す$input。表示にもhiddenにもこれを使う。アップロードの項目は組み立て直した値を使う */
-    private function confirmInput(Request $request, ?Model $record = null): array
+    private function confirmPageValues(Request $request, ?Model $record = null): array
     {
         $validated = $this->validatedInput($request, $record);
 
-        return $this->uploadInput($record, $validated) + $validated + $this->emptyInput($record);
+        return $this->uploadFormValues($record, $validated) + $validated + $this->emptyFormValues($record);
     }
 
     /**
      * 新規登録・詳細・編集の画面に渡す$input。$recordがnullなら新規登録。
      * $sourceは入力し直している値で、確認画面から戻ったときや入力エラーのときのold()。
-     * 優先するのは$source、モデルの今の値か初期値、アップロードの項目の順。
+     * 優先するのは$source、formValues()（モデルの今の値）かdefaultValues()（初期値）、アップロードの項目の順。
      * パスワードのように再表示したくない項目は、呼ぶ側で$sourceから外して渡す。
      */
-    private function formInput(?Model $record, array $source = []): array
+    private function inputPageValues(?Model $record, array $source = []): array
     {
-        $base = $record === null ? $this->defaultInput() : $this->inputFromModel($record);
+        $base = $record === null ? $this->defaultValues() : $this->formValues($record);
 
-        return $source + $base + $this->uploadInput($record, $source) + $this->emptyInput($record);
+        return $source + $base + $this->uploadFormValues($record, $source) + $this->emptyFormValues($record);
     }
 
     /**
@@ -104,7 +104,7 @@ trait FormFlow
      * 書けるようにするため。チェックの無いチェックボックスのように、送られてこない項目もある。
      * 保存では、送られてこなかった項目とnullの項目を同じに扱うので、保存の結果は変わらない。
      */
-    private function emptyInput(?Model $record): array
+    private function emptyFormValues(?Model $record): array
     {
         $empty = [];
 
@@ -119,9 +119,9 @@ trait FormFlow
     }
 
     /** アップロードの項目の$input。AjaxFileUploadを使っていなければ空 */
-    private function uploadInput(?Model $record, array $source = []): array
+    private function uploadFormValues(?Model $record, array $source = []): array
     {
-        return method_exists($this, 'ajaxUploadInput') ? $this->ajaxUploadInput($record, $source) : [];
+        return method_exists($this, 'ajaxUploadValues') ? $this->ajaxUploadValues($record, $source) : [];
     }
 
     /**
@@ -220,7 +220,7 @@ trait FormFlow
     // ---- 必要なときだけコントローラーで書き換える処理。ここでは何もしない ----
 
     /** 新規登録の初期値 */
-    private function defaultInput(): array
+    private function defaultValues(): array
     {
         return [];
     }

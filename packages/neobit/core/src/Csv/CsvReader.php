@@ -338,11 +338,11 @@ trait CsvReader
             } elseif ($row->record) {
                 // 更新はDBの値
                 $row->action = 'update';
-                $base = $this->inputFromModel($row->record);
+                $base = $this->formValues($row->record);
             } else {
                 // 追加は初期値
                 $row->action = 'insert';
-                $base = $this->defaultInput();
+                $base = $this->defaultValues();
             }
             $uploadsNow = $isSave ? $this->csvImportCurrentUploads($row->record, $uploadFields) : [];
             $current = $base + $uploadsNow;

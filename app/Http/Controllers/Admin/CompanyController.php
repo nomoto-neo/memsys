@@ -53,7 +53,7 @@ class CompanyController extends Controller
     use SearchableList;
 
     // 入力→確認→保存の共通処理はFormFlowトレイトが提供する。
-    // クラス側は rules() inputFromModel() saveValues() と、必要なら afterSave() などを用意する。
+    // クラス側は rules() formValues() saveValues() と、必要なら afterSave() などを用意する。
     use FormFlow;
 
     // CSVダウンロードの共通処理はCsvDownloadトレイトが提供する。
@@ -163,7 +163,7 @@ class CompanyController extends Controller
     }
 
     /** モデルの今の値から、_fields.blade.phpに渡す$inputを組み立てる（詳細・編集で使う）。 */
-    private function inputFromModel(Company $company): array
+    private function formValues(Company $company): array
     {
         return [
             'name' => $company->name,
@@ -280,7 +280,7 @@ class CompanyController extends Controller
     public function create(): View
     {
         return view('admin.companies.create', [
-            'input' => $this->formInput(null, old()),
+            'input' => $this->inputPageValues(null, old()),
             'required' => $this->requiredFields(null),
         ]);
     }
@@ -291,7 +291,7 @@ class CompanyController extends Controller
         return view('admin.companies.confirm', [
             'isCreate' => true,
             'company' => null,
-            'input' => $this->confirmInput($request),
+            'input' => $this->confirmPageValues($request),
         ]);
     }
 
@@ -327,7 +327,7 @@ class CompanyController extends Controller
         // 詳細画面にフォームの送信は無いが、_fields.blade.phpに渡す値は$input
         return view('admin.companies.show', [
             'company' => $company,
-            'input' => $this->formInput($company),
+            'input' => $this->inputPageValues($company),
             'users' => $company->users()->orderBy('id')->get(),
             'invitations' => TeamInvitationManager::pending($company),
             'rejectRequired' => required_fields($this->rejectRules()),
@@ -340,7 +340,7 @@ class CompanyController extends Controller
     {
         return view('admin.companies.edit', [
             'company' => $company,
-            'input' => $this->formInput($company, old()),
+            'input' => $this->inputPageValues($company, old()),
             'required' => $this->requiredFields($company),
         ]);
     }
@@ -351,7 +351,7 @@ class CompanyController extends Controller
         return view('admin.companies.confirm', [
             'isCreate' => false,
             'company' => $company,
-            'input' => $this->confirmInput($request, $company),
+            'input' => $this->confirmPageValues($request, $company),
         ]);
     }
 

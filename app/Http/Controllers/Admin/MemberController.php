@@ -40,7 +40,7 @@ class MemberController extends Controller
     use SearchableList;
 
     // 入力→確認→保存の共通処理はFormFlowトレイトが提供する。
-    // クラス側は rules() inputFromModel() saveValues() と、必要なら afterSave() などを用意する。
+    // クラス側は rules() formValues() saveValues() と、必要なら afterSave() などを用意する。
     use FormFlow;
 
     // CSVダウンロードの共通処理はCsvDownloadトレイトが提供する。
@@ -144,7 +144,7 @@ class MemberController extends Controller
     }
 
     /** モデルの今の値から、_fields.blade.phpに渡す$inputを組み立てる（詳細・編集で使う）。 */
-    private function inputFromModel(Member $member): array
+    private function formValues(Member $member): array
     {
         return [
             'name' => $member->name,
@@ -296,7 +296,7 @@ class MemberController extends Controller
         // 詳細画面にフォームの送信は無いが、_fields.blade.phpに渡す値は$input
         return view('admin.members.show', [
             'member' => $member,
-            'input' => $this->formInput($member),
+            'input' => $this->inputPageValues($member),
         ]);
     }
 
@@ -304,7 +304,7 @@ class MemberController extends Controller
     public function edit(Member $member): View
     {
         // old() があればそちらを優先（パスワードは再表示しないので外す）
-        $input = $this->formInput($member, Arr::except(old(), ['password', 'password_confirmation']));
+        $input = $this->inputPageValues($member, Arr::except(old(), ['password', 'password_confirmation']));
 
         return view('admin.members.edit', [
             'member' => $member,
@@ -317,7 +317,7 @@ class MemberController extends Controller
     public function confirmUpdate(Request $request, Member $member): View
     {
         // password_confirmationはrules()に無いので、hiddenで持ち回れるように足しておく
-        $input = $this->confirmInput($request, $member)
+        $input = $this->confirmPageValues($request, $member)
             + ['password_confirmation' => (string) $request->input('password_confirmation')];
 
         return view('admin.members.confirm', [
