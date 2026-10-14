@@ -342,7 +342,7 @@ class BulkMailController extends Controller
         // 入力値をそのまま保存する列。送られてこなかった列は null になる
         $saveFieldNames = ['subject', 'body'];
 
-        $values = $this->inputValues($validated, $saveFieldNames);
+        $values = $this->pickValues($validated, $saveFieldNames);
 
         // 宛先の件数とCSVのファイル名は、送信の直前に読んだCSVから決める
         $values['csv_filename'] = $this->sendingCsv->filename;

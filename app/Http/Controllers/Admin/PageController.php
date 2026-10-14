@@ -282,7 +282,7 @@ class PageController extends Controller
         // 入力値をそのまま保存する列。送られてこなかった列は null になる
         $saveFieldNames = ['title', 'slug', 'body', 'disp_flg'];
 
-        return $this->inputValues($validated, $saveFieldNames);
+        return $this->pickValues($validated, $saveFieldNames);
     }
 
     // Ajaxアップロード処理の function がトレイトから取り込まれる。

@@ -237,7 +237,7 @@ class ContactController extends Controller
         // 入力値をそのまま保存する列。送られてこなかった列は null になる
         $saveFieldNames = ['name', 'kana', 'email', 'phone', 'zip', 'prefecture', 'city', 'address_other', 'body'];
 
-        return $this->inputValues($validated, $saveFieldNames);
+        return $this->pickValues($validated, $saveFieldNames);
     }
 
     // ---- 通知メール ----

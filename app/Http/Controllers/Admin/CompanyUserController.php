@@ -155,7 +155,7 @@ class CompanyUserController extends Controller
         // 入力値をそのまま保存する列。送られてこなかった列は null になる
         $saveFieldNames = ['name', 'email'];
 
-        $values = $this->inputValues($validated, $saveFieldNames);
+        $values = $this->pickValues($validated, $saveFieldNames);
 
         // パスワードは入力があったときだけハッシュ変換して保存する。空欄なら今のまま変えない
         if (! empty($validated['password'])) {

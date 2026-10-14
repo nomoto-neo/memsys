@@ -162,7 +162,7 @@ class CategoryController extends Controller
         // 入力値をそのまま保存する列。送られてこなかった列は null になる
         $saveFieldNames = ['name'];
 
-        $values = $this->inputValues($validated, $saveFieldNames);
+        $values = $this->pickValues($validated, $saveFieldNames);
 
         // 新しいカテゴリーは常に一覧の末尾に追加する（既存の最大display_order + 1。1件も無ければ0）。
         // 更新では表示順を変えない（並び替えはreorder()で行う）

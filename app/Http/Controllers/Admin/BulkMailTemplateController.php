@@ -129,6 +129,6 @@ class BulkMailTemplateController extends Controller
         // 入力値をそのまま保存する列。送られてこなかった列は null になる
         $saveFieldNames = ['title', 'subject', 'body'];
 
-        return $this->inputValues($validated, $saveFieldNames);
+        return $this->pickValues($validated, $saveFieldNames);
     }
 }

@@ -406,7 +406,7 @@ class NewsController extends Controller
             'publish_end_at',
         ];
 
-        return $this->inputValues($validated, $saveFieldNames);
+        return $this->pickValues($validated, $saveFieldNames);
     }
 
     /** 保存の直後に行う、関連テーブルの更新。 */

@@ -692,13 +692,13 @@ final class TableDraft
         // 加工して保存する列が無ければ、取り出した値をそのまま返す
         $passwords = $this->passwordColumns();
         if (! isset($this->columns['staff_id']) && $passwords === []) {
-            $lines[] = '        return $this->inputValues($validated, $saveFieldNames);';
+            $lines[] = '        return $this->pickValues($validated, $saveFieldNames);';
             $lines[] = '    }';
 
             return implode("\n", $lines)."\n";
         }
 
-        $lines[] = '        $values = $this->inputValues($validated, $saveFieldNames);';
+        $lines[] = '        $values = $this->pickValues($validated, $saveFieldNames);';
 
         if (isset($this->columns['staff_id'])) {
             $lines[] = '';

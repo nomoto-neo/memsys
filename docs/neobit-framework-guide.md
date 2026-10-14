@@ -531,7 +531,7 @@ public function show(News $news): View
 
 ### 保存する値
 
-`saveValues()` は、どのコーナーも「入力値をそのまま保存する列の一覧 → `inputValues()` で取り出す → 加工して保存する列を足す」の順に書きます。`inputValues()` は `FormFlow` にあり、送られてこなかった列は null にします（チェックの無いチェックボックスのように、送られてこない項目も DB の値を空にできるようにするため）。
+`saveValues()` は、どのコーナーも「入力値をそのまま保存する列の一覧 → `pickValues()` で取り出す → 加工して保存する列を足す」の順に書きます。`pickValues()` は `FormFlow` にあり、送られてこなかった列は null にします（チェックの無いチェックボックスのように、送られてこない項目も DB の値を空にできるようにするため）。
 
 ```php
 /** 保存する値（t_staffsの列 => 値）。ここで返した列だけを保存する。 */
@@ -540,7 +540,7 @@ private function saveValues(array $validated, Staff $staff): array
     // 入力値をそのまま保存する列。送られてこなかった列は null になる
     $saveFieldNames = ['name', 'login_id', 'email'];
 
-    $values = $this->inputValues($validated, $saveFieldNames);
+    $values = $this->pickValues($validated, $saveFieldNames);
 
     // パスワードは入力があったときだけハッシュ変換して保存する。空欄なら今のまま変えない
     if (! empty($validated['password'])) {
@@ -551,7 +551,7 @@ private function saveValues(array $validated, Staff $staff): array
 }
 ```
 
-- 加工して保存する列が無いコーナーは、`return $this->inputValues($validated, $saveFieldNames);` で終えます。
+- 加工して保存する列が無いコーナーは、`return $this->pickValues($validated, $saveFieldNames);` で終えます。
 - 入力値がそのまま入る列は、`$saveFieldNames` の一覧で絞られます。`$validated` を丸ごと返さないでください。
 - 加工して保存する列の例は、ハッシュ値にしたパスワード、操作したスタッフの id、新規登録のときだけ決める表示順や状態です。
 

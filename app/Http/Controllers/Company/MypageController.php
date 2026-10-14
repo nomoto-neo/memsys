@@ -149,7 +149,7 @@ class MypageController extends Controller
         // 入力値をそのまま保存する列。送られてこなかった列は null になる
         $saveFieldNames = ['name', 'kana', 'representative', 'zip', 'prefecture', 'address', 'tel', 'url'];
 
-        return $this->inputValues($validated, $saveFieldNames);
+        return $this->pickValues($validated, $saveFieldNames);
     }
 
     // ---- 2段階認証の管理（TwoFactorManagement） ----

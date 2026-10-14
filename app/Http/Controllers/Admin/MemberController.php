@@ -419,7 +419,7 @@ class MemberController extends Controller
         // 入力値をそのまま保存する列。送られてこなかった列は null になる
         $saveFieldNames = ['name', 'kana', 'email', 'phone', 'birthdate', 'prefecture', 'notice_mail', 'staff_memo'];
 
-        $values = $this->inputValues($validated, $saveFieldNames);
+        $values = $this->pickValues($validated, $saveFieldNames);
 
         // 最後に更新した操作者（スタッフ）
         $values['staff_id'] = Auth::guard('admin')->id();

@@ -22,7 +22,7 @@ use Neobit\Core\Operations\OperationRecorder;
  *                             使わないなら引数なしのrules()でよい
  * - saveValues($validated, $record)
  *                             保存する値（列 => 値）。ここで返した列だけを保存する。入力値を
- *                             そのまま保存する列はinputValues()で取り出し、入力値をそのまま
+ *                             そのまま保存する列はpickValues()で取り出し、入力値をそのまま
  *                             使わない列（ハッシュ値にしたパスワード、操作したスタッフのidなど）は
  *                             その後に足す
  * - formValues($record)       モデルの今の値を、フォームに出す値の形にする（日付の書式など）。
@@ -129,7 +129,7 @@ trait FormFlow
      * 送られてこなかった列はnullにする。チェックの無いチェックボックスのように、送られてこない項目も
      * DBの値を空にできるようにするため。
      */
-    private function inputValues(array $validated, array $fieldNames): array
+    private function pickValues(array $validated, array $fieldNames): array
     {
         $values = [];
         foreach ($fieldNames as $field) {
