@@ -7,6 +7,7 @@
  */
 
 use App\Enums\AppOperationLogAction;
+use App\Models\Staff;
 use Neobit\Core\Enums\OperationLogAction;
 
 // 操作ログの操作の種類にする列挙型。フレームワークの操作と、このサイトの操作
@@ -50,6 +51,15 @@ return [
     'code_tables' => [
         'gender' => ['label' => '性別', 'fixed' => true],
         'contact' => ['label' => '連絡方法', 'fixed' => false],
+    ],
+
+    // ほかのテーブルなどから、プログラムで作るコード表。コード名 => [クラス, 静的メソッドの名前]。
+    // メソッドは「値 => 名称」の配列を返す
+    'code_table_method' => [
+        // スタッフの氏名。過去のデータの名前を出す用で、削除したスタッフも含む
+        'staff' => [Staff::class, 'nameOptions'],
+        // 担当者を選ぶプルダウンの用。今いるスタッフだけ
+        'active_staff' => [Staff::class, 'activeNameOptions'],
     ],
 
     // 複数の列挙型を1つにまとめるコード表。コード名 => 列挙型の一覧

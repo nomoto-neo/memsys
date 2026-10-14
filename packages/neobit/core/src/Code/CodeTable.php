@@ -6,6 +6,7 @@ use BackedEnum;
 use Illuminate\Support\Str;
 use Neobit\Core\Enums\CodeTableEnum;
 use Neobit\Core\Models\Code;
+use ReflectionMethod;
 
 /**
  * 値と名称の組の一覧であるコード表を読み込む。画面・検証・CSVのどこからでも、
@@ -13,7 +14,7 @@ use Neobit\Core\Models\Code;
  * 知っていればよく、どこにあるコード表かを知らなくてよい。
  *
  * ■ 出どころ
- * コード名から次の3つを探す。2つ以上にあれば、1つにするよう例外を投げる。
+ * コード名から次の4つを探す。2つ以上にあれば、1つにするよう例外を投げる。
  * 1. 列挙型：コード名をクラス名の形にした列挙型。CodeTableEnumを実装していれば
  *    全部の値と名前の一覧にする。スタッフの権限のように、プログラムが値で動きを変えるもの。
  *    アプリの名前空間（config('neobit.code_table_enum_namespaces')。既定はApp\Enums\）を
@@ -22,6 +23,9 @@ use Neobit\Core\Models\Code;
  *    ファイルを直すだけで項目を増やせる
  * 3. DB：config('neobit.code_tables')に載せたコード名なら、code_tablesテーブルを表示順に読む。CSVと同じく
  *    並べるだけのもので、管理画面の項目見出し一覧から書き換えられる。値と名称の扱いはCSVと同じ
+ * 4. メソッド：config('neobit.code_table_method')に、コード名 => [クラス, 静的メソッドの名前]で
+ *    書いたもの。そのメソッドが返す「値 => 名称」の配列をそのまま使う。スタッフの一覧のように、
+ *    ほかのテーブルから作るもの。設定に関数ではなく名前を書くのは、config:cacheで固められるようにするため
  *
  * 複数の列挙型を1つに合わせたいコード表（フレームワークの操作とサイトの操作を合わせた、操作ログの
  * 操作など）は、config('neobit.code_table_merge')に、コード名 => 列挙型の一覧で書く。
@@ -110,15 +114,34 @@ class CodeTable
         }
         $path = base_path(self::DIRECTORY.'/'.$codeName.'.csv');
         $isDb = array_key_exists($codeName, (array) config('neobit.code_tables', []));
+        $method = ((array) config('neobit.code_table_method', []))[$codeName] ?? null;
 
         $sources = array_keys(array_filter([
             "列挙型（{$enumClass}）" => $isEnum,
             "CSV（{$path}）" => is_file($path),
             'DB（neobit.code_tables）' => $isDb,
+            'メソッド（neobit.code_table_method）' => $method !== null,
         ]));
 
         if (count($sources) > 1) {
             throw new CodeTableException("コード表（{$codeName}）が、".implode('と', $sources).'にあります。どれか1つにしてください。');
+        }
+
+        // メソッドのコード表：書いた静的メソッドを呼び、返した配列をそのまま使う
+        if ($method !== null) {
+            // モデルは無いメソッドの呼び出しもクエリへ回すので、is_callable()ではなく、メソッドが
+            // 実際にあって、publicかつstaticであることを確かめる
+            $callable = is_array($method) && count($method) === 2
+                && is_string($method[0]) && is_string($method[1])
+                && method_exists($method[0], $method[1])
+                && (new ReflectionMethod($method[0], $method[1]))->isPublic()
+                && (new ReflectionMethod($method[0], $method[1]))->isStatic();
+
+            if (! $callable) {
+                throw new CodeTableException("コード表（{$codeName}）を作るメソッドが呼べません。config('neobit.code_table_method')に、[クラス, 静的メソッドの名前]で書いてください: ".json_encode($method, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+            }
+
+            return self::$cache[$codeName] = $method();
         }
 
         // DBのコード表：code_tablesを表示順に読む

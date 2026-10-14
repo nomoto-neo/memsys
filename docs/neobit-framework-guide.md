@@ -867,7 +867,7 @@ public function viewFiles(Member|Staff|null $user, News $news, string $field): b
 
 <p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
 
-**ファイル**：`packages/neobit/core/src/Code/CodeTable.php`・`packages/neobit/core/src/helpers.php`・`app/Enums/`・`code/*.csv`・`config/neobit.php` の `code_tables`・`packages/neobit/core/src/Http/Controllers/CodeTableController.php`（項目見出し一覧）
+**ファイル**：`packages/neobit/core/src/Code/CodeTable.php`・`packages/neobit/core/src/helpers.php`・`app/Enums/`・`code/*.csv`・`config/neobit.php` の `code_tables`・`code_table_method`・`packages/neobit/core/src/Http/Controllers/CodeTableController.php`（項目見出し一覧）
 
 区分表（値と名称の組）は、出どころに関係なく次のヘルパーで使います。
 
@@ -879,11 +879,12 @@ public function viewFiles(Member|Staff|null $user, News $news, string $field): b
 | `code_options('prefectures', $selected)` | プルダウンの `<option>` を並べた HTML。選ばれているものに `selected` が付く。2階層の配列を渡すと `<optgroup>` にまとめる |
 | `hit($value, $key)` | 入力値が、選択肢の値に当たっているか。`@checked()`・`@selected()` に渡す |
 
-出どころは3種類で、`CodeTable` がコード名から自動で探します（2つ以上にあればエラー）。
+出どころは4種類で、`CodeTable` がコード名から自動で探します（2つ以上にあればエラー）。
 
 - **列挙型**（`App\Enums\<コード名の StudlyCase>`、`CodeTableEnum` を実装し `label()` を持つ）：プログラムが値によって動きを変えるもの（スタッフの権限 `StaffAcl` など）。モデルの `$casts` や判定では列挙型を直接使います。列挙型を探す名前空間は、`config/neobit.php` の `code_table_enum_namespaces` に書きます。既定は `App\Enums\` で、書いた順に探します。フレームワークの列挙型（`Neobit\Core\Enums\`）は、書かなくても最後に探します。
 - **CSV**（`code/<コード名>.csv`、「値,名称」を1行1件、`#` はコメント）：選択肢として並べるだけのもの（都道府県など）。
 - **DB**（`code_tables` テーブル。コード名を `config/neobit.php` の `code_tables` に載せる）：CSVと同じ扱いのもの（性別・連絡方法など）を、管理画面の「項目見出し一覧」から書き換えたいとき。値・名称の扱い（数字だけの値は int、名称の `\n` は改行）も CSV と同じです。
+- **メソッド**（コード名を `config/neobit.php` の `code_table_method` に、`[クラス, 静的メソッドの名前]` で載せる）：スタッフの一覧のように、ほかのテーブルから作るもの。メソッドが返した「値 => 名称」の配列を、そのまま使います。
 
 DBのコード表を増やすときは、`config/neobit.php` の `code_tables` に1行足し、必要なら `CodeSeeder` に初期データを書きます。
 
@@ -904,6 +905,29 @@ DBのコード表を増やすときは、`config/neobit.php` の `code_tables` �
 Route::get('/codes', [CodeTableController::class, 'index'])->name('codes.index');
 Route::patch('/codes', [CodeTableController::class, 'update'])->name('codes.update');
 ```
+
+ほかのテーブルから作るコード表は、モデルに静的なメソッドを書き、`code_table_method` に載せます。画面やコントローラーで一覧を組み立てなくても、ほかのコード表と同じヘルパーで使えます。
+
+```php
+// config/neobit.php
+'code_table_method' => [
+    // 過去のデータの名前を出す用。削除したスタッフも含む
+    'staff' => [Staff::class, 'nameOptions'],
+    // 担当者を選ぶプルダウンの用。今いるスタッフだけ
+    'active_staff' => [Staff::class, 'activeNameOptions'],
+],
+
+// app/Models/Staff.php
+public static function nameOptions(): array
+{
+    return static::withTrashed()->orderBy('id')->pluck('name', 'id')->all();
+}
+```
+
+- 設定には関数ではなく、クラスとメソッドの名前を書きます。`config:cache` で固められるようにするためです。
+- メソッドは public で static にします。無いときや呼べないときは、最初に使った画面で `CodeTableException` になります。
+- 論理削除した行を、名前には出し、選択肢には出さないときは、上の例のようにメソッドを分けて、コード表を2つにします。
+- 1回作った一覧は、同じリクエストの中で使い回します。1つの画面で何度 `code_label()` を呼んでも、問い合わせは1回です。
 
 列挙型の値ごとの名前や設定は、`match` でメソッドの中に書かず、冒頭の定数に1行ずつまとめ、メソッドはそれを引くだけにします。キーは `case` の値を参照します（PHP 8.2から使える書き方）。
 

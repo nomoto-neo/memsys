@@ -126,6 +126,21 @@ class Staff extends Authenticatable implements LoginAccount, OperationLogSubject
         return '管理画面：'.$this->login_id;
     }
 
+    /**
+     * コード表 staff（config('neobit.code_table_method')）。スタッフの id => 氏名を、登録の古い順に返す。
+     * 過去のデータの名前を出すために使うので、論理削除したスタッフも含む。
+     */
+    public static function nameOptions(): array
+    {
+        return static::withTrashed()->orderBy('id')->pluck('name', 'id')->all();
+    }
+
+    /** コード表 active_staff。担当者を選ぶプルダウンのために、今いるスタッフだけを返す */
+    public static function activeNameOptions(): array
+    {
+        return static::query()->orderBy('id')->pluck('name', 'id')->all();
+    }
+
     /** 操作ログに出す名前。論理削除したスタッフも名前を出す */
     public static function operationLogNames(array $ids): Collection
     {
