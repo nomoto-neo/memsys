@@ -29,7 +29,6 @@
  * - 「列_origin」が無くても、photo・imageのような名前の文字の列は、アップロードの欄と推測する
  */
 
-use App\Enums\CodeType;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -514,7 +513,7 @@ final class TableDraft
 
             $exists = (enum_exists($enumClass) && is_subclass_of($enumClass, CodeTableEnum::class))
                 || is_file(base_path("code/{$candidate}.csv"))
-                || CodeType::tryFrom($candidate) !== null;
+                || isset(config('neobit.code_tables')[$candidate]);
 
             if ($exists) {
                 return $candidate;
