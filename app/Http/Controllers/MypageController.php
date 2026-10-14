@@ -21,6 +21,7 @@ use Neobit\Core\Auth\PasskeyManagement;
 use Neobit\Core\Auth\TwoFactorManagement;
 use Neobit\Core\Crud\FormFlow;
 use Neobit\Core\Enums\OperationLogAction;
+use Neobit\Core\Mail\MailTemplateException;
 use Neobit\Core\Mail\TemplatedMail;
 use Neobit\Core\Operations\OperationRecorder;
 use Neobit\Core\Pdf\PdfDownload;
@@ -343,6 +344,9 @@ class MypageController extends Controller
                 'member_name' => $name,
                 'contact_url' => route('contact.create'),
             ]));
+        } catch (MailTemplateException $e) {
+            // テンプレートが無い、書き方が誤っている、は開発中の誤りなので、受け止めずに止める
+            throw $e;
         } catch (\Throwable $e) {
             Log::error('MypageController: 退会完了メールの送信に失敗しました。', [
                 'message' => $e->getMessage(),

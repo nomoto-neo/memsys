@@ -9,6 +9,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Route;
+use Neobit\Core\Mail\MailTemplateException;
 use Neobit\Core\Mail\TemplatedMail;
 use Neobit\Core\Operations\OperationLogReport;
 use Throwable;
@@ -57,6 +58,9 @@ class ReportOperationLogs extends Command
                 'app_name' => config('app.site_name'),
                 'url' => $this->operationLogUrl(),
             ]));
+        } catch (MailTemplateException $e) {
+            // テンプレートが無い、書き方が誤っている、は開発中の誤りなので、受け止めずに止める
+            throw $e;
         } catch (Throwable $e) {
             // 送れなかったことはログに残す。エラーの通知が設定されていれば、開発者に届く
             Log::error('ReportOperationLogs: 操作ログの報告のメールを送れませんでした。', ['message' => $e->getMessage()]);

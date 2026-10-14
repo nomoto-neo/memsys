@@ -999,6 +999,8 @@ Route::post('/members/csv-import/execute', [AdminMemberController::class, 'csvIm
 
 `TemplatedMail` の名前に配列を渡すと、探す名前の一覧になります。先に書いた名前を優先します（例：`new TemplatedMail(['member_verification_code', 'verification_code'], $vars)`）。
 
+テンプレートがどこにも無いときと、見出しの行の書き方が誤っているときは、例外（`MailTemplateException`）になります。メールを送る所は、SMTP につながらないなどの送信の失敗を受け止めてログに残し、処理を続けますが、この例外だけは受け止めずにそのまま投げ直します。画面はエラーになり、コマンドは止まります。開発中の誤りで、待っても直らないので、その場で気付けるようにするためです。メールを送る処理を足すときも、`catch (\Throwable $e)` の前に `catch (MailTemplateException $e) { throw $e; }` を書きます。
+
 既定のテンプレートの件名は、頭に `【サイトの名前】` が付きます。`.env` の `SITE_NAME` が空のサイトでは `【】` になるので、アプリの側にテンプレートを置いて件名を書き換えます。
 
 ```text

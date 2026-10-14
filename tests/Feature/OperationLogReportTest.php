@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Neobit\Core\Enums\OperationLogAction;
+use Neobit\Core\Mail\MailTemplateException;
 use Neobit\Core\Models\OperationLog;
 use Neobit\Core\Operations\OperationLogReport;
 use Tests\TestCase;
@@ -84,5 +85,25 @@ class OperationLogReportTest extends TestCase
         $this->logs(OperationLogAction::LoginFailed, 100);
 
         $this->assertSame('', $this->notable());
+    }
+
+    public function test_broken_template_stops_the_command_instead_of_being_logged(): void
+    {
+        // 報告のテンプレートを、見出しの書き方を誤った形でアプリに置く
+        $path = resource_path('mail-templates/operation_log_report.blade.php');
+        $this->assertFileDoesNotExist($path);
+
+        config(['neobit.operation_report_to' => 'admin@example.com']);
+
+        try {
+            file_put_contents($path, "FROM_NAME: サイト\nTO: {!! \$to !!}\nSUBJECT: 件名\n\n本文\n");
+
+            // 送信の失敗はログに残して続けるが、テンプレートの誤りは、受け止めずに止める
+            $this->expectException(MailTemplateException::class);
+
+            $this->artisan('app:report-operation-logs', ['--always' => true])->run();
+        } finally {
+            @unlink($path);
+        }
     }
 }

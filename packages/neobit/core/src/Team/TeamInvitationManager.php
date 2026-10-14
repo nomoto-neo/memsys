@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Neobit\Core\Enums\OperationLogAction;
+use Neobit\Core\Mail\MailTemplateException;
 use Neobit\Core\Mail\TemplatedMail;
 use Neobit\Core\Models\TeamInvitation;
 use Neobit\Core\Operations\OperationRecorder;
@@ -197,6 +198,9 @@ final class TeamInvitationManager
                 'url' => route($account::loginRoute(self::ROUTE), ['token' => $token]),
                 'expires_at' => $invitation->expires_at->format('Y年n月j日 H:i'),
             ]));
+        } catch (MailTemplateException $e) {
+            // テンプレートが無い、書き方が誤っている、は開発中の誤りなので、受け止めずに止める
+            throw $e;
         } catch (\Throwable $e) {
             // メールアドレスは個人情報なので、ログには出さない
             Log::error('TeamInvitationManager: 招待のメールの送信に失敗しました。', [

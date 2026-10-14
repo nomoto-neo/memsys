@@ -5,6 +5,7 @@ namespace Neobit\Core\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Neobit\Core\Mail\MailTemplateException;
 use Neobit\Core\Mail\TemplatedMail;
 
 /**
@@ -63,6 +64,9 @@ final class LoginProfileNotice
             foreach ($recipients as $recipient) {
                 try {
                     Mail::send(new TemplatedMail($template, ['to_mail' => $recipient] + $variables));
+                } catch (MailTemplateException $e) {
+                    // テンプレートが無い、書き方が誤っている、は開発中の誤りなので、受け止めずに止める
+                    throw $e;
                 } catch (\Throwable $e) {
                     Log::error('LoginProfileNotice: 会員情報変更のお知らせメールの送信に失敗しました。', [
                         'member_type' => $member->getMorphClass(),

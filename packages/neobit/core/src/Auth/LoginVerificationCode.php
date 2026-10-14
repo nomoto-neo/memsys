@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Neobit\Core\Mail\MailTemplateException;
 use Neobit\Core\Mail\TemplatedMail;
 
 /**
@@ -234,6 +235,9 @@ class LoginVerificationCode
             ]));
 
             return true;
+        } catch (MailTemplateException $e) {
+            // テンプレートが無い、書き方が誤っている、は開発中の誤りなので、受け止めずに止める
+            throw $e;
         } catch (\Throwable $e) {
             Log::error('LoginVerificationCode: 確認コードメールの送信に失敗しました。', $logContext + [
                 'purpose' => $purpose,

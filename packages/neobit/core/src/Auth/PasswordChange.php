@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Route;
 use Neobit\Core\Enums\OperationLogAction;
+use Neobit\Core\Mail\MailTemplateException;
 use Neobit\Core\Mail\TemplatedMail;
 use Neobit\Core\Operations\OperationRecorder;
 
@@ -103,6 +104,9 @@ class PasswordChange
 
         try {
             Mail::send(new TemplatedMail([$owner::loginMailTemplate(self::TEMPLATE), self::TEMPLATE], $variables));
+        } catch (MailTemplateException $e) {
+            // テンプレートが無い、書き方が誤っている、は開発中の誤りなので、受け止めずに止める
+            throw $e;
         } catch (\Throwable $e) {
             Log::error('PasswordChange: パスワード変更のお知らせメールの送信に失敗しました。', [
                 'type' => $owner->getMorphClass(),

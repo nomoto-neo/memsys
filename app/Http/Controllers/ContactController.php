@@ -12,6 +12,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Neobit\Core\Crud\FormFlow;
 use Neobit\Core\Enums\SpamCheckResult;
+use Neobit\Core\Mail\MailTemplateException;
 use Neobit\Core\Mail\TemplatedMail;
 use Neobit\Core\Rules\KatakanaRule;
 use Neobit\Core\Rules\PhoneNumberRule;
@@ -269,6 +270,9 @@ class ContactController extends Controller
                 'address_other' => $inquiry->address_other ?: '',
                 'body' => $inquiry->body ?: '（本文なし）',
             ], $attachments));
+        } catch (MailTemplateException $e) {
+            // テンプレートが無い、書き方が誤っている、は開発中の誤りなので、受け止めずに止める
+            throw $e;
         } catch (\Throwable $e) {
             Log::error('ContactController: 問い合わせ通知メールの送信に失敗しました。', [
                 'inquiry_id' => $inquiry->id,

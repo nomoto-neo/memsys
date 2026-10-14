@@ -20,6 +20,7 @@ use Neobit\Core\Crud\SearchableList;
 use Neobit\Core\Csv\CsvDownload;
 use Neobit\Core\Enums\CsvEncoding;
 use Neobit\Core\Enums\OperationLogAction;
+use Neobit\Core\Mail\MailTemplateException;
 use Neobit\Core\Mail\TemplatedMail;
 use Neobit\Core\Models\TeamInvitation;
 use Neobit\Core\Operations\OperationRecorder;
@@ -615,6 +616,9 @@ class CompanyController extends Controller
                 'to_mail' => $user->notificationEmail(),
                 'name' => $user->displayName(),
             ]));
+        } catch (MailTemplateException $e) {
+            // テンプレートが無い、書き方が誤っている、は開発中の誤りなので、受け止めずに止める
+            throw $e;
         } catch (\Throwable $e) {
             Log::error('Admin\CompanyController: 企業会員へのお知らせメールの送信に失敗しました。', [
                 'template' => $template,

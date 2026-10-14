@@ -20,6 +20,7 @@ use Illuminate\View\View;
 use Neobit\Core\Auth\LoginThrottle;
 use Neobit\Core\Auth\LoginVerificationCode;
 use Neobit\Core\Enums\OperationLogAction;
+use Neobit\Core\Mail\MailTemplateException;
 use Neobit\Core\Mail\TemplatedMail;
 use Neobit\Core\Operations\OperationRecorder;
 use Neobit\Core\Rules\KatakanaRule;
@@ -253,6 +254,9 @@ class RegistrationController extends Controller
                 'applied_at' => now()->format('Y年n月j日 H:i'),
                 'admin_url' => route('admin.companies.show', $company),
             ]));
+        } catch (MailTemplateException $e) {
+            // テンプレートが無い、書き方が誤っている、は開発中の誤りなので、受け止めずに止める
+            throw $e;
         } catch (\Throwable $e) {
             Log::error('Company\RegistrationController: 企業の登録の申請のお知らせメールの送信に失敗しました。', [
                 'company_id' => $company->id,
