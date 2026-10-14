@@ -93,6 +93,9 @@ class CompanyUserAdminTest extends TestCase
 
     public function test_password_change_is_notified_and_resets_trusted_devices(): void
     {
+        // 件名の頭に出る、サイトの名前
+        config(['app.site_name' => 'テストサイト']);
+
         $user = $this->user($this->company());
         $staff = $this->staff();
         TrustedDeviceManager::for($user)->remember($user);
@@ -111,7 +114,7 @@ class CompanyUserAdminTest extends TestCase
         // お知らせには、運営のスタッフが変えたことを書く
         $mail = $this->lastMail();
         $this->assertSame(['yamada@example.com'], $this->recipientsOf($mail));
-        $this->assertSame('パスワード変更のお知らせ', $mail->getSubject());
+        $this->assertSame('【テストサイト】パスワード変更のお知らせ', $mail->getSubject());
         $this->assertStringContainsString('運営スタッフ', $mail->getTextBody());
 
         $log = OperationLog::where('action', OperationLogAction::PasswordChange)->sole();

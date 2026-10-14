@@ -42,7 +42,7 @@
 |---|---|---|
 | 1 | 設定の既定の値を、パッケージに持たせる | 済み |
 | 1-2 | 設定の写す元を、値をコメントにした見本にする。見本のサイトの設定ファイルも同じ形にする | 済み |
-| 2 | フレームワークが送るメールのテンプレートを、パッケージに持たせる | 未着手 |
+| 2 | フレームワークが送るメールのテンプレートを、パッケージに持たせる | 済み |
 | 3 | フレームワークの画面を動かす JavaScript と CSS を、パッケージへ移す | 未着手 |
 | 4 | `CodeTable` が列挙型を探す名前空間（`App\Enums\`）の決め打ちを外す | 未着手 |
 | 5 | 配布の形を決める | 未着手 |
@@ -88,27 +88,24 @@
 
 ### 段階2　メールのテンプレート
 
-フレームワークが送るメールのテンプレートは、すべてプロジェクトの `resources/mail-templates/` にある。`MailTemplate` は `resource_path()` だけを見るので、無ければ送信で例外になる。
+済み。フレームワークが送るメールの既定のテンプレートは、パッケージの `resources/mail-templates/` にある。
 
 | テンプレート | 送る部品 | 名前の決まり方 |
 |---|---|---|
 | `error_notify` | `ErrorNotifyHandler` | 固定 |
 | `operation_log_report` | `ReportOperationLogs` | 固定 |
-| `{種類の名前}_verification_code` | `LoginVerificationCode` | ログインする人の種類ごと |
-| `{種類の名前}_password_changed` | `PasswordChange` | 同じ |
-| `{種類の名前}_profile_changed` | `LoginProfileNotice` | 同じ |
-| `{種類の名前}_invitation` | `TeamInvitationManager` | 同じ |
+| `verification_code` | `LoginVerificationCode` | ログインする人の種類ごと |
+| `password_changed` | `PasswordChange` | 同じ |
+| `profile_changed` | `LoginProfileNotice` | 同じ |
+| `invitation` | `TeamInvitationManager` | 同じ |
 
-進め方。
-
-- パッケージの `resources/mail-templates/` に既定のテンプレートを置く
-- `MailTemplate` は、プロジェクトの `resources/mail-templates/` に同じ名前のファイルがあればそれを使い、無ければパッケージのものを使う
-- プロジェクトへ写す手段（`vendor:publish --tag=neobit-mail-templates`）を足す
-
-着手するときに決めること。
-
-- 種類の名前（`member`・`company_user`・`staff`）はプロジェクトのものなので、パッケージは `member_verification_code` という名前のファイルを持てない。パッケージには種類の名前を除いた名前（`verification_code`）で置き、「種類ごとのテンプレート → 種類を除いた名前のテンプレート」の順に探す形が候補
-- 今の見本のサイトでは、種類ごとに文面が違う。`password_changed` はスタッフ用だけ `login_id`・`changed_by_name` を使う。既定のテンプレートは、どの種類でも渡される変数だけで書く必要がある。部品が渡している変数を先に調べる
+- `MailTemplate` は、プロジェクトの `resources/mail-templates/` を先に探し、無ければパッケージのものを使う
+- 種類ごとのテンプレートは、3段で探す。プロジェクトの `member_verification_code`、プロジェクトの `verification_code`、パッケージの `verification_code` の順。プロジェクトに種類の名前を付けない名前で置くと、全部の種類に共通の文面になる
+- 探す名前は、`TemplatedMail` の名前に配列で渡す。部品が `[種類の名前を付けた名前, 付けない名前]` を書く。`LoginAccount` にメソッドは足していない
+- `php artisan vendor:publish --tag=neobit-mail-templates` で、既定のテンプレートをプロジェクトへ写せる
+- 既定のテンプレートは、部品が渡す値だけで展開できる。プロジェクトのルート（お問い合わせの画面など）には頼らない。本人以外がパスワードを変えたときの文面には、変えた人の氏名を出さない。会員宛てのメールにスタッフの氏名が出るため
+- 件名の頭は `【サイトの名前】` にそろえた。確認コード・パスワードの変更・登録情報の変更の部品が、`site_name` を渡す。`SITE_NAME` が空のサイトでは `【】` になるので、プロジェクトの側でテンプレートを置いて書き換えてもらう
+- 見本のサイトは、種類ごとのテンプレート（`member_…`・`company_user_…`・`staff_…`）を残し、件名だけ同じ形にそろえた。`error_notify` と `operation_log_report` は消して、パッケージの既定を使う
 
 ### 段階3　JavaScript と CSS
 
@@ -139,12 +136,24 @@
 
 ### 段階5　配布の形
 
-人が決める事柄が多いので、後ろに回している。
+2026-10-14 に話した形。案件は数十から100以上を見込む。開発とテストは、今後も memsys で行う。リクエストを受けて memsys で実装とテストをしてから、フレームワークの部分を配り直す。
 
-- 置き場所。今は同じリポジトリの中の path リポジトリで、版は `*@dev`。別のリポジトリに分けるか、このリポジトリから書き出すか
-- 版の付け方と、プロジェクトの `composer.json` での指定のしかた
-- フレームワークのテストの置き場所。今は、見本のサイトの `tests/` が両方を確かめている
-- 新しい案件を始めるときに配るもの。フレームワークのほかに、見本のサイトのどこまでを雛形にするか
+| リポジトリ | 役割 | 直す人 |
+|---|---|---|
+| memsys | フレームワークと見本のサイトの両方。`packages/neobit/core/` も git で管理する | 開発する人 |
+| 配る用のリポジトリ（新規） | `packages/neobit/core/` の中身だけ。版のタグを付けて配る | 誰も直さない。memsys からの書き出しだけを受け取る |
+
+- 版を出すときに、`git subtree split` で `packages/neobit/core/` の履歴だけを取り出して、配る用のリポジトリへ送る。流れは memsys から配る用への一方向
+- 各案件は、`composer.json` に配る用のリポジトリの場所と版を書いて取り込む。案件に `packages/` は無く、フレームワークは `vendor/neobit/core/` に入る
+- git submodule にはしない。フレームワークと見本のサイトを、1つのコミットで直せなくなるため
+- 配る用のリポジトリは直接直さない。案件で見つかった不具合も、memsys に持ち帰って直す
+
+着手するときに決めること。
+
+- 版の付け方。直しただけの版、機能を足した版、今までの書き方が動かなくなる版を、番号で見分けられるようにする
+- 版ごとの変更の記録。案件の側で直すことと、設定の見本が変わったときの案内を書く
+- サーバーからの取得。サーバーで `composer install` を実行するので、配る用のリポジトリを読む手段がサーバーごとに要る。読み取り専用の鍵を配るか、認証付きの配布用の置き場を1つ立てるか
+- 新しい案件の雛形。memsys からフレームワークを除いた部分も、案件を始めるときの元として配る。雛形の `composer.json` は、手元のパスではなく、配る用のリポジトリの版を見るようにする
 - WYSIWYG エディタの選び方の手順を、利用ガイド7章へ書く。`npm ci` の前に `package.json` と `vite.config.js` を書き換えてもらう形
 
 ### 段階6　文書

@@ -118,6 +118,9 @@ class CompanyMypageTest extends TestCase
 
     public function test_own_profile_change_is_notified_to_old_and_new_address(): void
     {
+        // 件名の頭に出る、サイトの名前
+        config(['app.site_name' => 'テストサイト']);
+
         $user = $this->user($this->company());
 
         $this->actingAs($user, 'company')->get('/company/mypage/profile')->assertOk()->assertSee('old@example.com');
@@ -143,7 +146,7 @@ class CompanyMypageTest extends TestCase
         $notices = $this->sentMails()->slice(1);
         $recipients = $notices->map(fn ($mail) => $this->recipientsOf($mail)[0])->sort()->values()->all();
         $this->assertSame(['new@example.com', 'old@example.com'], $recipients);
-        $this->assertSame(['担当者情報変更のお知らせ', '担当者情報変更のお知らせ'], array_slice($this->sentSubjects(), 1));
+        $this->assertSame(['【テストサイト】担当者情報変更のお知らせ', '【テストサイト】担当者情報変更のお知らせ'], array_slice($this->sentSubjects(), 1));
         $this->assertStringNotContainsString('old@example.com', $this->lastMail()->getTextBody());
         $this->assertStringContainsString('株式会社acme 山田 次郎', $this->lastMail()->getTextBody());
         $this->assertStringContainsString(route('company.password.forgot'), $this->lastMail()->getTextBody());

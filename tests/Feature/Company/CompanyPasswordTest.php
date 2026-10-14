@@ -54,6 +54,9 @@ class CompanyPasswordTest extends TestCase
 
     public function test_change_in_mypage(): void
     {
+        // 件名の頭に出る、サイトの名前
+        config(['app.site_name' => 'テストサイト']);
+
         $user = $this->user($this->company());
         $user->trustedDevices()->create(['token_hash' => 'x', 'expires_at' => now()->addDay()]);
 
@@ -72,7 +75,7 @@ class CompanyPasswordTest extends TestCase
         // パスワードが変わり、記憶済みの端末が消え、お知らせのメールが届く
         $this->assertTrue(Hash::check(self::NEW_PASSWORD, $user->fresh()->password));
         $this->assertSame(0, $user->trustedDevices()->count());
-        $this->assertSame('パスワード変更のお知らせ', $this->lastMail()->getSubject());
+        $this->assertSame('【テストサイト】パスワード変更のお知らせ', $this->lastMail()->getSubject());
         $this->assertSame(['yamada@example.com'], $this->recipientsOf($this->lastMail()));
         $this->assertStringContainsString(route('company.password.forgot'), $this->lastMail()->getTextBody());
 
@@ -100,6 +103,9 @@ class CompanyPasswordTest extends TestCase
 
     public function test_reset_when_forgotten(): void
     {
+        // 件名の頭に出る、サイトの名前
+        config(['app.site_name' => 'テストサイト']);
+
         $user = $this->user($this->company());
 
         $this->get('/company/password/forgot')->assertOk();
@@ -114,7 +120,7 @@ class CompanyPasswordTest extends TestCase
         $this->assertTrue(Hash::check(self::NEW_PASSWORD, $user->fresh()->password));
         $this->assertAuthenticatedAs($user, 'company');
         $this->assertGuest('web');
-        $this->assertSame('パスワード変更のお知らせ', $this->lastMail()->getSubject());
+        $this->assertSame('【テストサイト】パスワード変更のお知らせ', $this->lastMail()->getSubject());
 
         // ログインの前の操作でも、本人の操作として残る
         $log = OperationLog::where('action', OperationLogAction::PasswordChange)->sole();

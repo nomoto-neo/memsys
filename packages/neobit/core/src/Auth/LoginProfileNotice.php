@@ -19,13 +19,17 @@ use Neobit\Core\Mail\TemplatedMail;
  * メールアドレスが変わったときは、変わる前と後の両方のアドレスに送る。他人にアドレスを
  * 書き換えられたときに、本人が気付けるのは変わる前のアドレスだけだから。
  * メールは保存が確定した後に送り、送れなくても変更は取り消さずにログにだけ残す。
- * テンプレートは、会員の種類の「種類の名前_profile_changed」。渡す値は、name・changed_at・
+ * テンプレートは、会員の種類の「種類の名前_profile_changed」。無ければ、種類の名前を除いた
+ * profile_changedを使う。渡す値は、site_name・name・changed_at・
  * reset_url（その種類のパスワードの再設定の画面）。
  */
 final class LoginProfileNotice
 {
     /** 変わっても知らせない列。パスワードは別のメールで知らせる */
     private const SILENT_FIELDS = ['password'];
+
+    /** メールのテンプレートの、種類の名前を除いた名前 */
+    private const TEMPLATE = 'profile_changed';
 
     /**
      * @param  array  $changedFields  値が変わった列の、列の名前 => 変わる前の値。FormFlowがafterSave()に渡すもの
@@ -42,6 +46,7 @@ final class LoginProfileNotice
         $variables = [
             'from_mail' => config('mail.from.address'),
             'from_name' => config('mail.from.name'),
+            'site_name' => config('app.site_name'),
             'name' => $member->displayName(),
             'changed_at' => now()->format('Y年n月j日 H:i'),
             'reset_url' => route($member::loginRoute('password.forgot')),
@@ -50,8 +55,8 @@ final class LoginProfileNotice
         // 宛先。メールアドレスが変わったときは、変わる前のアドレスにも送る
         $recipients = array_unique(array_filter([$member->notificationEmail(), $changedFields['email'] ?? null]));
 
-        // メールのテンプレートは、会員の種類の名前から決まる
-        $template = $member::loginMailTemplate('profile_changed');
+        // メールのテンプレートは、会員の種類の名前から決まる。無ければ、種類の名前を除いたものを使う
+        $template = [$member::loginMailTemplate(self::TEMPLATE), self::TEMPLATE];
 
         // 保存が確定した後に送る
         DB::afterCommit(function () use ($member, $variables, $recipients, $template) {

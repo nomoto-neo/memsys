@@ -29,7 +29,8 @@ use Neobit\Core\Mail\TemplatedMail;
  * 会員の種類（個人会員か、企業の担当者か）は、作るときにモデルのクラスで渡す。
  *     new LoginVerificationCode(Member::class)
  * メールのテンプレートと、セッションのキーは、種類の名前から決まる（個人会員なら
- * member_verification_codeと、member.verification_code.使い道）。同じブラウザで個人会員と
+ * member_verification_codeと、member.verification_code.使い道）。その種類のテンプレートが
+ * 無ければ、種類の名前を除いたverification_codeを使う。同じブラウザで個人会員と
  * 企業の担当者の両方を使っても、片方のコードがもう片方の仮置きを上書きしない。
  * 仮置きには、会員の種類とidの両方を持つ。種類が違えばidが同じでも別の人なので、
  * 取り違えないようにするため。
@@ -221,10 +222,12 @@ class LoginVerificationCode
         };
 
         try {
-            Mail::send(new TemplatedMail($this->memberClass::loginMailTemplate(self::TEMPLATE), [
+            // テンプレートは、その種類のもの、無ければ種類の名前を除いたものを使う
+            Mail::send(new TemplatedMail([$this->memberClass::loginMailTemplate(self::TEMPLATE), self::TEMPLATE], [
                 'from_mail' => config('mail.from.address'),
                 'from_name' => config('mail.from.name'),
                 'to_mail' => $email,
+                'site_name' => config('app.site_name'),
                 'member_name' => $name,
                 'purpose_label' => $label,
                 'code' => $code,

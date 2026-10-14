@@ -18,7 +18,9 @@ use Neobit\Core\Enums\LoginIdType;
  * ■ 名前の決まり（種類の名前が company_user のとき）
  * - ガード              company_user
  * - ルート              company_user.login のように、頭に「種類の名前.」を付ける
- * - メールのテンプレート  company_user_verification_code のように、頭に「種類の名前_」を付ける
+ * - メールのテンプレート  company_user_verification_code のように、頭に「種類の名前_」を付ける。
+ *                       無ければ、頭を付けない verification_code を使う。全部の種類に共通の文面で
+ *                       よいときは、頭を付けない名前で置く。それも無ければ、フレームワークの既定を使う
  * - 信頼済み端末のCookie  company_user_trusted_device
  *
  * ■ モデルに書くもの

@@ -46,6 +46,9 @@ class MemberMypageTest extends TestCase
 
     public function test_profile_change_is_notified_to_old_and_new_address(): void
     {
+        // 件名の頭に出る、サイトの名前
+        config(['app.site_name' => 'テストサイト']);
+
         $member = $this->member();
 
         // メールアドレスが変わるときは、保存せずに確認コードの入力画面へ進む。コードは新しいアドレスに届く
@@ -68,7 +71,7 @@ class MemberMypageTest extends TestCase
         $notices = $this->sentMails()->slice(1);
         $recipients = $notices->map(fn ($mail) => $this->recipientsOf($mail)[0])->sort()->values()->all();
         $this->assertSame(['new@example.com', 'old@example.com'], $recipients);
-        $this->assertSame(['会員情報変更のお知らせ', '会員情報変更のお知らせ'], array_slice($this->sentSubjects(), 1));
+        $this->assertSame(['【テストサイト】会員情報変更のお知らせ', '【テストサイト】会員情報変更のお知らせ'], array_slice($this->sentSubjects(), 1));
         $this->assertStringNotContainsString('old@example.com', $this->lastMail()->getTextBody());
         $this->assertStringContainsString('検証 太郎', $this->lastMail()->getTextBody());
 
@@ -123,6 +126,9 @@ class MemberMypageTest extends TestCase
 
     public function test_saving_without_email_change_skips_the_code(): void
     {
+        // 件名の頭に出る、サイトの名前
+        config(['app.site_name' => 'テストサイト']);
+
         $member = $this->member();
 
         // メールアドレスが変わらなければ、確認を挟まずにすぐ保存する。確認コードは送らない
@@ -131,7 +137,7 @@ class MemberMypageTest extends TestCase
             ->assertRedirect(route('mypage'));
 
         $this->assertSame('03-3333-4444', $member->fresh()->phone);
-        $this->assertSame(['会員情報変更のお知らせ'], $this->sentSubjects());
+        $this->assertSame(['【テストサイト】会員情報変更のお知らせ'], $this->sentSubjects());
     }
 
     public function test_saving_without_change_sends_nothing(): void
@@ -177,6 +183,9 @@ class MemberMypageTest extends TestCase
 
     public function test_staff_changing_the_password_notifies_the_member(): void
     {
+        // 件名の頭に出る、サイトの名前
+        config(['app.site_name' => 'テストサイト']);
+
         $member = $this->member();
         $member->trustedDevices()->create(['token_hash' => 'x', 'expires_at' => now()->addDay()]);
         $staff = Staff::create([
@@ -197,7 +206,7 @@ class MemberMypageTest extends TestCase
         // パスワードが変わり、記憶済みの端末が消え、本人にお知らせが届く。担当者が変えたことも書く
         $this->assertTrue(Hash::check('new-password', $member->fresh()->password));
         $this->assertSame(0, $member->trustedDevices()->count());
-        $this->assertSame(['パスワード変更のお知らせ'], $this->sentSubjects());
+        $this->assertSame(['【テストサイト】パスワード変更のお知らせ'], $this->sentSubjects());
         $this->assertSame(['old@example.com'], $this->recipientsOf($this->lastMail()));
         $this->assertStringContainsString('担当者', $this->lastMail()->getTextBody());
 

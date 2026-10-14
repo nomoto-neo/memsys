@@ -30,6 +30,17 @@ class MailTemplateTest extends TestCase
         'body' => "1行目\n2行目",
     ];
 
+    /** 確認コードのメールに、部品（LoginVerificationCode）が渡す値 */
+    private const CODE_VARS = [
+        'from_mail' => 'from@example.com',
+        'from_name' => 'サイト',
+        'to_mail' => 'to@example.com',
+        'site_name' => 'テストサイト',
+        'member_name' => '山田 太郎',
+        'purpose_label' => 'ログイン',
+        'code' => '123456',
+    ];
+
     // ---- 見出しの行に入る値 ----
 
     public function test_line_break_in_a_header_value_does_not_add_a_header(): void
@@ -134,6 +145,91 @@ class MailTemplateTest extends TestCase
             } catch (MailTemplateException $e) {
                 $this->assertStringContainsString(explode(':', $line)[0], $e->getMessage());
             }
+        }
+    }
+
+    // ---- 探す順 ----
+
+    public function test_template_of_the_type_in_the_app_comes_first(): void
+    {
+        // 個人会員のテンプレートはアプリにあるので、それを使う。文面で見分ける
+        $parsed = MailTemplate::render(['member_verification_code', 'verification_code'], self::CODE_VARS);
+
+        $this->assertStringContainsString('お客様の情報', $parsed['body']);
+    }
+
+    public function test_default_of_the_framework_is_used_when_the_app_has_none(): void
+    {
+        // partnerという種類のテンプレートも、種類の名前を除いたテンプレートも、アプリには無い
+        $parsed = MailTemplate::render(['partner_verification_code', 'verification_code'], self::CODE_VARS);
+
+        $this->assertSame('【テストサイト】ログインのお手続き', $parsed['subject']);
+        $this->assertSame(['to@example.com'], $parsed['to']);
+        $this->assertStringContainsString('123456', $parsed['body']);
+        $this->assertStringNotContainsString('お客様の情報', $parsed['body']);
+    }
+
+    public function test_template_without_the_type_in_the_app_comes_before_the_default(): void
+    {
+        // アプリに、種類の名前を除いた名前で置くと、全部の種類に共通の文面になる
+        $path = resource_path('mail-templates/verification_code.blade.php');
+        $this->assertFileDoesNotExist($path);
+
+        try {
+            file_put_contents($path, "TO: {!! \$to_mail !!}\nSUBJECT: 共通の件名\n\n共通の文面\n");
+
+            $this->assertSame('共通の件名', MailTemplate::render(['partner_verification_code', 'verification_code'], self::CODE_VARS)['subject']);
+
+            // その種類のテンプレートがあれば、そちらが先
+            $this->assertNotSame('共通の件名', MailTemplate::render(['member_verification_code', 'verification_code'], self::CODE_VARS)['subject']);
+        } finally {
+            @unlink($path);
+        }
+    }
+
+    public function test_template_found_nowhere_stops_the_mail(): void
+    {
+        $this->expectException(MailTemplateException::class);
+
+        MailTemplate::render(['partner_no_such_template', 'no_such_template'], []);
+    }
+
+    public function test_defaults_render_with_the_values_the_parts_pass(): void
+    {
+        // 既定のテンプレートは、部品が渡す値だけで展開できる。アプリのルートなどには頼らない
+        $common = ['from_mail' => 'from@example.com', 'from_name' => 'サイト', 'to_mail' => 'to@example.com', 'site_name' => 'テストサイト'];
+
+        $defaults = [
+            'verification_code' => self::CODE_VARS,
+            'password_changed' => $common + [
+                'name' => '山田 太郎',
+                'login_id' => 'yamada',
+                'changed_at' => '2026年10月14日 10:00',
+                'changed_by_other' => true,
+                'changed_by_name' => '管理 花子',
+                'passkeys_deleted' => true,
+                'login_url' => 'https://example.com/login',
+                'reset_url' => '',
+            ],
+            'profile_changed' => $common + [
+                'name' => '山田 太郎',
+                'changed_at' => '2026年10月14日 10:00',
+                'reset_url' => 'https://example.com/password/forgot',
+            ],
+            'invitation' => $common + [
+                'inviter_name' => '',
+                'url' => 'https://example.com/invitation/abc',
+                'expires_at' => '2026年10月21日 10:00',
+            ],
+        ];
+
+        foreach ($defaults as $name => $vars) {
+            // アプリに無い種類の名前を先頭にして、フレームワークの既定を読ませる
+            $parsed = MailTemplate::render(["partner_{$name}", $name], $vars);
+
+            $this->assertSame(['to@example.com'], $parsed['to'], $name);
+            $this->assertStringStartsWith('【テストサイト】', $parsed['subject'], $name);
+            $this->assertNotSame('', trim($parsed['body']), $name);
         }
     }
 

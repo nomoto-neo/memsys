@@ -6,7 +6,18 @@ use Illuminate\Support\Facades\Blade;
 
 /**
  * メールのテンプレートを1つ読み込み、変数を展開して、見出しと本文に分ける。
- * テンプレートはresources/mail-templates/に置く。
+ *
+ * ■ 置き場所と、探す順
+ * テンプレートは、アプリのresources/mail-templates/に置く。フレームワークが送るメールの
+ * 既定のテンプレートは、フレームワークのresources/mail-templates/にある。
+ * 名前は、1つか、配列で受け取る。配列は探す名前の一覧で、先に書いた名前を優先する。
+ * 1. アプリの置き場所を、一覧の順に探す
+ * 2. 無ければ、フレームワークの置き場所を、一覧の順に探す
+ * アプリに同じ名前のファイルを置けば、フレームワークの既定の代わりにそれが使われる。
+ * ログインする人へのメールは、「種類の名前を付けた名前」「付けない名前」の順の配列で渡される。
+ * アプリは、その種類だけの文面をmember_verification_codeに、全部の種類に共通の文面を
+ * verification_codeに置ける。
+ * 既定のテンプレートは、php artisan vendor:publish --tag=neobit-mail-templates でアプリへ写せる。
  *
  * ■ 展開
  * テンプレートはBladeで展開するので、@ifや@foreachで、条件や繰り返しを書ける。
@@ -37,25 +48,33 @@ use Illuminate\Support\Facades\Blade;
  */
 final class MailTemplate
 {
+    /** テンプレートを置くディレクトリの名前。アプリとフレームワークの、resources/の下 */
     private const DIRECTORY = 'mail-templates';
+
+    /** テンプレートのファイルの拡張子 */
+    private const EXTENSION = '.blade.php';
 
     /**
      * テンプレートを読み込んで展開し、見出しと本文に分けた結果を返す。
      * MailTemplateParser::parse()の結果に、HTML版の本文の'html'を足したもの。
      * HTML版が無ければ'html'はnull。
+     *
+     * @param  string|string[]  $names  テンプレートの名前。配列なら、先に書いた名前を優先して探す
      */
-    public static function render(string $name, array $vars): array
+    public static function render(string|array $names, array $vars): array
     {
+        $mainPath = self::locate((array) $names);
+
         // テキスト版を、見出しの行と本文に分けてから展開する。見出しの行には、改行を除いた値を入れる
-        $raw = self::readFile(self::mainPath($name));
+        $raw = self::readFile($mainPath);
         [$headerRaw, $bodyRaw] = self::splitHeaderLines($raw);
 
         $expanded = Blade::render($headerRaw, self::withoutLineBreaks($vars)).Blade::render($bodyRaw, $vars);
 
         $parsed = MailTemplateParser::parse($expanded);
 
-        // HTML版があれば、展開して足す
-        $parsed['html'] = self::renderHtmlCompanion($name, $vars);
+        // HTML版があれば、展開して足す。テキスト版と同じ場所の、同じ名前のものを使う
+        $parsed['html'] = self::renderHtmlCompanion($mainPath, $vars);
 
         return $parsed;
     }
@@ -97,9 +116,9 @@ final class MailTemplate
     }
 
     /** HTML版のテンプレートがあれば、展開した中身を返す。無ければnullで、テキストだけのメールになる */
-    private static function renderHtmlCompanion(string $name, array $vars): ?string
+    private static function renderHtmlCompanion(string $mainPath, array $vars): ?string
     {
-        $path = self::htmlPath($name);
+        $path = substr($mainPath, 0, -strlen(self::EXTENSION)).'_html'.self::EXTENSION;
 
         if (! is_readable($path)) {
             return null;
@@ -108,16 +127,30 @@ final class MailTemplate
         return Blade::render(self::readFile($path), $vars);
     }
 
-    /** テキスト版のテンプレートの場所 */
-    private static function mainPath(string $name): string
+    /**
+     * テキスト版のテンプレートの場所。アプリの置き場所を名前の順に探し、無ければ
+     * フレームワークの置き場所を名前の順に探す。どこにも無ければ例外。
+     *
+     * @param  string[]  $names
+     */
+    private static function locate(array $names): string
     {
-        return resource_path(self::DIRECTORY.'/'.$name.'.blade.php');
-    }
+        $directories = [
+            resource_path(self::DIRECTORY),
+            __DIR__.'/../../resources/'.self::DIRECTORY,
+        ];
 
-    /** HTML版のテンプレートの場所 */
-    private static function htmlPath(string $name): string
-    {
-        return resource_path(self::DIRECTORY.'/'.$name.'_html.blade.php');
+        foreach ($directories as $directory) {
+            foreach ($names as $name) {
+                $path = $directory.'/'.$name.self::EXTENSION;
+
+                if (is_readable($path)) {
+                    return $path;
+                }
+            }
+        }
+
+        throw new MailTemplateException('メールテンプレートが読み込めません: '.implode('・', $names));
     }
 
     /** テンプレートの中身。読めなければ例外 */

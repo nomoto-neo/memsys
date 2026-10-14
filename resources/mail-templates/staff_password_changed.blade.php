@@ -1,6 +1,6 @@
 FROM: {!! $from_name !!} <{!! $from_mail !!}>
 TO: {!! $to_mail !!}
-SUBJECT: 【管理画面】パスワード変更のお知らせ
+SUBJECT: 【{!! $site_name !!}】管理画面のパスワード変更のお知らせ
 
 {!! $name !!} 様
 

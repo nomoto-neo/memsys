@@ -1,6 +1,6 @@
 FROM: {!! $from_name !!} <{!! $from_mail !!}>
 TO: {!! $to_mail !!}
-SUBJECT: 担当者情報変更のお知らせ
+SUBJECT: 【{!! $site_name !!}】担当者情報変更のお知らせ
 
 {!! $name !!} 様
 

@@ -58,6 +58,13 @@ class NeobitServiceProvider extends ServiceProvider
                 'neobit-config',
             );
 
+            // 既定のメールのテンプレートを、アプリの resources/mail-templates/ へ写す
+            // （php artisan vendor:publish --tag=neobit-mail-templates）
+            $this->publishes(
+                [__DIR__.'/../resources/mail-templates' => resource_path('mail-templates')],
+                'neobit-mail-templates',
+            );
+
             $this->commands([
                 CleanupTemporaryData::class,
                 ReportOperationLogs::class,

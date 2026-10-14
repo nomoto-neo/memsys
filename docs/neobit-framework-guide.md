@@ -987,6 +987,20 @@ Route::post('/members/csv-import/execute', [AdminMemberController::class, 'csvIm
 
 送信元・宛先・件名・本文は、テンプレートファイルがすべて決めます。呼び出し側は変数と添付ファイルを渡すだけです。
 
+テンプレートは、アプリの `resources/mail-templates/` に置きます。フレームワークが送るメール（確認コード・パスワードの変更・登録情報の変更・招待・エラーの通知・操作ログの報告）は、既定のテンプレートが `packages/neobit/core/resources/mail-templates/` にあるので、置かなくても送れます。文面を変えたいときは、アプリの `resources/mail-templates/` に同じ名前のファイルを置くと、そちらが使われます。`php artisan vendor:publish --tag=neobit-mail-templates` で、既定のテンプレートをアプリへ写せます。
+
+ログインする人へのメールは、種類の名前（`member`・`staff` など）を頭に付けた名前で探し、無ければ付けない名前で探します。探す順は次のとおりです。
+
+| 順 | 置き場所 | 名前 | 使いどころ |
+|---|---|---|---|
+| 1 | アプリ | `member_verification_code` | その種類だけの文面 |
+| 2 | アプリ | `verification_code` | 全部の種類に共通の文面でよいとき |
+| 3 | フレームワーク | `verification_code` | 既定の文面 |
+
+`TemplatedMail` の名前に配列を渡すと、探す名前の一覧になります。先に書いた名前を優先します（例：`new TemplatedMail(['member_verification_code', 'verification_code'], $vars)`）。
+
+既定のテンプレートの件名は、頭に `【サイトの名前】` が付きます。`.env` の `SITE_NAME` が空のサイトでは `【】` になるので、アプリの側にテンプレートを置いて件名を書き換えます。
+
 ```text
 {{-- resources/mail-templates/contact_staff.blade.php --}}
 FROM: {!! $from_name !!} <{!! $from_mail !!}>
@@ -1616,7 +1630,7 @@ Schedule::command(CleanupTemporaryData::class)->hourly()->withoutOverlapping();
 
 <p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
 
-**ファイル**：`packages/neobit/core/src/Operations/ErrorNotifyHandler.php`・`config/logging.php`（`error_notify` のチャンネル）・`resources/mail-templates/error_notify.blade.php`
+**ファイル**：`packages/neobit/core/src/Operations/ErrorNotifyHandler.php`・`config/logging.php`（`error_notify` のチャンネル）・`packages/neobit/core/resources/mail-templates/error_notify.blade.php`
 
 本番で起きたエラーを、ログを見に行かなくても気付けるよう、ログに書くのと一緒に開発者へメールで知らせます。ログのチャンネルとして働くので、例外も `Log::error()` も同じ仕組みで届き、コントローラーや部品のコードに通知のための処理は書きません。独自に知らせたい事象があるときも、`ERROR_NOTIFY_LEVEL` 以上のレベルでログに書けば、メールで届きます。
 
@@ -1884,7 +1898,7 @@ OperationRecorder::record(OperationLogAction::Update, $company, ['status'], ['st
 
 ### 1日1回の報告のメール（OperationLogReport）
 
-**ファイル**：`packages/neobit/core/src/Operations/OperationLogReport.php`（冒頭のコメント）・`packages/neobit/core/src/Console/ReportOperationLogs.php`・`resources/mail-templates/operation_log_report.blade.php`
+**ファイル**：`packages/neobit/core/src/Operations/OperationLogReport.php`（冒頭のコメント）・`packages/neobit/core/src/Console/ReportOperationLogs.php`・`packages/neobit/core/resources/mail-templates/operation_log_report.blade.php`
 
 毎朝8時に、前の日の操作ログの報告を管理者へ送ります（`routes/console.php`）。**気になる点があった日だけ**送ります。毎日届くと読まれなくなり、肝心の日に埋もれるためです。
 
@@ -1936,7 +1950,7 @@ private function afterSave(Member $member, array $validated, array $changedField
 | 種類の名前 | モデルの短い名前。`AppServiceProvider` の `enforceMorphMap()` に書いた名前。操作ログなどが DB に持つ名前と同じ | `member` | `company_user` |
 | ガード | 種類の名前。画面の名前に合わせるときは、定数 `LOGIN_GUARD` | `web` | `company` |
 | ルートの名前 | 頭に「種類の名前.」。画面の名前に合わせるときは、定数 `LOGIN_ROUTE_PREFIX` | `login`・`mypage` | `company.login`・`company.mypage` |
-| メールのテンプレート | 頭に「種類の名前_」 | `member_verification_code` | `company_user_verification_code` |
+| メールのテンプレート | 頭に「種類の名前_」。無ければ、頭を付けない名前、フレームワークの既定の順に探す（11章） | `member_verification_code` | `company_user_verification_code` |
 | 信頼済み端末の Cookie | 「種類の名前_trusted_device」 | `member_trusted_device` | `company_user_trusted_device` |
 
 ガードとルートは、画面の側の名前なので、種類の名前とは別に決められます。個人会員は、URL とルートの名前を短いままにするために、ガードを `web`、ルートの頭を無しにしています。企業の担当者は、企業会員の画面の URL（`/company/…`）に合わせて、ガードを `company`、ルートの頭を `company.` にしています。モデルの定数 `LOGIN_GUARD`・`LOGIN_ROUTE_PREFIX` で、決まりと違う名前にしています。
@@ -2136,7 +2150,7 @@ Route::prefix('company')->name('company.')->group(function () {
 2. `config/auth.php` に、種類の名前のガードとプロバイダーを足す。古い方式のパスワードを使うなら、`driver` を `eloquent-legacy` にする。
 3. `AppServiceProvider` の `enforceMorphMap()` と、`OperationLogSubject`（`OPERATORS` にも）、`OperationLog::subjectNames()` に足す。
 4. `bootstrap/app.php` の、ログインしていないときの移動先に足す。
-5. メールのテンプレートを、種類の名前を頭に付けて用意する（`種類の名前_verification_code`・`_password_changed`・`_profile_changed`）。
+5. その種類だけの文面にしたいメールは、テンプレートを、種類の名前を頭に付けて用意する（`種類の名前_verification_code`・`_password_changed`・`_profile_changed`・`_invitation`）。用意しなければ、頭を付けない名前のテンプレートか、フレームワークの既定が使われる（11章）。
 6. `config/login.php` に、種類の名前のキーを足す。
 
 ## 付録. フレームワーク外で考慮すべきセキュリティ対策

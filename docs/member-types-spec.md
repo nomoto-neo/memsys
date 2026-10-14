@@ -115,7 +115,7 @@
 |---|---|---|---|
 | ガード | 種類の名前。画面の名前に合わせるときは、モデルの定数で決める | `web` | `company` |
 | ルート | 頭に「種類の名前.」。画面の名前に合わせるときは、モデルの定数で決める | `login`・`mypage`・`password.forgot` | `company.login`・`company.mypage`・`company.password.forgot` |
-| メールのテンプレート | 頭に「種類の名前_」 | `member_verification_code` ほか | `company_user_verification_code` ほか |
+| メールのテンプレート | 頭に「種類の名前_」。無ければ、頭を付けない名前、フレームワークの既定の順に探す | `member_verification_code` ほか | `company_user_verification_code` ほか |
 | 信頼済み端末の Cookie | 「種類の名前_trusted_device」 | `member_trusted_device` | `company_user_trusted_device` |
 
 ガードとルートは、画面の側の名前なので、種類の名前とは別に決められる。個人会員は、今の URL とルートの名前を変えないよう、ガードを `web`、ルートの頭を無しにしている。企業の担当者は、企業会員の画面の URL（`/company/…`）に合わせて、ガードを `company`、ルートの頭を `company.` にしている。

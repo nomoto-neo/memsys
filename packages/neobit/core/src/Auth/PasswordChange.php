@@ -27,7 +27,9 @@ use Neobit\Core\Operations\OperationRecorder;
  * メールアドレスが無い人には送らない。メールは保存が確定した後に送り、
  * 送れなくてもパスワードの変更は取り消さずにログにだけ残す。
  * テンプレートは、その人の種類の「種類の名前_password_changed」（LoginAccount::loginMailTemplate()）。
+ * 無ければ、種類の名前を除いたpassword_changedを使う。
  * テンプレートに渡す値：
+ * - site_name             サイトの名前
  * - name・login_id        宛名と、ログインに使う値
  * - changed_at            変えた日時
  * - changed_by_other      本人以外が変えたか。changed_by_nameは、変えた人の名前
@@ -37,6 +39,9 @@ use Neobit\Core\Operations\OperationRecorder;
  */
 class PasswordChange
 {
+    /** メールのテンプレートの、種類の名前を除いた名前 */
+    private const TEMPLATE = 'password_changed';
+
     /**
      * @param  LoginAccount  $owner  パスワードを変えたアカウント
      * @param  LoginAccount|null  $changedBy  本人の代わりに変えた人。管理画面から変えたスタッフなど。
@@ -85,6 +90,7 @@ class PasswordChange
             'from_mail' => config('mail.from.address'),
             'from_name' => config('mail.from.name'),
             'to_mail' => $email,
+            'site_name' => config('app.site_name'),
             'name' => $owner->displayName(),
             'login_id' => $owner->loginId(),
             'changed_at' => now()->format('Y年n月j日 H:i'),
@@ -96,7 +102,7 @@ class PasswordChange
         ];
 
         try {
-            Mail::send(new TemplatedMail($owner::loginMailTemplate('password_changed'), $variables));
+            Mail::send(new TemplatedMail([$owner::loginMailTemplate(self::TEMPLATE), self::TEMPLATE], $variables));
         } catch (\Throwable $e) {
             Log::error('PasswordChange: パスワード変更のお知らせメールの送信に失敗しました。', [
                 'type' => $owner->getMorphClass(),

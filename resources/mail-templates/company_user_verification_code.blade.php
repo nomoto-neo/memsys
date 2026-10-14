@@ -1,6 +1,6 @@
 FROM: {!! $from_name !!} <{!! $from_mail !!}>
 TO: {!! $to_mail !!}
-SUBJECT: 【確認コード】{!! $purpose_label !!}のお手続き
+SUBJECT: 【{!! $site_name !!}】{!! $purpose_label !!}のお手続き
 
 {!! $member_name !!} 様
 

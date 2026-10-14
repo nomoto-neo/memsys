@@ -14,6 +14,7 @@ use Illuminate\Queue\SerializesModels;
 /**
  * テンプレートファイル1つで、送信元・宛先・件名・本文のすべてを決めて送るメール。
  * テンプレートはresources/mail-templates/に置き、呼び出し側は変数と添付ファイルを渡すだけ。
+ * フレームワークの既定のテンプレートと、探す順は、Neobit\Core\Mail\MailTemplateにある。
  *
  *   Mail::send(new TemplatedMail('contact_staff', [
  *       'name' => $inquiry->name,
@@ -33,8 +34,9 @@ class TemplatedMail extends Mailable
     private array $parsed;
 
     /**
-     * @param  string  $templateName  使うテンプレート。resources/mail-templates/{$templateName}.blade.php。
+     * @param  string|string[]  $templateName  使うテンプレート。resources/mail-templates/{$templateName}.blade.php。
      *         HTML版は{$templateName}_html.blade.phpに置く（Neobit\Core\Mail\MailTemplate参照）。
+     *         配列で渡すと、探す名前の一覧になる。先に書いた名前を優先して探す。
      * @param  array<string, scalar>  $vars  テンプレートの中で$変数名として使える値。
      * @param  array<int, array{path: string, name: string}>  $attachmentFiles  添付ファイル。
      *         pathはサーバー上のファイルの場所、nameはメールに付けるときのファイル名。
@@ -44,7 +46,7 @@ class TemplatedMail extends Mailable
      *         テンプレートでは書けないときにだけ、ここで渡す。同じ名前があれば、こちらを使う。
      */
     public function __construct(
-        string $templateName,
+        string|array $templateName,
         array $vars,
         private readonly array $attachmentFiles = [],
         private readonly array $headerLines = [],

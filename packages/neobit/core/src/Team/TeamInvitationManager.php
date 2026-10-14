@@ -50,7 +50,8 @@ use Neobit\Core\Operations\OperationRecorder;
  * 誰が登録したかを、操作ログの補足の検索でたどれる。
  *
  * ■ メール
- * テンプレートは、招待から登録される人の種類の「種類の名前_invitation」。登録の画面のルートは
+ * テンプレートは、招待から登録される人の種類の「種類の名前_invitation」。無ければ、種類の名前を
+ * 除いたinvitationを使う。登録の画面のルートは
  * 「種類の名前.invitation.show」で、リンクの値をtokenで渡す。どちらも、集団のモデルの
  * invitedAccountClass()から決まる。
  * テンプレートに渡す値：
@@ -186,7 +187,8 @@ final class TeamInvitationManager
             $account = $invitation->team::invitedAccountClass();
             $inviterName = $invitation->isSentByPeer() ? (string) $invitation->inviter?->name : '';
 
-            Mail::send(new TemplatedMail($account::loginMailTemplate(self::TEMPLATE), [
+            // テンプレートは、その種類のもの、無ければ種類の名前を除いたものを使う
+            Mail::send(new TemplatedMail([$account::loginMailTemplate(self::TEMPLATE), self::TEMPLATE], [
                 'from_mail' => config('mail.from.address'),
                 'from_name' => config('mail.from.name'),
                 'to_mail' => $invitation->email,
