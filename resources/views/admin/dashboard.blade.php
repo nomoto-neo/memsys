@@ -34,17 +34,20 @@
         <a href="{{ route('admin.staff.index') }}" class="list-group-item list-group-item-action">
             スタッフ一覧
         </a>
-        <a href="{{ route('admin.codes.index') }}" class="list-group-item list-group-item-action">
-            項目見出し一覧
-        </a>
         <a href="{{ route('admin.bulk-mails.index') }}" class="list-group-item list-group-item-action">
             一斉メール
+        </a>
+        <a href="{{ route('admin.codes.index') }}" class="list-group-item list-group-item-action">
+            項目見出し一覧
         </a>
         <a href="{{ route('admin.operation-logs.index') }}" class="list-group-item list-group-item-action">
             操作ログ
         </a>
         <a href="{{ route('admin.ip-blocks.index') }}" class="list-group-item list-group-item-action">
             IPブロック管理
+        </a>
+        <a href="{{ route('admin.access-restriction.index') }}" class="list-group-item list-group-item-action">
+            アクセス制限
         </a>
     @else
         <a href="{{ route('admin.staff.show', Auth::guard('admin')->user()) }}" class="list-group-item list-group-item-action">

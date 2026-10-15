@@ -139,15 +139,15 @@ return [
         array_map('trim', explode(',', (string) env('TRUSTED_PROXIES', '')))
     )),
 
-    // サイト全体を開けるIPアドレス。公開前のデモの運用やメンテナンスの間に、カンマ区切りで書く
-    // （192.168.0.0/24のような範囲も書ける）。ここに無いIPアドレスには、メンテナンス中の画面を出す
-    // （Neobit\Core\Http\Middleware\RestrictSiteAccess）。空なら、制限しない。
+    // サイト（訪問者画面）に制限を掛けているときも開けるIPアドレス。カンマ区切りで書く（192.168.0.0/24のような範囲も書ける）。
+    // 制限を掛けるかと、ほかのIPアドレスは、管理画面の「アクセス制限」で決める（Neobit\Core\Security\AccessRestriction）。
+    // ここに書いたものは、画面の一覧に足され、画面からは外せない。ここに書いただけでは、制限は掛からない
     'site_allowed_ips' => array_values(array_filter(
         array_map('trim', explode(',', (string) env('SITE_ALLOWED_IPS', '')))
     )),
 
-    // 管理画面を開けるIPアドレス。書き方はsite_allowed_ipsと同じ。ここに無いIPアドレスには、
-    // ログイン画面も含めて404を返す（Neobit\Core\Http\Middleware\RestrictAdminAccess）。空なら、制限しない。
+    // 管理画面に制限を掛けているときも開けるIPアドレス。書き方はsite_allowed_ipsと同じ。管理画面の「アクセス制限」の
+    // 一覧に足され、画面からは外せない。ここに書いただけでは、制限は掛からない。サイトの制限には影響しない
     'admin_allowed_ips' => array_values(array_filter(
         array_map('trim', explode(',', (string) env('ADMIN_ALLOWED_IPS', '')))
     )),

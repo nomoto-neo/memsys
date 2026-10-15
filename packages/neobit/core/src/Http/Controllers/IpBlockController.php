@@ -88,7 +88,7 @@ class IpBlockController
         // 自分のIPアドレスと、入ってよいIPアドレスは止めない
         if (IpBlocker::coversProtected($range, (string) $request->ip())) {
             throw ValidationException::withMessages([
-                'ip' => 'あなたのIPアドレスか、入ってよいIPアドレス（SITE_ALLOWED_IPS・ADMIN_ALLOWED_IPS）を含むので、登録できません。',
+                'ip' => 'あなたのIPアドレスか、アクセス制限で通しているIPアドレスを含むので、登録できません。',
             ]);
         }
 

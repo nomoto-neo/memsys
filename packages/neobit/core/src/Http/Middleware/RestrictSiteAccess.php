@@ -4,12 +4,13 @@ namespace Neobit\Core\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Neobit\Core\Security\AllowedIps;
+use Neobit\Core\Security\AccessRestriction;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * サイト全体を、.envのSITE_ALLOWED_IPSに書いたIPアドレスからだけ開けるようにするミドルウェア。
- * 公開前のデモの運用と、メンテナンスの間に使う。書いていなければ、制限しない。
+ * サイト（訪問者画面）を、決めたIPアドレスからだけ開けるようにするミドルウェア。公開前のデモの運用と、
+ * メンテナンスの間に使う。制限を掛けるか・通すIPアドレスは、管理画面の「アクセス制限」で決める
+ * （Neobit\Core\Security\AccessRestriction）。
  *
  * 入ってよいIPアドレスのほかから開かれたら、メンテナンス中の画面
  * （neobit::maintenance）を503で返す。503にするのは、一時的に止めていることを
@@ -23,9 +24,6 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class RestrictSiteAccess
 {
-    /** 入ってよいIPアドレスの一覧のある設定の名前 */
-    private const CONFIG_KEY = 'app.site_allowed_ips';
-
     /** メンテナンス中の画面のビュー */
     private const VIEW = 'neobit::maintenance';
 
@@ -45,7 +43,7 @@ class RestrictSiteAccess
 
     public function handle(Request $request, Closure $next): Response
     {
-        if ($request->is(self::$except) || AllowedIps::allows(self::CONFIG_KEY, $request)) {
+        if ($request->is(self::$except) || AccessRestriction::allowsSite($request)) {
             return $next($request);
         }
 

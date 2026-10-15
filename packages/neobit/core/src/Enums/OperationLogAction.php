@@ -34,6 +34,7 @@ enum OperationLogAction: string implements OperationLogActionType
     case Throttled = 'throttled';
     case IpBlock = 'ip_block';
     case IpUnblock = 'ip_unblock';
+    case AccessRestrictionChange = 'access_restriction_change';
 
     /** 値ごとの名前 */
     private const LABELS = [
@@ -57,6 +58,7 @@ enum OperationLogAction: string implements OperationLogActionType
         self::Throttled->value => '回数の制限',
         self::IpBlock->value => 'IPアドレスのブロック',
         self::IpUnblock->value => 'IPアドレスのブロックの解除',
+        self::AccessRestrictionChange->value => 'アクセス制限の変更',
     ];
 
     public function label(): string

@@ -23,7 +23,7 @@
         @else
             <p class="mb-2">自動でブロックする設定は、止めてあります。</p>
         @endif
-        <p class="mb-0">あなたのIPアドレス：<strong>{{ $currentIp }}</strong>（自分のIPアドレスと、入ってよいIPアドレスは登録できません）</p>
+        <p class="mb-0">あなたのIPアドレス：<strong>{{ $currentIp }}</strong>（自分のIPアドレスと、アクセス制限で通しているIPアドレスは登録できません）</p>
     </div>
 </div>
 

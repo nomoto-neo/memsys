@@ -129,9 +129,10 @@
 | インターフェース | `TeamInvitationOwner` | 招待を持つモデル | |
 | インターフェース | `UploadDirectoryRule` | 保存先の規則 | |
 | モデル | `IpBlock` | IPブロック管理の1行 | |
+| モデル | `Setting` | 管理画面から変えられる設定の1行（キーと値） | |
 | モデルのトレイト | `IsLoginAccount`・`HasTwoFactor`・`HasPasskeys`・`TeamInvitationRelation` | ログイン・2段階認証・パスキー・招待 | `TeamInvitationRelation` だけ `Has〜`・`Is〜` の形でない |
 | コントローラーのトレイト | `FormFlow`・`SearchableList`・`AjaxFileUpload`・`CsvDownload`・`CsvImport`・`CsvReader`・`PdfDownload`・`EmailChange`・`TwoFactorLogin`・`TwoFactorManagement`・`PasskeyLogin`・`PasskeyManagement` | | `CsvReader` だけ「〜er」 |
-| 列挙型 | `OperationLogAction`（`ip_block`・`ip_unblock` を含む）・`TwoFactorMethod`・`LoginIdType`・`CsvEncoding`・`CsvImportMode`・`SpamCheckResult` | | |
+| 列挙型 | `OperationLogAction`（`ip_block`・`ip_unblock`・`access_restriction_change` を含む）・`TwoFactorMethod`・`LoginIdType`・`CsvEncoding`・`CsvImportMode`・`SpamCheckResult` | | |
 
 ## 6. 案件が呼ぶクラスと、その公開のメソッド
 
@@ -161,11 +162,12 @@
 | `HtmlSanitizer` | `clean()` | |
 | `SpamGuard` | `startedToken()`・`check()`、定数 `HONEYPOT_FIELD`・`STARTED_FIELD`・`TURNSTILE_FIELD` | |
 | `AdminRequestLimit` | `limit()` | |
+| `AccessRestriction` | `allowsSite()`・`allowsAdmin()`・`allowedIps()`・`siteIps()`・`adminIps()`・`envSiteIps()`・`envAdminIps()`・`settings()`・`save()`・`turnOff()`・`parseList()`・`lockoutMessage()` | |
 | `IpBlocker` | `isBlocked()`・`countMiss()`・`block()`・`changeUntil()`・`release()`・`deleteExpired()`・`normalizeRange()`・`rangeBounds()`・`coversProtected()` | |
 | `CsvImportSettings`・`CsvImportResult`・`CsvImportRow`・`CsvColumnSet` | 取り込みの設定と結果 | |
 | 検証のルール | `KatakanaRule`・`HiraganaRule`・`PhoneNumberRule`・`SameCountAsRule` | |
 | ミドルウェア | `AjaxFormResponse`・`NormalizeInput`・`RejectBlockedIp`・`RestrictAdminAccess`・`RestrictSiteAccess`・`SecurityHeaders` | |
-| コントローラー | `CodeTableController`・`IpBlockController`（どちらもルートは案件が書く）・`UploadedFileController` | |
+| コントローラー | `CodeTableController`・`IpBlockController`・`AccessRestrictionController`（どれもルートは案件が書く）・`UploadedFileController` | |
 
 ## 7. ヘルパー
 
@@ -211,7 +213,7 @@
 | `_two_factor_backup_codes` | `$codes`・`$twoFactorNextUrl`・`$nextLabel` | |
 | `_two_factor_manage` | `$twoFactorAccount`・`$twoFactorRoutes`・`$totpConfirmed`・`$usesBackupCodes`・`$backupCodesCodeSent`・`$confirmByEmail`・`$issueLabel`・`$resetAlso` | |
 | `_two_factor_reset` | `$twoFactorAccount`・`$twoFactorResetUrl` | |
-| `admin.code_tables.index`・`admin.ip_blocks.index`・`admin.csv_import.form`・`admin.csv_import.confirm`・`admin.too_many_requests` | フレームワークのコントローラーが渡す | |
+| `admin.code_tables.index`・`admin.ip_blocks.index`・`admin.access_restriction.index`・`admin.csv_import.form`・`admin.csv_import.confirm`・`admin.too_many_requests` | フレームワークのコントローラーが渡す | |
 | `layouts.plain`・`maintenance`・`mail._raw_html`・`mail._raw_text` | | |
 
 案件の画面がそろえる変数の名前（フレームワークの決まり）。
@@ -229,6 +231,7 @@
 | `{ログインの頭}.login`・`.login.verify`・`.login.verify.confirm`・`.login.verify.resend`・`.password.forgot` | 案件が書く。ログインの部品が、この名前で探す | |
 | 項目見出し一覧の「頭.index」「頭.update」 | 案件が書く | |
 | IPブロック管理の「頭.index」「頭.store」「頭.update」「頭.destroy」 | 案件が書く。update・destroy の URL に `{ipBlock}` | |
+| アクセス制限の「頭.index」「頭.update」 | 案件が書く | |
 
 ## 11. メールのテンプレートと、中で使える変数
 
@@ -255,6 +258,6 @@
 | 種類 | 名前 | メモ |
 |---|---|---|
 | `vendor:publish` のタグ | `neobit-config`・`neobit-mail-templates` | |
-| Artisan のコマンド | `app:cleanup-temporary-data`・`app:report-operation-logs`・`app:reset-two-factor`・`app:set-next-id` | 頭が案件と同じ `app:`。フレームワークのものと見分けられない |
-| テーブル | `code_tables`・`ip_blocks`・`operation_logs`・`csv_download_logs`・`csv_import_logs`・`trusted_devices`・`two_factor_backup_codes`・`two_factor_secrets`・`passkeys`・`team_invitations` | |
+| Artisan のコマンド | `app:access-denied-off`・`app:cleanup-temporary-data`・`app:report-operation-logs`・`app:reset-two-factor`・`app:set-next-id` | 頭が案件と同じ `app:`。フレームワークのものと見分けられない |
+| テーブル | `code_tables`・`ip_blocks`・`settings`・`operation_logs`・`csv_download_logs`・`csv_import_logs`・`trusted_devices`・`two_factor_backup_codes`・`two_factor_secrets`・`passkeys`・`team_invitations` | |
 | 案件が用意するコード表 | `operation_log_subject` | 操作ログの部品が `code_label('operation_log_subject', …)` で読む。案件に無いと例外になる |

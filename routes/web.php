@@ -33,6 +33,7 @@ use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\TopController;
 use App\Models\Page;
 use Illuminate\Support\Facades\Route;
+use Neobit\Core\Http\Controllers\AccessRestrictionController;
 use Neobit\Core\Http\Controllers\CodeTableController;
 use Neobit\Core\Http\Controllers\IpBlockController;
 
@@ -345,7 +346,8 @@ Route::prefix('company')->name('company.')->group(function () {
 
 // 管理画面：会員用の"web"ガードとは別の"admin"ガードで保護する。
 // admin.ipは、接続元のIPアドレスの制限（Neobit\Core\Http\Middleware\RestrictAdminAccess）。
-// .envのADMIN_ALLOWED_IPSに無いIPアドレスには、ログイン画面も含めて404を返す。
+// 管理画面を開けるIPアドレス（管理画面の「アクセス制限」と.envのADMIN_ALLOWED_IPS）を決めていれば、
+// それに無いIPアドレスには、ログイン画面も含めて404を返す。
 Route::prefix('admin')->name('admin.')->middleware('admin.ip')->group(function () {
     Route::middleware('guest:admin')->group(function () {
         // 未ログイン状態はログイン画面（ログイン試行のthrottle制御はコントローラー側で行う）
@@ -526,6 +528,11 @@ Route::prefix('admin')->name('admin.')->middleware('admin.ip')->group(function (
             Route::post('/ip-blocks', [IpBlockController::class, 'store'])->name('ip-blocks.store');
             Route::patch('/ip-blocks/{ipBlock}', [IpBlockController::class, 'update'])->name('ip-blocks.update');
             Route::delete('/ip-blocks/{ipBlock}', [IpBlockController::class, 'destroy'])->name('ip-blocks.destroy');
+
+            // アクセス制限（サイトと管理画面の、それぞれの制限と開けるIPアドレス。フレームワークの画面）。
+            // 名前は「頭.index」「頭.update」の組にする。コントローラーが組のもう一方の名前を作る
+            Route::get('/access-restriction', [AccessRestrictionController::class, 'index'])->name('access-restriction.index');
+            Route::patch('/access-restriction', [AccessRestrictionController::class, 'update'])->name('access-restriction.update');
 
             // 一斉メールの文面の管理
             Route::get('/bulk-mail-templates', [AdminBulkMailTemplateController::class, 'index'])->name('bulk-mail-templates.index');

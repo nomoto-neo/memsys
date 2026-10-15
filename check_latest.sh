@@ -137,6 +137,9 @@ do
     gone "$f"
 done
 
+# フレームワークの中で消したファイル
+gone packages/neobit/core/src/Security/AllowedIps.php
+
 echo "--  消したファイルの確認を終えました（NG が無ければ、残っていません）"
 
 # ---- 2. 最新の版であること ----
@@ -149,6 +152,8 @@ has   packages/neobit/core/src/Code/CodeTable.php                       "'operat
 has   packages/neobit/core/src/Models/OperationLog.php                  'public static function actionOptions('
 has   packages/neobit/core/src/Http/Controllers/CodeTableController.php "config('neobit.code_table_db'"
 has   packages/neobit/core/src/Security/IpBlocker.php                   'final class IpBlocker'
+has   packages/neobit/core/src/Security/AccessRestriction.php           'final class AccessRestriction'
+has   packages/neobit/core/database/migrations/2026_10_16_000000_create_settings_table.php "Schema::create('settings'"
 has   packages/neobit/core/database/migrations/2026_10_15_000000_create_ip_blocks_table.php "Schema::create('ip_blocks'"
 has   packages/neobit/core/config/neobit.php                            "'code_table_enum_namespaces'"
 has   packages/neobit/core/stubs/config/neobit.php                      "// 'code_table_method'"
@@ -162,6 +167,7 @@ has   vite.config.js                                                    'preserv
 has   vite.config.js                                                    'ip_block.js'
 has   bootstrap/app.php                                                 'RejectBlockedIp::class'
 has   routes/web.php                                                    'IpBlockController'
+has   routes/web.php                                                    'AccessRestrictionController'
 has   resources/views/layouts/admin.blade.php                           'vendor/neobit/core/resources/css/global.css'
 has   resources/views/layouts/app.blade.php                             'vendor/neobit/core/resources/css/global.css'
 has   resources/views/layouts/company.blade.php                         'vendor/neobit/core/resources/css/global.css'

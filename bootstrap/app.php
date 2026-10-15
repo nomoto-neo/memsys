@@ -56,14 +56,17 @@ return Application::configure(basePath: dirname(__DIR__))
         // ルートが見つからないときのエラーの画面にも付けるので、全体のミドルウェアに足す
         $middleware->append(SecurityHeaders::class);
 
-        // サイト全体を、.envのSITE_ALLOWED_IPSのIPアドレスからだけ開けるようにする
+        // サイト（訪問者画面）を、管理画面の「アクセス制限」で決めたIPアドレスからだけ開けるようにする
         // （Neobit\Core\Http\Middleware\RestrictSiteAccess）。メンテナンス中の画面にもヘッダーが付くよう、
-        // SecurityHeadersの後ろに足す。制限の間も通すのは、死活監視と、お知らせメールの配信停止。
-        // 止めている間に届いたメールからも、停止できるようにするため
+        // SecurityHeadersの後ろに足す。制限の間も通すのは、死活監視と、お知らせメールの配信停止と、管理画面。
+        // 止めている間に届いたメールからも、停止できるようにするため。管理画面には、管理画面の制限
+        // （RestrictAdminAccess）だけを掛け、サイトの制限とは互いに影響しないようにするため
         $middleware->append(RestrictSiteAccess::class);
         RestrictSiteAccess::except([
             'up',
             'mail/unsubscribe',
+            'admin',
+            'admin/*',
         ]);
 
         // お知らせメールの配信停止は、CSRFトークンを確かめない。メールソフトの「登録解除」の
@@ -81,7 +84,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // これを見に行く（詳しくはEnsureStaffIsManager::class参照）。
         $middleware->alias([
             'acl.manager' => EnsureStaffIsManager::class,
-            // 管理画面を、.envのADMIN_ALLOWED_IPSのIPアドレスからだけ開けるようにする
+            // 管理画面を、管理画面の「アクセス制限」と.envのADMIN_ALLOWED_IPSのIPアドレスからだけ開けるようにする
             'admin.ip' => RestrictAdminAccess::class,
             // 企業会員の画面を、承認済みの企業の担当者だけに使わせる
             'company.approved' => EnsureCompanyIsApproved::class,

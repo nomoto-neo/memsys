@@ -31,7 +31,7 @@ use Symfony\Component\HttpFoundation\Response;
  * /64のまとまりで数えて止める。
  *
  * ■ 止めないIPアドレス
- * サイトと管理画面の、入ってよいIPアドレス（.envのSITE_ALLOWED_IPS・ADMIN_ALLOWED_IPS）は、
+ * アクセス制限（AccessRestriction）で通しているIPアドレス（制限しないIPアドレスと、管理画面のIPアドレス）は、
  * 自動でも手動でも止めない。管理者が、自分のアクセスを止めてしまわないようにするため。
  *
  * ■ 記録
@@ -44,12 +44,6 @@ final class IpBlocker
 
     /** 止めている一覧を置くキャッシュのキー。登録・解除のたびに消して、次の判定で作り直す */
     private const CACHE_KEY = 'neobit-ip-blocks';
-
-    /** 止めないIPアドレスの一覧のある設定。サイトと管理画面の、入ってよいIPアドレス */
-    private const ALLOWED_CONFIG_KEYS = [
-        'app.site_allowed_ips',
-        'app.admin_allowed_ips',
-    ];
 
     // ---- 自動で止める ----
 
@@ -308,15 +302,10 @@ final class IpBlocker
         Cache::forget(self::CACHE_KEY);
     }
 
-    /** サイトと管理画面の、入ってよいIPアドレスの一覧 */
+    /** アクセス制限で通しているIPアドレスの一覧 */
     private static function allowedList(): array
     {
-        $allowed = [];
-        foreach (self::ALLOWED_CONFIG_KEYS as $key) {
-            $allowed = [...$allowed, ...(array) config($key, [])];
-        }
-
-        return $allowed;
+        return AccessRestriction::allowedIps();
     }
 
     /** 入ってよいIPアドレスか。自動で止めないために見る */

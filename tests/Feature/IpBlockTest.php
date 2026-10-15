@@ -10,6 +10,7 @@ use Neobit\Core\Enums\OperationLogAction;
 use Neobit\Core\Models\IpBlock;
 use Neobit\Core\Models\OperationLog;
 use Neobit\Core\Operations\TemporaryDataCleaner;
+use Neobit\Core\Security\AccessRestriction;
 use Neobit\Core\Security\IpBlocker;
 use Tests\TestCase;
 
@@ -126,9 +127,12 @@ class IpBlockTest extends TestCase
     {
         config(['neobit.ip_block_watch_count' => 2, 'app.admin_allowed_ips' => [self::ATTACKER]]);
 
-        // 入ってよいIPアドレスは、自動で止めない
+        // 入ってよいIPアドレスは、自動で止めない。.envの分も、アクセス制限の画面で入れた分も
         $this->fromIp(self::ATTACKER)->get('/no-such-page');
         $this->fromIp(self::ATTACKER)->get('/no-such-page');
+        AccessRestriction::save(false, ['192.0.2.77'], false, []);
+        $this->fromIp('192.0.2.77')->get('/no-such-page');
+        $this->fromIp('192.0.2.77')->get('/no-such-page');
         $this->assertSame(0, IpBlock::count());
 
         // 自動で止める設定を止めれば、数えない

@@ -132,34 +132,40 @@ TRUSTED_PROXIES=10.0.0.5,10.0.0.6
 - **プロキシの IP アドレスだけを、正確に書きます**。ここに書いた IP アドレスから接続した人は、IP アドレスを偽れるようになります。このヘッダーは送る側が自由に書けるためです。偽れると、試行制限を逃れたり、接続元の IP アドレスの制限をすり抜けたりできます。広い範囲や、プロキシではない機器の IP アドレスは書きません。プロキシを置いていなければ、空のままにします。
 - 訪問者の側がプロキシや VPN を通してきたときは、そのプロキシの IP アドレスが残ります。本当の IP アドレスは、こちらからは分かりません。
 - `.env` を変えたら `php artisan config:cache` をやり直します。
-### 接続元の IP アドレスの制限（SITE_ALLOWED_IPS・ADMIN_ALLOWED_IPS）
+### 接続元の IP アドレスの制限（アクセス制限）
 
-**ファイル**：`packages/neobit/core/src/Http/Middleware/RestrictSiteAccess.php`・`RestrictAdminAccess.php`（冒頭のコメント）、画面は `packages/neobit/core/resources/views/maintenance.blade.php`
+**ファイル**：`packages/neobit/core/src/Security/AccessRestriction.php`（冒頭のコメント）・`src/Http/Middleware/RestrictSiteAccess.php`・`RestrictAdminAccess.php`・`src/Http/Controllers/AccessRestrictionController.php`、画面は `packages/neobit/core/resources/views/maintenance.blade.php`
 
-サイトを開ける IP アドレスを、`.env` で絞れます。どちらも、空なら制限しません。
+サイト（訪問者画面）と管理画面を開ける IP アドレスを、管理画面の「アクセス制限」で、それぞれ絞れます。運用する人が、サーバーに入らずに変えられます。2つの制限は、互いに影響しません。
 
-```
-# .env（カンマ区切り。範囲は 192.168.0.0/24 の形。IPv6 も書ける）
-SITE_ALLOWED_IPS=203.0.113.10
-ADMIN_ALLOWED_IPS=203.0.113.10,203.0.113.0/28
-```
+| 項目 | チェックを入れたとき | 使うとき |
+|---|---|---|
+| サイト（訪問者画面） | サイトの IP アドレスのほかに、メンテナンス中の画面を 503 で返す。管理画面には掛からない | 公開前のデモの運用、メンテナンスの間 |
+| 管理画面 | 管理画面の IP アドレスのほかに、ログイン画面も含めて 404 を返す。サイトには掛からない | 事務所などの決まった場所からしか管理画面を使わないサイト |
 
-| 設定 | 範囲 | 入ってよい IP アドレスのほかから開かれたとき | 使うとき |
-|---|---|---|---|
-| `SITE_ALLOWED_IPS` | サイトの全部 | メンテナンス中の画面を 503 で返す | 公開前のデモの運用、メンテナンスの間 |
-| `ADMIN_ALLOWED_IPS` | `/admin` の下の全部 | ログイン画面も含めて 404 を返す | 事務所などの決まった場所からしか管理画面を使わないサイト |
+- **入力**：1行に1つか、カンマ区切りです。`192.168.0.0/24` のようなまとまりと、IPv6 も書けます。
+- **チェックを入れたときだけ掛かる**：IP アドレスを書いただけでは、制限は掛かりません。
+- **設定ファイルの分**：`.env` の `SITE_ALLOWED_IPS`・`ADMIN_ALLOWED_IPS` に書いた IP アドレスは、それぞれの一覧に足し合わせます。画面からは外せず、画面にはそれぞれの欄の上に「次のIPアドレスは、設定ファイルで常に許可されています。」と出ます。サーバーを管理する人の事務所などを書いておくと、画面でどう設定しても締め出されません。`.env` を変えたら `php artisan config:cache` をやり直します。
+- **締め出さない**：管理画面の制限を掛けて保存するとき、今の自分の IP アドレスが管理画面の一覧に無ければ、保存させません。サイトの制限は管理画面に影響しないので、確かめません。それでも回線が変わるなどで締め出されたときは、サーバーで `php artisan app:access-denied-off` を実行します。両方の制限を外します。IP アドレスの一覧は残ります。
+- **ルート**：案件が書きます。機能を使うかどうかを、案件ごとに決めるためです。管理者だけのグループの中に、「頭.index」（GET）と「頭.update」（PATCH）の組で名前を付けます。
 
-- **`.env` を変えたら `php artisan config:cache` をやり直します**。やり直したときに効きます。
-- **書き間違えると、自分も入れなくなります**。今つないでいる IP アドレスを確かめてから書きます。入れなくなったら、サーバーで `.env` を直して `config:cache` をやり直します。画面からは直せません。
+    ```php
+    // routes/web.php（管理者だけのグループの中）
+    Route::get('/access-restriction', [AccessRestrictionController::class, 'index'])->name('access-restriction.index');
+    Route::patch('/access-restriction', [AccessRestrictionController::class, 'update'])->name('access-restriction.update');
+    ```
+
+- **サイトの制限から管理画面を外す**：`bootstrap/app.php` の `RestrictSiteAccess::except()` に、管理画面の URL（見本のサイトでは `admin`・`admin/*`）を書きます。管理画面の URL の頭は案件が決めるので、案件の側で書きます。
+- **設定の置き場所**：DB の `settings` テーブルです。毎回のアクセスで読むので、キャッシュに置き、保存のたびに作り直します。変えた内容は、操作ログに「アクセス制限の変更」として残ります。
+- **IPブロック管理との関係**：2つの一覧にある IP アドレスは、IPブロック管理で止めません（22章）。
 - **プロキシを前に置くときは、`TRUSTED_PROXIES` を先に書きます**。書かないと、全員がプロキシの IP アドレスに見えるので、全員が通るか、全員が止まります。
-- **両方を書いたとき**：管理画面は、両方で入ってよい IP アドレスだけが開けます。
 - **メンテナンス中の画面**は、レイアウトを継承しない1枚の HTML です。DB もセッションも使わないので、DB を止めている間も出せます。文言は、アプリの `resources/views/vendor/neobit/maintenance.blade.php` に同じ名前で置いて上書きします。デモの運用のときも、この画面が出ます。
 - **503 で返す**のは、一時的に止めていることを検索エンジンに伝えて、登録を消されないようにするためです。
-- **制限の間も通すパス**は、`bootstrap/app.php` の `RestrictSiteAccess::except()` に書きます。今は、死活監視（`/up`）と、お知らせメールの配信停止（`/mail/unsubscribe`）です。止めている間に届いたメールからも、停止できるようにするためです。
+- **制限の間も通すパス**は、`bootstrap/app.php` の `RestrictSiteAccess::except()` に書きます。今は、死活監視（`/up`）と、お知らせメールの配信停止（`/mail/unsubscribe`）と、管理画面です。止めている間に届いたメールからも、停止できるようにするためです。
 - **管理画面を 404 にする**のは、そこに管理画面があることを知らせないためです。止めたアクセスは、操作ログに残しません。
 - **Apache が直接返すファイルは止まりません**。`public/build/` の中と、公開のアップロードファイル（`public/storage/`）は、Laravel を通らないためです。そこまで止めるときは、Apache の設定で絞ります。
 - **コマンドは止まりません**。スケジューラー（19章）とキュー（21章）は、制限の間も動きます。メンテナンスの間に一斉メールを送りたくないときは、送信が終わってから止めます。
-- Laravel の `php artisan down` は使いません。サーバーでコマンドを打つ必要があり、`.env` の IP アドレスとは別の仕組みになるためです。
+- Laravel の `php artisan down` は使いません。サーバーでコマンドを打つ必要があり、画面の設定とは別の仕組みになるためです。
 
 ### セキュリティのヘッダー（SecurityHeaders）
 
@@ -216,7 +222,7 @@ GRANT ALL PRIVILEGES ON memsys_testing.* TO 'memsys'@'localhost';
 | `FormFlow` | `packages/neobit/core/src/Crud/` | 入力 → 確認 → 保存、削除（トランザクション込み）、必須マーク | 5・6 |
 | `InputNormalizer`・`NormalizeInput` | `packages/neobit/core/src/Crud/`・`packages/neobit/core/src/Http/Middleware/` | 入力の全角と半角の揺らぎをそろえる（画面の入力と CSV 取り込み。検証の前） | 5 |
 | `SecurityHeaders` | `packages/neobit/core/src/Http/Middleware/` | ブラウザに守り方を伝えるヘッダーを、全部の応答に付ける | 0 |
-| `RestrictSiteAccess`・`RestrictAdminAccess`・`AllowedIps` | `packages/neobit/core/src/Http/Middleware/`・`packages/neobit/core/src/Security/` | 接続元の IP アドレスの制限（サイト全体はメンテナンス中の画面、管理画面は 404） | 0 |
+| `AccessRestriction`・`RestrictSiteAccess`・`RestrictAdminAccess`・`AccessRestrictionController` | `packages/neobit/core/src/Security/`・`src/Http/Middleware/`・`src/Http/Controllers/` | アクセス制限（サイトはメンテナンス中の画面、管理画面は 404。それぞれ別に掛ける）。管理画面の「アクセス制限」で設定する | 0 |
 | `AjaxFileUpload` | `packages/neobit/core/src/Upload/` | 画像・添付ファイルの Ajax アップロード、WYSIWYG の画像 | 7 |
 | `UploadFilePath` | `packages/neobit/core/src/Upload/` | アップロードしたファイルの保存先と URL の規則（公開・非公開・一時ファイル） | 7 |
 | `UploadedFileController` | `packages/neobit/core/src/Http/Controllers/` | ログインした人だけが見られるファイルと、一時ファイルを返す | 7 |
@@ -2035,7 +2041,7 @@ OperationRecorder::record(OperationLogAction::Update, $company, ['status'], ['st
 
 - **止める場所**：全体のミドルウェア `RejectBlockedIp` です。ルートの無い URL（`/.env`・`/wp-login.php` など）も、ルートを探す前にここを通ります。止めている一覧はキャッシュに置き、毎回 DB は読みません。403 ではなく 404 にし、画面もルートの無い URL を開いたときと同じ 404 の画面にします。止められていることを、相手に気付かせないためです。Apache が PHP を通さずに返すファイル（画像・CSS など）は止まりません。
 - **自動で止める**：応答が 404・405 になったアクセスを、IP アドレスごとに数えます。`config/neobit.php` の `ip_block_watch_minutes`（10分）の中に `ip_block_watch_count`（30回）を超えたら、`ip_block_hours`（24時間）止めます。`ip_block_auto` を false にすると数えず、管理画面からの登録だけになります。IPv6 は `/64` のまとまりで数えて止めます。
-- **止めない IP アドレス**：`SITE_ALLOWED_IPS`・`ADMIN_ALLOWED_IPS` で許可している IP アドレスは、自動でも手動でも止めません。管理画面からは、今の自分の IP アドレスを含むものも登録できません。管理者が自分を止めないようにするためです。
+- **止めない IP アドレス**：アクセス制限（0章）のサイトと管理画面の IP アドレスは、`.env` の分も画面の分も、自動でも手動でも止めません。管理画面からは、今の自分の IP アドレスを含むものも登録できません。管理者が自分を止めないようにするためです。
 - **管理画面**：止めている IP アドレスの一覧と、手動の登録・期限の変更・解除です。IP アドレスは1つでも、`203.0.113.0/24` のようなまとまりでも登録できます。一覧と登録の欄には、実際に止まる範囲（`203.0.113.0 ～ 203.0.113.255`）を出します。まとまりは、広すぎると関係の無い人まで止めるので、IPv4 は `/16`、IPv6 は `/32` より狭いものだけにします。
 - **ルート**：案件が書きます。機能を使うかどうかを、案件ごとに決めるためです。管理者だけのグループの中に、「頭.index」「頭.store」「頭.update」「頭.destroy」の組で名前を付けます。update・destroy の URL には `{ipBlock}` を入れます。
 
