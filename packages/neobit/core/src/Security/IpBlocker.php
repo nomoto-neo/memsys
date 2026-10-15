@@ -65,7 +65,12 @@ final class IpBlocker
     /** 自動で止めるときの、IPv6のまとまりの長さ */
     private const IPV6_PREFIX = 64;
 
-    /** 設定が無いときの値。設定のキャッシュが古くて項目がまだ無いときにも使う */
+    /**
+     * 設定が無いときの値。設定のキャッシュが古くて項目がまだ無いときにも使う。
+     * 自動で止めるかも、無いときは止める側にする。config:cacheを忘れたときに、黙って働かなくならないようにするため
+     */
+    private const DEFAULT_AUTO = true;
+
     private const DEFAULT_WATCH_MINUTES = 10;
 
     private const DEFAULT_WATCH_COUNT = 30;
@@ -107,7 +112,7 @@ final class IpBlocker
      */
     public static function countMiss(Request $request, Response $response): void
     {
-        if (! config('neobit.ip_block_auto') || ! in_array($response->getStatusCode(), self::MISS_STATUSES, true)) {
+        if (! config('neobit.ip_block_auto', self::DEFAULT_AUTO) || ! in_array($response->getStatusCode(), self::MISS_STATUSES, true)) {
             return;
         }
 

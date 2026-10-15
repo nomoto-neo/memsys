@@ -96,6 +96,20 @@ class IpBlockTest extends TestCase
         $this->assertSame(self::ATTACKER, $log->detail['ip']);
     }
 
+    public function test_ip_is_blocked_automatically_even_without_the_setting(): void
+    {
+        // 設定のキャッシュが古く、ip_block_autoがまだ無いときも、自動で止める
+        config(['neobit.ip_block_watch_count' => 2]);
+        $settings = config('neobit');
+        unset($settings['ip_block_auto']);
+        config(['neobit' => $settings]);
+
+        $this->fromIp(self::ATTACKER)->get('/no-such-page');
+        $this->fromIp(self::ATTACKER)->get('/no-such-page');
+
+        $this->assertSame(self::ATTACKER, IpBlock::sole()->ip);
+    }
+
     public function test_ipv6_is_blocked_by_its_64_bit_range(): void
     {
         config(['neobit.ip_block_watch_count' => 2]);
