@@ -46,7 +46,11 @@ class IpBlockTest extends TestCase
     {
         IpBlocker::block(self::ATTACKER, now()->addDay(), 'テスト');
 
-        $this->fromIp(self::ATTACKER)->get('/')->assertNotFound();
+        // 止められていることに気付かせないよう、ルートの無いURLと同じ404の画面を返す
+        $blocked = $this->fromIp(self::ATTACKER)->get('/')->assertNotFound()->getContent();
+        $missing = $this->fromIp(self::VISITOR)->get('/no-such-page')->assertNotFound()->getContent();
+        $this->assertSame($missing, $blocked);
+
         $this->fromIp(self::VISITOR)->get('/')->assertOk();
     }
 

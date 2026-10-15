@@ -14,16 +14,16 @@ use Symfony\Component\HttpFoundation\Response;
  * ルートの無いURL（/.envや/wp-login.phpなど）も止めるので、bootstrap/app.phpで、全体の
  * ミドルウェアに足す。プロキシの後ろでも本当のIPアドレスで判断できるよう、信頼するプロキシ
  * （TrustProxies）より後ろに通す。
- * 403ではなく404にするのは、止められていることを相手に伝えないため。返すのは画面を使わない
- * 短い文字で、セッションもDBも使わないので、大量に叩かれても軽く済む。
+ * 403ではなく404にし、画面もルートの無いURLを開いたときと同じ404の画面にする。止められていることを
+ * 相手に気付かせないため。ルートの無いURLへの404と同じ重さで、DBは使わない。
  */
 class RejectBlockedIp
 {
     public function handle(Request $request, Closure $next): Response
     {
-        // 止めているIPアドレスには、何も処理せず404を返す
+        // 止めているIPアドレスには、何も処理せず、ふつうの404の画面を返す
         if (IpBlocker::isBlocked((string) $request->ip())) {
-            return response('Not Found', Response::HTTP_NOT_FOUND);
+            abort(Response::HTTP_NOT_FOUND);
         }
 
         $response = $next($request);
