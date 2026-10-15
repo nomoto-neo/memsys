@@ -314,7 +314,7 @@ class MemberController extends Controller
     }
 
     /** 確認画面の表示 */
-    public function confirmUpdate(Request $request, Member $member): View
+    public function confirmForUpdate(Request $request, Member $member): View
     {
         // password_confirmationはrules()に無いので、hiddenで持ち回れるように足しておく
         $input = $this->confirmPageValues($request, $member)

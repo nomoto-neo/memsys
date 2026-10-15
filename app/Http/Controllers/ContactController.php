@@ -159,7 +159,7 @@ class ContactController extends Controller
     }
 
     /** 入力内容のバリデーションと、確認画面の表示 */
-    public function confirmStore(Request $request): View|RedirectResponse
+    public function confirm(Request $request): View|RedirectResponse
     {
         // スパム対策（Neobit\Core\Security\SpamGuard）。確認画面から先は、ここを通った人にだけ発行する
         // confirm_tokenで守るので、送信（store()）では確かめない

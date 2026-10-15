@@ -69,6 +69,19 @@
 | `PasskeyManagement` | `passkeyIndex()`・`passkeySendCode()`・`passkeyConfirm()`・`passkeyRegistrationOptions()`・`passkeyStore()`・`passkeyDestroy()` | 入口 | |
 | `TwoFactorManagement` | `twoFactorIndex()`・`showNewBackupCodes()`・`sendBackupCodesCode()`・`regenerateBackupCodes()`・`selfReset()` | 入口 | |
 
+### 決まりで書く入口とルートの名前
+
+フレームワークのコードが呼ぶ名前ではないが、案件は見本のサイトを写して作るので、ここに載せる。Laravel の `Route::resource()` の7つの名前に、確認画面と戻る入口を足した形。確認画面は、行き先の保存の入口（`store`・`update`）の名前で呼ぶ。
+
+| 入口のメソッド | ルートの名前 | 中身 |
+|---|---|---|
+| `index`・`create`・`store`・`show`・`edit`・`update`・`destroy` | `xxx.index` など同じ名前 | Laravel の標準 |
+| `confirmForStore` | `xxx.confirm.store` | 新規登録の確認画面 |
+| `backToCreate` | `xxx.confirm.store.back` | 新規登録の確認画面から入力画面へ戻る |
+| `confirmForUpdate` | `xxx.confirm.update` | 編集の確認画面 |
+| `backToEdit` | `xxx.confirm.update.back` | 編集の確認画面から入力画面へ戻る |
+| `confirm`・`back` | `xxx.confirm`・`xxx.confirm.back` | 行き先が1つしかない流れ（お問い合わせ） |
+
 ## 3. コントローラーが書く定数
 
 | トレイト | 定数 | 中身 | メモ |

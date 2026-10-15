@@ -7,7 +7,7 @@
         <div class="card">
             <div class="card-header">企業会員登録</div>
             <div class="card-body">
-                <form method="POST" action="{{ route('admin.companies.confirm.create') }}">
+                <form method="POST" action="{{ route('admin.companies.confirm.store') }}">
                     @csrf
 
                     @include('admin.companies._fields', [

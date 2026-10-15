@@ -15,7 +15,7 @@
 <div class="card">
     <div class="card-header">固定ページ 新規登録</div>
     <div class="card-body">
-        <form method="POST" action="{{ route('admin.pages.confirm.create') }}">
+        <form method="POST" action="{{ route('admin.pages.confirm.store') }}">
             @csrf
 
             @include('admin.pages._fields', [

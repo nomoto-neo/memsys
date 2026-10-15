@@ -52,10 +52,10 @@ Route::post('/contact/ajax-upload', [ContactController::class, 'uploadAjaxFile']
     ->name('contact.ajaxUpload');
 Route::get('/contact', [ContactController::class, 'create'])->name('contact.create');
 // 確認画面へ進むたびにCloudflare Turnstileへ問い合わせる（Neobit\Core\Security\SpamGuard）ので、回数を制限する
-Route::post('/contact/confirm', [ContactController::class, 'confirmStore'])
+Route::post('/contact/confirm', [ContactController::class, 'confirm'])
     ->middleware('throttle:20,1,contact-confirm')
     ->name('contact.confirm');
-Route::post('/contact/back', [ContactController::class, 'back'])->name('contact.back');
+Route::post('/contact/back', [ContactController::class, 'back'])->name('contact.confirm.back');
 Route::post('/contact/store', [ContactController::class, 'store'])
     ->middleware('throttle:5,1,contact-store')
     ->name('contact.store');
@@ -416,8 +416,8 @@ Route::prefix('admin')->name('admin.')->middleware('admin.ip')->group(function (
         Route::post('/members/ajax-upload', [AdminMemberController::class, 'uploadAjaxFile'])->name('members.ajaxUpload');
         Route::get('/members/{member}', [AdminMemberController::class, 'show'])->name('members.show');
         Route::get('/members/{member}/edit', [AdminMemberController::class, 'edit'])->name('members.edit');
-        Route::patch('/members/{member}/confirm', [AdminMemberController::class, 'confirmUpdate'])->name('members.confirm.edit');
-        Route::post('/members/{member}/back', [AdminMemberController::class, 'backToEdit'])->name('members.confirm.edit.back');
+        Route::patch('/members/{member}/confirm', [AdminMemberController::class, 'confirmForUpdate'])->name('members.confirm.update');
+        Route::post('/members/{member}/back', [AdminMemberController::class, 'backToEdit'])->name('members.confirm.update.back');
         Route::patch('/members/{member}/update', [AdminMemberController::class, 'update'])->name('members.update');
         // 履歴書のPDF
         Route::get('/members/{member}/resume', [AdminMemberController::class, 'resume'])->name('members.resume');
@@ -433,15 +433,15 @@ Route::prefix('admin')->name('admin.')->middleware('admin.ip')->group(function (
         Route::post('/companies', [AdminCompanyController::class, 'storeSearchCondition'])->name('companies.search');
         // 登録（これも/companies/{company}より前に書く）。最初の担当者へ、招待のメールを送る
         Route::get('/companies/create', [AdminCompanyController::class, 'create'])->name('companies.create');
-        Route::post('/companies/confirm', [AdminCompanyController::class, 'confirmStore'])->name('companies.confirm.create');
-        Route::post('/companies/back', [AdminCompanyController::class, 'backToCreate'])->name('companies.confirm.create.back');
+        Route::post('/companies/confirm', [AdminCompanyController::class, 'confirmForStore'])->name('companies.confirm.store');
+        Route::post('/companies/back', [AdminCompanyController::class, 'backToCreate'])->name('companies.confirm.store.back');
         Route::post('/companies/store', [AdminCompanyController::class, 'store'])->name('companies.store');
         // CSVダウンロード（/companies/{company}より前に書く。後ろだと"csv"が企業のidとして扱われる）
         Route::get('/companies/csv', [AdminCompanyController::class, 'csv'])->name('companies.csv');
         Route::get('/companies/{company}', [AdminCompanyController::class, 'show'])->name('companies.show');
         Route::get('/companies/{company}/edit', [AdminCompanyController::class, 'edit'])->name('companies.edit');
-        Route::patch('/companies/{company}/confirm', [AdminCompanyController::class, 'confirmUpdate'])->name('companies.confirm.edit');
-        Route::post('/companies/{company}/back', [AdminCompanyController::class, 'backToEdit'])->name('companies.confirm.edit.back');
+        Route::patch('/companies/{company}/confirm', [AdminCompanyController::class, 'confirmForUpdate'])->name('companies.confirm.update');
+        Route::post('/companies/{company}/back', [AdminCompanyController::class, 'backToEdit'])->name('companies.confirm.update.back');
         Route::patch('/companies/{company}/update', [AdminCompanyController::class, 'update'])->name('companies.update');
         // 申請の承認・却下と、利用の停止・再開。却下は、企業と担当者の行を消す
         Route::patch('/companies/{company}/approve', [AdminCompanyController::class, 'approve'])->name('companies.approve');
@@ -462,8 +462,8 @@ Route::prefix('admin')->name('admin.')->middleware('admin.ip')->group(function (
         Route::prefix('/companies/{company}/users/{user}')->name('companies.users.')->scopeBindings()->group(function () {
             Route::get('/', [AdminCompanyUserController::class, 'show'])->name('show');
             Route::get('/edit', [AdminCompanyUserController::class, 'edit'])->name('edit');
-            Route::patch('/confirm', [AdminCompanyUserController::class, 'confirmUpdate'])->name('confirm.edit');
-            Route::post('/back', [AdminCompanyUserController::class, 'backToEdit'])->name('confirm.edit.back');
+            Route::patch('/confirm', [AdminCompanyUserController::class, 'confirmForUpdate'])->name('confirm.update');
+            Route::post('/back', [AdminCompanyUserController::class, 'backToEdit'])->name('confirm.update.back');
             Route::patch('/update', [AdminCompanyUserController::class, 'update'])->name('update');
             Route::delete('/delete', [AdminCompanyUserController::class, 'destroy'])->name('destroy');
             // 2段階認証（認証アプリ）の登録の解除。端末を無くした担当者の代わりに行う
@@ -477,8 +477,8 @@ Route::prefix('admin')->name('admin.')->middleware('admin.ip')->group(function (
             Route::post('/staff', [AdminStaffController::class, 'storeSearchCondition'])->name('staff.search');
             Route::get('/staff/create', [AdminStaffController::class, 'create'])->name('staff.create');
 
-            Route::post('/staff/confirm', [AdminStaffController::class, 'confirmStore'])->name('staff.confirm.create');
-            Route::post('/staff/back', [AdminStaffController::class, 'backToCreate'])->name('staff.confirm.create.back');
+            Route::post('/staff/confirm', [AdminStaffController::class, 'confirmForStore'])->name('staff.confirm.store');
+            Route::post('/staff/back', [AdminStaffController::class, 'backToCreate'])->name('staff.confirm.store.back');
             Route::post('/staff/store', [AdminStaffController::class, 'store'])->name('staff.store');
 
             // 削除（自分自身は削除できない。判断はApp\Policies\StaffPolicy）
@@ -507,8 +507,8 @@ Route::prefix('admin')->name('admin.')->middleware('admin.ip')->group(function (
             ->name('staff.show');
         Route::middleware('can:update,staff')->group(function () {
             Route::get('/staff/{staff}/edit', [AdminStaffController::class, 'edit'])->name('staff.edit');
-            Route::patch('/staff/{staff}/confirm', [AdminStaffController::class, 'confirmUpdate'])->name('staff.confirm.edit');
-            Route::post('/staff/{staff}/back', [AdminStaffController::class, 'backToEdit'])->name('staff.confirm.edit.back');
+            Route::patch('/staff/{staff}/confirm', [AdminStaffController::class, 'confirmForUpdate'])->name('staff.confirm.update');
+            Route::post('/staff/{staff}/back', [AdminStaffController::class, 'backToEdit'])->name('staff.confirm.update.back');
             Route::patch('/staff/{staff}/update', [AdminStaffController::class, 'update'])->name('staff.update');
         });
 
@@ -558,13 +558,13 @@ Route::prefix('admin')->name('admin.')->middleware('admin.ip')->group(function (
         Route::get('/pages', [AdminPageController::class, 'index'])->name('pages.index');
         Route::post('/pages', [AdminPageController::class, 'storeSearchCondition'])->name('pages.search');
         Route::get('/pages/create', [AdminPageController::class, 'create'])->name('pages.create');
-        Route::post('/pages/confirm', [AdminPageController::class, 'confirmStore'])->name('pages.confirm.create');
-        Route::post('/pages/back', [AdminPageController::class, 'backToCreate'])->name('pages.confirm.create.back');
+        Route::post('/pages/confirm', [AdminPageController::class, 'confirmForStore'])->name('pages.confirm.store');
+        Route::post('/pages/back', [AdminPageController::class, 'backToCreate'])->name('pages.confirm.store.back');
         Route::post('/pages/store', [AdminPageController::class, 'store'])->name('pages.store');
         Route::get('/pages/{page}', [AdminPageController::class, 'show'])->name('pages.show');
         Route::get('/pages/{page}/edit', [AdminPageController::class, 'edit'])->name('pages.edit');
-        Route::patch('/pages/{page}/confirm', [AdminPageController::class, 'confirmUpdate'])->name('pages.confirm.edit');
-        Route::post('/pages/{page}/back', [AdminPageController::class, 'backToEdit'])->name('pages.confirm.edit.back');
+        Route::patch('/pages/{page}/confirm', [AdminPageController::class, 'confirmForUpdate'])->name('pages.confirm.update');
+        Route::post('/pages/{page}/back', [AdminPageController::class, 'backToEdit'])->name('pages.confirm.update.back');
         Route::patch('/pages/{page}/update', [AdminPageController::class, 'update'])->name('pages.update');
         Route::delete('/pages/{page}/delete', [AdminPageController::class, 'destroy'])->name('pages.destroy');
 
@@ -574,8 +574,8 @@ Route::prefix('admin')->name('admin.')->middleware('admin.ip')->group(function (
         Route::get('/news', [AdminNewsController::class, 'index'])->name('news.index');
         Route::post('/news', [AdminNewsController::class, 'storeSearchCondition'])->name('news.search');
         Route::get('/news/create', [AdminNewsController::class, 'create'])->name('news.create');
-        Route::post('/news/confirm', [AdminNewsController::class, 'confirmStore'])->name('news.confirm.create');
-        Route::post('/news/back', [AdminNewsController::class, 'backToCreate'])->name('news.confirm.create.back');
+        Route::post('/news/confirm', [AdminNewsController::class, 'confirmForStore'])->name('news.confirm.store');
+        Route::post('/news/back', [AdminNewsController::class, 'backToCreate'])->name('news.confirm.store.back');
         Route::post('/news/store', [AdminNewsController::class, 'store'])->name('news.store');
         // CSVダウンロード（/news/{news}より前に書く）
         Route::get('/news/csv', [AdminNewsController::class, 'csv'])->name('news.csv');
@@ -585,8 +585,8 @@ Route::prefix('admin')->name('admin.')->middleware('admin.ip')->group(function (
         Route::post('/news/csv-import/execute', [AdminNewsController::class, 'csvImportExecute'])->name('news.csv-import.execute');
         Route::get('/news/{news}', [AdminNewsController::class, 'show'])->name('news.show');
         Route::get('/news/{news}/edit', [AdminNewsController::class, 'edit'])->name('news.edit');
-        Route::patch('/news/{news}/confirm', [AdminNewsController::class, 'confirmUpdate'])->name('news.confirm.edit');
-        Route::post('/news/{news}/back', [AdminNewsController::class, 'backToEdit'])->name('news.confirm.edit.back');
+        Route::patch('/news/{news}/confirm', [AdminNewsController::class, 'confirmForUpdate'])->name('news.confirm.update');
+        Route::post('/news/{news}/back', [AdminNewsController::class, 'backToEdit'])->name('news.confirm.update.back');
         Route::patch('/news/{news}/update', [AdminNewsController::class, 'update'])->name('news.update');
         Route::delete('/news/{news}/delete', [AdminNewsController::class, 'destroy'])->name('news.destroy');
     });

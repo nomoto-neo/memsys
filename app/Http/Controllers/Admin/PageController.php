@@ -191,7 +191,7 @@ class PageController extends Controller
     }
 
     /** 新規登録の確認画面を表示 */
-    public function confirmStore(Request $request): View
+    public function confirmForStore(Request $request): View
     {
         return view('admin.pages.confirm', [
             'isCreate' => true,
@@ -240,7 +240,7 @@ class PageController extends Controller
     }
 
     /** 編集の確認画面を表示 */
-    public function confirmUpdate(Request $request, Page $page): View
+    public function confirmForUpdate(Request $request, Page $page): View
     {
         return view('admin.pages.confirm', [
             'isCreate' => false,

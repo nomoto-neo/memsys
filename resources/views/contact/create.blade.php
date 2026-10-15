@@ -17,7 +17,7 @@
     <div class="card-header">お問い合わせ</div>
 
     <div class="card-body">
-        {{-- 送信先はconfirmStore()。ここでは保存せず、入力チェックと
+        {{-- 送信先はconfirm()。ここでは保存せず、入力チェックと
              確認画面の表示だけを行う。 --}}
         <form method="POST" action="{{ route('contact.confirm') }}">
             @csrf

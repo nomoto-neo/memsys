@@ -69,7 +69,7 @@
                  $inputをそのまま展開する。連打防止は無害だが必須でも
                  ないので、data-guard-double-submitは付けていない
                  （戻るはDBやメールに影響しない）。 --}}
-            <form method="POST" action="{{ route('contact.back') }}">
+            <form method="POST" action="{{ route('contact.confirm.back') }}">
                 @csrf
                 @include('neobit::_confirm_hidden', ['input' => $input])
                 <button type="submit" class="btn btn-outline-secondary">戻る</button>

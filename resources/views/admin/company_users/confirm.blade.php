@@ -23,9 +23,9 @@
 
                 <div class="d-flex gap-2 mt-3">
                     {{-- 戻る・更新するのどちらも、hiddenだけを持つ小さなフォーム。表示もhiddenも、
-                         confirmUpdate()が検証した直後の同じ$inputから作る（admin/members/confirm.blade.phpと同じ）。
+                         confirmForUpdate()が検証した直後の同じ$inputから作る（admin/members/confirm.blade.phpと同じ）。
                          「戻る」では、パスワードをhiddenに出さず、入力し直してもらう --}}
-                    <form method="POST" action="{{ route('admin.companies.users.confirm.edit.back', [$company, $user]) }}">
+                    <form method="POST" action="{{ route('admin.companies.users.confirm.update.back', [$company, $user]) }}">
                         @csrf
                         @include('neobit::_confirm_hidden', [
                             'input' => $input,

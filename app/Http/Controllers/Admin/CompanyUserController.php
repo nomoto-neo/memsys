@@ -92,7 +92,7 @@ class CompanyUserController extends Controller
     }
 
     /** 確認画面の表示 */
-    public function confirmUpdate(Request $request, Company $company, CompanyUser $user): View
+    public function confirmForUpdate(Request $request, Company $company, CompanyUser $user): View
     {
         // password_confirmationはrules()に無いので、hiddenで持ち回れるように足しておく
         $input = $this->confirmPageValues($request, $user)

@@ -25,7 +25,7 @@
 <div class="card">
     <div class="card-header">ニュース記事 新規登録</div>
     <div class="card-body">
-        <form method="POST" action="{{ route('admin.news.confirm.create') }}">
+        <form method="POST" action="{{ route('admin.news.confirm.store') }}">
             @csrf
 
             @include('admin.news._fields', [

@@ -13,7 +13,7 @@
         <div class="card">
             <div class="card-header">会員編集</div>
             <div class="card-body">
-                <form method="POST" action="{{ route('admin.members.confirm.edit', $member) }}">
+                <form method="POST" action="{{ route('admin.members.confirm.update', $member) }}">
                     @csrf
                     @method('PATCH')
 

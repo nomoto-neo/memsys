@@ -38,7 +38,7 @@
                         見た目だけで送信には一切関与しない（disabledにした
                         <select>はそもそも送信されない仕様なので、値の運搬は
                         必ずこのhidden側で行う）。表示もhiddenも、
-                        confirmStore()/confirmUpdate()が検証した直後の値から
+                        confirmForStore()/confirmForUpdate()が検証した直後の値から
                         組み立てた同じ$inputを使っているので、「画面に表示されている内容」と
                         「実際に送信される内容」は常に同じソースから来ている。
                         セッションのような別の保存領域を経由しないので、
@@ -60,7 +60,7 @@
                         ページソースに平文パスワードがhiddenとしてそのまま
                         残ってしまう）。
                     --}}
-                    <form method="POST" action="{{ $isCreate ? route('admin.staff.confirm.create.back') : route('admin.staff.confirm.edit.back', $staff) }}">
+                    <form method="POST" action="{{ $isCreate ? route('admin.staff.confirm.store.back') : route('admin.staff.confirm.update.back', $staff) }}">
                         @csrf
                         @include('neobit::_confirm_hidden', [
                             'input' => $input,

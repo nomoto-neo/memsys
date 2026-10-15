@@ -388,7 +388,7 @@ class NewsController extends Controller
    - `use SearchableList;` と一覧の定数、`srchRules()`・`applyCustomSearch()`（3章）
    - `use FormFlow;` と `rules()`・`formValues()`・`saveValues()`（5章）
    - アップロードがあれば `use AjaxFileUpload;` と `UPLOAD_FILES`（7章）
-   - 入口：`index`・`create`・`confirmStore`・`backToCreate`・`store`・`show`・`edit`・`confirmUpdate`・`backToEdit`・`update`・`destroy`
+   - 入口：`index`・`create`・`confirmForStore`・`backToCreate`・`store`・`show`・`edit`・`confirmForUpdate`・`backToEdit`・`update`・`destroy`
 4. **ルート**：`routes/web.php` の管理画面のグループ（`auth:admin`・`auth.session` の内側）に足す。`/xxx/csv` のような固定の URL は、`/xxx/{id}` より前に書く。
 5. **画面**：`resources/views/admin/<コーナー>/` に `index`・`_fields`・`create`・`edit`・`confirm`・`show`。
 6. **入口のリンク**：管理画面のトップ（`admin/dashboard.blade.php`）からリンクする。
@@ -571,7 +571,7 @@ public function create(): View
 }
 
 /** 確認画面 */
-public function confirmStore(Request $request): View
+public function confirmForStore(Request $request): View
 {
     return view('admin.news.confirm', [
         'isCreate' => true, 'news' => null,
@@ -595,7 +595,7 @@ public function store(Request $request): RedirectResponse
 }
 ```
 
-編集は `edit(News $news)` で `inputPageValues($news, old())`・`requiredFields($news)`、`confirmUpdate()` で `confirmPageValues($request, $news)`、`update()` で `saveData($news, $request)` です。
+編集は `edit(News $news)` で `inputPageValues($news, old())`・`requiredFields($news)`、`confirmForUpdate()` で `confirmPageValues($request, $news)`、`update()` で `saveData($news, $request)` です。
 
 **確認画面なし**（項目が少なく、間違えてもすぐ直せるもの）は、`store()`・`update()` からそのまま `saveData()` を呼びます。検証に失敗すれば入力画面へ戻ります（実例：カテゴリー）。
 
@@ -603,12 +603,12 @@ public function store(Request $request): RedirectResponse
 
 ```php
 Route::get('/news/create', ...'create')->name('news.create');
-Route::post('/news/confirm', ...'confirmStore')->name('news.confirm.create');
-Route::post('/news/back', ...'backToCreate')->name('news.confirm.create.back');
+Route::post('/news/confirm', ...'confirmForStore')->name('news.confirm.store');
+Route::post('/news/back', ...'backToCreate')->name('news.confirm.store.back');
 Route::post('/news/store', ...'store')->name('news.store');
 Route::get('/news/{news}/edit', ...'edit')->name('news.edit');
-Route::patch('/news/{news}/confirm', ...'confirmUpdate')->name('news.confirm.edit');
-Route::post('/news/{news}/back', ...'backToEdit')->name('news.confirm.edit.back');
+Route::patch('/news/{news}/confirm', ...'confirmForUpdate')->name('news.confirm.update');
+Route::post('/news/{news}/back', ...'backToEdit')->name('news.confirm.update.back');
 Route::patch('/news/{news}/update', ...'update')->name('news.update');
 ```
 
@@ -1175,7 +1175,7 @@ Mail::send(new TemplatedMail('contact_staff', [
 
 ### スパム対策（SpamGuard）
 
-**ファイル**：`packages/neobit/core/src/Security/SpamGuard.php`（冒頭のコメント）・`packages/neobit/core/resources/views/_spam_guard.blade.php`・`packages/neobit/core/src/Enums/SpamCheckResult.php`　**実例**：`ContactController::confirmStore()`
+**ファイル**：`packages/neobit/core/src/Security/SpamGuard.php`（冒頭のコメント）・`packages/neobit/core/resources/views/_spam_guard.blade.php`・`packages/neobit/core/src/Enums/SpamCheckResult.php`　**実例**：`ContactController::confirmForStore()`
 
 人に手間をかけさせない3つの仕組みを組み合わせます。画像を選ばせる問題は出しません。
 

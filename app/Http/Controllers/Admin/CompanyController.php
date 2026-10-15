@@ -286,7 +286,7 @@ class CompanyController extends Controller
     }
 
     /** 新規登録の確認画面を表示 */
-    public function confirmStore(Request $request): View
+    public function confirmForStore(Request $request): View
     {
         return view('admin.companies.confirm', [
             'isCreate' => true,
@@ -346,7 +346,7 @@ class CompanyController extends Controller
     }
 
     /** 確認画面の表示 */
-    public function confirmUpdate(Request $request, Company $company): View
+    public function confirmForUpdate(Request $request, Company $company): View
     {
         return view('admin.companies.confirm', [
             'isCreate' => false,

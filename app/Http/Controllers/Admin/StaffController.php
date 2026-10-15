@@ -243,7 +243,7 @@ class StaffController extends Controller
     }
 
     /** 新規登録の確認画面を表示 */
-    public function confirmStore(Request $request): View
+    public function confirmForStore(Request $request): View
     {
         // password_confirmationはrules()に無いので、hiddenで持ち回れるように足しておく
         $input = $this->confirmPageValues($request)
@@ -304,7 +304,7 @@ class StaffController extends Controller
     }
 
     /** 編集の確認画面を表示 */
-    public function confirmUpdate(Request $request, Staff $staff): View
+    public function confirmForUpdate(Request $request, Staff $staff): View
     {
         // password_confirmationはrules()に無いので、hiddenで持ち回れるように足しておく
         $input = $this->confirmPageValues($request, $staff)

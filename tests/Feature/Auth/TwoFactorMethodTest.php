@@ -138,12 +138,12 @@ class TwoFactorMethodTest extends TestCase
         $input = ['name' => '新人 次郎', 'login_id' => 'jiro', 'email' => '', 'password' => 'new-password-123', 'password_confirmation' => 'new-password-123', 'acl' => (string) StaffAcl::Staff->value];
 
         // 認証アプリの方式では、メールアドレスは任意のまま
-        $this->actingAs($actor, 'admin')->post(route('admin.staff.confirm.create'), $input)
+        $this->actingAs($actor, 'admin')->post(route('admin.staff.confirm.store'), $input)
             ->assertSessionDoesntHaveErrors('email');
 
         // メールの方式では、確認コードの宛先になるので必須
         $this->useTwoFactorMethod(Staff::class, TwoFactorMethod::Email);
-        $this->actingAs($actor, 'admin')->post(route('admin.staff.confirm.create'), $input)
+        $this->actingAs($actor, 'admin')->post(route('admin.staff.confirm.store'), $input)
             ->assertSessionHasErrors('email');
     }
 

@@ -9,7 +9,7 @@
                 {{-- この画面自体が'manager'ミドルウェアで守られている
                      （管理者しかここに来られない）ので、aclの選択肢を
                      出すこと自体に特別な条件分岐は要らない。 --}}
-                <form method="POST" action="{{ route('admin.staff.confirm.create') }}">
+                <form method="POST" action="{{ route('admin.staff.confirm.store') }}">
                     @csrf
 
                     @include('admin.staff._fields', [

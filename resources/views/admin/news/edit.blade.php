@@ -16,7 +16,7 @@
 <div class="card">
     <div class="card-header">ニュース記事編集</div>
     <div class="card-body">
-        <form method="POST" action="{{ route('admin.news.confirm.edit', $news) }}">
+        <form method="POST" action="{{ route('admin.news.confirm.update', $news) }}">
             @csrf
             @method('PATCH')
 

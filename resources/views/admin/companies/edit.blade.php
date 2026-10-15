@@ -6,7 +6,7 @@
         <div class="card">
             <div class="card-header">企業会員編集</div>
             <div class="card-body">
-                <form method="POST" action="{{ route('admin.companies.confirm.edit', $company) }}">
+                <form method="POST" action="{{ route('admin.companies.confirm.update', $company) }}">
                     @csrf
                     @method('PATCH')
 

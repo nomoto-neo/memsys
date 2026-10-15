@@ -34,7 +34,7 @@
                         見た目だけで送信には一切関与しない（disabledにした
                         <select>はそもそも送信されない仕様なので、値の運搬は
                         必ずこのhidden側で行う）。表示もhiddenも、
-                        confirmUpdate()が検証した直後の値から組み立てた
+                        confirmForUpdate()が検証した直後の値から組み立てた
                         同じ$inputを使っているので、「画面に表示されている内容」と「実際に
                         送信される内容」は常に同じソースから来ている。
                         セッションのような別の保存領域を経由しないので、
@@ -44,7 +44,7 @@
                         渡しているのは、admin/staff/confirm.blade.phpと同じ
                         （詳しくはそちらのコメント参照）。
                     --}}
-                    <form method="POST" action="{{ route('admin.members.confirm.edit.back', $member) }}">
+                    <form method="POST" action="{{ route('admin.members.confirm.update.back', $member) }}">
                         @csrf
                         @include('neobit::_confirm_hidden', [
                             'input' => $input,

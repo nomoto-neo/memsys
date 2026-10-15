@@ -35,7 +35,7 @@
             ])
 
         <div class="d-flex gap-2 mt-3">
-            <form method="POST" action="{{ $isCreate ? route('admin.news.confirm.create.back') : route('admin.news.confirm.edit.back', $news) }}">
+            <form method="POST" action="{{ $isCreate ? route('admin.news.confirm.store.back') : route('admin.news.confirm.update.back', $news) }}">
                 @csrf
                 {{--
                     title・article_date・disp_flg・category_ids・body・

@@ -10,7 +10,7 @@
 <div class="card">
     <div class="card-header">固定ページ編集</div>
     <div class="card-body">
-        <form method="POST" action="{{ route('admin.pages.confirm.edit', $page) }}">
+        <form method="POST" action="{{ route('admin.pages.confirm.update', $page) }}">
             @csrf
             @method('PATCH')
 

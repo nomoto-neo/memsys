@@ -31,7 +31,7 @@
                     {{-- 戻る・登録する（更新する）のどちらも、hiddenだけを持つ小さなフォーム。表示もhiddenも、
                          コントローラーが検証した直後の同じ$inputから作る（admin/staff/confirm.blade.phpと同じ） --}}
                     @if ($isCreate)
-                        <form method="POST" action="{{ route('admin.companies.confirm.create.back') }}">
+                        <form method="POST" action="{{ route('admin.companies.confirm.store.back') }}">
                             @csrf
                             @include('neobit::_confirm_hidden', ['input' => $input])
                             <button type="submit" class="btn btn-outline-secondary">戻る</button>
@@ -43,7 +43,7 @@
                             <button type="submit" class="btn btn-primary">登録する</button>
                         </form>
                     @else
-                        <form method="POST" action="{{ route('admin.companies.confirm.edit.back', $company) }}">
+                        <form method="POST" action="{{ route('admin.companies.confirm.update.back', $company) }}">
                             @csrf
                             @include('neobit::_confirm_hidden', ['input' => $input])
                             <button type="submit" class="btn btn-outline-secondary">戻る</button>

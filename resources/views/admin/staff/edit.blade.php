@@ -12,7 +12,7 @@
                 @endif
             </div>
             <div class="card-body">
-                <form method="POST" action="{{ route('admin.staff.confirm.edit', $staff) }}">
+                <form method="POST" action="{{ route('admin.staff.confirm.update', $staff) }}">
                     @csrf
                     @method('PATCH')
 

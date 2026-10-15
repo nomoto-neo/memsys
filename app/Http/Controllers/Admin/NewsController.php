@@ -295,7 +295,7 @@ class NewsController extends Controller
     }
 
     /** 新規登録の確認画面を表示 */
-    public function confirmStore(Request $request): View
+    public function confirmForStore(Request $request): View
     {
         return view('admin.news.confirm', [
             'isCreate' => true,
@@ -349,7 +349,7 @@ class NewsController extends Controller
     }
 
     /** 編集の確認画面を表示 */
-    public function confirmUpdate(Request $request, News $news): View
+    public function confirmForUpdate(Request $request, News $news): View
     {
         return view('admin.news.confirm', [
             'isCreate' => false,

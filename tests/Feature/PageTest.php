@@ -105,7 +105,7 @@ class PageTest extends TestCase
         $staff = $this->staff();
 
         $this->actingAs($staff, 'admin')->get(route('admin.pages.create'))->assertOk();
-        $this->actingAs($staff, 'admin')->post(route('admin.pages.confirm.create'), self::INPUT)
+        $this->actingAs($staff, 'admin')->post(route('admin.pages.confirm.store'), self::INPUT)
             ->assertOk()
             ->assertSee('固定ページ登録の確認');
         $this->assertSame(0, Page::count());
