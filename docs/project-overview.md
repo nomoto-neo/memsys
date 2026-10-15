@@ -68,6 +68,7 @@ Laravel の標準の構成に、次のものを足している（各ディレク
 | `docs/laravel-rules.md` | Laravel・PHP の決まり |
 | `docs/neobit-framework-rules.md` | ネオビットフレームワークの決まり |
 | `docs/neobit-framework-guide.md` | ネオビットフレームワークの利用ガイド。部品の使い方の全体 |
+| `docs/neobit-framework-names.md` | 案件のコードが名前で頼っている、フレームワークの部品の名前の一覧 |
 | `docs/new-project-files.md` | 新しいプロジェクトに展開するときに書き換えるファイル |
 | `docs/csv-import-spec.md` | CSV 取り込みの設計 |
 | `docs/two-factor-spec.md` | 2段階認証の設計 |
