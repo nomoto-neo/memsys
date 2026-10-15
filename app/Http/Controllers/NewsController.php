@@ -58,7 +58,7 @@ class NewsController extends Controller
     {
         // 一覧データの読み込みとページング
         // ログイン中の会員（ログインしていなければnull）に見せてよい記事だけ
-        $result = $this->buildListData($request, News::visibleTo(Auth::guard('web')->user()));
+        $result = $this->listPageValues($request, News::visibleTo(Auth::guard('web')->user()));
 
         if ($result instanceof RedirectResponse) {
             // リダイレクトが要求された場合

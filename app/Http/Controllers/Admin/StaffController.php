@@ -174,12 +174,12 @@ class StaffController extends Controller
 
     /**
      * スタッフ一覧・検索
-     * 検索条件の復元、絞り込み、並び替え、ページネーションは SearchableList::buildListData が行う
+     * 検索条件の復元、絞り込み、並び替え、ページネーションは SearchableList::listPageValues が行う
      */
     public function index(Request $request): View|RedirectResponse
     {
         // 一覧データの読み込みとページング
-        $result = $this->buildListData($request, Staff::query());
+        $result = $this->listPageValues($request, Staff::query());
 
         if ($result instanceof RedirectResponse) {
             // リダイレクトが要求された場合

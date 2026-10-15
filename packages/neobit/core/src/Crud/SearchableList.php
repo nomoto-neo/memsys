@@ -81,7 +81,7 @@ trait SearchableList
      * それ以外は画面に渡すpaginated・filters・orderOptions・orderKeyの配列を返すので、
      * 呼ぶ側は返ってきた型でリダイレクトか画面の表示かを分ければよい。
      */
-    private function buildListData(Request $request, Builder $query): array|RedirectResponse
+    private function listPageValues(Request $request, Builder $query): array|RedirectResponse
     {
         // 詳細ページなどから戻ってきたとき
         if ($request->query->has('back')) {

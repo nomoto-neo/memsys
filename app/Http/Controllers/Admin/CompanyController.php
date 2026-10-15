@@ -182,12 +182,12 @@ class CompanyController extends Controller
 
     /**
      * 一覧・検索
-     * 検索条件の復元、絞り込み、並び替え、ページネーションは SearchableList::buildListData が行う
+     * 検索条件の復元、絞り込み、並び替え、ページネーションは SearchableList::listPageValues が行う
      */
     public function index(Request $request): View|RedirectResponse
     {
         // 一覧データの読み込みとページング。担当者の人数も一緒に数える
-        $result = $this->buildListData($request, Company::query()->withCount('users'));
+        $result = $this->listPageValues($request, Company::query()->withCount('users'));
 
         if ($result instanceof RedirectResponse) {
             // リダイレクトが要求された場合

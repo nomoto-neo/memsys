@@ -420,7 +420,7 @@ private const ORDER_OPTIONS = [
 
 public function index(Request $request): View|RedirectResponse
 {
-    $result = $this->buildListData($request, Member::query());
+    $result = $this->listPageValues($request, Member::query());
     if ($result instanceof RedirectResponse) {
         return $result;   // ?back で戻ってきたとき
     }

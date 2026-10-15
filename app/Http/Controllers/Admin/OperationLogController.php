@@ -79,7 +79,7 @@ class OperationLogController extends Controller
     /** 一覧・検索 */
     public function index(Request $request): View|RedirectResponse
     {
-        $result = $this->buildListData($request, OperationLog::query());
+        $result = $this->listPageValues($request, OperationLog::query());
 
         if ($result instanceof RedirectResponse) {
             return $result;

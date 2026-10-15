@@ -4,7 +4,7 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="h4 mb-0">お知らせ詳細</h1>
     {{--
-        ?backを付けて一覧に戻る。SearchableList::buildListData()が
+        ?backを付けて一覧に戻る。SearchableList::listPageValues()が
         これを見て「一覧の何ページ目を見ていたか」をセッションから
         復元してリダイレクトする（admin側の?backとまったく同じ
         仕組み。詳しくはSearchableList.phpのコメント参照）。
