@@ -78,7 +78,7 @@ trait SearchableList
      * 一覧の表示の共通処理。$queryには対象のモデルのクエリを渡す。例：Member::query()
      *
      * 詳細などから?backで戻ってきたときは、保存したページへのリダイレクトを返す。
-     * それ以外は画面に渡すpaginated・filters・orderOptions・orderKeyの配列を返すので、
+     * それ以外は画面に渡すrecords・filters・orderOptions・selectedOrderの配列を返すので、
      * 呼ぶ側は返ってきた型でリダイレクトか画面の表示かを分ければよい。
      */
     private function listPageValues(Request $request, Builder $query): array|RedirectResponse
@@ -117,10 +117,10 @@ trait SearchableList
         }
 
         return [
-            'paginated' => $query->paginate(self::PER_PAGE)->withQueryString(),
+            'records' => $query->paginate(self::PER_PAGE)->withQueryString(),
             'filters' => $filters + $emptyFilters,
             'orderOptions' => self::ORDER_OPTIONS,
-            'orderKey' => $orderKey,
+            'selectedOrder' => $orderKey,
         ];
     }
 

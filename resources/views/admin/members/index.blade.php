@@ -94,7 +94,7 @@
         </tr>
     </thead>
     <tbody>
-        @forelse ($members as $member)
+        @forelse ($records as $member)
             <tr>
                 <td>{{ $member->name }}</td>
                 <td>{{ $member->kana ?? '（未設定）' }}</td>
@@ -123,5 +123,5 @@
 {{-- 検索条件はセッション側にあり、今のGETリクエストのクエリには
      ?page=n しか乗っていないので、ここが生成するページ送りの
      リンクにも検索ワードは含まれない。 --}}
-{{ $members->links('pagination::bootstrap-5') }}
+{{ $records->links('pagination::bootstrap-5') }}
 @endsection

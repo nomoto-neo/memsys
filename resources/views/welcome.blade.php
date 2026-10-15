@@ -22,7 +22,7 @@
     <div class="col-md-8">
         <h2 class="h5 mb-3">お知らせ</h2>
 
-        @include('news._list', ['newsList' => $newsList, 'emptyMessage' => 'お知らせはまだありません。'])
+        @include('news._list', ['records' => $newsList, 'emptyMessage' => 'お知らせはまだありません。'])
 
         @if ($newsList->isNotEmpty())
             <p class="text-end">

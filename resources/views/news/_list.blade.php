@@ -1,11 +1,11 @@
 {{--
     お知らせの一覧の行（訪問者向け）。お知らせのコーナー（news/index）と
     TOPページ（welcome）の両方から呼ぶ。
-    - $newsList：表示する記事（ページ分けした結果でも、件数を絞ったCollectionでもよい）
+    - $records：表示する記事（ページ分けした結果でも、件数を絞ったCollectionでもよい）
     - $emptyMessage：1件も無いときに出す文言
 --}}
 <div class="list-group mb-4">
-    @forelse ($newsList as $news)
+    @forelse ($records as $news)
         <a href="{{ route('news.show', $news) }}" class="list-group-item list-group-item-action">
             <div class="d-flex justify-content-between align-items-center">
                 {{-- タイトルの前に、幅70pxの画像枠を置く。一覧用画像があれば

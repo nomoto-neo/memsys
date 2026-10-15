@@ -74,7 +74,7 @@
         </tr>
     </thead>
     <tbody>
-        @forelse ($staffList as $staff)
+        @forelse ($records as $staff)
             <tr @class(['row-deleted' => $staff->trashed()])>
                 <td>
                     {{ $staff->name }}
@@ -116,7 +116,7 @@
     </tbody>
 </table>
 
-{{ $staffList->links('pagination::bootstrap-5') }}
+{{ $records->links('pagination::bootstrap-5') }}
 
 {{--
     削除確認のモーダルは<table>の外にまとめて置く。<tbody>の直下に置ける
@@ -124,7 +124,7 @@
     置くとHTMLとして不正になる（ブラウザが辻褄合わせで要素を
     テーブルの外へ移動させてしまい、見た目やJSの動きが不安定になりうる）ため。
 --}}
-@foreach ($staffList as $staff)
+@foreach ($records as $staff)
     @can('delete', $staff)
         <div class="modal fade" id="deleteStaffModal-{{ $staff->id }}" tabindex="-1"
              aria-labelledby="deleteStaffModalLabel-{{ $staff->id }}" aria-hidden="true">

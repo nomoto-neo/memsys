@@ -196,10 +196,10 @@ class CompanyController extends Controller
 
         // 一覧を表示
         return view('admin.companies.index', [
-            'companies' => $result['paginated'],
+            'records' => $result['records'],
             'filters' => $result['filters'],
             'orderOptions' => $result['orderOptions'],
-            'selectedOrder' => $result['orderKey'],
+            'selectedOrder' => $result['selectedOrder'],
         ]);
     }
 

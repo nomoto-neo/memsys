@@ -425,11 +425,13 @@ public function index(Request $request): View|RedirectResponse
         return $result;   // ?back で戻ってきたとき
     }
 
+    // 画面の変数の名前は、どのコーナーでも返ってきたキーと同じにする。画面を写して使い回せるようにするため。
+    // まとめて渡さず1つずつ書くのは、画面で使える変数をここで見て分かるようにするため
     return view('admin.members.index', [
-        'members' => $result['paginated'],
+        'records' => $result['records'],
         'filters' => $result['filters'],
         'orderOptions' => $result['orderOptions'],
-        'selectedOrder' => $result['orderKey'],
+        'selectedOrder' => $result['selectedOrder'],
     ]);
 }
 
@@ -1583,7 +1585,7 @@ php artisan app:set-next-id t_members 100001
 - ページ送りで、今のページの左右に展開するページの数は、3つずつです。左右4つずつに増やしたいときは、`onEachSide()` を付けます。
 
     ```blade
-    {{ $members->onEachSide(4)->links('pagination::bootstrap-5') }}
+    {{ $records->onEachSide(4)->links('pagination::bootstrap-5') }}
     ```
 - **戻り先**：一覧へ戻るリンクは `route('admin.xxx.index', ['back'])`。
 - **共通の部分ビュー**（`_confirm_hidden`・`_ajax_upload_block` など）は、フレームワークの `packages/neobit/core/resources/views/` に置き、モデル名やコントローラー名を書きません。コーナー専用のテンプレート（`admin/news/_fields` など）は、アプリの `resources/views/` に置き、そのコーナーのモデルの定数を参照してかまいません。フレームワークの画面は、`neobit::` を付けた名前で `@include` します（例：`@include('neobit::_confirm_hidden')`）。見た目や文言を変えたいときは、アプリの `resources/views/vendor/neobit/` に同じ名前（例：`_confirm_hidden.blade.php`）で置くと、そちらが使われます。

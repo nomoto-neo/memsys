@@ -69,7 +69,7 @@
         </tr>
     </thead>
     <tbody>
-        @forelse ($newsList as $news)
+        @forelse ($records as $news)
             <tr>
                 <td>
                     {{ $news->title }}
@@ -111,11 +111,11 @@
     </tbody>
 </table>
 
-{{ $newsList->links('pagination::bootstrap-5') }}
+{{ $records->links('pagination::bootstrap-5') }}
 
 {{-- 削除確認のモーダルはadmin/staff/index.blade.phpと同じ理由で
      <table>の外にまとめて置く。 --}}
-@foreach ($newsList as $news)
+@foreach ($records as $news)
     <div class="modal fade" id="deleteNewsModal-{{ $news->id }}" tabindex="-1"
          aria-labelledby="deleteNewsModalLabel-{{ $news->id }}" aria-hidden="true">
         <div class="modal-dialog">

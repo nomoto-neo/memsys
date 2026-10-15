@@ -176,10 +176,10 @@ class MemberController extends Controller
 
         // 一覧を表示
         return view('admin.members.index', [
-            'members' => $result['paginated'],
+            'records' => $result['records'],
             'filters' => $result['filters'],
             'orderOptions' => $result['orderOptions'],
-            'selectedOrder' => $result['orderKey'],
+            'selectedOrder' => $result['selectedOrder'],
         ]);
     }
 

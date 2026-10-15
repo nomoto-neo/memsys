@@ -68,7 +68,7 @@
         </tr>
     </thead>
     <tbody>
-        @forelse ($companies as $company)
+        @forelse ($records as $company)
             <tr>
                 <td>{{ $company->code }}</td>
                 <td>{{ $company->name }}</td>
@@ -92,5 +92,5 @@
     </tbody>
 </table>
 
-{{ $companies->links('pagination::bootstrap-5') }}
+{{ $records->links('pagination::bootstrap-5') }}
 @endsection

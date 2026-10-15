@@ -175,10 +175,10 @@ class NewsController extends Controller
 
         // 一覧を表示
         return view('admin.news.index', [
-            'newsList' => $result['paginated'],
+            'records' => $result['records'],
             'filters' => $result['filters'],
             'orderOptions' => $result['orderOptions'],
-            'selectedOrder' => $result['orderKey'],
+            'selectedOrder' => $result['selectedOrder'],
             'categories' => $this->allCategories(),
         ]);
     }

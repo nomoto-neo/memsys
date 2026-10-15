@@ -50,7 +50,7 @@
         </tr>
     </thead>
     <tbody>
-        @forelse ($pages as $page)
+        @forelse ($records as $page)
             <tr>
                 <td>{{ $page->title }}</td>
                 <td>
@@ -88,10 +88,10 @@
     </tbody>
 </table>
 
-{{ $pages->links('pagination::bootstrap-5') }}
+{{ $records->links('pagination::bootstrap-5') }}
 
 {{-- 削除確認のモーダルは<table>の外にまとめて置く（<tbody>の直下には<tr>しか置けないため） --}}
-@foreach ($pages as $page)
+@foreach ($records as $page)
     <div class="modal fade" id="deletePageModal-{{ $page->id }}" tabindex="-1"
          aria-labelledby="deletePageModalLabel-{{ $page->id }}" aria-hidden="true">
         <div class="modal-dialog">

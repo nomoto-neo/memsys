@@ -207,7 +207,7 @@ button.stats-chart-col:hover .stats-chart-bar {
 </div>
 @endif
 
-@include('admin.operation_logs._table', ['logs' => $logs, 'names' => $names, 'related' => $related])
+@include('admin.operation_logs._table', ['records' => $records, 'names' => $names, 'related' => $related])
 
-{{ $logs->links('pagination::bootstrap-5') }}
+{{ $records->links('pagination::bootstrap-5') }}
 @endsection

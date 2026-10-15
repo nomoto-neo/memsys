@@ -46,7 +46,7 @@
     </div>
 </form>
 
-@include('news._list', ['newsList' => $newsList, 'emptyMessage' => '該当するお知らせはありません。'])
+@include('news._list', ['records' => $records, 'emptyMessage' => '該当するお知らせはありません。'])
 
-{{ $newsList->links('pagination::bootstrap-5') }}
+{{ $records->links('pagination::bootstrap-5') }}
 @endsection

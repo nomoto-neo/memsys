@@ -26,7 +26,7 @@
         </tr>
     </thead>
     <tbody>
-        @forelse ($logs as $log)
+        @forelse ($records as $log)
             <tr>
                 <td class="text-nowrap">{{ $log->created_at->format('Y-m-d H:i:s') }}</td>
                 <td>
@@ -68,7 +68,7 @@
     内訳のモーダル。<tbody>の直下には<tr>しか置けないので、表の外にまとめて置く。
     中身は、相手の記録の種類（CSVダウンロード・CSV取り込み・一斉メール）で分ける。
 --}}
-@foreach ($logs as $log)
+@foreach ($records as $log)
     @isset($related[$log->id])
         @php($record = $related[$log->id])
         <div class="modal fade" id="operationLogDetail-{{ $log->id }}" tabindex="-1"

@@ -85,20 +85,20 @@ class OperationLogController extends Controller
             return $result;
         }
 
-        $logs = $result['paginated'];
+        $records = $result['records'];
 
         return view('admin.operation_logs.index', [
             // 一覧の上に出す集計。1ページ目にだけ出す。2ページ目から先は一覧を読み進めているので出さない
-            'stats' => $logs->currentPage() === 1 ? $this->stats($result['filters']) : null,
-            'logs' => $logs,
+            'stats' => $records->currentPage() === 1 ? $this->stats($result['filters']) : null,
+            'records' => $records,
             // 操作ログには氏名を持たせていないので、このページに出てくるスタッフと会員の、今の氏名を引く
-            'names' => OperationLog::subjectNames($logs),
+            'names' => OperationLog::subjectNames($records),
             // CSVと一斉メールの件数と内訳は別の記録が持っているので、このページの分を読む
-            'related' => OperationLog::relatedRecords($logs),
+            'related' => OperationLog::relatedRecords($records),
             'operatorOptions' => $this->operatorOptions(),
             'filters' => $result['filters'],
             'orderOptions' => $result['orderOptions'],
-            'selectedOrder' => $result['orderKey'],
+            'selectedOrder' => $result['selectedOrder'],
         ]);
     }
 
