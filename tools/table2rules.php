@@ -679,7 +679,7 @@ final class TableDraft
 
         $lines = [
             '================================================================',
-            'コントローラー：saveValues()（「保存・削除の処理（FormFlow）」のブロックに置く）',
+            'コントローラー：saveValues()（「保存・削除処理の補助（FormFlow）」のブロックに置く）',
             '================================================================',
             '    /** 保存する値（列 => 値）。ここで返した列だけを保存する */',
             "    private function saveValues(array \$validated, {$this->model} {$this->variable}): array",

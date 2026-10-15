@@ -141,7 +141,7 @@ class MypageController extends Controller
         return redirect()->route('company.mypage')->with('status', '企業の情報を更新しました。');
     }
 
-    // ---- 保存・削除の処理（FormFlow） ----
+    // ---- 保存・削除処理の補助（FormFlow） ----
 
     /** 保存する値（t_companiesの列 => 値）。ここで返した列だけを保存する。 */
     private function saveValues(array $validated, Company $company): array

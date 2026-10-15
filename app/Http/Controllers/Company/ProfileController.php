@@ -118,7 +118,7 @@ class ProfileController extends Controller
         return redirect()->route('company.mypage')->with('status', self::EMAIL_CHANGE_DONE_MESSAGE);
     }
 
-    // ---- 保存・削除の処理（FormFlow） ----
+    // ---- 保存・削除処理の補助（FormFlow） ----
 
     /**
      * 保存する値（t_company_usersの列 => 値）。

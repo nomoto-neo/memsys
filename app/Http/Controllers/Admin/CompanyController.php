@@ -516,7 +516,7 @@ class CompanyController extends Controller
             ->with('status', '招待を取り消しました。');
     }
 
-    // ---- 保存・削除の処理（FormFlow） ----
+    // ---- 保存・削除処理の補助（FormFlow） ----
 
     /**
      * 保存する値（t_companiesの列 => 値）。ここで返した列だけを保存する。

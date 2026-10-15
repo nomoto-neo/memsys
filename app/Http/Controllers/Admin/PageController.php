@@ -274,7 +274,7 @@ class PageController extends Controller
             ->with('status', '固定ページを削除しました。');
     }
 
-    // ---- 保存・削除の処理（FormFlow） ----
+    // ---- 保存・削除処理の補助（FormFlow） ----
 
     /** 保存する値（t_pagesの列 => 値）。ここで返した列だけを保存する。 */
     private function saveValues(array $validated, Page $page): array

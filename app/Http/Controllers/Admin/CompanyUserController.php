@@ -147,7 +147,7 @@ class CompanyUserController extends Controller
             ->with('status', '2段階認証の登録を解除しました。次回ログイン時にQRコードから登録し直せます。');
     }
 
-    // ---- 保存・削除の処理（FormFlow） ----
+    // ---- 保存・削除処理の補助（FormFlow） ----
 
     /** 保存する値（t_company_usersの列 => 値）。ここで返した列だけを保存する。 */
     private function saveValues(array $validated, CompanyUser $user): array

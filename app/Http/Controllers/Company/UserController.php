@@ -186,7 +186,7 @@ class UserController extends Controller
         return redirect()->route('company.users.index')->with('status', '担当者を削除しました。');
     }
 
-    // ---- 保存・削除の処理（FormFlow） ----
+    // ---- 保存・削除処理の補助（FormFlow） ----
 
     /** 保存する値（t_company_usersの列 => 値）。担当者IDとパスワードは、ここでは変えない */
     private function saveValues(array $validated, CompanyUser $user): array

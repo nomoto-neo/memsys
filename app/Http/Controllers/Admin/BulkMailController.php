@@ -334,7 +334,7 @@ class BulkMailController extends Controller
         });
     }
 
-    // ---- 保存・削除の処理（FormFlow） ----
+    // ---- 保存・削除処理の補助（FormFlow） ----
 
     /** 保存する値（列 => 値）。ここで返した列だけを保存する。 */
     private function saveValues(array $validated, BulkMail $bulkMail): array

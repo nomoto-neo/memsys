@@ -336,7 +336,7 @@ class MypageController extends Controller
         }
     }
 
-    // ---- 保存・削除の処理（FormFlow） ----
+    // ---- 保存・削除処理の補助（FormFlow） ----
 
     /**
      * 保存する値（t_membersの列 => 値）。顔写真はcommitUploads()が保存するので書かない。

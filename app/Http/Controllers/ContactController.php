@@ -225,7 +225,7 @@ class ContactController extends Controller
         return view('contact.thanks');
     }
 
-    // ---- 保存・削除の処理（FormFlow） ----
+    // ---- 保存・削除処理の補助（FormFlow） ----
 
     /**
      * 保存する値（t_inquiriesの列 => 値）。ここで返した列だけを保存する。
