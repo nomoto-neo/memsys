@@ -935,17 +935,18 @@ public static function nameOptions(): array
 列挙型の値ごとの名前や設定は、`match` でメソッドの中に書かず、冒頭の定数に1行ずつまとめ、メソッドはそれを引くだけにします。キーは `case` の値を参照します（PHP 8.2から使える書き方）。
 
 ```php
-case Gender = 'gender';
-case Contact = 'contact';
+// app/Enums/StaffAcl.php
+case Staff = 0;
+case Manager = 1;
 
-private const SETTINGS = [
-    self::Gender->value => ['label' => '性別', 'fixed' => true],
-    self::Contact->value => ['label' => '連絡方法', 'fixed' => false],
+private const LABELS = [
+    self::Staff->value => 'スタッフ',
+    self::Manager->value => '管理者',
 ];
 
 public function label(): string
 {
-    return self::SETTINGS[$this->value]['label'];
+    return self::LABELS[$this->value];
 }
 ```
 
@@ -1568,7 +1569,7 @@ php artisan app:set-next-id t_members 100001
 <p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
 
 - **レイアウト**：`layouts/` ディレクトリに置かれたテンプレートが、ページ全体の外枠になります。処理結果のメッセージは `->with('status', '...')`（緑）・`->with('error', '...')`（赤）で渡すと、レイアウトが表示します。
-- **画面ごとのスクリプト**：その画面だけで使うもの（アップロード、WYSIWYG、並び替えなど）を head タグ内に差し込むときは、`@push('head-extra')` に書きます。body の終わりに差し込むときは、`@push('scripts')` に書きます。全画面で使うものは `resources/js/app.js` に書きます。
+- **画面ごとのスクリプト**：その画面だけで使うもの（アップロード、WYSIWYG、並び替えなど）を head タグ内に差し込むときは、`@push('head-extra')` に書きます。body の終わりに差し込むときは、`@push('scripts')` に書きます。全画面で使うものは、フレームワークの `global.js` にあり、3つのレイアウトが読み込んでいます。
 - **全体で使う CSS**：フレームワークの `global.css` にあります。3つのレイアウトが読み込んでいるので、どの画面にも効きます。サイトだけの全体の CSS を足すときは、アプリに `resources/css/app.css` を作り、レイアウトで `global.css` の後に読み込みます。画面の CSS は Bootstrap を使い、このファイルには、Bootstrap で足りない分だけを書きます。今あるのは、見本の文字の濃さ、エラー欄の表示、読み取り専用の表示、WYSIWYG の本文の表示、削除済みの行の色です。変えたら、`npm run build` をやり直します。その画面だけで使う CSS は、その画面の `@push('head-extra')` に書きます。
 - **入力欄の見本の文字（placeholder）**：濃さは、`global.css` で全体を `opacity: 0.5` にそろえています。入力した値と見分けやすくするためです。確認コード（6桁）の入力欄には、`placeholder="000000"` を付けます。バックアップコードの入力欄は `0000-0000` です。
 - **フォームの補助（global.js）**：必須マーク（`.required-mark`）の付いたラベルの `for` の欄に `required` 属性を付ける、エラー欄（`.invalid-feedback[data-item]`）に文言があれば同じ名前の欄を赤くする、ブラウザの入力チェックの結果を同じエラー欄に出す、入力し直したらエラー表示を消す、エラーのあるモーダルを開く、クラス名 `ajax_submit` の付いたフォームを画面を読み直さずに送る、フォームを送っている間は二重の送信を止めて処理中の表示を出す。画面ごとの設定は要りません。ラベルの `for` と入力欄の `id` を必ず対応させてください。
@@ -1580,7 +1581,7 @@ php artisan app:set-next-id t_members 100001
     - JavaScript が動かなかったときは、ふつうの送信になります。そのときは、エラーのあるモーダルを `global.js` が自動で開きます。
     - モーダルを使う画面には、Bootstrap の JavaScript が要ります。管理画面のレイアウトは読み込んでいますが、訪問者向けと企業会員のレイアウトは読み込んでいないので、その画面の `@push('head-extra')` で読み込みます（例：`mypage/two-factor.blade.php`）。
 - **クラス名と `data-` の使い分け**：JavaScript に「この要素はこの機能で動かす」と伝えるのは、クラス名です（`ajax_upload_block`・`wysiwyg`・`ajax_submit`）。その機能に値を渡すときに、`data-` の属性を使います（`data-upload-url`・`data-item`・`data-confirm`）。
-- **読み取り専用の表示**：管理画面の確認・詳細画面は、入力画面と同じ `_fields` を共有して表示します。`$readonly = ' readonly'`・`$disabled = ' disabled'` を入力欄に展開して、入力できない表示にします。項目が増減したときに、それぞれの画面を書き直さずに済みます。見た目は、全体で使う CSS（`resources/css/app.css`）で整えています。訪問者向けや企業会員の画面でも、同じ仕組みをそのまま使えます。
+- **読み取り専用の表示**：管理画面の確認・詳細画面は、入力画面と同じ `_fields` を共有して表示します。`$readonly = ' readonly'`・`$disabled = ' disabled'` を入力欄に展開して、入力できない表示にします。項目が増減したときに、それぞれの画面を書き直さずに済みます。見た目は、全体で使う CSS（フレームワークの `global.css`）で整えています。訪問者向けや企業会員の画面でも、同じ仕組みをそのまま使えます。
 - **一覧**：削除済みの行は `row-deleted`、ページ送りは `pagination::bootstrap-5`（Bootstrap v5 のデザインで表示）。
 - ページ送りで、今のページの左右に展開するページの数は、3つずつです。左右4つずつに増やしたいときは、`onEachSide()` を付けます。
 

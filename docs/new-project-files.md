@@ -10,7 +10,7 @@
 |---|---|
 | `database/migrations/`・`seeders/`・`factories/` | テーブル、初期データ |
 | `app/Enums/` | そのサイトの選択肢（権限、状態など）。`OperationLogSubject` は、モデルを足すたびに1行足す |
-| `config/neobit.php`（`code_tables`） | DB で管理するコード表を足すたびに1行足す。名前と、コード値を固定するか |
+| `config/neobit.php`（`code_table_db`・`code_table_method`） | DB で管理するコード表を足すたびに、`code_table_db` に1行足す。名前と、コード値を固定するか。ほかのテーブルから作るコード表は、`code_table_method` にクラスとメソッドの名前を足す |
 | `app/Providers/AppServiceProvider.php` | モデルの短い名前の一覧（`enforceMorphMap()`）。載っていないモデルを使うと例外になる |
 | `app/Policies/` | 1件ごとの権限、非公開のファイルを見てよいか |
 | `app/Rules/` | そのサイトだけの検証（電話番号など） |
