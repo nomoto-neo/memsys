@@ -50,7 +50,7 @@
 | 4-3 | ほかのテーブルから作るコード表を、設定に書けるようにする | 済み |
 | 4-4 | アップロードの保存先のディレクトリの規則を、プロジェクトで差し替えられるようにする | 済み |
 | 4-5 | 配る前に、案件が頼る名前を総点検する | 進行中 |
-| 4-6 | IPブロック管理（攻撃の IP を入口で止める）を足す | 未着手 |
+| 4-6 | IPブロック管理（攻撃の IP を入口で止める）を足す | 済み |
 | 5 | 配布の形を決める | 未着手 |
 | 6 | 文書を、切り離した後の形に合わせる | 未着手 |
 
@@ -207,7 +207,7 @@
 
 ### 段階4-6　IPブロック管理
 
-2026-10-15 に足した段階。不正な URL を続けて叩く BOT を、PHP の側で止める仕組み。Cloudflare などの WAF や fail2ban を入れられない環境での自衛のため。今までは、アクセスログから IP を調べて `.htaccess` に手で足すしかなかった。
+済み。2026-10-15 に足した段階。不正な URL を続けて叩く BOT を、PHP の側で止める仕組み。Cloudflare などの WAF や fail2ban を入れられない環境での自衛のため。今までは、アクセスログから IP を調べて `.htaccess` に手で足すしかなかった。
 
 ルートを通るフレームワークなので、どの URL へのアクセスも、全体のミドルウェアを必ず通る。ルートの無い URL（`/.env`・`/wp-login.php` など）も、ルートを探す前に通る。そこで止めている IP なら 404 を返す。403 にしないのは、止められていることを相手に伝えないため。Apache が PHP を通さずに返すファイル（画像・CSS など）は止まらないが、攻撃の狙いにはなりにくいので許容する。
 
@@ -224,7 +224,7 @@
 
 **動き**
 
-1. 全体のミドルウェア（`BlockIp`）が最初に、止めている IP かを見る。判定はキャッシュで行い、DB は読まない。登録・解除のときに、キャッシュを作り直す
+1. 全体のミドルウェア（`RejectBlockedIp`）が最初に、止めている IP かを見る。判定はキャッシュで行い、DB は読まない。登録・解除のときに、キャッシュを作り直す
 2. 応答が 404・405 になったアクセスを、IP ごとにキャッシュで数える
 3. 目安を超えたら、`ip_blocks` に「自動」として登録する。IPv4 は1つ、IPv6 は `/64` 単位
 4. 期限が来たら止めるのをやめる。期限の過ぎた行は、`TemporaryDataCleaner` が消す
@@ -236,12 +236,15 @@
 
 - 止めている IP の一覧。IP・手動か自動か・理由・回数・止めた日時・期限・登録したスタッフ
 - 手動の登録（期限なしも選べる）・解除・期限の変更
+- 一覧と登録の欄に、実際に止まる範囲（`203.0.113.0 ～ 203.0.113.255`）を出す。一覧はサーバーが計算し、登録の欄は `ip_block.js` が入力に合わせて出す
+- 広すぎるまとまり（IPv4 は `/16`、IPv6 は `/32` より広いもの）は登録させない。関係の無い人まで大勢止めるため
 - 画面とコントローラー（`IpBlockController`）はフレームワークに置く。ルートは案件が書く。機能を使うかどうかは案件ごとに決めるため。項目見出し一覧と同じ形
 
 **記録と報告**
 
-- 登録・解除・自動で止めたことを、操作ログに残す。操作の種類を2つ足す
-- 毎朝の操作ログの報告メールに、前の日に自動で止めた件数と IP を載せる
+- 登録・解除・自動で止めたことを、操作ログに残す。操作の種類を2つ（`ip_block`・`ip_unblock`）足す。操作の対象のモデルは持たせない。フレームワークのモデルを対象にすると、案件の `enforceMorphMap()` に載せる手間が要るため
+- 毎朝の操作ログの報告メールの「気になる点」に、前の日に自動で止めた IP を載せる。テンプレートは変えていない
+- 部品の名前は、判定と登録をする部品を `IpBlocker`、ミドルウェアを `RejectBlockedIp` にした。テーブルのモデル `IpBlock` と同じ名前を避け、独立した部品の名前を「〜er」にそろえるため
 
 **気を付けること**
 
@@ -253,9 +256,9 @@
 
 | 種類 | ファイル |
 |---|---|
-| フレームワーク（新規） | `src/Security/IpBlock.php`・`src/Models/IpBlock.php`・`src/Http/Middleware/BlockIp.php`・`src/Http/Controllers/IpBlockController.php`・`resources/views/admin/ip_blocks/index.blade.php`・`ip_blocks` のマイグレーション |
-| フレームワーク（変更） | `OperationLogAction`・`OperationLogReport` と報告のメールのテンプレート・`TemporaryDataCleaner`・`config/neobit.php`・`stubs/config/neobit.php` |
-| 見本のサイト | `bootstrap/app.php`（ミドルウェアを全体の最初に足す）・`routes/web.php`・`config/neobit.php`・管理画面のメニュー |
+| フレームワーク（新規） | `src/Security/IpBlocker.php`・`src/Models/IpBlock.php`・`src/Http/Middleware/RejectBlockedIp.php`・`src/Http/Controllers/IpBlockController.php`・`resources/views/admin/ip_blocks/index.blade.php`・`resources/js/ip_block.js`・`ip_blocks` のマイグレーション |
+| フレームワーク（変更） | `OperationLogAction`・`OperationLogReport`・`TemporaryDataCleaner`・`config/neobit.php`・`stubs/config/neobit.php` |
+| 見本のサイト | `bootstrap/app.php`（ミドルウェアを全体に足す）・`routes/web.php`・`config/neobit.php`・`vite.config.js`・管理画面のメニュー |
 | テスト | `tests/Feature/IpBlockTest.php` |
 | 文書 | 利用ガイドのセキュリティの章・`docs/neobit-framework-names.md`・`check_latest.sh` |
 
