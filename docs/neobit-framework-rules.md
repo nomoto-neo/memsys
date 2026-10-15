@@ -31,6 +31,10 @@
 - 選択肢のように決まった種類の値は `app/Enums/` の列挙型にする。値ごとの名前や設定は、`match` でメソッドの中に書かず、冒頭の定数（キーは `self::Xxx->value`）にまとめる
 - 区分表は、出どころ（列挙型・`code/*.csv`・DB の `code_table_db`・メソッドの `code_table_method`）に関係なく `code_table()`・`code_keys()`・`code_label()` で使う。Blade に `\App\Enums\...` を書かない
 
+## 案件がフレームワークのために用意するもの
+
+- 案件がフレームワークのために用意するクラス（フレームワークの設定に名指しする列挙型や規則のクラスなど）は、名前を `App` で始める（例：`AppOperationLogAction`・`AppOperationLogModel`・`AppUploadDirectory`）。フレームワークのものと並べたときに、案件の側のものだと分かるようにするため。そうしないほうがよい場合は、作る前に相談する
+
 ## テーブル
 
 - 業務のデータは `t_` を付ける

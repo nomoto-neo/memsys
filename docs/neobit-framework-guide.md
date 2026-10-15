@@ -868,8 +868,8 @@ public function viewFiles(Member|Staff|null $user, News $news, string $field): b
 保存先のディレクトリは、`config/upload.php` の `directory_rule` に書いたクラスが決めます。既定は `DefaultUploadDirectory`（`news/000/000012`）です。プロジェクトで変えたいときは、`UploadDirectoryRule` を実装したクラスを書き、設定にその名前を書きます。メソッドの名前は `directory()` に決まっています。
 
 ```php
-// app/Services/UploadDirectory.php：id をそのまま1階層にする例（news/12）
-final class UploadDirectory implements UploadDirectoryRule
+// app/Services/AppUploadDirectory.php：id をそのまま1階層にする例（news/12）
+final class AppUploadDirectory implements UploadDirectoryRule
 {
     public static function directory(string $ownerClass, int|string $ownerKey): string
     {
@@ -878,7 +878,7 @@ final class UploadDirectory implements UploadDirectoryRule
 }
 
 // config/upload.php
-'directory_rule' => App\Services\UploadDirectory::class,
+'directory_rule' => App\Services\AppUploadDirectory::class,
 ```
 
 - 受け取るのは、モデルのクラス名と id だけです。親の id だけが手元にある場面でも、レコードを読まずに使えるようにするためです。そのため、登録した日のようなレコードの中身は使えません。
