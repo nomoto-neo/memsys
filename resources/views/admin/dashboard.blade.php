@@ -43,6 +43,9 @@
         <a href="{{ route('admin.operation-logs.index') }}" class="list-group-item list-group-item-action">
             操作ログ
         </a>
+        <a href="{{ route('admin.ip-blocks.index') }}" class="list-group-item list-group-item-action">
+            IPブロック管理
+        </a>
     @else
         <a href="{{ route('admin.staff.show', Auth::guard('admin')->user()) }}" class="list-group-item list-group-item-action">
             自分の情報を確認

@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Neobit\Core\Auth\LoginRedirect;
 use Neobit\Core\Http\Middleware\AjaxFormResponse;
 use Neobit\Core\Http\Middleware\NormalizeInput;
+use Neobit\Core\Http\Middleware\RejectBlockedIp;
 use Neobit\Core\Http\Middleware\RestrictAdminAccess;
 use Neobit\Core\Http\Middleware\RestrictSiteAccess;
 use Neobit\Core\Http\Middleware\SecurityHeaders;
@@ -45,6 +46,11 @@ return Application::configure(basePath: dirname(__DIR__))
         // 画面を読み直さずに送るフォーム（ajax_submit）への返事を、JSONに読み替える
         // （Neobit\Core\Http\Middleware\AjaxFormResponse）。セッションを使うので、画面のルートのグループに足す
         $middleware->web(append: [AjaxFormResponse::class]);
+
+        // IPブロック管理で止めているIPアドレスに404を返し、存在しないURLへのアクセスが多いIPアドレスを
+        // 自動で止める（Neobit\Core\Http\Middleware\RejectBlockedIp）。ルートの無いURLも止めるので、
+        // 全体のミドルウェアに足す。本当のIPアドレスで判断するよう、信頼するプロキシの処理より後ろに通る
+        $middleware->append(RejectBlockedIp::class);
 
         // ブラウザに守り方を伝えるヘッダーを付ける（Neobit\Core\Http\Middleware\SecurityHeaders）。
         // ルートが見つからないときのエラーの画面にも付けるので、全体のミドルウェアに足す

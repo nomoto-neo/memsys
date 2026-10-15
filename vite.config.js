@@ -18,6 +18,7 @@ export default defineConfig({
                 `${NEOBIT}/css/wysiwyg_suneditor_content.css`,
                 `${NEOBIT}/js/wysiwyg_summernote.js`,
                 `${NEOBIT}/js/code_editor.js`,
+                `${NEOBIT}/js/ip_block.js`,
                 // このサイトのもの
                 'resources/js/sortable.js',
                 'resources/js/contact_form.js',

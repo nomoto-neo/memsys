@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Storage;
 use Neobit\Core\Csv\CsvImportSettings;
 use Neobit\Core\Models\OperationLog;
 use Neobit\Core\Models\TrustedDevice;
+use Neobit\Core\Security\IpBlocker;
 use Neobit\Core\Team\TeamInvitationManager;
 use Neobit\Core\Upload\UploadFilePath;
 
@@ -33,6 +34,9 @@ use Neobit\Core\Upload\UploadFilePath;
  *
  * 招待（team_invitationsテーブル。Neobit\Core\Team\TeamInvitationManager）
  *   消すもの：期限の切れた行
+ *
+ * IPブロック管理で止めているIPアドレス（ip_blocksテーブル。Neobit\Core\Security\IpBlocker）
+ *   消すもの：期限の過ぎた行
  *
  * ■ プロジェクトの片付け
  * 業務のデータの片付けは、このクラスには書かない。config/cleanup.phpのtasksに、
@@ -71,6 +75,7 @@ final class TemporaryDataCleaner
             '保存期間を過ぎた操作ログ' => self::oldOperationLogs(),
             '保存期間を過ぎた、送れなかったジョブ' => self::oldFailedJobs(),
             '期限の切れた招待' => TeamInvitationManager::deleteExpired(),
+            '期限の過ぎたIPブロック' => IpBlocker::deleteExpired(),
         ];
 
         // プロジェクトの片付け。残す日数を書いた片付けには、その日数を渡す

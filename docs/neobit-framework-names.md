@@ -128,9 +128,10 @@
 | インターフェース | `OperationLogRelatedRecord` | 操作ログの件数を持つ記録 | |
 | インターフェース | `TeamInvitationOwner` | 招待を持つモデル | |
 | インターフェース | `UploadDirectoryRule` | 保存先の規則 | |
+| モデル | `IpBlock` | IPブロック管理の1行 | |
 | モデルのトレイト | `IsLoginAccount`・`HasTwoFactor`・`HasPasskeys`・`TeamInvitationRelation` | ログイン・2段階認証・パスキー・招待 | `TeamInvitationRelation` だけ `Has〜`・`Is〜` の形でない |
 | コントローラーのトレイト | `FormFlow`・`SearchableList`・`AjaxFileUpload`・`CsvDownload`・`CsvImport`・`CsvReader`・`PdfDownload`・`EmailChange`・`TwoFactorLogin`・`TwoFactorManagement`・`PasskeyLogin`・`PasskeyManagement` | | `CsvReader` だけ「〜er」 |
-| 列挙型 | `OperationLogAction`・`TwoFactorMethod`・`LoginIdType`・`CsvEncoding`・`CsvImportMode`・`SpamCheckResult` | | |
+| 列挙型 | `OperationLogAction`（`ip_block`・`ip_unblock` を含む）・`TwoFactorMethod`・`LoginIdType`・`CsvEncoding`・`CsvImportMode`・`SpamCheckResult` | | |
 
 ## 6. 案件が呼ぶクラスと、その公開のメソッド
 
@@ -160,10 +161,11 @@
 | `HtmlSanitizer` | `clean()` | |
 | `SpamGuard` | `startedToken()`・`check()`、定数 `HONEYPOT_FIELD`・`STARTED_FIELD`・`TURNSTILE_FIELD` | |
 | `AdminRequestLimit` | `limit()` | |
+| `IpBlocker` | `isBlocked()`・`countMiss()`・`block()`・`changeUntil()`・`release()`・`deleteExpired()`・`normalizeRange()`・`rangeBounds()`・`coversProtected()` | |
 | `CsvImportSettings`・`CsvImportResult`・`CsvImportRow`・`CsvColumnSet` | 取り込みの設定と結果 | |
 | 検証のルール | `KatakanaRule`・`HiraganaRule`・`PhoneNumberRule`・`SameCountAsRule` | |
-| ミドルウェア | `AjaxFormResponse`・`NormalizeInput`・`RestrictAdminAccess`・`RestrictSiteAccess`・`SecurityHeaders` | |
-| コントローラー | `CodeTableController`（ルートは案件が書く）・`UploadedFileController` | |
+| ミドルウェア | `AjaxFormResponse`・`NormalizeInput`・`RejectBlockedIp`・`RestrictAdminAccess`・`RestrictSiteAccess`・`SecurityHeaders` | |
+| コントローラー | `CodeTableController`・`IpBlockController`（どちらもルートは案件が書く）・`UploadedFileController` | |
 
 ## 7. ヘルパー
 
@@ -188,6 +190,7 @@
 | `neobit` | `code_table_db`・`code_table_method`・`code_table_enum_namespaces` | |
 | `neobit` | `operation_log_actions`・`operation_log_route` | |
 | `neobit` | `admin_requests_per_minute`・`admin_requests_exceeded_message` | |
+| `neobit` | `ip_block_auto`・`ip_block_watch_minutes`・`ip_block_watch_count`・`ip_block_hours` | |
 | `neobit` | `operation_report_to`・`operation_report_thresholds` | 操作ログの設定は `operation_log_〜`、報告は `operation_report_〜` |
 | `upload` | `image_types`・`attach_types`・`max_kb`・`max_image_pixels`・`csv_max_kb`・`directory_rule` | |
 | `cleanup` | `operation_log_days`・`failed_job_days`・`tasks` | |
@@ -208,7 +211,7 @@
 | `_two_factor_backup_codes` | `$codes`・`$twoFactorNextUrl`・`$nextLabel` | |
 | `_two_factor_manage` | `$twoFactorAccount`・`$twoFactorRoutes`・`$totpConfirmed`・`$usesBackupCodes`・`$backupCodesCodeSent`・`$confirmByEmail`・`$issueLabel`・`$resetAlso` | |
 | `_two_factor_reset` | `$twoFactorAccount`・`$twoFactorResetUrl` | |
-| `admin.code_tables.index`・`admin.csv_import.form`・`admin.csv_import.confirm`・`admin.too_many_requests` | フレームワークのコントローラーが渡す | |
+| `admin.code_tables.index`・`admin.ip_blocks.index`・`admin.csv_import.form`・`admin.csv_import.confirm`・`admin.too_many_requests` | フレームワークのコントローラーが渡す | |
 | `layouts.plain`・`maintenance`・`mail._raw_html`・`mail._raw_text` | | |
 
 案件の画面がそろえる変数の名前（フレームワークの決まり）。
@@ -225,6 +228,7 @@
 | `uploads.tmp`・`uploads.show` | フレームワークが登録する。一時ファイルと非公開のファイル | |
 | `{ログインの頭}.login`・`.login.verify`・`.login.verify.confirm`・`.login.verify.resend`・`.password.forgot` | 案件が書く。ログインの部品が、この名前で探す | |
 | 項目見出し一覧の「頭.index」「頭.update」 | 案件が書く | |
+| IPブロック管理の「頭.index」「頭.store」「頭.update」「頭.destroy」 | 案件が書く。update・destroy の URL に `{ipBlock}` | |
 
 ## 11. メールのテンプレートと、中で使える変数
 
@@ -241,7 +245,7 @@
 
 | 種類 | 名前 | メモ |
 |---|---|---|
-| ファイル | `global.js`・`global.css`・`ajax_upload.js`・`upload_request.js`・`passkeys.js`・`code_editor.js`・`wysiwyg_suneditor.js`・`wysiwyg_suneditor_content.css`・`wysiwyg_summernote.js` | |
+| ファイル | `global.js`・`global.css`・`ajax_upload.js`・`upload_request.js`・`passkeys.js`・`code_editor.js`・`ip_block.js`・`wysiwyg_suneditor.js`・`wysiwyg_suneditor_content.css`・`wysiwyg_summernote.js` | |
 | 短い名前 | `@neobit`（`vite.config.js` の alias） | |
 | 動かすクラス名 | `ajax_submit`・`wysiwyg`・`ajax_upload_block`・`ajax_upload_group`・`ajax_add_block`・`ajax_block_template`・`ajax_file_input`・`ajax_file_link`・`ajax_image_block`・`ajax_noimage_block`・`ajax_origin`・`ajax_tmp`・`ajax_del`・`ajax_cancel`・`ajax_submit_message`・`passkey_login`・`passkey_register`・`passkey_message`・`passkey_supported`・`passkey_unsupported`・`required-mark` | `required-mark` だけハイフン区切り |
 | `data-` 属性 | `data-confirm`・`data-item`・`data-field`・`data-is-image`・`data-upload-url`・`data-submit-url`・`data-options-url`・`data-remember`・`data-current`・`data-unsaved`・`data-switch-answer`・`data-remove-row` | |
@@ -252,5 +256,5 @@
 |---|---|---|
 | `vendor:publish` のタグ | `neobit-config`・`neobit-mail-templates` | |
 | Artisan のコマンド | `app:cleanup-temporary-data`・`app:report-operation-logs`・`app:reset-two-factor`・`app:set-next-id` | 頭が案件と同じ `app:`。フレームワークのものと見分けられない |
-| テーブル | `code_tables`・`operation_logs`・`csv_download_logs`・`csv_import_logs`・`trusted_devices`・`two_factor_backup_codes`・`two_factor_secrets`・`passkeys`・`team_invitations` | |
+| テーブル | `code_tables`・`ip_blocks`・`operation_logs`・`csv_download_logs`・`csv_import_logs`・`trusted_devices`・`two_factor_backup_codes`・`two_factor_secrets`・`passkeys`・`team_invitations` | |
 | 案件が用意するコード表 | `operation_log_subject` | 操作ログの部品が `code_label('operation_log_subject', …)` で読む。案件に無いと例外になる |

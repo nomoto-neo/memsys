@@ -148,6 +148,8 @@ has   packages/neobit/core/src/NeobitServiceProvider.php                'neobit-
 has   packages/neobit/core/src/Code/CodeTable.php                       "'operation_log_action' => [OperationLog::class, 'actionOptions']"
 has   packages/neobit/core/src/Models/OperationLog.php                  'public static function actionOptions('
 has   packages/neobit/core/src/Http/Controllers/CodeTableController.php "config('neobit.code_table_db'"
+has   packages/neobit/core/src/Security/IpBlocker.php                   'final class IpBlocker'
+has   packages/neobit/core/database/migrations/2026_10_15_000000_create_ip_blocks_table.php "Schema::create('ip_blocks'"
 has   packages/neobit/core/config/neobit.php                            "'code_table_enum_namespaces'"
 has   packages/neobit/core/stubs/config/neobit.php                      "// 'code_table_method'"
 has   packages/neobit/core/resources/mail-templates/verification_code.blade.php '【{!! $site_name !!}】'
@@ -157,6 +159,9 @@ has   packages/neobit/core/database/migrations/2026_10_13_000000_create_neobit_c
 
 # アプリ
 has   vite.config.js                                                    'preserveSymlinks: true'
+has   vite.config.js                                                    'ip_block.js'
+has   bootstrap/app.php                                                 'RejectBlockedIp::class'
+has   routes/web.php                                                    'IpBlockController'
 has   resources/views/layouts/admin.blade.php                           'vendor/neobit/core/resources/css/global.css'
 has   resources/views/layouts/app.blade.php                             'vendor/neobit/core/resources/css/global.css'
 has   resources/views/layouts/company.blade.php                         'vendor/neobit/core/resources/css/global.css'

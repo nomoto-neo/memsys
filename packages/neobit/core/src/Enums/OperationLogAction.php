@@ -32,6 +32,8 @@ enum OperationLogAction: string implements OperationLogActionType
     case InvitationSend = 'invitation_send';
     case InvitationCancel = 'invitation_cancel';
     case Throttled = 'throttled';
+    case IpBlock = 'ip_block';
+    case IpUnblock = 'ip_unblock';
 
     /** 値ごとの名前 */
     private const LABELS = [
@@ -53,6 +55,8 @@ enum OperationLogAction: string implements OperationLogActionType
         self::InvitationSend->value => '担当者の招待の送信',
         self::InvitationCancel->value => '担当者の招待の取り消し',
         self::Throttled->value => '回数の制限',
+        self::IpBlock->value => 'IPアドレスのブロック',
+        self::IpUnblock->value => 'IPアドレスのブロックの解除',
     ];
 
     public function label(): string

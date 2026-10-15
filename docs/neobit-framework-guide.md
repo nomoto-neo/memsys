@@ -2027,6 +2027,30 @@ OperationRecorder::record(OperationLogAction::Update, $company, ['status'], ['st
 - **管理画面のルートを足すとき**：`auth:admin` のグループの内側に書けば、この制限が掛かります。足すものはありません。
 - **止められないもの**：上限より遅く、時間をかけて取る動きは止まりません。そちらは、詳細の閲覧や CSV のダウンロードの記録から調べます。
 
+### IPブロック管理（IpBlocker）
+
+**ファイル**：`packages/neobit/core/src/Security/IpBlocker.php`（冒頭のコメント）・`src/Http/Middleware/RejectBlockedIp.php`・`src/Http/Controllers/IpBlockController.php`・`bootstrap/app.php`・`routes/web.php`
+
+不正な URL を続けて叩く BOT を、IP アドレスで止めます。Cloudflare などの WAF や fail2ban を入れられない環境で、PHP の側で身を守るためのものです。止めた IP アドレスからのアクセスには、どのページも 404 を返します。
+
+- **止める場所**：全体のミドルウェア `RejectBlockedIp` です。ルートの無い URL（`/.env`・`/wp-login.php` など）も、ルートを探す前にここを通ります。止めている一覧はキャッシュに置き、毎回 DB は読みません。403 ではなく 404 にするのは、止められていることを相手に伝えないためです。Apache が PHP を通さずに返すファイル（画像・CSS など）は止まりません。
+- **自動で止める**：応答が 404・405 になったアクセスを、IP アドレスごとに数えます。`config/neobit.php` の `ip_block_watch_minutes`（10分）の中に `ip_block_watch_count`（30回）を超えたら、`ip_block_hours`（24時間）止めます。`ip_block_auto` を false にすると数えず、管理画面からの登録だけになります。IPv6 は `/64` のまとまりで数えて止めます。
+- **止めない IP アドレス**：`SITE_ALLOWED_IPS`・`ADMIN_ALLOWED_IPS` で許可している IP アドレスは、自動でも手動でも止めません。管理画面からは、今の自分の IP アドレスを含むものも登録できません。管理者が自分を止めないようにするためです。
+- **管理画面**：止めている IP アドレスの一覧と、手動の登録・期限の変更・解除です。IP アドレスは1つでも、`203.0.113.0/24` のようなまとまりでも登録できます。一覧と登録の欄には、実際に止まる範囲（`203.0.113.0 ～ 203.0.113.255`）を出します。まとまりは、広すぎると関係の無い人まで止めるので、IPv4 は `/16`、IPv6 は `/32` より狭いものだけにします。
+- **ルート**：案件が書きます。機能を使うかどうかを、案件ごとに決めるためです。管理者だけのグループの中に、「頭.index」「頭.store」「頭.update」「頭.destroy」の組で名前を付けます。update・destroy の URL には `{ipBlock}` を入れます。
+
+    ```php
+    // routes/web.php（管理者だけのグループの中）
+    Route::get('/ip-blocks', [IpBlockController::class, 'index'])->name('ip-blocks.index');
+    Route::post('/ip-blocks', [IpBlockController::class, 'store'])->name('ip-blocks.store');
+    Route::patch('/ip-blocks/{ipBlock}', [IpBlockController::class, 'update'])->name('ip-blocks.update');
+    Route::delete('/ip-blocks/{ipBlock}', [IpBlockController::class, 'destroy'])->name('ip-blocks.destroy');
+    ```
+
+    ミドルウェアは、ルートを書かなくても動きます。管理画面を出さない案件でも、自動で止める仕組みは働きます。`bootstrap/app.php` の全体のミドルウェアに `RejectBlockedIp` を足してあることを確かめてください。
+- **記録**：止めたこと・解除したこと・期限を変えたことを、操作ログに残します。自動で止めたものは、操作した人が空です。自動で止めたときは `warning` のログも書き、毎朝の操作ログの報告の「気になる点」にも載せます。期限の過ぎた行は、毎時の片付けが消します。
+- **気を付けること**：手前にプロキシがある環境で `TRUSTED_PROXIES` が正しくないと、全員が同じ IP アドレスに見えます。その IP アドレスを止めると、サイト全体が止まります。IP アドレスを次々に変えて来る攻撃は止めきれません。それは WAF の領域です。
+
 ### 画面
 
 - **一覧と検索**（`/admin/operation-logs`）：日付の範囲・操作・操作した人・対象・IP アドレス・補足で絞れます。補足は、中の語を部分一致で探します。空白で区切ると、全部の語を含む行に絞ります。CSV でも出せます。見るだけの画面で、登録・編集・削除はありません。

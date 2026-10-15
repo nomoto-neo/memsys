@@ -34,6 +34,7 @@ use App\Http\Controllers\TopController;
 use App\Models\Page;
 use Illuminate\Support\Facades\Route;
 use Neobit\Core\Http\Controllers\CodeTableController;
+use Neobit\Core\Http\Controllers\IpBlockController;
 
 // 静的なページを表示する場合
 //Route::view('/', 'welcome');
@@ -518,6 +519,13 @@ Route::prefix('admin')->name('admin.')->middleware('admin.ip')->group(function (
             // 名前は「頭.index」「頭.update」の組にする。コントローラーが組のもう一方を名前から作る
             Route::get('/codes', [CodeTableController::class, 'index'])->name('codes.index');
             Route::patch('/codes', [CodeTableController::class, 'update'])->name('codes.update');
+
+            // IPブロック管理（アクセスを止めるIPアドレスの一覧と登録。フレームワークの画面）。
+            // 名前は「頭.index」「頭.store」「頭.update」「頭.destroy」の組にする。コントローラーが組のほかの名前を作る
+            Route::get('/ip-blocks', [IpBlockController::class, 'index'])->name('ip-blocks.index');
+            Route::post('/ip-blocks', [IpBlockController::class, 'store'])->name('ip-blocks.store');
+            Route::patch('/ip-blocks/{ipBlock}', [IpBlockController::class, 'update'])->name('ip-blocks.update');
+            Route::delete('/ip-blocks/{ipBlock}', [IpBlockController::class, 'destroy'])->name('ip-blocks.destroy');
 
             // 一斉メールの文面の管理
             Route::get('/bulk-mail-templates', [AdminBulkMailTemplateController::class, 'index'])->name('bulk-mail-templates.index');

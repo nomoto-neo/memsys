@@ -114,6 +114,17 @@ final class OperationLogReport
             $notable[] = '・'.$label($row).' が、管理画面の回数の制限に達しています';
         }
 
+        // IPブロック管理が自動で止めたIPアドレス。自動のものは、操作した人がいない
+        $autoBlocks = $ofDay()
+            ->where('action', OperationLogAction::IpBlock->value)
+            ->whereNull('operator_type')
+            ->orderBy('id')
+            ->get();
+        foreach ($autoBlocks as $log) {
+            $notable[] = '・'.($log->detail['ip'] ?? '').' を、存在しないURLへのアクセスが多いので、自動でブロックしました'
+                .'（'.($log->detail['until'] ?? '').'まで）';
+        }
+
         // ---- 操作の多い人。全体の件数の後ろに、見たり持ち出したりした件数を0件のものを除いて添える ----
         $operatorLines = [];
         foreach ($topOperators as $row) {
