@@ -5,7 +5,6 @@ namespace Neobit\Core\Upload;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 
 /**
  * アップロードしたファイルの保存先の規則と、そのURLの組み立て。保存する場所と表示するURLが
@@ -13,18 +12,8 @@ use Illuminate\Support\Str;
  * モデルのURLのアクセサ、画面のupload_preview_url()。
  *
  * ■ 保存先の規則
- * 「モデルのクラス名 / idの下3桁を除いた部分 / 前ゼロ付き6桁のid / ファイル名」。
- *
- *   ニュース id=12       → news/000/000012/xxxx.jpg
- *   ニュース id=1234567  → news/1234/1234567/xxxx.jpg
- *
- * - idを6桁にそろえるのは、ディレクトリを並べたときに番号の順になるようにするため
- * - 下3桁を除いたディレクトリを挟むのは、1つのディレクトリに入るのを1000件までにするため。
- *   idが7桁を超えてもこの部分が伸びるだけで、1000件ずつにまとまる
- * - フィールドごとのディレクトリは作らず、1件分のファイルは1つのディレクトリに置く。
- *   ファイル名はランダムなので重ならず、レコードを消すときはディレクトリごと消せる
- * - クラス名を含めるので、会員とニュースで同じidがあっても保存先は分かれる
- * - idは整数が前提。文字列のidには対応しない
+ * 「規則が決めたディレクトリ / ファイル名」。ディレクトリの規則は、config('upload.directory_rule')の
+ * クラスが決める（UploadDirectoryRule）。既定はDefaultUploadDirectoryで、例：news/000/000012/xxxx.jpg
  *
  * ■ ログインした人だけが見られる非公開のファイル
  * URLを知っているだけで見られては困るファイルは、持ち主のモデルにそのフィールドを並べる。
@@ -94,19 +83,28 @@ final class UploadFilePath
     /**
      * 保存先のディレクトリを組み立てる。例：news/000/000012
      * $ownerClassはファイルを持っているモデルのクラス名で、$ownerKeyはそのid。
+     * 組み立てるのはconfig('upload.directory_rule')の規則のクラスで、ここは呼んで確かめるだけ。
      *
      * モデルではなくクラス名とidを受け取るのは、NewsAttachmentのように親のidは手元にあるが
      * 親のモデルは読み込んでいない場面でも、余計なSQLを出さずに使えるようにするため。
      */
     public static function directory(string $ownerClass, int|string $ownerKey): string
     {
-        // 前ゼロ付き6桁。sprintfの%06dは最低6桁という意味で、6桁を超えるidは切り詰めずにそのままの桁数になる
-        $padded = sprintf('%06d', (int) $ownerKey);
+        // 規則のクラスがUploadDirectoryRuleを実装していなければ、設定の誤り
+        $rule = config('upload.directory_rule', DefaultUploadDirectory::class);
+        if (! is_string($rule) || ! is_subclass_of($rule, UploadDirectoryRule::class)) {
+            throw new \LogicException("config('upload.directory_rule')には、".UploadDirectoryRule::class.'を実装したクラスを書いてください: '.json_encode($rule, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+        }
 
-        // 下3桁を除いた部分。6桁なら上の3桁
-        $group = substr($padded, 0, -3);
+        $directory = $rule::directory($ownerClass, $ownerKey);
 
-        return Str::snake(class_basename($ownerClass)).'/'.$group.'/'.$padded;
+        // ディスクの外や、ディスクの直下を指す保存先は認めない。ディレクトリごと消すときに、ほかのファイルまで消えるため
+        if ($directory === '' || str_starts_with($directory, '/') || str_ends_with($directory, '/')
+            || in_array('..', explode('/', $directory), true)) {
+            throw new \LogicException("保存先の規則（{$rule}）が、使えないディレクトリを返しました: {$directory}");
+        }
+
+        return $directory;
     }
 
     /**

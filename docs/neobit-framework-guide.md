@@ -741,7 +741,7 @@ private function prepareInput(array $validated): array
 - **単数のフィールド**（`list_image`）：テーブルに `list_image`（保存ファイル名）と `list_image_origin`（元のファイル名）のカラムを作り、モデルの `$fillable` に入れます。
 - **複数のフィールド**（`attach.*`）：子テーブル（`filename`・`original_name`（NULL可）・親の id）と、フィールドと同じ名前の HasMany リレーション（`News::attach()`）を用意します。
 - 許可する拡張子・大きさの上限は、サイト全体の方針として `config/upload.php` で決めます。コーナーごとには変えません。画像の種類を変えたら、エディタでファイルを選ぶときの絞り込み（`wysiwyg_suneditor.js`・`wysiwyg_summernote.js` の `ACCEPT_IMAGE_TYPES`）も合わせます。CSV の取り込みの大きさの上限（`csv_max_kb`）も、ここにあります。
-- **保存先**：`UploadFilePath` の規則で、モデルのクラス名と id から決まります（例：`news/000/000012/xxxx.jpg`）。1件分のファイルはフィールドに関係なく1つのディレクトリに入ります。表示の URL は `UploadFilePath::url(クラス, id, フィールド, ファイル名)` で作り、モデルのアクセサにしておきます（例：`News::list_image_url`、`NewsAttachment::url`）。
+- **保存先**：モデルのクラス名と id から、保存先の規則が決めます（既定の例：`news/000/000012/xxxx.jpg`。規則の差し替えは下の「保存先の規則を変えるとき」）。1件分のファイルはフィールドに関係なく1つのディレクトリに入ります。表示の URL は `UploadFilePath::url(クラス, id, フィールド, ファイル名)` で作り、モデルのアクセサにしておきます（例：`News::list_image_url`、`NewsAttachment::url`）。
 
 ### 画面
 
@@ -856,6 +856,30 @@ public function viewFiles(Member|Staff|null $user, News $news, string $field): b
 - `UploadFilePath::url(クラス, id, フィールド, ファイル名)`・`upload_preview_url()`・モデルのアクセサは、そのまま非公開の URL を返します。PDF に埋め込む・メールに添付するときなど、サーバー上のパスが要るときは `UploadFilePath::path(クラス, id, フィールド, ファイル名)` を使います（例：`Member::photo_path`、`ContactController` の通知メール）。
 - 退会などでレコードを消すときは、FormFlow の `deleteData()` か、`deleteAllUploads($record)` をトランザクションの中で呼びます（実例：`MypageController::destroy()`）。公開・非公開の両方のディレクトリが消えます。
 - 運用を始めた後にフィールドを公開から非公開へ（または逆へ）変えるときは、すでにあるファイルをディスクの間で移すマイグレーションを書きます（実例：`move_inquiry_attach_files_to_private_disk`・`move_news_files_to_private_disk`。WYSIWYG 欄の本文の `<img>` の URL も書き換えます）。
+
+### 保存先の規則を変えるとき
+
+保存先のディレクトリは、`config/upload.php` の `directory_rule` に書いたクラスが決めます。既定は `DefaultUploadDirectory`（`news/000/000012`）です。プロジェクトで変えたいときは、`UploadDirectoryRule` を実装したクラスを書き、設定にその名前を書きます。メソッドの名前は `directory()` に決まっています。
+
+```php
+// app/Services/UploadDirectory.php：id をそのまま1階層にする例（news/12）
+final class UploadDirectory implements UploadDirectoryRule
+{
+    public static function directory(string $ownerClass, int|string $ownerKey): string
+    {
+        return Str::snake(class_basename($ownerClass)).'/'.(int) $ownerKey;
+    }
+}
+
+// config/upload.php
+'directory_rule' => App\Services\UploadDirectory::class,
+```
+
+- 受け取るのは、モデルのクラス名と id だけです。親の id だけが手元にある場面でも、レコードを読まずに使えるようにするためです。そのため、登録した日のようなレコードの中身は使えません。
+- 1件ごとに専用のディレクトリにします。レコードを消すとき、フレームワークはディレクトリごと消すので、ほかの行のファイルが同じ所や下にあると、一緒に消えてしまいます。
+- モデルごとに分けます。会員とニュースで同じ id があっても、ぶつからないようにするためです。
+- `..` や先頭・末尾の `/` を含む値を返すと、`UploadFilePath` が例外にします。
+- 運用を始めた後に変えると、すでにあるファイルの場所とずれます。変えるときは、ファイルを移すマイグレーションを書きます。
 
 ### 一時ファイル（tmp）
 
