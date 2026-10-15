@@ -7,10 +7,11 @@ use Neobit\Core\Enums\CodeTableEnum;
 /**
  * 操作ログの「操作した人」と「対象」の種類（operation_logs.operator_type・target_type）。
  * 値は、AppServiceProviderのRelation::enforceMorphMap()に書いたモデルの名前と同じにする。
- * 画面ではコード表code_table('operation_log_subject')として、種類の名前を出すのに使う。
+ * config('neobit.operation_log_models')に書くと、フレームワークがコード表code_table('operation_log_model')にして、
+ * 画面やメールで種類の名前を出すのに使う。
  * 操作ログに残すモデルを増やしたら、enforceMorphMap()とここの両方に足す。
  */
-enum OperationLogSubject: string implements CodeTableEnum
+enum AppOperationLogModel: string implements CodeTableEnum
 {
     case Staff = 'staff';
     case Member = 'member';

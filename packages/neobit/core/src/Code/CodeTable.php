@@ -71,10 +71,12 @@ class CodeTable
     /**
      * フレームワークが自分で持つ、メソッドのコード表。コード名 => [クラス, 静的メソッドの名前]。
      * operation_log_actionは、フレームワークの操作とサイトの操作を合わせたもの
-     * （config('neobit.operation_log_actions')の列挙型）。
+     * （config('neobit.operation_log_actions')の列挙型）。operation_log_modelは、操作ログに出てくる
+     * モデルの種類の名前（config('neobit.operation_log_models')の列挙型）。
      */
     private const CORE_METHODS = [
         'operation_log_action' => [OperationLog::class, 'actionOptions'],
+        'operation_log_model' => [OperationLog::class, 'modelOptions'],
     ];
 
     // コード名ごとの読み込み済みのコード表

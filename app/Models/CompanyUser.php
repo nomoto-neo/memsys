@@ -14,7 +14,7 @@ use Neobit\Core\Auth\IsLoginAccount;
 use Neobit\Core\Auth\LoginAccount;
 use Neobit\Core\Enums\LoginIdType;
 use Neobit\Core\Enums\TwoFactorMethod;
-use Neobit\Core\Models\OperationLogSubjectModel;
+use Neobit\Core\Models\OperationLogNamedModel;
 
 /**
  * 企業会員の担当者。企業（Company）に属し、ログインする（companyガード）。
@@ -23,7 +23,7 @@ use Neobit\Core\Models\OperationLogSubjectModel;
  * 担当者に、権限の区別は無い。同じ企業の担当者は、だれでも同じことができる。
  * 設計は docs/member-types-spec.md。
  */
-class CompanyUser extends Authenticatable implements LoginAccount, OperationLogSubjectModel, PasskeyUser
+class CompanyUser extends Authenticatable implements LoginAccount, OperationLogNamedModel, PasskeyUser
 {
     // パスキーを持てるようにする（Neobit\Core\Auth\PasskeyLogin・PasskeyManagement参照）
     use HasPasskeys;

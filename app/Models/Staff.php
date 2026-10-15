@@ -14,7 +14,7 @@ use Neobit\Core\Auth\IsLoginAccount;
 use Neobit\Core\Auth\LoginAccount;
 use Neobit\Core\Enums\LoginIdType;
 use Neobit\Core\Enums\TwoFactorMethod;
-use Neobit\Core\Models\OperationLogSubjectModel;
+use Neobit\Core\Models\OperationLogNamedModel;
 
 /**
  * 管理画面のスタッフ。会員とは別のテーブル・別のガード（admin）でログインする。
@@ -30,7 +30,7 @@ use Neobit\Core\Models\OperationLogSubjectModel;
  * 会員と同じ共通の型（Neobit\Core\Auth\LoginAccount）を実装している。2段階認証などのログインまわりの
  * 共通部品は、スタッフと会員を同じ形で扱う。
  */
-class Staff extends Authenticatable implements LoginAccount, OperationLogSubjectModel, PasskeyUser
+class Staff extends Authenticatable implements LoginAccount, OperationLogNamedModel, PasskeyUser
 {
     use HasFactory;
     use SoftDeletes;

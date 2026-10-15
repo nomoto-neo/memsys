@@ -42,4 +42,24 @@ class CsvImportLog extends Model implements OperationLogRelatedRecord
             .'・更新 '.number_format($this->updated_count)
             .'・変更なし '.number_format($this->unchanged_count).'）';
     }
+
+    /** 操作ログの内訳 */
+    public function operationLogDetails(): array
+    {
+        return [
+            '名前' => $this->name,
+            'ファイル名' => $this->filename,
+            '文字コード' => $this->encoding,
+            '行数' => number_format($this->row_count).'行',
+            '追加' => number_format($this->inserted_count).'件',
+            '更新' => number_format($this->updated_count).'件',
+            '変更なし' => number_format($this->unchanged_count).'件',
+        ];
+    }
+
+    /** 詳しい画面は無い */
+    public function operationLogUrl(): ?string
+    {
+        return null;
+    }
 }

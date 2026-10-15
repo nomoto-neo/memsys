@@ -57,20 +57,38 @@ class OperationLog extends Model
     }
 
     /**
+     * コード表 operation_log_model（Neobit\Core\Code\CodeTableが自分で持つ）。モデルの種類の名前 => 画面の名前。
+     * 操作した人と対象の種類（operator_type・target_type）を、画面やメールで名前にするのに使う。
+     * config('neobit.operation_log_models')の列挙型を書いた順に合わせる。値はenforceMorphMap()の名前と同じにする。
+     * 書いていない種類は一覧に無いので、code_label()が種類の名前のまま出す。
+     */
+    public static function modelOptions(): array
+    {
+        $options = [];
+        foreach (config('neobit.operation_log_models', []) as $class) {
+            foreach ($class::cases() as $case) {
+                $options[$case->value] = $case->label();
+            }
+        }
+
+        return $options;
+    }
+
+    /**
      * 画面に出すための、今の名前。[種類 => [id => 名前]]で返す。
      * 名前は、操作した人と対象のモデルが、operationLogNames()で返す
-     * （OperationLogSubjectModelを実装したもの）。
+     * （OperationLogNamedModelを実装したもの）。
      * 操作ログには名前を持たせていないので、渡された行の操作した人と対象を、種類ごとに
      * まとめて1回ずつで読む。退会した会員のように、もう行が無いものは出ない。
      *
      * @param  iterable<object>  $logs  操作ログの行。operator_type・operator_idを持つ集計の行でもよい
      */
-    public static function subjectNames(iterable $logs): array
+    public static function modelNames(iterable $logs): array
     {
         // 名前を引ける種類（モーフの別名）と、そのモデルのクラス
         $readers = [];
         foreach (Relation::morphMap() as $type => $class) {
-            if (is_subclass_of($class, OperationLogSubjectModel::class)) {
+            if (is_subclass_of($class, OperationLogNamedModel::class)) {
                 $readers[$type] = $class;
             }
         }
@@ -96,7 +114,7 @@ class OperationLog extends Model
 
     /**
      * 操作した人を「スタッフID:3　氏名」の形にした文字。誰もログインしていない操作は「訪問者」。
-     * $namesはsubjectNames()の結果。メールのように、Bladeで組み立てないところで使う
+     * $namesはmodelNames()の結果。メールのように、Bladeで組み立てないところで使う
      */
     public static function operatorLabel(?string $type, ?int $id, array $names): string
     {
@@ -107,7 +125,7 @@ class OperationLog extends Model
         // 退会した会員のように、もう行が無い人は氏名が出ない
         $name = $names[$type][$id] ?? '';
 
-        return code_label('operation_log_subject', $type, $type).'ID:'.$id.($name !== '' ? '　'.$name : '');
+        return code_label('operation_log_model', $type, $type).'ID:'.$id.($name !== '' ? '　'.$name : '');
     }
 
     /**

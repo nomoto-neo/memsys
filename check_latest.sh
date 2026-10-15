@@ -139,6 +139,13 @@ done
 
 # フレームワークの中で消したファイル
 gone packages/neobit/core/src/Security/AllowedIps.php
+gone packages/neobit/core/src/Models/OperationLogSubjectModel.php
+
+# フレームワークへ移した操作ログの画面と、名前を変えた列挙型
+gone app/Http/Controllers/Admin/OperationLogController.php
+gone app/Enums/OperationLogSubject.php
+gone app/Enums/OperationLogModel.php
+gone_dir resources/views/admin/operation_logs
 
 echo "--  消したファイルの確認を終えました（NG が無ければ、残っていません）"
 
@@ -153,6 +160,8 @@ has   packages/neobit/core/src/Models/OperationLog.php                  'public 
 has   packages/neobit/core/src/Http/Controllers/CodeTableController.php "config('neobit.code_table_db'"
 has   packages/neobit/core/src/Security/IpBlocker.php                   'final class IpBlocker'
 has   packages/neobit/core/src/Security/AccessRestriction.php           'final class AccessRestriction'
+has   packages/neobit/core/src/Http/Controllers/OperationLogController.php 'private function indexRoute()'
+has   packages/neobit/core/src/Models/OperationLogNamedModel.php        'interface OperationLogNamedModel'
 has   packages/neobit/core/database/migrations/2026_10_16_000000_create_settings_table.php "Schema::create('settings'"
 has   packages/neobit/core/database/migrations/2026_10_15_000000_create_ip_blocks_table.php "Schema::create('ip_blocks'"
 has   packages/neobit/core/config/neobit.php                            "'code_table_enum_namespaces'"
@@ -168,6 +177,8 @@ has   vite.config.js                                                    'ip_bloc
 has   bootstrap/app.php                                                 'RejectBlockedIp::class'
 has   routes/web.php                                                    'IpBlockController'
 has   routes/web.php                                                    'AccessRestrictionController'
+has   routes/web.php                                                    'use Neobit\Core\Http\Controllers\OperationLogController;'
+has   config/neobit.php                                                 "'operation_log_models' => ["
 has   resources/views/layouts/admin.blade.php                           'vendor/neobit/core/resources/css/global.css'
 has   resources/views/layouts/app.blade.php                             'vendor/neobit/core/resources/css/global.css'
 has   resources/views/layouts/company.blade.php                         'vendor/neobit/core/resources/css/global.css'

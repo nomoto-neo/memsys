@@ -1,14 +1,14 @@
 <?php
 
-namespace App\Http\Controllers\Admin;
+namespace Neobit\Core\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Neobit\Core\Crud\SearchableList;
@@ -21,10 +21,14 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * 操作ログの一覧と検索。Neobit\Core\Operations\OperationRecorderが書いた記録を見るだけの画面で、
- * 登録・編集・削除は無い。記録を取っていることを全員に見せる必要は無いので、
- * 管理者だけが開ける（routes/web.phpのacl.managerの内側）。
+ * 登録・編集・削除は無い。記録を取っていることを全員に見せる必要は無いので、管理者だけが開けるようにする。
+ *
+ * ルートはアプリが書く。機能を使うかどうかは、案件ごとに決めるため。管理者だけが入れるグループの中に、
+ * 「頭.index」（GET）・「頭.search」（POST。検索条件の保存）・「頭.csv」（GET）・「頭.day」（POST）の組で
+ * 名前を付ける。頭はアプリが決めてよい。このコントローラーは、呼ばれたルートの名前から、組になるほかの
+ * 名前を作る。日々の報告のメールに画面のURLを載せるなら、config('neobit.operation_log_route')に「頭.index」を書く。
  */
-class OperationLogController extends Controller
+class OperationLogController
 {
     // ---- 共通処理（トレイト） ----
 
@@ -36,10 +40,12 @@ class OperationLogController extends Controller
     // クラス側は csvColumns() と csvCustomColumn() を用意する。
     use CsvDownload;
 
-    // ---- 一覧・検索（SearchableList）の設定 ----
+    // ---- ルート ----
 
-    /** 一覧画面のルート名。セッションキー名の識別子としても使用。 */
-    private const INDEX_ROUTE = 'admin.operation-logs.index';
+    /** 一覧・検索条件の保存・CSV・日付で絞るルートの名前の末尾 */
+    private const ACTIONS = ['index', 'search', 'csv', 'day'];
+
+    // ---- 一覧・検索（SearchableList）の設定 ----
 
     /** フリーワード検索は使わない。 */
     private const FREE_WORD_COLUMNS = [];
@@ -87,18 +93,19 @@ class OperationLogController extends Controller
 
         $records = $result['records'];
 
-        return view('admin.operation_logs.index', [
+        return view('neobit::admin.operation_logs.index', [
             // 一覧の上に出す集計。1ページ目にだけ出す。2ページ目から先は一覧を読み進めているので出さない
             'stats' => $records->currentPage() === 1 ? $this->stats($result['filters']) : null,
             'records' => $records,
             // 操作ログには氏名を持たせていないので、このページに出てくるスタッフと会員の、今の氏名を引く
-            'names' => OperationLog::subjectNames($records),
+            'names' => OperationLog::modelNames($records),
             // CSVと一斉メールの件数と内訳は別の記録が持っているので、このページの分を読む
             'related' => OperationLog::relatedRecords($records),
             'operatorOptions' => $this->operatorOptions(),
             'filters' => $result['filters'],
             'orderOptions' => $result['orderOptions'],
             'selectedOrder' => $result['selectedOrder'],
+            'routes' => $this->routeNames(),
         ]);
     }
 
@@ -138,7 +145,7 @@ class OperationLogController extends Controller
             'dailyPeriod' => $dailyFrom->format('n/j').' 〜 '.$dailyFrom->copy()->addDays(self::STATS_DAYS - 1)->format('n/j'),
             'selectedDay' => $selectedDay?->format('Y-m-d'),
             'topOperators' => $topOperators,
-            'topNames' => OperationLog::subjectNames($topOperators),
+            'topNames' => OperationLog::modelNames($topOperators),
         ];
     }
 
@@ -200,7 +207,7 @@ class OperationLogController extends Controller
     {
         $options = [];
         foreach (OperationLog::operatorTypes() as $type) {
-            $options[$type] = code_label('operation_log_subject', $type, $type);
+            $options[$type] = code_label('operation_log_model', $type, $type);
         }
 
         return $options + [self::GUEST => '訪問者'];
@@ -217,7 +224,7 @@ class OperationLogController extends Controller
             'operator_type' => ['nullable', Rule::in(array_keys($this->operatorOptions()))],
             'operator_id' => ['nullable', 'integer'],
             'action' => ['nullable', Rule::in(code_keys('operation_log_action'))],
-            'target_type' => ['nullable', Rule::in(code_keys('operation_log_subject'))],
+            'target_type' => ['nullable', Rule::in(code_keys('operation_log_model'))],
             'target_id' => ['nullable', 'integer'],
             'ip' => ['nullable', 'string', 'max:45'],
             // 補足の中の語（JSONの列なのでapplyCustomSearch()で処理）
@@ -291,7 +298,7 @@ class OperationLogController extends Controller
     /** CSVに出す項目。氏名は操作ログに持たせていないので、種類とidで出す */
     private function csvColumns(): array
     {
-        $subjects = code_table('operation_log_subject');
+        $subjects = code_table('operation_log_model');
 
         return [
             '日時' => 'created_at|date:Y/m/d H:i:s',
@@ -313,7 +320,7 @@ class OperationLogController extends Controller
     {
         return match ($key) {
             'action' => $log->action->label(),
-            'target' => $log->csvName() ?? code_label('operation_log_subject', $log->target_type),
+            'target' => $log->csvName() ?? code_label('operation_log_model', $log->target_type),
             'changed_fields' => implode('、', $log->changed_fields ?? []),
             // CSVと一斉メールは、件数も入れる。内訳は入れない
             'detail' => trim($log->detailText().' '.$log->countSummary($this->relatedRecordOf($log))),
@@ -326,5 +333,24 @@ class OperationLogController extends Controller
         [$class, $id] = $log->relatedKey();
 
         return $id !== null ? $class::find($id) : null;
+    }
+
+    // ---- ルート ----
+
+    /**
+     * 一覧画面のルート名（SearchableListが使う）。アプリが付けた名前なので、定数INDEX_ROUTEではなく、
+     * 呼ばれたルートの名前から作る
+     */
+    private function indexRoute(): string
+    {
+        return $this->routeNames()['index'];
+    }
+
+    /** 呼ばれたルートと組になるルートの名前。末尾 => 名前。「頭.index」から「頭.csv」のように、末尾だけを替える */
+    private function routeNames(): array
+    {
+        $prefix = Str::beforeLast((string) request()->route()?->getName(), '.');
+
+        return array_combine(self::ACTIONS, array_map(fn (string $action) => $prefix.'.'.$action, self::ACTIONS));
     }
 }

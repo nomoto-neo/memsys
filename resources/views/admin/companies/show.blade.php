@@ -133,7 +133,7 @@
                     <td>
                         {{-- 種類とidと、今の氏名。もういない人は氏名が出ない --}}
                         @if ($invitation->inviter_type !== null)
-                            {{ code_label('operation_log_subject', $invitation->inviter_type) }}ID:{{ $invitation->inviter_id }}　{{ $invitation->inviter?->name }}
+                            {{ code_label('operation_log_model', $invitation->inviter_type) }}ID:{{ $invitation->inviter_id }}　{{ $invitation->inviter?->name }}
                         @endif
                     </td>
                     <td>{{ $invitation->expires_at->format('Y年n月j日 H:i') }}</td>

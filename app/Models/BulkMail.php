@@ -108,4 +108,25 @@ class BulkMail extends Model implements OperationLogRelatedRecord
 
         return '宛先 '.number_format($this->recipient_count).'件（'.$progress.'）';
     }
+
+    /** 操作ログの内訳。送信済みと失敗の件数は、送信が終わってから入る */
+    public function operationLogDetails(): array
+    {
+        $finished = $this->finished_at !== null;
+
+        return [
+            '件名' => $this->subject,
+            '宛先のCSV' => $this->csv_filename,
+            '宛先' => number_format($this->recipient_count).'件',
+            '送信済み' => $finished ? number_format($this->sent_count).'件' : '－',
+            '失敗' => $finished ? number_format($this->failed_count).'件' : '－',
+            '状態' => code_label('bulk_mail_status', $this->status).($finished ? '（'.$this->finished_at->format('Y-m-d H:i').'）' : ''),
+        ];
+    }
+
+    /** 内訳の窓から開ける、送信の状況の画面 */
+    public function operationLogUrl(): ?string
+    {
+        return route('admin.bulk-mails.show', $this);
+    }
 }

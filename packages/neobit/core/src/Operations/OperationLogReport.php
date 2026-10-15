@@ -92,7 +92,7 @@ final class OperationLogReport
         $topOperators = OperationLogStats::topOperators($query, $from, $to);
 
         // 氏名は操作ログに持たせていないので、ここまでに出てきた人の今の氏名をまとめて引く
-        $names = OperationLog::subjectNames(
+        $names = OperationLog::modelNames(
             $viewsByHour->concat($csvByOperator)->concat($throttled)->concat($topOperators)
         );
         $label = fn (object $row): string => OperationLog::operatorLabel($row->operator_type, $row->operator_id, $names);

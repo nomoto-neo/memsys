@@ -8,7 +8,6 @@ use App\Http\Controllers\Admin\CompanyController as AdminCompanyController;
 use App\Http\Controllers\Admin\CompanyUserController as AdminCompanyUserController;
 use App\Http\Controllers\Admin\MemberController as AdminMemberController;
 use App\Http\Controllers\Admin\NewsController as AdminNewsController;
-use App\Http\Controllers\Admin\OperationLogController as AdminOperationLogController;
 use App\Http\Controllers\Admin\PageController as AdminPageController;
 use App\Http\Controllers\Admin\StaffController as AdminStaffController;
 use App\Http\Controllers\AuthPasswordController;
@@ -36,6 +35,7 @@ use Illuminate\Support\Facades\Route;
 use Neobit\Core\Http\Controllers\AccessRestrictionController;
 use Neobit\Core\Http\Controllers\CodeTableController;
 use Neobit\Core\Http\Controllers\IpBlockController;
+use Neobit\Core\Http\Controllers\OperationLogController;
 
 // 静的なページを表示する場合
 //Route::view('/', 'welcome');
@@ -551,12 +551,13 @@ Route::prefix('admin')->name('admin.')->middleware('admin.ip')->group(function (
             Route::post('/bulk-mails', [AdminBulkMailController::class, 'store'])->name('bulk-mails.store');
             Route::get('/bulk-mails/{bulkMail}', [AdminBulkMailController::class, 'show'])->name('bulk-mails.show');
 
-            // 操作ログの一覧・検索（Neobit\Core\Operations\OperationRecorderが書いた記録を見るだけ）
-            Route::get('/operation-logs', [AdminOperationLogController::class, 'index'])->name('operation-logs.index');
-            Route::post('/operation-logs', [AdminOperationLogController::class, 'storeSearchCondition'])->name('operation-logs.search');
-            Route::get('/operation-logs/csv', [AdminOperationLogController::class, 'csv'])->name('operation-logs.csv');
+            // 操作ログの一覧・検索（Neobit\Core\Operations\OperationRecorderが書いた記録を見るだけ。フレームワークの画面）。
+            // 名前は「頭.index」「頭.search」「頭.csv」「頭.day」の組にする。コントローラーが組のほかの名前を作る
+            Route::get('/operation-logs', [OperationLogController::class, 'index'])->name('operation-logs.index');
+            Route::post('/operation-logs', [OperationLogController::class, 'storeSearchCondition'])->name('operation-logs.search');
+            Route::get('/operation-logs/csv', [OperationLogController::class, 'csv'])->name('operation-logs.csv');
             // 1日ごとの棒を押したとき。今の検索条件のまま、その1日に絞る
-            Route::post('/operation-logs/day', [AdminOperationLogController::class, 'searchDay'])->name('operation-logs.day');
+            Route::post('/operation-logs/day', [OperationLogController::class, 'searchDay'])->name('operation-logs.day');
         });
 
         // ニュースカテゴリー管理

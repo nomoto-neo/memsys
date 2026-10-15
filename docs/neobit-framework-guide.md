@@ -65,7 +65,7 @@
 | 管理画面：カテゴリー（`Admin\CategoryController`） | 確認画面なしの登録・編集、並び替え、ページ分けしない一覧 |
 | 管理画面：項目見出し一覧（フレームワークの `CodeTableController`） | DBで管理する区分表の編集（複数行をまとめて保存、行の追加・削除・並び替え） |
 | 管理画面：一斉メール（`Admin\BulkMailController`・`Admin\BulkMailTemplateController`・`app/Jobs/SendBulkMail.php`・`app/Services/MailUnsubscribe.php`） | キュー（宛先の数だけのジョブを1つのバッチにして積む、送る速さの制限、進み具合の表示）、宛先の CSV の読み込みと検証（`CsvReader`）、氏名の差し込み、添付ファイル、配信停止（21章） |
-| 管理画面：操作ログ（`Admin\OperationLogController`） | 登録・編集・削除の無い、見るだけの一覧。検索（日付の範囲・補足の中の語など、列と直接比べられない条件）、件数の棒グラフと、棒を押しての絞り込み、CSVダウンロード（22章） |
+| 管理画面：操作ログ（フレームワークの `OperationLogController`） | 登録・編集・削除の無い、見るだけの一覧。検索（日付の範囲・補足の中の語など、列と直接比べられない条件）、件数の棒グラフと、棒を押しての絞り込み、CSVダウンロード（22章） |
 
 ### 改版について
 
@@ -1959,7 +1959,7 @@ Mail::send(new TemplatedMail('bulk_mail', [
 
 <p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
 
-**ファイル**：`packages/neobit/core/src/Operations/OperationRecorder.php`（冒頭のコメント）・`packages/neobit/core/src/Models/OperationLog.php`・`packages/neobit/core/src/Enums/OperationLogAction.php`・`packages/neobit/core/src/Enums/OperationLogSubject.php`　**実例**：`Admin\OperationLogController`（一覧）・`Admin\MemberController::show()`（詳細の閲覧）
+**ファイル**：`packages/neobit/core/src/Operations/OperationRecorder.php`（冒頭のコメント）・`packages/neobit/core/src/Models/OperationLog.php`・`packages/neobit/core/src/Enums/OperationLogAction.php`・`packages/neobit/core/src/Http/Controllers/OperationLogController.php`（一覧）・`app/Enums/AppOperationLogModel.php`　**実例**：`Admin\MemberController::show()`（詳細の閲覧）
 
 誰が・いつ・どこから・何に・何をしたかを、`operation_logs` に1行ずつ残します。情報が漏れたときや、「変えていないのに変わっている」という問い合わせがあったときに、後からたどれるようにするためです。
 
@@ -1975,7 +1975,7 @@ Mail::send(new TemplatedMail('bulk_mail', [
 | `ip`・`device` | IP アドレスと、端末の種類（`UserAgentLabel`。例：iPhone・Safari） |
 
 - **氏名などの個人情報と、変更の前後の値は残しません**：操作ログが個人情報の写しにならないようにするためです。前の値までスタッフが知っていることは、会員の不信感にもつながります。画面では、id から今の氏名を引いて出します。
-- **種類の名前**は、`AppServiceProvider` の `Relation::enforceMorphMap()` に書いた名前です。操作ログに残すモデルを増やしたら、`enforceMorphMap()` と `OperationLogSubject` の両方に足します。
+- **種類の名前**は、`AppServiceProvider` の `Relation::enforceMorphMap()` に書いた名前です。画面やメールでは、`config/neobit.php` の `operation_log_models` に書いた列挙型（見本のサイトでは `App\Enums\AppOperationLogModel`）から、「会員」のような名前にします。操作の種類（`operation_log_actions`）と同じく、フレームワークがコード表 `operation_log_model` を作ります。列挙型に無い種類は、種類の名前のまま出ます。操作ログに残すモデルを増やしたら、`enforceMorphMap()` と列挙型の両方に足します。
 
 ### 記録するところ
 
@@ -2062,15 +2062,23 @@ OperationRecorder::record(OperationLogAction::Update, $company, ['status'], ['st
 - **一覧と検索**（`/admin/operation-logs`）：日付の範囲・操作・操作した人・対象・IP アドレス・補足で絞れます。補足は、中の語を部分一致で探します。空白で区切ると、全部の語を含む行に絞ります。CSV でも出せます。見るだけの画面で、登録・編集・削除はありません。
 - **どちらの画面も、管理者だけが開けます**：記録を取っていることを、スタッフの全員に見せる必要は無いためです。管理画面のトップのリンクも、管理者にだけ出ます。
 - **会員ごとの操作ログ**（`/admin/members/{id}/operation-logs`。会員の詳細画面の「操作ログ」のボタン）：その会員を対象にした操作と、その会員が行った操作だけを出します。本人が変えたのか、スタッフが変えたのか、誰が詳細を開いたのかが、時刻の順に並びます。問い合わせに答えるのに使います。こちらも管理者だけが開け、ボタンも管理者にだけ出ます。
-- 表は、2つの画面で同じ部分ビュー（`admin/operation_logs/_table.blade.php`）を使います。
+- **一覧の画面はフレームワークにあります**（`OperationLogController`・`neobit::admin.operation_logs.index`）。ルートは案件が書きます。管理者だけのグループの中に、「頭.index」（GET）・「頭.search」（POST）・「頭.csv」（GET）・「頭.day」（POST）の組で名前を付けます。日々の報告のメールに画面の URL を載せるなら、`config/neobit.php` の `operation_log_route` に「頭.index」を書きます。会員ごとの操作ログの画面は案件の画面で、表は同じ部分ビュー（`neobit::admin.operation_logs._table`）を使います。
+
+    ```php
+    // routes/web.php（管理者だけのグループの中）
+    Route::get('/operation-logs', [OperationLogController::class, 'index'])->name('operation-logs.index');
+    Route::post('/operation-logs', [OperationLogController::class, 'storeSearchCondition'])->name('operation-logs.search');
+    Route::get('/operation-logs/csv', [OperationLogController::class, 'csv'])->name('operation-logs.csv');
+    Route::post('/operation-logs/day', [OperationLogController::class, 'searchDay'])->name('operation-logs.day');
+    ```
 - **CSV のダウンロードと取り込みは、対象の欄に CSV の名前を出します**（会員一覧など）。何に対する操作かを表すためです。
 - **CSV と一斉メールの送信は、補足の欄に件数を出します**：`23件`、`120行（追加 0・更新 15・変更なし 105）`、`宛先 300件（送信済み 298・失敗 2）` の形です。件数は操作ログには持たせず、CSV の記録（`csv_download_logs`・`csv_import_logs`）と送信の記録（`t_bulk_mails`）から、その都度読みます（`OperationLog::relatedRecords()`）。
-- **件数を押すと、内訳のモーダルが開きます**：CSV のダウンロードなら検索条件、取り込みならファイル名と件数の内訳、一斉メールなら件名と送信の結果です。検索条件は、記録してある形（検索の項目の名前と値）のまま出します。
+- **件数を押すと、内訳のモーダルが開きます**：CSV のダウンロードなら検索条件、取り込みならファイル名と件数の内訳、一斉メールなら件名と送信の結果です。中身は、記録の側が返します（`OperationLogRelatedRecord` の `operationLogDetails()`。項目の名前 => 値）。詳しい画面があれば、`operationLogUrl()` の URL へのボタンも出します（一斉メールの送信の状況の画面）。画面は記録の種類を見ないので、案件の記録もフレームワークの画面に同じ形で出せます。
 - 操作ログを CSV で出したときも、「補足」の列に同じ件数が入ります。内訳は入りません。
 
 ### 件数の集計（OperationLogStats）
 
-**ファイル**：`packages/neobit/core/src/Operations/OperationLogStats.php`　**実例**：`Admin\OperationLogController::index()`・`resources/views/admin/operation_logs/index.blade.php`
+**ファイル**：`packages/neobit/core/src/Operations/OperationLogStats.php`　**実例**：`OperationLogController::index()`・`neobit::admin.operation_logs.index`
 
 操作ログの一覧の上に、件数の棒グラフと、操作の多い人の表を出します。出すのは1ページ目だけです。2ページ目から先は、一覧を読み進めているので出しません。件数の多い時間帯や、ふだんと違う使われ方に気付けるようにするためです。
 
@@ -2309,7 +2317,7 @@ Route::prefix('company')->name('company.')->group(function () {
 共通部品の中にも、企業会員の名前を書いた行があります。残しておいても動きますが、消すなら次の所です。
 
 - `AppServiceProvider` の `enforceMorphMap()` の `company`・`company_user`
-- `OperationLogSubject` の `Company`・`CompanyUser` と、`OperationLog::subjectNames()` の読み方
+- `AppOperationLogModel` の `Company`・`CompanyUser`
 - `OperationLogAction` の `InvitationSend`・`InvitationCancel`
 
 ### 個人会員をログインID でログインさせるサイト
@@ -2336,7 +2344,7 @@ Route::prefix('company')->name('company.')->group(function () {
 
 1. モデルに `LoginAccount`・`IsLoginAccount` を書く。種類の名前は、3で `enforceMorphMap()` に書く、モデルの短い名前になる。ガードやルートの頭を、種類の名前と違う名前にするときは、定数 `LOGIN_GUARD`・`LOGIN_ROUTE_PREFIX` を書く。
 2. `config/auth.php` に、種類の名前のガードとプロバイダーを足す。古い方式のパスワードを使うなら、`driver` を `eloquent-legacy` にする。
-3. `AppServiceProvider` の `enforceMorphMap()` と、`OperationLogSubject`（`OPERATORS` にも）、`OperationLog::subjectNames()` に足す。
+3. `AppServiceProvider` の `enforceMorphMap()` と、`AppOperationLogModel` に足す。操作ログに氏名を出すなら、モデルに `OperationLogNamedModel`（`operationLogNames()`）を付ける。
 4. `bootstrap/app.php` の、ログインしていないときの移動先に足す。
 5. その種類だけの文面にしたいメールは、テンプレートを、種類の名前を頭に付けて用意する（`種類の名前_verification_code`・`_password_changed`・`_profile_changed`・`_invitation`）。用意しなければ、頭を付けない名前のテンプレートか、フレームワークの既定が使われる（11章）。
 6. `config/login.php` に、種類の名前のキーを足す。

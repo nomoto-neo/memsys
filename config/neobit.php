@@ -7,6 +7,7 @@
  */
 
 use App\Enums\AppOperationLogAction;
+use App\Enums\AppOperationLogModel;
 use App\Models\Staff;
 use Neobit\Core\Enums\OperationLogAction;
 
@@ -77,6 +78,13 @@ return [
     'operation_log_actions' => [
         OperationLogAction::class,
         AppOperationLogAction::class,
+    ],
+
+    // 操作した人と対象の種類（operation_logs.operator_type・target_type）に、画面の名前を付ける列挙型。
+    // 値はAppServiceProviderのenforceMorphMap()の名前、label()が画面の名前。フレームワークが、ここに書いた順に
+    // 合わせて、コード表operation_log_modelを作る。書いていない種類は、種類の名前のまま出る
+    'operation_log_models' => [
+        AppOperationLogModel::class,
     ],
 
     // 操作ログの画面のルート名。日々の報告のメールに、この画面のURLを載せる。nullなら載せない

@@ -34,4 +34,25 @@ class CsvDownloadLog extends Model implements OperationLogRelatedRecord
     {
         return number_format($this->row_count).'件';
     }
+
+    /** 操作ログの内訳。検索条件は、記録してある形（検索の項目の名前：値）のまま出す */
+    public function operationLogDetails(): array
+    {
+        $conditions = [];
+        foreach ($this->conditions ?? [] as $key => $value) {
+            $conditions[] = $key.'：'.(is_array($value) ? implode(', ', $value) : $value);
+        }
+
+        return [
+            '名前' => $this->name,
+            '件数' => number_format($this->row_count).'件',
+            '検索条件' => $conditions,
+        ];
+    }
+
+    /** 詳しい画面は無い */
+    public function operationLogUrl(): ?string
+    {
+        return null;
+    }
 }

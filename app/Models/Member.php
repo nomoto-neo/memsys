@@ -16,14 +16,14 @@ use Neobit\Core\Auth\IsLoginAccount;
 use Neobit\Core\Auth\LoginAccount;
 use Neobit\Core\Enums\LoginIdType;
 use Neobit\Core\Enums\TwoFactorMethod;
-use Neobit\Core\Models\OperationLogSubjectModel;
+use Neobit\Core\Models\OperationLogNamedModel;
 use Neobit\Core\Upload\UploadFilePath;
 
 /**
  * 個人会員。ログインできるモデルなので、Authenticatableを継承している（webガード）。
  * ログインするモデルの共通の型（Neobit\Core\Auth\LoginAccount）を実装している。
  */
-class Member extends Authenticatable implements LoginAccount, OperationLogSubjectModel, PasskeyUser
+class Member extends Authenticatable implements LoginAccount, OperationLogNamedModel, PasskeyUser
 {
     // ログインするモデルの、決まった中身（種類の名前からルートなどの名前を作る）
     use IsLoginAccount;

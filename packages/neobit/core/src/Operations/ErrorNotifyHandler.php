@@ -174,14 +174,14 @@ final class ErrorNotifyHandler extends AbstractProcessingHandler
 
     /**
      * そのプロバイダーでログインする人の呼び名。操作ログの「操作した人」と同じ名前（スタッフ・会員など）。
-     * プロバイダーのモデルの種類の名前で、コード表operation_log_subjectを引く。無ければ種類の名前のまま
+     * プロバイダーのモデルの種類の名前で、コード表operation_log_modelを引く。無ければ種類の名前のまま
      */
-    private function subjectLabel(?string $provider): string
+    private function operatorLabel(?string $provider): string
     {
         $model = config("auth.providers.{$provider}.model");
         $type = $model !== null ? (new $model())->getMorphClass() : (string) $provider;
 
-        return code_label('operation_log_subject', $type, $type);
+        return code_label('operation_log_model', $type, $type);
     }
 
     /** どこで起きたか。画面ならメソッドとURLとIPとログイン中の人、コマンドならそのコマンド */
@@ -202,7 +202,7 @@ final class ErrorNotifyHandler extends AbstractProcessingHandler
                 $id = auth($guard)->id();
 
                 if ($id !== null) {
-                    $lines[] = $this->subjectLabel($settings['provider'] ?? null).'：'.$id;
+                    $lines[] = $this->operatorLabel($settings['provider'] ?? null).'：'.$id;
                 }
             }
         } catch (Throwable) {

@@ -362,7 +362,7 @@ class MemberController extends Controller
         return view('admin.members.operation_logs', [
             'member' => $member,
             'logs' => $logs,
-            'names' => OperationLog::subjectNames($logs),
+            'names' => OperationLog::modelNames($logs),
             'related' => OperationLog::relatedRecords($logs),
         ]);
     }

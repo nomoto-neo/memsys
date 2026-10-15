@@ -23,6 +23,8 @@ use Illuminate\Validation\Rules\In;
  * メソッド
  * - srchRules()          検索の項目の検証ルール
  * - applyCustomSearch()  列と直接比べられない項目の処理
+ * - indexRoute()         要るときだけ。一覧画面のルート名をINDEX_ROUTEで決められないとき（ルートの名前を
+ *                        案件が付けるフレームワークの画面など）に書く。書けばINDEX_ROUTEは要らない
  *
  * ■ 検索条件の検証
  * 検索条件は、セッションに保存するときと取り出すときの両方でsanitizeFilters()に通す。
@@ -62,16 +64,22 @@ trait SearchableList
      */
     abstract private function applyCustomSearch(Builder $query, string $key, mixed $value): bool;
 
+    /** 一覧画面のルート名。ふつうはINDEX_ROUTEで、コントローラーが同じ名前で書けばそちらが使われる */
+    private function indexRoute(): string
+    {
+        return self::INDEX_ROUTE;
+    }
+
     /** ページ番号を保存するセッションのキー */
     private function pageSessionKey(): string
     {
-        return 'page_session.'.self::INDEX_ROUTE;
+        return 'page_session.'.$this->indexRoute();
     }
 
     /** 検索条件を保存するセッションのキー */
     private function searchSessionKey(): string
     {
-        return 'search_session.'.self::INDEX_ROUTE;
+        return 'search_session.'.$this->indexRoute();
     }
 
     /**
@@ -91,7 +99,7 @@ trait SearchableList
             $request->session()->keep(['status', 'error']);
 
             // 一覧表示 ?page=n へリダイレクト
-            return redirect()->route(self::INDEX_ROUTE, $page ? ['page' => $page] : []);
+            return redirect()->route($this->indexRoute(), $page ? ['page' => $page] : []);
         }
 
         // page= のパラメータが付いていないのは、メニューから入ってきたとき
@@ -309,6 +317,6 @@ trait SearchableList
         session([$this->searchSessionKey() => $this->sanitizeFilters($request->all())]);
 
         // 一覧表示するため ?page=1 へリダイレクト
-        return redirect()->route(self::INDEX_ROUTE, ['page' => 1]);
+        return redirect()->route($this->indexRoute(), ['page' => 1]);
     }
 }

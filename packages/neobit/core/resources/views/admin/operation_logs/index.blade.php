@@ -1,4 +1,8 @@
-@extends('layouts.admin')
+{{--
+    操作ログの一覧と検索（Neobit\Core\Http\Controllers\OperationLogController）。ルートの名前（$routes）は、
+    アプリが付けた名前をコントローラーが渡す。表の部分は_tableで、会員ごとの操作ログの画面と共通。
+--}}
+@extends(config('neobit.layouts.admin'))
 
 {{-- 一覧の列が多いので、本文の横幅を広げる --}}
 @section('content-width', '1200px')
@@ -48,7 +52,7 @@ button.stats-chart-col:hover .stats-chart-bar {
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="h4 mb-0">操作ログ</h1>
     {{-- 一覧の今の検索条件・並び順で全件を出す --}}
-    <a href="{{ route('admin.operation-logs.csv') }}" class="btn btn-outline-secondary btn-sm">CSVダウンロード</a>
+    <a href="{{ route($routes['csv']) }}" class="btn btn-outline-secondary btn-sm">CSVダウンロード</a>
 </div>
 
 {{--
@@ -64,7 +68,7 @@ button.stats-chart-col:hover .stats-chart-bar {
     - detail：補足の中の語（部分一致。空白で区切ると、全部を含む行。
       OperationLogController::applyCustomSearch()で処理）
 --}}
-<form method="POST" action="{{ route('admin.operation-logs.search') }}" class="row g-2 mb-4">
+<form method="POST" action="{{ route($routes['search']) }}" class="row g-2 mb-4">
     @csrf
     <div class="col-sm-2">
         <input type="date" name="date_from" class="form-control" title="日付（ここから）"
@@ -114,7 +118,7 @@ button.stats-chart-col:hover .stats-chart-bar {
     <div class="col-sm-2">
         <select name="target_type" class="form-select">
             <option value="">対象（すべて）</option>
-            @foreach (code_table('operation_log_subject') as $value => $label)
+            @foreach (code_table('operation_log_model') as $value => $label)
                 <option value="{{ $value }}" @selected(($filters['target_type'] ?? '') === (string) $value)>{{ $label }}</option>
             @endforeach
         </select>
@@ -153,7 +157,7 @@ button.stats-chart-col:hover .stats-chart-bar {
 
         <h2 class="h6">{{ $stats['dailyPeriod'] }}（1日ごと）　合計 {{ number_format(array_sum(array_column($stats['daily'], 'count'))) }}件</h2>
         {{-- 棒は送信ボタン。押した日をdayで送る。今の検索条件は、日付のほかをhiddenで持ち越す --}}
-        <form method="POST" action="{{ route('admin.operation-logs.day') }}" class="stats-chart mb-4">
+        <form method="POST" action="{{ route($routes['day']) }}" class="stats-chart mb-4">
             @csrf
             @foreach ($filters as $key => $value)
                 @if (! in_array($key, ['date_from', 'date_to'], true))
@@ -186,7 +190,7 @@ button.stats-chart-col:hover .stats-chart-bar {
                     <tr>
                         <td>
                             @if ($row->operator_type !== null)
-                                {{ code_label('operation_log_subject', $row->operator_type) }}ID:{{ $row->operator_id }}　{{ $stats['topNames'][$row->operator_type][$row->operator_id] ?? '' }}
+                                {{ code_label('operation_log_model', $row->operator_type, $row->operator_type) }}ID:{{ $row->operator_id }}　{{ $stats['topNames'][$row->operator_type][$row->operator_id] ?? '' }}
                             @else
                                 <span class="text-muted">訪問者</span>
                             @endif
@@ -207,7 +211,7 @@ button.stats-chart-col:hover .stats-chart-bar {
 </div>
 @endif
 
-@include('admin.operation_logs._table', ['records' => $records, 'names' => $names, 'related' => $related])
+@include('neobit::admin.operation_logs._table', ['records' => $records, 'names' => $names, 'related' => $related])
 
 {{ $records->links('pagination::bootstrap-5') }}
 @endsection

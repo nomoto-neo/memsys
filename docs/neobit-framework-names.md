@@ -20,6 +20,7 @@
 | `FormFlow` | `savedLogAction($created)` | | 操作ログに残す操作の種類 | 名前から中身が読み取りにくい |
 | `SearchableList` | `srchRules()` | ○ | 検索項目の検証ルール | `srch` だけ略している |
 | `SearchableList` | `applyCustomSearch($query, $key, $value)` | ○ | 列と直接比べられない検索条件 | |
+| `SearchableList` | `indexRoute()` | | 一覧のルートの名前。`INDEX_ROUTE` で決められないとき（ルートの名前を案件が付けるフレームワークの画面）に書く | |
 | `CsvDownload` | `csvColumns()` | ○ | CSV の項目の定義 | |
 | `CsvDownload` | `csvCustomColumn($key, $record)` | | 「@名前」の項目の値 | |
 | `CsvImport` | `csvImportSettings()` | ○ | 取り込みの設定 | |
@@ -106,8 +107,8 @@
 | アップロード | `PRIVATE_FILE_FIELDS`（定数） | 非公開のファイルの欄 | |
 | 入力 | `RAW_INPUT_FIELDS`（定数） | 全角と半角をそろえない項目。コントローラーが同じ名前の定数で引く | |
 | 操作ログ | `OPERATION_LOG_IGNORE`（定数） | 操作ログに残さない列 | |
-| 操作ログ | `operationLogNames($ids)`（`OperationLogSubjectModel`） | 操作ログに出す名前 | |
-| 操作ログ | `operationLogSummary()`（`OperationLogRelatedRecord`） | 件数を1行にまとめた文字 | |
+| 操作ログ | `operationLogNames($ids)`（`OperationLogNamedModel`） | 操作ログに出す名前 | |
+| 操作ログ | `operationLogSummary()`・`operationLogDetails()`・`operationLogUrl()`（`OperationLogRelatedRecord`） | 件数を1行にまとめた文字、内訳の窓の項目、詳しい画面の URL | |
 | ログイン | `LOGIN_GUARD`・`LOGIN_ROUTE_PREFIX`・`LOGIN_ID_TYPE`（定数） | ガード・ルートの頭・ログインに使う値の種類。無ければ種類の名前 | |
 | ログイン | `TWO_FACTOR_METHOD`・`BACKUP_CODES`（定数） | 2段階認証の方式、バックアップコードを使うか | |
 | ログイン | `displayName()`・`notificationEmail()`（`LoginAccount`） | 名前と、お知らせを送るアドレス | |
@@ -124,7 +125,7 @@
 | インターフェース | `LegacyPassword` | 古い方式のパスワードの照合 | |
 | インターフェース | `CodeTableEnum` | コード表にする列挙型 | |
 | インターフェース | `OperationLogActionType` | 操作の種類の列挙型 | |
-| インターフェース | `OperationLogSubjectModel` | 操作ログに名前を出すモデル | |
+| インターフェース | `OperationLogNamedModel` | 操作ログに名前を出すモデル | |
 | インターフェース | `OperationLogRelatedRecord` | 操作ログの件数を持つ記録 | |
 | インターフェース | `TeamInvitationOwner` | 招待を持つモデル | |
 | インターフェース | `UploadDirectoryRule` | 保存先の規則 | |
@@ -141,7 +142,7 @@
 | `CodeTable` | `get()`・`normalizeKey()` | ふつうはヘルパーから使う |
 | `UploadFilePath` | `directory()`・`isPrivate()`・`disk()`・`url()`・`path()`・`tmpUrl()`・`previewUrl()`、定数 `TMP_DIR`・`TMP_DISK`・`TMP_SESSION_KEY`・`TMP_SESSION_MAX`・`PUBLIC_DISK`・`PRIVATE_DISK`・`SAFE_FILENAME` | |
 | `OperationRecorder` | `record()`・`loggableFields()` | |
-| `OperationLog` | `actionOptions()`・`subjectNames()`・`operatorLabel()`・`relatedRecords()`・`operatorTypes()`・`relatedKey()`・`countSummary()`・`csvName()`・`detailText()` | |
+| `OperationLog` | `actionOptions()`・`modelOptions()`・`modelNames()`・`operatorLabel()`・`relatedRecords()`・`operatorTypes()`・`relatedKey()`・`countSummary()`・`csvName()`・`detailText()` | |
 | `OperationLogStats` | `hourly()`・`daily()`・`topOperators()`・`countsBy()` | |
 | `OperationLogReport` | `for()` | |
 | `TemplatedMail` | `new TemplatedMail($template, $variables)` | |
@@ -167,7 +168,7 @@
 | `CsvImportSettings`・`CsvImportResult`・`CsvImportRow`・`CsvColumnSet` | 取り込みの設定と結果 | |
 | 検証のルール | `KatakanaRule`・`HiraganaRule`・`PhoneNumberRule`・`SameCountAsRule` | |
 | ミドルウェア | `AjaxFormResponse`・`NormalizeInput`・`RejectBlockedIp`・`RestrictAdminAccess`・`RestrictSiteAccess`・`SecurityHeaders` | |
-| コントローラー | `CodeTableController`・`IpBlockController`・`AccessRestrictionController`（どれもルートは案件が書く）・`UploadedFileController` | |
+| コントローラー | `CodeTableController`・`IpBlockController`・`AccessRestrictionController`・`OperationLogController`（どれもルートは案件が書く）・`UploadedFileController` | |
 
 ## 7. ヘルパー
 
@@ -190,7 +191,7 @@
 |---|---|---|
 | `neobit` | `layouts` | |
 | `neobit` | `code_table_db`・`code_table_method`・`code_table_enum_namespaces` | |
-| `neobit` | `operation_log_actions`・`operation_log_route` | |
+| `neobit` | `operation_log_actions`・`operation_log_models`・`operation_log_route` | |
 | `neobit` | `admin_requests_per_minute`・`admin_requests_exceeded_message` | |
 | `neobit` | `ip_block_auto`・`ip_block_watch_minutes`・`ip_block_watch_count`・`ip_block_hours` | |
 | `neobit` | `operation_report_to`・`operation_report_thresholds` | 操作ログの設定は `operation_log_〜`、報告は `operation_report_〜` |
@@ -213,7 +214,7 @@
 | `_two_factor_backup_codes` | `$codes`・`$twoFactorNextUrl`・`$nextLabel` | |
 | `_two_factor_manage` | `$twoFactorAccount`・`$twoFactorRoutes`・`$totpConfirmed`・`$usesBackupCodes`・`$backupCodesCodeSent`・`$confirmByEmail`・`$issueLabel`・`$resetAlso` | |
 | `_two_factor_reset` | `$twoFactorAccount`・`$twoFactorResetUrl` | |
-| `admin.code_tables.index`・`admin.ip_blocks.index`・`admin.access_restriction.index`・`admin.csv_import.form`・`admin.csv_import.confirm`・`admin.too_many_requests` | フレームワークのコントローラーが渡す | |
+| `admin.code_tables.index`・`admin.ip_blocks.index`・`admin.access_restriction.index`・`admin.operation_logs.index`・`admin.operation_logs._table`・`admin.csv_import.form`・`admin.csv_import.confirm`・`admin.too_many_requests` | フレームワークのコントローラーが渡す | |
 | `layouts.plain`・`maintenance`・`mail._raw_html`・`mail._raw_text` | | |
 
 案件の画面がそろえる変数の名前（フレームワークの決まり）。
@@ -231,6 +232,7 @@
 | `{ログインの頭}.login`・`.login.verify`・`.login.verify.confirm`・`.login.verify.resend`・`.password.forgot` | 案件が書く。ログインの部品が、この名前で探す | |
 | 項目見出し一覧の「頭.index」「頭.update」 | 案件が書く | |
 | IPブロック管理の「頭.index」「頭.store」「頭.update」「頭.destroy」 | 案件が書く。update・destroy の URL に `{ipBlock}` | |
+| 操作ログの「頭.index」「頭.search」「頭.csv」「頭.day」 | 案件が書く | |
 | アクセス制限の「頭.index」「頭.update」 | 案件が書く | |
 
 ## 11. メールのテンプレートと、中で使える変数
@@ -260,4 +262,4 @@
 | `vendor:publish` のタグ | `neobit-config`・`neobit-mail-templates` | |
 | Artisan のコマンド | `app:access-denied-off`・`app:cleanup-temporary-data`・`app:report-operation-logs`・`app:reset-two-factor`・`app:set-next-id` | 頭が案件と同じ `app:`。フレームワークのものと見分けられない |
 | テーブル | `code_tables`・`ip_blocks`・`settings`・`operation_logs`・`csv_download_logs`・`csv_import_logs`・`trusted_devices`・`two_factor_backup_codes`・`two_factor_secrets`・`passkeys`・`team_invitations` | |
-| 案件が用意するコード表 | `operation_log_subject` | 操作ログの部品が `code_label('operation_log_subject', …)` で読む。案件に無いと例外になる |
+| フレームワークが作るコード表 | `operation_log_action`・`operation_log_model` | 設定の `operation_log_actions`・`operation_log_models` の列挙型から作る |

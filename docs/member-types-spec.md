@@ -349,7 +349,7 @@ return [
 
 - `config/auth.php` のガードとプロバイダー（`company`）
 - `AppServiceProvider` の `enforceMorphMap()`。`company`（企業）と `company_user`（担当者）の2つ
-- 操作ログの種類（`OperationLogSubject`）。企業と担当者を足し、担当者を「操作した人」に加える
+- 操作ログの種類（`AppOperationLogModel`）。企業と担当者を足し、担当者を「操作した人」に加える
 
 **ガードは、個人会員・企業の担当者・スタッフで1つずつ**持つ。同じブラウザで、3つに同時にログインできる。運営のスタッフが、企業の側の画面を確かめながら管理画面で操作する、といった使い方を想定する。
 
@@ -404,7 +404,7 @@ return [
 | `LoginThrottle` | アカウントを1つの値で区別する | 変えない。企業会員は、企業ID と担当者ID をつないだ値を渡す |
 | `HasPasskeys` | パスキーの表示名にメールアドレスを使う | `loginId()` を使う |
 | `OperationLog`・`OperationLogReport`・`OperationLogStats` | 氏名を引く相手が、スタッフと `Member` | スタッフ・個人会員・企業の担当者。名前は `displayName()` |
-| `OperationLogSubject` | 操作した人になれるのは、スタッフと会員 | 企業の担当者を足す |
+| `AppOperationLogModel` | 操作した人になれるのは、スタッフと会員 | 企業の担当者を足す |
 | `ErrorNotifyHandler` | ログイン中の人を、`admin` と `web` のガードから取る | 設定（`config/auth.php`）にあるガードを全部見る。呼び名は、操作ログの「操作した人」と同じ |
 | ユーザープロバイダー | Laravel の標準 | 古い方式のパスワードの置き換え（2.9）と、企業ID での絞り込み（2.3）を足したものに差し替える |
 | 各種類のログアウト | セッションを丸ごと捨てる | そのガードのログインだけを消す（2.10） |
