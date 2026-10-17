@@ -25,6 +25,7 @@ use Neobit\Core\Mail\MailTemplateException;
 use Neobit\Core\Mail\TemplatedMail;
 use Neobit\Core\Operations\OperationRecorder;
 use Neobit\Core\Pdf\PdfDownload;
+use Neobit\Core\Pdf\SheetPaging;
 use Neobit\Core\Rules\KatakanaRule;
 use Neobit\Core\Rules\PhoneNumberRule;
 use Neobit\Core\Upload\AjaxFileUpload;
@@ -251,6 +252,7 @@ class MypageController extends Controller
 
         return $this->downloadPdfOnSheet(
             sheet: resource_path('pdf-sheets/resume_a4.pdf'),
+            sheetPaging: SheetPaging::Once,
             view: 'pdf.resume_on_sheet',
             data: ['member' => $member],
             name: '履歴書_'.$member->name,

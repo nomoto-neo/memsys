@@ -1704,6 +1704,7 @@ public function resume(Member $member): Response
 ```php
 return $this->downloadPdfOnSheet(
     sheet: resource_path('pdf-sheets/resume_a4.pdf'),   // 定型紙。アプリの resources/pdf-sheets/ に置く
+    sheetPaging: SheetPaging::Once,                     // 定型紙のページの使い方
     view: 'pdf.resume_on_sheet',                        // 上に載せる文字のテンプレート
     data: ['member' => $member],
     name: '履歴書_'.$member->name,
@@ -1720,7 +1721,29 @@ return $this->downloadPdfOnSheet(
     ```
 
 - **折り返しとはみ出し**：`width` を決めると、幅を超えた文字は次の行へ折り返します。`height` と一緒に `overflow: hidden` を書くと、はみ出した分を切ります。`overflow: auto` を書くと、欄に収まるよう文字を縮めます（長い住所や名前に向く）。
-- **ページ**：`<pagebreak />` で次のページへ進みます。テンプレートの n ページ目には、定型紙の n ページ目が下敷きになります。定型紙より多くページを作ると、最後のページが続けて敷かれます。
+- **ページ**：`<pagebreak />` で次のページへ進みます。どのページに定型紙のどのページを敷くかは、`sheetPaging` で決めます。テンプレートのページ数が定型紙と同じか少なければ、どれも1ページ目から順に敷きます。違うのは、定型紙のページ数がテンプレートより少ないときです。
+
+    | `sheetPaging` | 定型紙のページ数がテンプレートより少ないとき | 2ページの定型紙での例 |
+    |---|---|---|
+    | `SheetPaging::Once` | 例外にする。くり返しの要らない様式で、`<pagebreak />` の入れすぎに気付ける | 1・2 |
+    | `SheetPaging::Sequential` | 最後のページをくり返し敷く。続きのページを何枚でも足す様式 | 1・2・2・2… |
+    | `SheetPaging::Cycle` | 1ページ目から順にくり返し敷く。表・裏の様式を人数分まとめて出す | 1・2・1・2… |
+
+    ほかの使い方が要るときは、`SheetPagingRule` を実装した列挙型をアプリに作って渡します（名前は `App` で始める）。`sheetPage($page, $sheetPageCount)` が、出来上がる PDF の `$page` ページ目に敷く、定型紙のページを返します。
+
+    ```php
+    enum AppSheetPaging implements SheetPagingRule
+    {
+        case CoverThenSecond;   // 1ページ目は表紙、2ページ目から先は定型紙の2ページ目
+
+        public function sheetPage(int $page, int $sheetPageCount): int
+        {
+            return $page === 1 ? 1 : 2;
+        }
+    }
+    ```
+
+- **あふれ**：1ページ分の中身があふれて、mPDF が自動でページを足すと、足されたページには定型紙が敷かれません。文字は `position: absolute` で置くので、ふつうはあふれません。
 - **表の行**：学歴や資格のように行の高さが決まった欄は、`@foreach` の中で `top` を行の高さずつずらします。
 - **位置の決め方**：定型紙を印刷して測るか、罫線の位置を PDF から読み取って決めます。試しに出して、ずれを直します。
 - **読めない PDF**：定型紙を読むのは、mPDF に入っている FPDI（無料版）です。古い作り方の PDF などで読めないときは、例外になります。そのときは、PDF の形式を変えてから置きます（「PDF 1.4 として保存し直す」など）。見本の定型紙（PDF 1.7）は、そのまま読めました。

@@ -61,11 +61,13 @@ use Symfony\Component\HttpFoundation\HeaderUtils;
  *
  * ■ 定型紙に文字を載せる（downloadPdfOnSheet()）
  * 履歴書や申込書のような、決まった様式のPDF（定型紙）を下敷きにして、テンプレートの文字を上に載せる。
- * 引数は、downloadPdf()のpaper・orientationの代わりにsheet（定型紙のPDFのサーバー上の場所）を渡す。
+ * 引数は、downloadPdf()のpaper・orientationの代わりに、sheet（定型紙のPDFのサーバー上の場所）と、
+ * sheetPaging（定型紙のページの使い方。SheetPaging）を渡す。
  * ページの大きさは定型紙の1ページ目に合わせ、余白は0にする。定型紙はアプリのresources/pdf-sheets/に置く。
  *
  *     return $this->downloadPdfOnSheet(
  *         sheet: resource_path('pdf-sheets/resume_a4.pdf'),
+ *         sheetPaging: SheetPaging::Once,
  *         view: 'pdf.resume_on_sheet',
  *         data: ['member' => $member],
  *         name: '履歴書_'.$member->name,
@@ -77,7 +79,11 @@ use Symfony\Component\HttpFoundation\HeaderUtils;
  *   画像も、位置を決めた<div>の中に<img>を入れる。<img>に直接position: absoluteを付けても効かない
  * - widthを決めると、幅を超えた文字は折り返す。heightと一緒にoverflow: hiddenを書くとはみ出しを切り、
  *   overflow: autoを書くと、欄に収まるよう文字を縮める
- * - <pagebreak />で次のページへ進む。テンプレートのnページ目には、定型紙のnページ目が下敷きになる
+ * - <pagebreak />で次のページへ進む。どのページに定型紙のどのページを敷くかは、sheetPagingで決める。
+ *   定型紙のページ数がテンプレートより少なければ、Onceは例外、Sequentialは最後のページをくり返し、
+ *   Cycleは1ページ目から順にくり返す。ほかの使い方は、アプリがSheetPagingRuleを実装した列挙型で足す
+ * - 1ページの中身があふれて、mPDFが自動でページを足すと、足されたページには定型紙が敷かれない。
+ *   文字はposition: absoluteで置くので、ふつうはあふれない
  * - 定型紙を読むのはmPDFに入っているFPDI。読めないPDFのときは、例外になる
  */
 trait PdfDownload
@@ -132,6 +138,7 @@ trait PdfDownload
      */
     private function downloadPdfOnSheet(
         string $sheet,
+        SheetPagingRule $sheetPaging,
         string $view,
         array $data,
         string $name,
@@ -139,10 +146,10 @@ trait PdfDownload
         bool $inline,
     ): Response {
         if (! is_file($sheet)) {
-            throw new RuntimeException("PDFの用紙がありません：{$sheet}");
+            throw new RuntimeException("定型紙のPDFがありません：{$sheet}");
         }
 
-        // ページの大きさは、用紙の1ページ目に合わせる。余白は0にして、位置を用紙の左上から決められるようにする
+        // ページの大きさは、定型紙の1ページ目に合わせる。余白は0にして、位置を定型紙の左上から決められるようにする
         $size = (new PdfReader(new PdfParser(StreamReader::createByFile($sheet))))
             ->getPage(1)
             ->getWidthAndHeight(PageBoundaries::CROP_BOX);
@@ -156,11 +163,27 @@ trait PdfDownload
             'margin_footer' => 0,
         ]);
 
-        // テンプレートのnページ目に、用紙のnページ目を下敷きにする。用紙より多いページには、用紙の最後のページを敷く
-        $mpdf->SetDocTemplate($sheet, true);
-
         $mpdf->SetTitle($name);
-        $mpdf->WriteHTML(view($view, $data + ['images' => $this->pdfImageSrcs($mpdf, $images)])->render());
+        $sheetPageCount = $mpdf->setSourceFile($sheet);
+
+        // テンプレートを、<pagebreak />の所でページごとに分ける。下敷きにする定型紙のページを、ページごとに
+        // $sheetPagingで選ぶため。mPDFの機能では、定型紙の全ページをくり返すことができない
+        $html = view($view, $data + ['images' => $this->pdfImageSrcs($mpdf, $images)])->render();
+        $pages = preg_split('/<pagebreak\b[^>]*>/i', $html);
+
+        // ページを足し、選んだ定型紙のページを敷いてから、そのページの文字を書く。
+        // 同じ定型紙のページは、1回だけ読み込んで使い回す
+        $templates = [];
+        foreach ($pages as $index => $pageHtml) {
+            $sheetPage = $sheetPaging->sheetPage($index + 1, $sheetPageCount);
+            if ($sheetPage < 1 || $sheetPage > $sheetPageCount) {
+                throw new RuntimeException("定型紙のページ数（{$sheetPageCount}）が、テンプレートのページ数（".count($pages).'）より少ないです。');
+            }
+
+            $mpdf->AddPage();
+            $mpdf->useTemplate($templates[$sheetPage] ??= $mpdf->importPage($sheetPage));
+            $mpdf->WriteHTML($pageHtml);
+        }
 
         return $this->pdfResponse($mpdf, $name, $inline);
     }

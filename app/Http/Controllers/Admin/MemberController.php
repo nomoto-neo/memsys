@@ -26,6 +26,7 @@ use Neobit\Core\Enums\OperationLogAction;
 use Neobit\Core\Models\OperationLog;
 use Neobit\Core\Operations\OperationRecorder;
 use Neobit\Core\Pdf\PdfDownload;
+use Neobit\Core\Pdf\SheetPaging;
 use Neobit\Core\Rules\KatakanaRule;
 use Neobit\Core\Rules\PhoneNumberRule;
 use Neobit\Core\Upload\AjaxFileUpload;
@@ -415,6 +416,7 @@ class MemberController extends Controller
 
         return $this->downloadPdfOnSheet(
             sheet: resource_path('pdf-sheets/resume_a4.pdf'),
+            sheetPaging: SheetPaging::Once,
             view: 'pdf.resume_on_sheet',
             data: ['member' => $member],
             name: '履歴書_'.$member->name,

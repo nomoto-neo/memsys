@@ -9,7 +9,14 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Neobit\Core\Enums\OperationLogAction;
 use Neobit\Core\Models\OperationLog;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\View;
+use Neobit\Core\Pdf\PdfDownload;
+use Neobit\Core\Pdf\SheetPaging;
+use Neobit\Core\Pdf\SheetPagingRule;
 use setasign\Fpdi\PdfParser\PdfParser;
+use setasign\Fpdi\PdfParser\Type\PdfDictionary;
+use setasign\Fpdi\PdfParser\Type\PdfType;
 use setasign\Fpdi\PdfParser\StreamReader;
 use setasign\Fpdi\PdfReader\PdfReader;
 use Tests\TestCase;
@@ -63,5 +70,86 @@ class PdfOnSheetTest extends TestCase
             ->get(route('mypage.resumeOnSheet'))
             ->assertOk()
             ->assertHeader('Content-Type', 'application/pdf');
+    }
+
+    public function test_sheet_paging_decides_which_sheet_page_is_laid(): void
+    {
+        // 2ページの定型紙に、4ページのテンプレートを載せる。ページごとに、下敷きにした定型紙のページを比べる
+        $this->assertSame([1, 2, 2, 2], $this->laidSheetPages(SheetPaging::Sequential, 4));
+        $this->assertSame([1, 2, 1, 2], $this->laidSheetPages(SheetPaging::Cycle, 4));
+        $this->assertSame([1, 2], $this->laidSheetPages(SheetPaging::Once, 2));
+
+        // アプリが決めた使い方も渡せる
+        $this->assertSame([2, 2, 2], $this->laidSheetPages(TestSecondPageOnly::Always, 3));
+    }
+
+    public function test_once_rejects_more_pages_than_the_sheet(): void
+    {
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('定型紙のページ数（2）が、テンプレートのページ数（3）より少ないです。');
+
+        $this->laidSheetPages(SheetPaging::Once, 3);
+    }
+
+    /**
+     * $countページのテンプレートを見本の定型紙（2ページ）に載せ、出来上がったPDFの各ページに敷いた
+     * 定型紙のページを返す。敷いた定型紙の中身を、定型紙の各ページの中身と比べて割り出す
+     */
+    private function laidSheetPages(SheetPagingRule $sheetPaging, int $count): array
+    {
+        View::addLocation(base_path('tests/Support/views'));
+
+        // 定型紙の各ページの中身。中身 => ページ
+        $sheetPath = resource_path('pdf-sheets/resume_a4.pdf');
+        $sheet = new PdfReader(new PdfParser(StreamReader::createByFile($sheetPath)));
+        $sheetPages = [];
+        for ($page = 1; $page <= $sheet->getPageCount(); $page++) {
+            $sheetPages[md5($sheet->getPage($page)->getContentStream())] = $page;
+        }
+
+        $parser = new PdfParser(StreamReader::createByString((new TestSheetPdf())->make($sheetPaging, $count)->getContent()));
+        $reader = new PdfReader($parser);
+
+        // 各ページで描いている定型紙（/TPL0 などの名前のXObject）の中身を取り出し、どのページかを引く
+        $laid = [];
+        for ($page = 1; $page <= $reader->getPageCount(); $page++) {
+            preg_match('/\/(TPL\d+) Do/', $reader->getPage($page)->getContentStream(), $m);
+            $resources = PdfType::resolve($reader->getPage($page)->getAttribute('Resources'), $parser);
+            $xObjects = PdfType::resolve(PdfDictionary::get($resources, 'XObject'), $parser);
+            $stream = PdfType::resolve(PdfDictionary::get($xObjects, $m[1]), $parser);
+            $laid[] = $sheetPages[md5($stream->getUnfilteredStream())] ?? 0;
+        }
+
+        return $laid;
+    }
+}
+
+/** テスト用：PdfDownloadのdownloadPdfOnSheet()を呼ぶだけのクラス */
+class TestSheetPdf
+{
+    use PdfDownload;
+
+    public function make(SheetPagingRule $sheetPaging, int $count): Response
+    {
+        return $this->downloadPdfOnSheet(
+            sheet: resource_path('pdf-sheets/resume_a4.pdf'),
+            sheetPaging: $sheetPaging,
+            view: 'sheet_pages',
+            data: ['count' => $count],
+            name: 'テスト',
+            images: [],
+            inline: true,
+        );
+    }
+}
+
+/** テスト用：アプリが決める定型紙のページの使い方。いつも2ページ目を敷く */
+enum TestSecondPageOnly implements SheetPagingRule
+{
+    case Always;
+
+    public function sheetPage(int $page, int $sheetPageCount): int
+    {
+        return 2;
     }
 }

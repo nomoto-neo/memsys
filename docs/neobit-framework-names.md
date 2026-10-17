@@ -129,11 +129,12 @@
 | インターフェース | `OperationLogRelatedRecord` | 操作ログの件数を持つ記録 | |
 | インターフェース | `TeamInvitationOwner` | 招待を持つモデル | |
 | インターフェース | `UploadDirectoryRule` | 保存先の規則 | |
+| インターフェース | `SheetPagingRule` | 定型紙のページの使い方 | |
 | モデル | `IpBlock` | IPブロック管理の1行 | |
 | モデル | `Setting` | 管理画面から変えられる設定の1行（キーと値） | |
 | モデルのトレイト | `IsLoginAccount`・`HasTwoFactor`・`HasPasskeys`・`TeamInvitationRelation` | ログイン・2段階認証・パスキー・招待 | `TeamInvitationRelation` だけ `Has〜`・`Is〜` の形でない |
 | コントローラーのトレイト | `FormFlow`・`SearchableList`・`AjaxFileUpload`・`CsvDownload`・`CsvImport`・`CsvReader`・`PdfDownload`・`EmailChange`・`TwoFactorLogin`・`TwoFactorManagement`・`PasskeyLogin`・`PasskeyManagement` | | `CsvReader` だけ「〜er」 |
-| 列挙型 | `OperationLogAction`（`ip_block`・`ip_unblock`・`access_restriction_change` を含む）・`TwoFactorMethod`・`LoginIdType`・`CsvEncoding`・`CsvImportMode`・`SpamCheckResult` | | |
+| 列挙型 | `SheetPaging`（`Once`・`Sequential`・`Cycle`）・`OperationLogAction`（`ip_block`・`ip_unblock`・`access_restriction_change` を含む）・`TwoFactorMethod`・`LoginIdType`・`CsvEncoding`・`CsvImportMode`・`SpamCheckResult` | | |
 
 ## 6. 案件が呼ぶクラスと、その公開のメソッド
 
