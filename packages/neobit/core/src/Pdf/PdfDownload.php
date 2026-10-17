@@ -9,6 +9,10 @@ use Mpdf\Config\ConfigVariables;
 use Mpdf\Config\FontVariables;
 use Mpdf\Mpdf;
 use Mpdf\Output\Destination;
+use setasign\Fpdi\PdfParser\PdfParser;
+use setasign\Fpdi\PdfParser\StreamReader;
+use setasign\Fpdi\PdfReader\PageBoundaries;
+use setasign\Fpdi\PdfReader\PdfReader;
 use RuntimeException;
 use Symfony\Component\HttpFoundation\HeaderUtils;
 
@@ -54,6 +58,26 @@ use Symfony\Component\HttpFoundation\HeaderUtils;
  * - フォントは同梱のIPAexゴシックのipaexgとIPAex明朝のipaexmを、font-familyで指定する。
  *   指定しなければipaexgになる。使った文字だけをPDFに埋め込むので、どの環境でも同じ見た目になる
  * - mPDFが解釈できるCSSはブラウザより少なく、flexやgridは使えない。枠や罫線は<table>で組む
+ *
+ * ■ 定型紙に文字を載せる（downloadPdfOnSheet()）
+ * 履歴書や申込書のような、決まった様式のPDF（定型紙）を下敷きにして、テンプレートの文字を上に載せる。
+ * 引数は、downloadPdf()のpaper・orientationの代わりにsheet（定型紙のPDFのサーバー上の場所）を渡す。
+ * ページの大きさは定型紙の1ページ目に合わせ、余白は0にする。定型紙はアプリのresources/pdf-sheets/に置く。
+ *
+ *     return $this->downloadPdfOnSheet(
+ *         sheet: resource_path('pdf-sheets/resume_a4.pdf'),
+ *         view: 'pdf.resume_on_sheet',
+ *         data: ['member' => $member],
+ *         name: '履歴書_'.$member->name,
+ *         images: [],
+ *         inline: true,
+ *     );
+ *
+ * - テンプレートでは、文字をposition: absoluteの<div>で置く。left・topは定型紙の左上からのmm
+ * - widthを決めると、幅を超えた文字は折り返す。heightと一緒にoverflow: hiddenを書くとはみ出しを切り、
+ *   overflow: autoを書くと、欄に収まるよう文字を縮める
+ * - <pagebreak />で次のページへ進む。テンプレートのnページ目には、定型紙のnページ目が下敷きになる
+ * - 定型紙を読むのはmPDFに入っているFPDI。読めないPDFのときは、例外になる
  */
 trait PdfDownload
 {
@@ -90,6 +114,59 @@ trait PdfDownload
         string $orientation,
         bool $inline,
     ): Response {
+        $mpdf = $this->newPdf([
+            'format' => $paper,
+            'orientation' => $orientation,
+        ]);
+
+        $mpdf->SetTitle($name);
+        $mpdf->WriteHTML(view($view, $data + ['images' => $this->pdfImageSrcs($mpdf, $images)])->render());
+
+        return $this->pdfResponse($mpdf, $name, $inline);
+    }
+
+    /**
+     * 定型紙のPDFを下敷きにして、テンプレートの文字を上に載せたPDFを返す。引数の意味はこのファイルの冒頭にある。
+     * 用紙の大きさに合わせるので、用紙の大きさと向きは渡さない
+     */
+    private function downloadPdfOnSheet(
+        string $sheet,
+        string $view,
+        array $data,
+        string $name,
+        array $images,
+        bool $inline,
+    ): Response {
+        if (! is_file($sheet)) {
+            throw new RuntimeException("PDFの用紙がありません：{$sheet}");
+        }
+
+        // ページの大きさは、用紙の1ページ目に合わせる。余白は0にして、位置を用紙の左上から決められるようにする
+        $size = (new PdfReader(new PdfParser(StreamReader::createByFile($sheet))))
+            ->getPage(1)
+            ->getWidthAndHeight(PageBoundaries::CROP_BOX);
+        $mpdf = $this->newPdf([
+            'format' => [$size[0] * 25.4 / 72, $size[1] * 25.4 / 72],
+            'margin_left' => 0,
+            'margin_right' => 0,
+            'margin_top' => 0,
+            'margin_bottom' => 0,
+            'margin_header' => 0,
+            'margin_footer' => 0,
+        ]);
+
+        // テンプレートのnページ目に、用紙のnページ目を下敷きにする。用紙より多いページには、用紙の最後のページを敷く
+        $mpdf->SetDocTemplate($sheet, true);
+
+        $mpdf->SetTitle($name);
+        $mpdf->WriteHTML(view($view, $data + ['images' => $this->pdfImageSrcs($mpdf, $images)])->render());
+
+        return $this->pdfResponse($mpdf, $name, $inline);
+    }
+
+    /** 同梱の日本語フォントを使うmPDF。$configは、用紙の大きさや余白などのmPDFの設定 */
+    private function newPdf(array $config): Mpdf
+    {
         $tempDir = storage_path(self::PDF_TEMP_DIR);
         File::ensureDirectoryExists($tempDir);
 
@@ -108,17 +185,18 @@ trait PdfDownload
             $fontData[$family] = ['R' => $file];
         }
 
-        $mpdf = new Mpdf([
+        return new Mpdf($config + [
             'mode' => 'utf-8',
-            'format' => $paper,
-            'orientation' => $orientation,
             'tempDir' => $tempDir,
             'fontDir' => [...$defaultFontDirs, $fontDir],
             'fontdata' => $defaultFontData + $fontData,
             'default_font' => self::PDF_DEFAULT_FONT,
         ]);
+    }
 
-        // 画像をmPDFに渡し、テンプレートには「var:名前」を渡す
+    /** 画像をmPDFに渡し、テンプレートに渡す「var:名前」の一覧を返す。ファイルが無かった画像は入らない */
+    private function pdfImageSrcs(Mpdf $mpdf, array $images): array
+    {
         $imageSrcs = [];
         foreach ($images as $imageName => $image) {
             $imageData = $this->pdfImageData($image['path'] ?? null, $image['aspect'] ?? null);
@@ -129,9 +207,12 @@ trait PdfDownload
             }
         }
 
-        $mpdf->SetTitle($name);
-        $mpdf->WriteHTML(view($view, $data + ['images' => $imageSrcs])->render());
+        return $imageSrcs;
+    }
 
+    /** 作ったPDFを返す。ファイル名は「{name}_年月日_時分.pdf」 */
+    private function pdfResponse(Mpdf $mpdf, string $name, bool $inline): Response
+    {
         $filename = $name.'_'.now()->format('Ymd_Hi').'.pdf';
         // 日本語のファイル名に対応していないブラウザのための、英数字だけの名前
         $fallback = 'document_'.now()->format('Ymd_Hi').'.pdf';

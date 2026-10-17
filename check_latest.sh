@@ -162,6 +162,7 @@ has   packages/neobit/core/src/Security/IpBlocker.php                   'final c
 has   packages/neobit/core/src/Security/AccessRestriction.php           'final class AccessRestriction'
 has   packages/neobit/core/src/Http/Controllers/OperationLogController.php 'private function indexRoute()'
 has   packages/neobit/core/src/Models/OperationLogNamedModel.php        'interface OperationLogNamedModel'
+has   packages/neobit/core/src/Pdf/PdfDownload.php                      'private function downloadPdfOnSheet('
 has   packages/neobit/core/database/migrations/2026_10_16_000000_create_settings_table.php "Schema::create('settings'"
 has   packages/neobit/core/database/migrations/2026_10_15_000000_create_ip_blocks_table.php "Schema::create('ip_blocks'"
 has   packages/neobit/core/config/neobit.php                            "'code_table_enum_namespaces'"
@@ -177,6 +178,7 @@ has   vite.config.js                                                    'ip_bloc
 has   bootstrap/app.php                                                 'RejectBlockedIp::class'
 has   routes/web.php                                                    'IpBlockController'
 has   routes/web.php                                                    'AccessRestrictionController'
+has   resources/pdf-sheets/resume_a4.pdf                                '%PDF'
 has   routes/web.php                                                    'use Neobit\Core\Http\Controllers\OperationLogController;'
 has   config/neobit.php                                                 "'operation_log_models' => ["
 has   resources/views/layouts/admin.blade.php                           'vendor/neobit/core/resources/css/global.css'

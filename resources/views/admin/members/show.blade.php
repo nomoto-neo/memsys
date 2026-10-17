@@ -10,6 +10,7 @@
             <a href="{{ route('admin.members.operation-logs', $member) }}" class="btn btn-sm btn-outline-secondary">操作ログ</a>
         @endif
         <a href="{{ route('admin.members.resume', $member) }}" class="btn btn-sm btn-outline-primary" target="_blank">履歴書PDF</a>
+        <a href="{{ route('admin.members.resumeOnSheet', $member) }}" class="btn btn-sm btn-outline-primary" target="_blank">履歴書PDF（定型紙）</a>
         <a href="{{ route('admin.members.edit', $member) }}" class="btn btn-sm btn-primary">編集する</a>
     </div>
 </div>

@@ -60,7 +60,7 @@
 | `AjaxFileUpload` | `commitUploads($model, $input, $fromImport)` | 一時ファイルを正式な保存先へ移す | |
 | `AjaxFileUpload` | `deleteAllUploads($model)` | 1件分のファイルを全部消す | |
 | `AjaxFileUpload` | `checkImportedUploadFilename(...)` | CSV で取り込むファイル名の確かめ | |
-| `PdfDownload` | `downloadPdf(...)` | PDF のダウンロード | |
+| `PdfDownload` | `downloadPdf(...)`・`downloadPdfOnSheet(...)` | PDF のダウンロード。定型紙に文字を載せる形も | |
 | `PdfDownload` | `pdfImageData($path, $aspect)` | PDF に埋め込む画像 | |
 | `EmailChange` | `holdForEmailChange($request, $account)` | メールアドレスの変更を確認待ちにする | |
 | `EmailChange` | `emailChangeForm()`・`emailChangeConfirm()`・`emailChangeResend()`・`emailChangeBack()` | 入口 | |

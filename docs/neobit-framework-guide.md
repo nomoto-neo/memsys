@@ -1697,6 +1697,35 @@ public function resume(Member $member): Response
 - 余白は `@page { margin: ... }`、大きさは mm で書きます。
 - mPDF が解釈できる CSS はブラウザより少なく、flex や grid は使えません。枠や罫線は `<table>` で組みます。
 
+### 定型紙に文字を載せる（downloadPdfOnSheet）
+
+履歴書や申込書のような、決まった様式の PDF（定型紙）を下敷きにして、上に文字を載せた PDF を出します。**実例**：`Admin\MemberController::resumeOnSheet()`・`resources/views/pdf/resume_on_sheet.blade.php`（厚生労働省の履歴書様式例の A4・2ページ）。
+
+```php
+return $this->downloadPdfOnSheet(
+    sheet: resource_path('pdf-sheets/resume_a4.pdf'),   // 定型紙。アプリの resources/pdf-sheets/ に置く
+    view: 'pdf.resume_on_sheet',                        // 上に載せる文字のテンプレート
+    data: ['member' => $member],
+    name: '履歴書_'.$member->name,
+    images: [...],                                      // downloadPdf() と同じ
+    inline: true,
+);
+```
+
+- `paper`・`orientation` は渡しません。ページの大きさは定型紙の1ページ目に合わせ、余白は0にします。
+- テンプレートでは、文字を `position: absolute` の `<div>` で置きます。`left`・`top` は、定型紙の左上からの mm です。
+
+    ```blade
+    <div style="position: absolute; left: 34mm; top: 40mm; width: 115mm; font-size: 20pt;">{{ $member->name }}</div>
+    ```
+
+- **折り返しとはみ出し**：`width` を決めると、幅を超えた文字は次の行へ折り返します。`height` と一緒に `overflow: hidden` を書くと、はみ出した分を切ります。`overflow: auto` を書くと、欄に収まるよう文字を縮めます（長い住所や名前に向く）。
+- **ページ**：`<pagebreak />` で次のページへ進みます。テンプレートの n ページ目には、定型紙の n ページ目が下敷きになります。定型紙より多くページを作ると、最後のページが続けて敷かれます。
+- **表の行**：学歴や資格のように行の高さが決まった欄は、`@foreach` の中で `top` を行の高さずつずらします。
+- **位置の決め方**：定型紙を印刷して測るか、罫線の位置を PDF から読み取って決めます。試しに出して、ずれを直します。
+- **読めない PDF**：定型紙を読むのは、mPDF に入っている FPDI（無料版）です。古い作り方の PDF などで読めないときは、例外になります。そのときは、PDF の形式を変えてから置きます（「PDF 1.4 として保存し直す」など）。見本の定型紙（PDF 1.7）は、そのまま読めました。
+- **使えない CSS**：flex や grid は使えません。枠の中で縦の真ん中にそろえる指定（`vertical-align`）も効かないので、`padding-top` で合わせます。
+
 ### 決まりごと
 
 - mPDF の作業用のディレクトリは `storage/framework/mpdf`（Git の対象外）です。最初の1回はフォントを解析するので、少し時間がかかります。

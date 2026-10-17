@@ -408,6 +408,27 @@ class MemberController extends Controller
         );
     }
 
+    /** 定型紙（厚生労働省の履歴書様式例）に会員の情報を載せた履歴書のPDFを、ブラウザの中で開く */
+    public function resumeOnSheet(Member $member): Response
+    {
+        OperationRecorder::record(OperationLogAction::Pdf, $member, detail: ['name' => '履歴書（定型紙）']);
+
+        return $this->downloadPdfOnSheet(
+            sheet: resource_path('pdf-sheets/resume_a4.pdf'),
+            view: 'pdf.resume_on_sheet',
+            data: ['member' => $member],
+            name: '履歴書_'.$member->name,
+            images: [
+                // 顔写真は、用紙の写真の枠の大きさ（横3:縦4）に切り抜いて貼る
+                'photo' => [
+                    'path' => $member->photo_path,
+                    'aspect' => Member::PHOTO_ASPECT,
+                ],
+            ],
+            inline: true,
+        );
+    }
+
     // ---- 保存・削除処理の補助（FormFlow） ----
 
     /**

@@ -424,6 +424,8 @@ Route::prefix('admin')->name('admin.')->middleware('admin.ip')->group(function (
         Route::patch('/members/{member}/update', [AdminMemberController::class, 'update'])->name('members.update');
         // 履歴書のPDF
         Route::get('/members/{member}/resume', [AdminMemberController::class, 'resume'])->name('members.resume');
+        // 定型紙（resources/pdf-sheets/）に文字を載せた履歴書のPDF
+        Route::get('/members/{member}/resume-on-sheet', [AdminMemberController::class, 'resumeOnSheet'])->name('members.resumeOnSheet');
         // 2段階認証（認証アプリ）の登録の解除。端末を無くした会員の代わりに行う
         Route::delete('/members/{member}/two-factor', [AdminMemberController::class, 'resetTwoFactor'])->name('members.twoFactor.reset');
         // この会員の操作ログ。操作ログの一覧と同じく、管理者だけが開ける

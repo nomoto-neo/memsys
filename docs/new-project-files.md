@@ -27,6 +27,7 @@
 | `phpunit.xml` | テスト用の DB の名前（`memsys_testing`） |
 | `config/form.php` | 必須マークの HTML |
 | `config/upload.php` | アップロードできるファイルの種類と、大きさの上限。CSV の取り込みの上限もここ |
+| `resources/pdf-sheets/` | 定型紙の PDF。見本の `resume_a4.pdf`（厚生労働省の履歴書様式例）は動きを見せるためのものなので、使わないなら消し、使うならその案件の定型紙に差し替える |
 | `config/login.php` | 既存のシステムから会員を移すサイトでは、古い方式のパスワードの種類（`legacy_passwords`）と、初回のログインで照合する列（`identity_check_column`）。新しく始めるサイトは、そのまま。企業会員のあるサイトでは、申請の通知の宛先（中身は `.env`） |
 | `config/contact.php`・`config/services.php` | お問い合わせの宛先、Turnstile の鍵（中身は `.env`） |
 | `bootstrap/app.php` | ログインしていないときの移動先のルート名、ミドルウェアの短い名前 |
