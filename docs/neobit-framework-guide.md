@@ -1713,7 +1713,7 @@ return $this->downloadPdfOnSheet(
 ```
 
 - `paper`・`orientation` は渡しません。ページの大きさは定型紙の1ページ目に合わせ、余白は0にします。
-- テンプレートでは、文字を `position: absolute` の `<div>` で置きます。`left`・`top` は、定型紙の左上からの mm です。
+- テンプレートでは、文字を `position: absolute` の `<div>` で置きます。`left`・`top` は、定型紙の左上からの mm です。画像も、位置を決めた `<div>` の中に `<img>` を入れます。`<img>` に直接 `position: absolute` を付けても効かず、ページの左上に元の大きさで出てしまいます。
 
     ```blade
     <div style="position: absolute; left: 34mm; top: 40mm; width: 115mm; font-size: 20pt;">{{ $member->name }}</div>

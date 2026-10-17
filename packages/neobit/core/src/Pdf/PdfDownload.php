@@ -73,7 +73,8 @@ use Symfony\Component\HttpFoundation\HeaderUtils;
  *         inline: true,
  *     );
  *
- * - テンプレートでは、文字をposition: absoluteの<div>で置く。left・topは定型紙の左上からのmm
+ * - テンプレートでは、文字をposition: absoluteの<div>で置く。left・topは定型紙の左上からのmm。
+ *   画像も、位置を決めた<div>の中に<img>を入れる。<img>に直接position: absoluteを付けても効かない
  * - widthを決めると、幅を超えた文字は折り返す。heightと一緒にoverflow: hiddenを書くとはみ出しを切り、
  *   overflow: autoを書くと、欄に収まるよう文字を縮める
  * - <pagebreak />で次のページへ進む。テンプレートのnページ目には、定型紙のnページ目が下敷きになる
