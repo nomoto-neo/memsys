@@ -158,6 +158,7 @@ Route::middleware(['auth:web', 'auth.session'])->group(function () {
         ->name('mypage.ajaxUpload');
     // 履歴書のPDF
     Route::get('/mypage/resume', [MypageController::class, 'resume'])->name('mypage.resume');
+    Route::get('/mypage/resume-on-sheet', [MypageController::class, 'resumeOnSheet'])->name('mypage.resumeOnSheet');
     // 退会（会員データを物理削除する）
     Route::get('/mypage/withdraw', [MypageController::class, 'withdraw'])->name('mypage.withdraw');
     Route::delete('/mypage/withdraw', [MypageController::class, 'destroy'])->name('mypage.destroy');

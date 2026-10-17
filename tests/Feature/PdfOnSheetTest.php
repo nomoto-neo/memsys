@@ -57,5 +57,11 @@ class PdfOnSheetTest extends TestCase
         // 出したことは、操作ログに残る
         $log = OperationLog::where('action', OperationLogAction::Pdf->value)->sole();
         $this->assertSame('履歴書（定型紙）', $log->detail['name']);
+
+        // マイページからも、本人の分を同じ形で出せる
+        $this->actingAs($member, 'web')
+            ->get(route('mypage.resumeOnSheet'))
+            ->assertOk()
+            ->assertHeader('Content-Type', 'application/pdf');
     }
 }

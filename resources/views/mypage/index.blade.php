@@ -22,6 +22,7 @@
                     <a href="{{ route('mypage.twoFactor') }}" class="list-group-item list-group-item-action">{{ $member::usesTotp() ? '2段階認証' : 'バックアップコード' }}</a>
                 @endif
                 <a href="{{ route('mypage.resume') }}" class="list-group-item list-group-item-action" target="_blank">履歴書PDF</a>
+                <a href="{{ route('mypage.resumeOnSheet') }}" class="list-group-item list-group-item-action" target="_blank">履歴書PDF（定型紙）</a>
                 <a href="{{ route('mypage.withdraw') }}" class="list-group-item list-group-item-action text-muted small">退会する</a>
             </div>
         </div>

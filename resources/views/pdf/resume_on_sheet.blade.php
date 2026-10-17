@@ -1,5 +1,5 @@
 {{--
-    定型紙の履歴書（Admin\MemberController::resumeOnSheet()）。用紙はresources/pdf-sheets/resume_a4.pdf
+    定型紙の履歴書（Admin\MemberController::resumeOnSheet()・MypageController::resumeOnSheet()）。用紙はresources/pdf-sheets/resume_a4.pdf
     （厚生労働省の履歴書様式例のA4。2ページ）。用紙を下敷きにして、ここに書いた文字を上に載せる
     （Neobit\Core\Pdf\PdfDownload::downloadPdfOnSheet()）。
 
