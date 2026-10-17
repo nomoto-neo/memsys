@@ -35,12 +35,15 @@
 <div class="at" style="left: 34mm; top: 81mm; width: 116mm; height: 6mm; overflow: auto; font-size: 11pt;">{{ code_label('prefectures', $member->prefecture, '') }}</div>
 
 {{-- 電話・E-mail（右の欄） --}}
-<div class="at" style="left: 162mm; top: 68.5mm; width: 34mm; font-size: 9.5pt;">{{ $member->phone }}</div>
+<div class="at" style="left: 166mm; top: 67.6mm; width: 30mm; font-size: 9.5pt;">{{ $member->phone }}</div>
 <div class="at" style="left: 154mm; top: 81mm; width: 42mm; height: 6mm; overflow: auto; font-size: 8pt;">{{ $member->email }}</div>
 
-{{-- 写真の枠（横29.2mm・縦39mm）に、顔写真を貼る --}}
+{{-- 写真の枠（横29.2mm・縦39mm）に、顔写真を貼る。mPDFは<img>に直接position: absoluteを付けても効かないので、
+     位置を決めた<div>の中に入れる --}}
 @if (isset($images['photo']))
-    <img src="{{ $images['photo'] }}" style="position: absolute; left: 162.8mm; top: 12.8mm; width: 29.2mm; height: 39mm;">
+    <div style="position: absolute; left: 162.8mm; top: 12.8mm; width: 29.2mm; height: 39mm;">
+        <img src="{{ $images['photo'] }}" style="width: 29.2mm; height: 39mm;">
+    </div>
 @endif
 
 <pagebreak />
