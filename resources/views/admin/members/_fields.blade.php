@@ -116,7 +116,6 @@
         'model' => $model,
         'input' => $input,
         'field' => 'photo',
-        'width' => \App\Models\Member::PHOTO_WIDTH,
         'readonly' => $readonly,
         'uploadUrl' => $uploadUrl,
     ])

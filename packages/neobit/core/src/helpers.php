@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\HtmlString;
 use Neobit\Core\Code\CodeTable;
 use Neobit\Core\Upload\HtmlSanitizer;
+use Neobit\Core\Upload\UploadFieldDefinitions;
 use Neobit\Core\Upload\UploadFilePath;
 
 if (! function_exists('code_table')) {
@@ -216,6 +217,36 @@ if (! function_exists('upload_preview_url')) {
             upload_input_value($input, "{$field}_tmp", $idx),
             upload_input_value($input, "{$field}_del", $idx) === '1',
         );
+    }
+}
+
+if (! function_exists('upload_field')) {
+    /**
+     * 今の画面のコントローラーのアップロードの欄の定義（UPLOAD_FILES・WYSIWYG_IMAGE_FIELDS）から、
+     * 欄の項目を1つ返す。$keyは'type'（UploadType）・'width'（縮小する横幅）・'max'（枠の数の上限）。
+     * 値の無い項目（添付ファイルのwidth、1つだけの欄のmax）はnull。
+     *
+     *   upload_field('attach', 'max')        // 5
+     *   upload_field('list_image', 'width')  // 800
+     *
+     * アップロードの部品（_ajax_upload_block・_ajax_upload_group）が、欄の種類や上限を知るのに使う。
+     * 画面にも同じ定義を書かせず、コントローラーの1か所で済ませるため。そのため、部品はその欄を定義した
+     * コントローラーの画面で使う。定義に無い欄や項目を渡したときは、書き間違いなので例外にする。
+     */
+    function upload_field(string $field, string $key): mixed
+    {
+        $controllerClass = request()->route()?->getControllerClass();
+        $definition = $controllerClass !== null ? UploadFieldDefinitions::find($controllerClass, $field) : null;
+
+        if ($definition === null) {
+            throw new LogicException("アップロードの欄「{$field}」が、今の画面のコントローラー（{$controllerClass}）のUPLOAD_FILESにありません。");
+        }
+
+        if (! in_array($key, ['type', 'width', 'max'], true)) {
+            throw new LogicException("upload_field()の2つ目には、'type'・'width'・'max'のどれかを渡してください：{$key}");
+        }
+
+        return $definition[$key];
     }
 }
 

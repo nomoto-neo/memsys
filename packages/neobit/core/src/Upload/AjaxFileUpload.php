@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Neobit\Core\Operations\TemporaryDataCleaner;
+use Neobit\Core\Rules\MaxUploadCountRule;
 use Neobit\Core\Rules\SameCountAsRule;
 
 /**
@@ -27,14 +28,15 @@ use Neobit\Core\Rules\SameCountAsRule;
  *    PRIVATE_FILE_FIELDSにあるフィールドは非公開のディスク。保存先の規則はUploadFilePathにある
  *
  * ■ コントローラーが用意するもの
- * - UPLOAD_FILES：['フィールド名' => 横幅(px)]。横幅が0なら添付ファイルで縮小しない。
- *   0より大きければ画像で、その横幅を超えたら縮小する。横幅はモデルの定数を参照する。
- *   例：'list_image' => News::LIST_IMAGE_WIDTH
- * - 名前の末尾が「.*」のフィールドは、いくつでも足せる欄になる。例：'attach.*'。
+ * - UPLOAD_FILES：['フィールド名' => ['type' => 種類, 'width' => 横幅(px), 'max' => 上限]]。
+ *   書き方の決まりはUploadFieldDefinitionsにある。横幅はモデルの定数を参照する。
+ *   例：'list_image' => ['type' => UploadType::Image, 'width' => News::LIST_IMAGE_WIDTH]
+ * - 名前の末尾が「.*」のフィールドは、いくつでも足せる欄になる。例：'attach.*' => ['type' => UploadType::File, 'max' => 5]。
+ *   'max'は枠の数の上限で、画面で枠を増やせなくするほか、保存のときの検証（ajaxUploadRules()）でも確かめる。
  *   モデルには「.*」を除いた名前のHasManyのリレーションを用意する。例：News::attach()。
  *   このトレイトは子テーブルの名前や外部キーを知らず、そのリレーションだけを使う
  * - uploadAjaxFile()を指すPOSTのルート。例：admin.news.ajaxUpload
- * - WYSIWYG_FIELDS：['フィールド名' => 横幅(px)]。画像を入れられるエディタの欄。省略できる
+ * - WYSIWYG_IMAGE_FIELDS：['フィールド名' => 横幅(px)]。画像を入れられるエディタの欄。省略できる
  *
  * 使える拡張子と大きさの上限は、サイト全体のセキュリティの方針なので、設定で決める（config/upload.php）。
  * コーナーごとには変えさせない。
@@ -100,16 +102,19 @@ trait AjaxFileUpload
     public function uploadAjaxFile(Request $request): JsonResponse
     {
         $field = (string) $request->input('field');
-        $config = $this->resolveUploadFieldConfig($field);
+        $definition = UploadFieldDefinitions::find(static::class, $field);
 
-        if ($config === null) {
+        if ($definition === null) {
             // 定義に無いフィールドは、作りの誤りか書き換えられた送信
             Log::warning('AjaxFileUpload: 未定義のfieldが指定されました。', ['field' => $field]);
 
             return response()->json(['message' => 'アップロードに失敗しました。'], 422);
         }
 
-        [$width, $allowTypes] = $config;
+        // 受け付ける拡張子は、サイト全体の方針として種類ごとに設定で決める（config/upload.php）
+        $isImage = $definition['type'] === UploadType::Image;
+        $width = (int) $definition['width'];
+        $allowTypes = $definition['type']->allowedExtensions();
 
         if (! $request->hasFile('file')) {
             return response()->json(['message' => 'アップロードに失敗しました。'], 422);
@@ -145,7 +150,7 @@ trait AjaxFileUpload
         }
 
         // 画像は展開する前に画素数を確かめる
-        if ($width > 0) {
+        if ($isImage) {
             $pixelError = $this->checkImagePixels($file->getRealPath(), $field);
 
             if ($pixelError !== null) {
@@ -166,7 +171,7 @@ trait AjaxFileUpload
                 throw new \RuntimeException('storeAs()に失敗しました。');
             }
 
-            if ($width > 0) {
+            if ($isImage) {
                 $this->resizeIfNeeded(Storage::disk(UploadFilePath::TMP_DISK)->path($storedPath), $width);
             }
 
@@ -258,60 +263,16 @@ trait AjaxFileUpload
         return null;
     }
 
-    /** フィールドの横幅と使える拡張子。$fieldは「.*」を付けない名前で、定義に無ければnull。 */
-    private function resolveUploadFieldConfig(string $field): ?array
-    {
-        foreach ($this->uploadFieldDefinitions() as $def) {
-            if ($def['field'] !== $field) {
-                continue;
-            }
-
-            $width = $def['width'];
-            // 許可する種類は、サイト全体の方針として設定で決める（config/upload.php）
-            $allowTypes = config($width > 0 ? 'upload.image_types' : 'upload.attach_types');
-
-            return [$width, $allowTypes];
-        }
-
-        return null;
-    }
-
     /**
-     * UPLOAD_FILESとWYSIWYG_FIELDSを、['field' => 名前, 'kind' => 種類, 'width' => 横幅]の並びにする。
-     *
-     * - single      UPLOAD_FILESの1つだけのフィールド。例：list_image
-     * - repeatable  UPLOAD_FILESの「.*」付きのフィールド。例：attach
-     * - wysiwyg     WYSIWYG_FIELDSのフィールド。例：body
+     * アップロードの欄の定義。['field' => 名前, 'kind' => 種類, 'type' => UploadType, 'width' => 横幅, 'max' => 上限]の並び。
+     * kindは、single（1つだけの欄）・repeatable（「.*」の欄）・wysiwyg（エディタの欄）。
      *
      * このトレイトのほかのメソッドは2つの定数を自分で読まず、必ずこの結果を使う。
-     * 定数の書き方を変えてもここを直すだけで済む。
+     * 読み方と書き方の確かめは、画面の部品と共通のUploadFieldDefinitionsにある。
      */
     private function uploadFieldDefinitions(): array
     {
-        $fields = [];
-
-        foreach (self::UPLOAD_FILES as $rawField => $width) {
-            $isRepeatable = str_ends_with($rawField, '.*');
-
-            $fields[] = [
-                'field' => $isRepeatable ? substr($rawField, 0, -2) : $rawField,
-                'kind' => $isRepeatable ? 'repeatable' : 'single',
-                'width' => $width,
-            ];
-        }
-
-        // WYSIWYG_FIELDSは省略できるので、あるときだけ読む
-        $wysiwygFields = defined('self::WYSIWYG_FIELDS') ? self::WYSIWYG_FIELDS : [];
-
-        foreach ($wysiwygFields as $field => $width) {
-            $fields[] = [
-                'field' => $field,
-                'kind' => 'wysiwyg',
-                'width' => $width,
-            ];
-        }
-
-        return $fields;
+        return UploadFieldDefinitions::of(static::class);
     }
 
     /**
@@ -441,6 +402,9 @@ trait AjaxFileUpload
                     $others = array_values(array_diff($keys, [$key]));
                     $rules[$key] = ['array', new SameCountAsRule($others)];
                 }
+
+                // ファイルのある枠の数が、'max'を超えないこと。画面を通さずに送られても、上限を守るため
+                $rules[$base][] = new MaxUploadCountRule($base, $def['max']);
             }
         }
 
@@ -813,13 +777,13 @@ trait AjaxFileUpload
      */
     public function checkImportedUploadFilename(Model $model, string $field, string $filename): ?string
     {
-        $config = $this->resolveUploadFieldConfig($field);
+        $definition = UploadFieldDefinitions::find(static::class, $field);
 
-        if ($config === null) {
+        if ($definition === null) {
             return null;
         }
 
-        [, $allowTypes] = $config;
+        $allowTypes = $definition['type']->allowedExtensions();
 
         if (! preg_match(UploadFilePath::SAFE_FILENAME, $filename)) {
             return "ファイル名「{$filename}」の形が正しくありません（英数字と「_」、拡張子だけにしてください）。";

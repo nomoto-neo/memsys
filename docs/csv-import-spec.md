@@ -97,7 +97,7 @@ Route::post('/members/csv-import/execute', [AdminMemberController::class, 'csvIm
 
 - 見出しは「添付ファイル:1, 保存ファイル名:1, 添付ファイル:2, 保存ファイル名:2, …」。外側の見出し（`'添付:*'`）は列にはならず、エラーの案内などで組の名前として使う。
 - 組の数は連番の横展開と同じく、対象データの中の最大件数に揃える。
-- 取り込みでは同じ番号どうしを組にし、両方空欄の組は詰める。関連が `UPLOAD_FILES` の複数の項目（`attach.*`）なら、AjaxFileUpload の決まりで `filename` → `attach`、`original_name` → `attach_origin` に取り込む（`'import' =>` は不要）。
+- 取り込みでは同じ番号どうしを組にし、両方空欄の組は詰める。関連が `UPLOAD_FILES` の複数の項目（`'attach.*' => ['type' => UploadType::File, 'max' => 5]` のような欄）なら、AjaxFileUpload の決まりで `filename` → `attach`、`original_name` → `attach_origin` に取り込む（`'import' =>` は不要）。
 - アップロード以外の子テーブル（明細行など）の組は、まずは書き出しだけ。取り込みが必要になったら `@名前` と同じくコントローラーに処理を書く形で足す。
 
 ## 4. 見出しの扱い

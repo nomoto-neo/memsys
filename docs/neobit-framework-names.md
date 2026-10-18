@@ -91,8 +91,8 @@
 | `SearchableList` | `PER_PAGE` | 1ページの件数 | 同じ |
 | `SearchableList` | `ORDER_OPTIONS` | 並び順の選択肢 | 同じ |
 | `SearchableList` | `FREE_WORD_COLUMNS` | フリーワード検索の対象の列 | 同じ |
-| `AjaxFileUpload` | `UPLOAD_FILES` | アップロードの欄 | 同じ |
-| `AjaxFileUpload` | `WYSIWYG_FIELDS` | エディタの欄 | 同じ |
+| `AjaxFileUpload` | `UPLOAD_FILES` | アップロードの欄。欄の名前 => `type`・`width`・`max`（書き方は `UploadFieldDefinitions`） | 同じ |
+| `AjaxFileUpload` | `WYSIWYG_IMAGE_FIELDS` | エディタの欄と、入れた画像を縮小する横幅 | 同じ |
 | `InputNormalizer` | `RAW_INPUT_FIELDS` | 全角と半角をそろえない項目 | |
 | `TwoFactorLogin` | `LOGIN_ACCOUNT` | ログインする人のモデル | |
 | `TwoFactorLogin` | `TWO_FACTOR_VIEW` | 2段階認証の画面 | |
@@ -134,13 +134,14 @@
 | モデル | `Setting` | 管理画面から変えられる設定の1行（キーと値） | |
 | モデルのトレイト | `IsLoginAccount`・`HasTwoFactor`・`HasPasskeys`・`TeamInvitationRelation` | ログイン・2段階認証・パスキー・招待 | `TeamInvitationRelation` だけ `Has〜`・`Is〜` の形でない |
 | コントローラーのトレイト | `FormFlow`・`SearchableList`・`AjaxFileUpload`・`CsvDownload`・`CsvImport`・`CsvReader`・`PdfDownload`・`EmailChange`・`TwoFactorLogin`・`TwoFactorManagement`・`PasskeyLogin`・`PasskeyManagement` | | `CsvReader` だけ「〜er」 |
-| 列挙型 | `SheetPaging`（`Once`・`Sequential`・`Cycle`）・`OperationLogAction`（`ip_block`・`ip_unblock`・`access_restriction_change` を含む）・`TwoFactorMethod`・`LoginIdType`・`CsvEncoding`・`CsvImportMode`・`SpamCheckResult` | | |
+| 列挙型 | `UploadType`（`Image`・`File`）・`SheetPaging`（`Once`・`Sequential`・`Cycle`）・`OperationLogAction`（`ip_block`・`ip_unblock`・`access_restriction_change` を含む）・`TwoFactorMethod`・`LoginIdType`・`CsvEncoding`・`CsvImportMode`・`SpamCheckResult` | | |
 
 ## 6. 案件が呼ぶクラスと、その公開のメソッド
 
 | クラス | 公開のメソッドと定数 | メモ |
 |---|---|---|
 | `CodeTable` | `get()`・`normalizeKey()` | ふつうはヘルパーから使う |
+| `UploadFieldDefinitions` | `of()`・`find()` | ふつうは `AjaxFileUpload` と `upload_field()` が使う |
 | `UploadFilePath` | `directory()`・`isPrivate()`・`disk()`・`url()`・`path()`・`tmpUrl()`・`previewUrl()`、定数 `TMP_DIR`・`TMP_DISK`・`TMP_SESSION_KEY`・`TMP_SESSION_MAX`・`PUBLIC_DISK`・`PRIVATE_DISK`・`SAFE_FILENAME` | |
 | `OperationRecorder` | `record()`・`loggableFields()` | |
 | `OperationLog` | `actionOptions()`・`modelOptions()`・`modelNames()`・`operatorLabel()`・`relatedRecords()`・`operatorTypes()`・`relatedKey()`・`countSummary()`・`csvName()`・`detailText()` | |
@@ -167,7 +168,7 @@
 | `AccessRestriction` | `allowsSite()`・`allowsAdmin()`・`allowedIps()`・`siteIps()`・`adminIps()`・`envSiteIps()`・`envAdminIps()`・`settings()`・`save()`・`turnOff()`・`parseList()`・`lockoutMessage()` | |
 | `IpBlocker` | `isBlocked()`・`countMiss()`・`block()`・`changeUntil()`・`release()`・`deleteExpired()`・`normalizeRange()`・`rangeBounds()`・`coversProtected()` | |
 | `CsvImportSettings`・`CsvImportResult`・`CsvImportRow`・`CsvColumnSet` | 取り込みの設定と結果 | |
-| 検証のルール | `KatakanaRule`・`HiraganaRule`・`PhoneNumberRule`・`SameCountAsRule` | |
+| 検証のルール | `KatakanaRule`・`HiraganaRule`・`PhoneNumberRule`・`SameCountAsRule`・`MaxUploadCountRule` | |
 | ミドルウェア | `AjaxFormResponse`・`NormalizeInput`・`RejectBlockedIp`・`RestrictAdminAccess`・`RestrictSiteAccess`・`SecurityHeaders` | |
 | コントローラー | `CodeTableController`・`IpBlockController`・`AccessRestrictionController`・`OperationLogController`（どれもルートは案件が書く）・`UploadedFileController` | |
 
@@ -183,6 +184,7 @@
 | `safe_html($html)` | エディタの HTML を安全にする | |
 | `upload_input_value($input, $key, $idx)` | アップロードの欄の値 | |
 | `upload_preview_url($model, $input, $field, $idx)` | アップロードの欄に出す URL | |
+| `upload_field($field, $key)` | 今の画面のコントローラーの `UPLOAD_FILES` から、欄の `type`・`width`・`max` を1つ返す | |
 | `required_mark($area)` | 必須マーク | |
 | `required_fields($rules, $alsoRequired)` | 必須マークの配列 | |
 
@@ -205,8 +207,8 @@
 
 | 画面 | 渡す変数 | メモ |
 |---|---|---|
-| `_ajax_upload_block` | `$model`・`$input`・`$field`・`$readonly`・`$uploadUrl`・`$width` ほか | |
-| `_ajax_upload_group` | `$model`・`$input`・`$field`・`$readonly`・`$uploadUrl`・`$width`・`$count` | |
+| `_ajax_upload_block` | `$model`・`$input`・`$field`・`$readonly`・`$uploadUrl`・`$idx` | 種類・横幅は `upload_field()` で読む |
+| `_ajax_upload_group` | `$model`・`$input`・`$field`・`$readonly`・`$uploadUrl` | 種類・横幅・上限は `upload_field()` で読む |
 | `_confirm_hidden` | `$input`・`$exclude` | |
 | `_spam_guard`・`_passkey_suggest` | なし | |
 | `_passkeys` | `$passkeys`・`$passkeyRoute`・`$identityConfirmed`・`$codeSent`・`$confirmBy`・`$twoFactorMissing` | |

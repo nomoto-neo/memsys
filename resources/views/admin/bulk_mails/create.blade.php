@@ -54,7 +54,6 @@
                             'model' => null,
                             'input' => $input,
                             'field' => 'attach',
-                            'width' => 0,
                             'readonly' => '',
                             'uploadUrl' => route('admin.bulk-mails.ajaxUpload'),
                         ])

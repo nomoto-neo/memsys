@@ -29,6 +29,7 @@ use Neobit\Core\Pdf\SheetPaging;
 use Neobit\Core\Rules\KatakanaRule;
 use Neobit\Core\Rules\PhoneNumberRule;
 use Neobit\Core\Upload\AjaxFileUpload;
+use Neobit\Core\Upload\UploadType;
 
 /**
  * マイページ。ログイン中の会員本人が、プロフィールの表示と編集、履歴書のPDF、退会、
@@ -72,7 +73,7 @@ class MypageController extends Controller
      * フィールド（Member::PRIVATE_FILE_FIELDS）なので、本人とスタッフだけが見られる場所に保存される。
      */
     private const UPLOAD_FILES = [
-        'photo' => Member::PHOTO_WIDTH,
+        'photo' => ['type' => UploadType::Image, 'width' => Member::PHOTO_WIDTH],
     ];
 
     // ---- 2段階認証の管理（TwoFactorManagement）の設定 ----

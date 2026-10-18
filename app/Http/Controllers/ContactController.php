@@ -18,6 +18,7 @@ use Neobit\Core\Rules\KatakanaRule;
 use Neobit\Core\Rules\PhoneNumberRule;
 use Neobit\Core\Security\SpamGuard;
 use Neobit\Core\Upload\AjaxFileUpload;
+use Neobit\Core\Upload\UploadType;
 use Neobit\Core\Upload\UploadFilePath;
 
 /**
@@ -45,7 +46,7 @@ class ContactController extends Controller
      * 横幅0は「画像ではなく添付ファイル」を意味する。
      */
     private const UPLOAD_FILES = [
-        'attach_file' => 0,
+        'attach_file' => ['type' => UploadType::File],
     ];
 
     // ---- 確認画面から送信までの順番の保証（confirm_token）の設定 ----

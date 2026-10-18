@@ -26,7 +26,6 @@
                     'model' => null,
                     'input' => $input,
                     'field' => 'attach',
-                    'width' => 0,
                     'readonly' => ' readonly',
                 ])
             </dd>

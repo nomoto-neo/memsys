@@ -70,7 +70,7 @@ class PageController extends Controller
     private const UPLOAD_FILES = [];
 
     /** WYSIWYGからアップロードされる画像の設定。フィールド名 => 横幅(px)。 */
-    private const WYSIWYG_FIELDS = [
+    private const WYSIWYG_IMAGE_FIELDS = [
         'body' => Page::BODY_IMAGE_WIDTH,
     ];
 

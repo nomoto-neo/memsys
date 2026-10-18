@@ -102,7 +102,6 @@
                             'model' => $member,
                             'input' => $input,
                             'field' => 'photo',
-                            'width' => \App\Models\Member::PHOTO_WIDTH,
                             'readonly' => '',
                             'uploadUrl' => route('mypage.ajaxUpload'),
                         ])

@@ -34,12 +34,11 @@
                    単独のフィールド。整数なら複数展開フィールドの$idx番目の
                    行で、name属性の末尾に[]が付く。$inputからの値の取り出し方
                    （upload_input_value()・upload_preview_url()）と同じ意味。
-    - $width       横幅(px)。0なら添付ファイル、それ以外なら画像。
-                   サーバー側(AjaxFileUpload::resizeIfNeeded())で既に
-                   この横幅を超えないようリサイズ済みなので、<img>の
-                   表示サイズはpx指定ではなく、画面の幅に応じて縮む
-                   max-width:90%にしている（$widthは判定・ドロップ
-                   エリアの案内文・サーバー側リサイズにのみ使う）。
+    欄の種類（画像か添付ファイルか）・縮小する横幅・枠の数の上限は、呼び出し側から受け取らず、
+    upload_field()で今の画面のコントローラーのUPLOAD_FILESから読む。画面にも同じ定義を書かせないため。
+    画像はサーバー側(AjaxFileUpload::resizeIfNeeded())で既にこの横幅を超えないよう
+    リサイズ済みなので、<img>の表示サイズはpx指定ではなく、画面の幅に応じて縮む
+    max-width:90%にしている。
     - $readonly    ' readonly'または''（他のtext input等と同じ値をそのまま
                    渡せばよい。空でなければ読み取り専用モードになる）
     - $uploadUrl   (読み取り専用モードでは未使用)Ajaxアップロード先のURL
@@ -53,7 +52,11 @@
     $idx ??= null;
     $uploadUrl ??= null;
 
-    $isImage = $width > 0;
+    // 欄の種類と横幅。今の画面のコントローラーのUPLOAD_FILESから読む
+    $isImage = upload_field($field, 'type') === \Neobit\Core\Upload\UploadType::Image;
+    $width = upload_field($field, 'width');
+    // いくつでも足せる欄の枠では、ファイルをまとめて選べるようにする
+    $multiple = upload_field($field, 'max') !== null;
     $suffix = $idx === null ? '' : '[]';
     $nameValue = $field.$suffix;
     $nameTmp = $field.'_tmp'.$suffix;
@@ -104,7 +107,7 @@
         {{-- 実際に選択されたファイルを受け取るためだけのinput。見た目上は
              ドロップエリア(.ajax_noimage_block)をクリック/ドロップした
              ときに、JavaScript側からこのinputのclick()やfilesを操作する。 --}}
-        <input type="file" class="ajax_file_input d-none" accept="{{ $isImage ? 'image/*' : '' }}">
+        <input type="file" class="ajax_file_input d-none" accept="{{ $isImage ? 'image/*' : '' }}" @if ($multiple) multiple @endif>
 
         {{-- データ更新に必要な情報を持ち回るための4つのhidden。
              意味はNeobit\Core\Upload\AjaxFileUploadのコメント参照。 --}}

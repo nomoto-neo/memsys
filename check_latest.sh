@@ -163,6 +163,9 @@ has   packages/neobit/core/src/Security/AccessRestriction.php           'final c
 has   packages/neobit/core/src/Http/Controllers/OperationLogController.php 'private function indexRoute()'
 has   packages/neobit/core/src/Models/OperationLogNamedModel.php        'interface OperationLogNamedModel'
 has   packages/neobit/core/src/Pdf/PdfDownload.php                      'private function downloadPdfOnSheet('
+has   packages/neobit/core/src/Upload/UploadFieldDefinitions.php        'final class UploadFieldDefinitions'
+has   packages/neobit/core/resources/js/ajax_upload.js                  'function addBlock(group)'
+has   app/Http/Controllers/Admin/NewsController.php                     "'attach.*' => ['type' => UploadType::File, 'max' => 5]"
 has   packages/neobit/core/database/migrations/2026_10_16_000000_create_settings_table.php "Schema::create('settings'"
 has   packages/neobit/core/database/migrations/2026_10_15_000000_create_ip_blocks_table.php "Schema::create('ip_blocks'"
 has   packages/neobit/core/config/neobit.php                            "'code_table_enum_namespaces'"

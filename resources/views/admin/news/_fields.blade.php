@@ -126,7 +126,6 @@
         'model' => $model,
         'input' => $input,
         'field' => 'list_image',
-        'width' => \App\Models\News::LIST_IMAGE_WIDTH,
         'readonly' => $readonly,
         'uploadUrl' => $uploadUrl,
     ])
@@ -193,7 +192,6 @@
         'model' => $model,
         'input' => $input,
         'field' => 'attach',
-        'width' => 0,
         'readonly' => $readonly,
         'uploadUrl' => $uploadUrl,
     ])

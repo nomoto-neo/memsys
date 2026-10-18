@@ -113,7 +113,6 @@
                     'model' => null,
                     'input' => $input,
                     'field' => 'attach_file',
-                    'width' => 0,
                     'readonly' => '',
                     'uploadUrl' => route('contact.ajaxUpload'),
                 ])

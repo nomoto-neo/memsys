@@ -30,6 +30,7 @@ use Neobit\Core\Pdf\SheetPaging;
 use Neobit\Core\Rules\KatakanaRule;
 use Neobit\Core\Rules\PhoneNumberRule;
 use Neobit\Core\Upload\AjaxFileUpload;
+use Neobit\Core\Upload\UploadType;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class MemberController extends Controller
@@ -106,7 +107,7 @@ class MemberController extends Controller
      * ログインした本人とスタッフだけが見られる場所に保存される。
      */
     private const UPLOAD_FILES = [
-        'photo' => Member::PHOTO_WIDTH,
+        'photo' => ['type' => UploadType::Image, 'width' => Member::PHOTO_WIDTH],
     ];
 
     // ---- このコーナーの項目の定義 ----

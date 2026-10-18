@@ -18,6 +18,7 @@ use Neobit\Core\Csv\CsvImportSettings;
 use Neobit\Core\Enums\CsvEncoding;
 use Neobit\Core\Enums\CsvImportMode;
 use Neobit\Core\Upload\AjaxFileUpload;
+use Neobit\Core\Upload\UploadType;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class NewsController extends Controller
@@ -77,12 +78,12 @@ class NewsController extends Controller
      * キーの末尾が".*"の場合は複数展開されるフィールド。
      */
     private const UPLOAD_FILES = [
-        'list_image' => News::LIST_IMAGE_WIDTH,
-        'attach.*' => 0,
+        'list_image' => ['type' => UploadType::Image, 'width' => News::LIST_IMAGE_WIDTH],
+        'attach.*' => ['type' => UploadType::File, 'max' => 5],
     ];
 
     /** WYSIWYGからアップロードされる画像の設定。フィールド名 => 横幅(px)。 */
-    private const WYSIWYG_FIELDS = [
+    private const WYSIWYG_IMAGE_FIELDS = [
         'body' => News::BODY_IMAGE_WIDTH,
     ];
 

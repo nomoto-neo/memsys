@@ -714,15 +714,15 @@ private function beforeDelete(News $news): void
 use AjaxFileUpload;
 
 /**
- * フィールド名 => 横幅(px)。0 は添付ファイル（縮小しない）、0 以外は画像（その横幅に縮小）。
+ * フィールド名 => ['type' => 種類, 'width' => 縮小する横幅, 'max' => 枠の数の上限]。
  * 末尾が「.*」なら複数（添付ファイルの行を増やせる）
  */
 private const UPLOAD_FILES = [
-    'list_image' => News::LIST_IMAGE_WIDTH,
-    'attach.*' => 0,
+    'list_image' => ['type' => UploadType::Image, 'width' => News::LIST_IMAGE_WIDTH],
+    'attach.*' => ['type' => UploadType::File, 'max' => 5],
 ];
-/** 画像を埋め込める WYSIWYG の欄（無ければ書かない） */
-private const WYSIWYG_FIELDS = [
+/** 画像を埋め込める WYSIWYG の欄と、入れた画像を縮小する横幅（無ければ書かない） */
+private const WYSIWYG_IMAGE_FIELDS = [
     'body' => News::BODY_IMAGE_WIDTH,
 ];
 
@@ -742,6 +742,17 @@ private function prepareInput(array $validated): array
 }
 ```
 
+- **`UPLOAD_FILES` の書き方**（決まりは `UploadFieldDefinitions` にあり、誤りは最初に画面を開いたときに例外になります）
+
+    | キー | 1つだけの欄 | 複数の欄（`.*`） |
+    |---|---|---|
+    | `type` | 必ず書く。`UploadType::Image`（画像）か `UploadType::File`（添付ファイル） | 同じ |
+    | `width` | 画像なら必ず書く。この横幅を超えたら縮小する。添付ファイルには書かない | 同じ |
+    | `max` | 書かない | 必ず書く。枠の数の上限 |
+
+    受け付ける拡張子は、種類ごとに `config/upload.php` の `image_types`・`attach_types` を使います。
+- **複数の欄の上限**：画面では、上限まで枠があれば「ファイルを追加」を押せなくします。保存のときの検証（`ajaxUploadRules()` に入っている `MaxUploadCountRule`）でも、ファイルのある枠の数を確かめるので、画面を通さずに送られても上限は守られます。
+- **まとめて選ぶ**：複数の欄では、ファイルをまとめて選べます（ドロップでも同じ）。1つ目は選んだ枠に、2つ目から先は枠を足して入れ、1つずつ順に送ります。上限を超える分は足さずに知らせます。1つだけの欄は、今までどおり1つだけです。
 - `$input` の組み立て（`inputPageValues()`・`confirmPageValues()`）と保存（`saveData()`）は FormFlow が自動でアップロードの処理を呼ぶので、入口の書き方は変わりません。
 - ルートにアップロード先を1本足します：`Route::post('/news/ajax-upload', [AdminNewsController::class, 'uploadAjaxFile'])->name('news.ajaxUpload');`（訪問者向けは `throttle` を付ける）。
 - **単数のフィールド**（`list_image`）：テーブルに `list_image`（保存ファイル名）と `list_image_origin`（元のファイル名）のカラムを作り、モデルの `$fillable` に入れます。
@@ -755,14 +766,16 @@ private function prepareInput(array $validated): array
 {{-- 単数 --}}
 @include('neobit::_ajax_upload_block', [
     'model' => $model, 'input' => $input, 'field' => 'list_image',
-    'width' => \App\Models\News::LIST_IMAGE_WIDTH, 'readonly' => $readonly, 'uploadUrl' => $uploadUrl,
+    'readonly' => $readonly, 'uploadUrl' => $uploadUrl,
 ])
 {{-- 複数 --}}
 @include('neobit::_ajax_upload_group', [
     'model' => $model, 'input' => $input, 'field' => 'attach',
-    'width' => 0, 'readonly' => $readonly, 'uploadUrl' => $uploadUrl,
+    'readonly' => $readonly, 'uploadUrl' => $uploadUrl,
 ])
 ```
+
+- 欄の種類・縮小する横幅・枠の数の上限は、画面には書きません。部品が、ヘルパーの `upload_field(欄の名前, 項目)` で、今の画面のコントローラーの `UPLOAD_FILES` から読みます。そのため、部品はその欄を定義したコントローラーの画面で使います。案内の文などで使いたいときは、画面からも呼べます（`{{ upload_field('attach', 'max') }} 件まで添付できます`）。項目は `'type'`・`'width'`・`'max'` です。
 
 - `$readonly` を渡すだけで、入力画面ではアップロードの UI、確認・詳細画面では表示だけに切り替わります。
 - アップロード欄のある画面（新規登録・編集）は、`@push('head-extra')` で CSRF の `<meta>` と `vendor/neobit/core/resources/js/ajax_upload.js` を読み込みます。

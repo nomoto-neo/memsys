@@ -30,6 +30,7 @@ use Neobit\Core\Enums\CsvEncoding;
 use Neobit\Core\Enums\CsvImportMode;
 use Neobit\Core\Enums\OperationLogActionType;
 use Neobit\Core\Upload\AjaxFileUpload;
+use Neobit\Core\Upload\UploadType;
 use Neobit\Core\Upload\UploadFilePath;
 use Throwable;
 
@@ -103,7 +104,7 @@ class BulkMailController extends Controller
 
     /** アップロードの欄。添付ファイルは1つまで */
     private const UPLOAD_FILES = [
-        'attach' => 0,
+        'attach' => ['type' => UploadType::File],
     ];
 
     /** 添付ファイルの大きさの上限(KB)。宛先の数だけ毎回送られるので、サイト全体の上限より小さくする */

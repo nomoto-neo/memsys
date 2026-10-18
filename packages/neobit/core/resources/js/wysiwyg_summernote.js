@@ -16,7 +16,7 @@
  *
  * エディタに挿入した画像は、一覧用画像などと同じAjaxアップロード
  * (textareaのdata-upload-url)へ送る。fieldにはtextareaのname(例: body)を
- * 送り、サーバー側はそれをコントローラーのWYSIWYG_FIELDSで引いて横幅を
+ * 送り、サーバー側はそれをコントローラーのWYSIWYG_IMAGE_FIELDSで引いて横幅を
  * 決める。サーバーはtmpに保存したURLを返し、それを<img src>にして本文に
  * 入れる(正式な保存先へ移すのは、登録/更新の確定時。詳しくは
  * Neobit\Core\Upload\AjaxFileUploadの「WYSIWYG欄の画像」参照)。

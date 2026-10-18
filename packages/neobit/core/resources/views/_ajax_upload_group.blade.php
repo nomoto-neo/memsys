@@ -22,7 +22,9 @@
                 その中の{field}・{field}_origin・{field}_tmp・{field}_delの
                 並行配列を、行ごとに_ajax_upload_blockが読む。
     - $field    []や.*を含まない、素のフィールド名(例: "attach")
-    - $width    横幅(px)。0なら添付ファイル、それ以外なら画像。
+    欄の種類・縮小する横幅・枠の数の上限は受け取らず、upload_field()で今の画面のコントローラーの
+    UPLOAD_FILESから読む（_ajax_upload_blockも同じ）。上限まで枠があれば「ファイルを追加」を押せなくし、
+    ファイルをまとめて選んだときも、ajax_upload.jsが上限を超えて枠を増やさない。
     - $readonly ' readonly'または''（_ajax_upload_block.blade.phpと同じ
                 値をそのまま渡せばよい）
     - $uploadUrl  (読み取り専用モードでは未使用)Ajaxアップロード先のURL
@@ -34,6 +36,8 @@
 @php
     $values = $input[$field] ?? [];
     $count = is_array($values) ? count($values) : 0;
+    // 枠の数の上限。今の画面のコントローラーのUPLOAD_FILESの'max'
+    $max = upload_field($field, 'max');
 @endphp
 {{-- $readonlyは' readonly'または''のどちらかなので、そのままの
      真偽値判定で読み取り専用かどうかが決まる。 --}}
@@ -60,15 +64,14 @@
                         'input' => $input,
                         'field' => $field,
                         'idx' => $i,
-                        'width' => $width,
-                        'readonly' => $readonly,
+                                'readonly' => $readonly,
                     ])
                 </li>
             @endforeach
         </ul>
     @endif
 @else
-    <div class="ajax_upload_group" data-field="{{ $field }}">
+    <div class="ajax_upload_group" data-field="{{ $field }}" data-max="{{ $max }}">
         @for ($i = 0; $i < max($count, 1); $i++)
             {{-- 1件も無いときは$i=0の1回だけ回る。$input[$field]が空なので
                  どの値もnullになり、空の枠が1つ表示される。 --}}
@@ -77,13 +80,12 @@
                 'input' => $input,
                 'field' => $field,
                 'idx' => $i,
-                'width' => $width,
                 'readonly' => $readonly,
                 'uploadUrl' => $uploadUrl,
             ])
         @endfor
 
-        <button type="button" class="btn btn-sm btn-outline-secondary ajax_add_block mt-1">ファイルを追加</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary ajax_add_block mt-1" @disabled($count >= $max)>ファイルを追加</button>
 
         {{-- JavaScriptが「ファイルを追加」クリック時に複製する、空枠の
              ひな型。<template>の中身はブラウザに描画されず、hidden系の
@@ -97,7 +99,6 @@
                 'input' => [],
                 'field' => $field,
                 'idx' => 0,
-                'width' => $width,
                 'readonly' => $readonly,
                 'uploadUrl' => $uploadUrl,
             ])
