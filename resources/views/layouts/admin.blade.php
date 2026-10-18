@@ -19,9 +19,16 @@
      ここは常にadminガードのことだけを考えればよいので、
      app.blade.php側にあったような「今どちらの画面か」の分岐は不要。
      色（navbar-dark bg-dark）も変えて、見た目でも管理画面だと
-     分かるようにしている。 --}}
-<nav class="navbar navbar-expand navbar-dark bg-dark mb-4">
-    <div class="container">
+     分かるようにしている。
+     ログインしているときは、左にメニュー（admin/_menu.blade.php）を縦に並べる。
+     狭い画面ではメニューを隠し、☰で左から重ねて出す（Bootstrapのoffcanvas-lg）。 --}}
+<nav class="navbar navbar-expand navbar-dark bg-dark">
+    <div class="container-fluid">
+        @auth('admin')
+            <button class="navbar-toggler d-lg-none me-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#adminMenu" aria-controls="adminMenu" aria-label="メニューを開く">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+        @endauth
         <a class="navbar-brand" href="{{ route('admin.dashboard') }}">{{ config('app.site_name') }} 管理画面</a>
         <div class="ms-auto d-flex align-items-center gap-2">
             @auth('admin')
@@ -34,20 +41,38 @@
         </div>
     </div>
 </nav>
-{{-- 本文の横幅。列の多い一覧の画面は、@section('content-width', '1200px')のように書いて広げる --}}
-<div class="container" style="max-width: @yield('content-width', '1000px');">
-    @if (session('status'))
-        <div class="alert alert-success">{{ session('status') }}</div>
-    @endif
+<div class="d-lg-flex">
+    {{-- 左のメニュー。広い画面では本文の左に並び、狭い画面では☰で開く --}}
+    @auth('admin')
+        <aside class="offcanvas-lg offcanvas-start flex-shrink-0 bg-white border-end" tabindex="-1" id="adminMenu" aria-labelledby="adminMenuLabel" style="width: 14rem;">
+            <div class="offcanvas-header border-bottom">
+                <div class="offcanvas-title fw-bold" id="adminMenuLabel">メニュー</div>
+                <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#adminMenu" aria-label="閉じる"></button>
+            </div>
+            <div class="offcanvas-body p-0">
+                @include('admin._menu')
+            </div>
+        </aside>
+    @endauth
 
-    @if (session('error'))
-        <div class="alert alert-danger">{{ session('error') }}</div>
-    @endif
+    {{-- 本文。幅の広い表がメニューの下に回り込まず、本文の中で横に送れるよう、min-widthを0にする --}}
+    <main class="flex-grow-1 py-4" style="min-width: 0;">
+        {{-- 本文の横幅。列の多い一覧の画面は、@section('content-width', '1200px')のように書いて広げる --}}
+        <div class="container" style="max-width: @yield('content-width', '1000px');">
+            @if (session('status'))
+                <div class="alert alert-success">{{ session('status') }}</div>
+            @endif
 
-    {{-- パスキーの登録の案内。パスワードでログインした直後に、1回だけ出る --}}
-    @include('neobit::_passkey_suggest')
+            @if (session('error'))
+                <div class="alert alert-danger">{{ session('error') }}</div>
+            @endif
 
-    @yield('content')
+            {{-- パスキーの登録の案内。パスワードでログインした直後に、1回だけ出る --}}
+            @include('neobit::_passkey_suggest')
+
+            @yield('content')
+        </div>
+    </main>
 </div>
 
 @stack('scripts')

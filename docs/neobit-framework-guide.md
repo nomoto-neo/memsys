@@ -397,7 +397,7 @@ class NewsController extends Controller
    - 入口：`index`・`create`・`confirmForStore`・`backToCreate`・`store`・`show`・`edit`・`confirmForUpdate`・`backToEdit`・`update`・`destroy`
 4. **ルート**：`routes/web.php` の管理画面のグループ（`auth:admin`・`auth.session` の内側）に足す。`/xxx/csv` のような固定の URL は、`/xxx/{id}` より前に書く。
 5. **画面**：`resources/views/admin/<コーナー>/` に `index`・`_fields`・`create`・`edit`・`confirm`・`show`。
-6. **入口のリンク**：管理画面のトップ（`admin/dashboard.blade.php`）からリンクする。
+6. **入口のリンク**：管理画面の左のメニュー（`admin/_menu.blade.php`）に項目を足す。
 7. **権限**：管理者だけの機能なら `acl.manager`、1件ごとに判断が要るなら Policy（13章）。
 8. **確かめる**：一覧の検索と並び順、詳細から「一覧へ戻る」で検索条件とページが戻ること、登録・編集の確認画面と「戻る」、必須マーク、削除。
 
@@ -2387,7 +2387,7 @@ Route::prefix('company')->name('company.')->group(function () {
 | `app/Http/Controllers/` | `Company/` の下の全部、`Admin/CompanyController.php`・`Admin/CompanyUserController.php` |
 | `app/Models/`・`app/Enums/` | `Company`・`CompanyUser`、`CompanyStatus` |
 | `app/Http/Middleware/` | `EnsureCompanyIsApproved` |
-| `resources/` | `views/company/`・`views/layouts/company.blade.php`・`views/admin/companies/`・`views/admin/company_users/`、`mail-templates/company_*.blade.php`、管理画面のトップのリンク |
+| `resources/` | `views/company/`・`views/layouts/company.blade.php`・`views/admin/companies/`・`views/admin/company_users/`、`mail-templates/company_*.blade.php`、管理画面の左のメニュー（`admin/_menu.blade.php`）の「企業会員」 |
 | `routes/web.php` | 企業会員のグループと、管理画面の企業会員管理のルート |
 | `config/` | `auth.php` の `company` のガードとプロバイダー、`login.php` の `company_user` |
 | `bootstrap/app.php` | 移動先の `company.*` の行、`company.approved` の短い名前 |
