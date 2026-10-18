@@ -152,7 +152,13 @@
         </div>
 
         <div class="ajax_noimage_block d-flex align-items-center justify-content-center text-center text-muted {{ $hasFile ? 'd-none' : '' }}"
-             style="{{ $hasFile ? 'display:none;' : '' }} border: 2px dashed #ced4da; border-radius: 0.5rem; background-color: #f8f9fa; min-height: 4rem; cursor: pointer; padding: 0.75rem;">
+             style="{{ $hasFile ? 'display:none;' : '' }} position: relative; border: 2px dashed #ced4da; border-radius: 0.5rem; background-color: #f8f9fa; min-height: 4rem; cursor: pointer; padding: 0.75rem;">
+            {{-- 複数の欄の空いている枠を、枠ごと消すボタン。枠が1つだけのときはJavaScriptが隠す。
+                 Bootstrapが無い画面でも見えるよう、文字の×とインラインのstyleで描く --}}
+            @if ($idx !== null)
+                <button type="button" class="ajax_remove_block" aria-label="この枠を閉じる"
+                        style="position: absolute; top: 0.125rem; right: 0.375rem; border: 0; background: none; padding: 0 0.25rem; font-size: 1.25rem; line-height: 1; color: #6c757d; cursor: pointer;">&times;</button>
+            @endif
             <span>
                 ドロップまたはクリック
                 @if ($isImage)

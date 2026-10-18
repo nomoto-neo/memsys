@@ -103,6 +103,12 @@ class UploadFieldTest extends TestCase
         $this->assertMatchesRegularExpression('/data-field="attach".*?class="ajax_file_input d-none" accept=""\s+multiple/s', $html);
         // 一覧の画像（1つだけの欄）は、まとめて選べない
         $this->assertMatchesRegularExpression('/data-field="list_image".*?class="ajax_file_input d-none" accept="image\/\*" >/s', $html);
+
+        // 枠を閉じる×は、いくつでも足せる欄の枠にだけ出す。ひな型の中の1つと、表示している枠の1つ
+        $this->assertSame(2, substr_count($html, 'class="ajax_remove_block"'));
+
+        // 'inline' => true を渡した添付ファイルの欄は、枠を並べる入れ物に横並びのクラスが付く
+        $this->assertMatchesRegularExpression('/data-field="attach" data-max="5">\s*<div class="ajax_upload_blocks ajax_upload_inline">/', $html);
     }
 }
 

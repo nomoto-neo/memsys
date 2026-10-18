@@ -194,5 +194,6 @@
         'field' => 'attach',
         'readonly' => $readonly,
         'uploadUrl' => $uploadUrl,
+        'inline' => true,
     ])
 </div>

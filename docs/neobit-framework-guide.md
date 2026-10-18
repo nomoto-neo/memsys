@@ -752,7 +752,9 @@ private function prepareInput(array $validated): array
 
     受け付ける拡張子は、種類ごとに `config/upload.php` の `image_types`・`attach_types` を使います。
 - **複数の欄の上限**：画面では、上限まで枠があれば「ファイルを追加」を押せなくします。保存のときの検証（`ajaxUploadRules()` に入っている `MaxUploadCountRule`）でも、ファイルのある枠の数を確かめるので、画面を通さずに送られても上限は守られます。
-- **まとめて選ぶ**：複数の欄では、ファイルをまとめて選べます（ドロップでも同じ）。1つ目は選んだ枠に、2つ目から先は枠を足して入れ、1つずつ順に送ります。上限を超える分は足さずに知らせます。1つだけの欄は、今までどおり1つだけです。
+- **まとめて選ぶ**：複数の欄では、ファイルをまとめて選べます（ドロップでも同じ）。1つ目は選んだ枠に、2つ目から先は空いている枠に入れ、1つずつ順に送ります。空いている枠が無ければ、受け付けられてから枠を足すので、許可されない種類のファイルで空の枠は増えません。上限を超える分は足さずに知らせます。1つだけの欄は、今までどおり1つだけです。
+- **ファイルを削除する**：複数の欄で枠が2つ以上あれば、枠ごと消します。最後の1枠は空にして残します。
+- **空の枠を閉じる**：複数の欄の空いている枠は、右上の × で枠ごと消せます。枠が1つだけのときは × を出しません。
 - `$input` の組み立て（`inputPageValues()`・`confirmPageValues()`）と保存（`saveData()`）は FormFlow が自動でアップロードの処理を呼ぶので、入口の書き方は変わりません。
 - ルートにアップロード先を1本足します：`Route::post('/news/ajax-upload', [AdminNewsController::class, 'uploadAjaxFile'])->name('news.ajaxUpload');`（訪問者向けは `throttle` を付ける）。
 - **単数のフィールド**（`list_image`）：テーブルに `list_image`（保存ファイル名）と `list_image_origin`（元のファイル名）のカラムを作り、モデルの `$fillable` に入れます。
@@ -778,6 +780,21 @@ private function prepareInput(array $validated): array
 - 欄の種類・縮小する横幅・枠の数の上限は、画面には書きません。部品が、ヘルパーの `upload_field(欄の名前, 項目)` で、今の画面のコントローラーの `UPLOAD_FILES` から読みます。そのため、部品はその欄を定義したコントローラーの画面で使います。案内の文などで使いたいときは、画面からも呼べます（`{{ upload_field('attach', 'max') }} 件まで添付できます`）。項目は `'type'`・`'width'`・`'max'` です。
 
 - `$readonly` を渡すだけで、入力画面ではアップロードの UI、確認・詳細画面では表示だけに切り替わります。
+- **横に並べる**：複数の欄は、`'inline' => true` を渡すと枠を横に並べ、入りきらなければ折り返します（見本はニュースの添付ファイル）。枠の幅は 14rem で、`global.css` の `.ajax_upload_inline` にあります。案件の CSS で枠に幅を当てれば変えられます（`.ajax_upload_group[data-field="attach"] .ajax_upload_block { width: 10rem; }`）。
+
+  固定の幅（rem・px）を当てると、1行に並ぶ数は入れ物の幅で変わります。画面の幅にかかわらず1行に並ぶ数を決めたいときは、枠の間（0.5rem）を差し引いた割合で幅を当てます。1行に n 個なら `calc((100% - 0.5rem × (n − 1)) / n)` です。割合だとスマホでも同じ数で並んで枠が細くなるので、狭い画面は `@media` で数を減らします。
+
+  ```css
+  /* 広い画面は1行に3つ、狭い画面は1つ */
+  .ajax_upload_group[data-field="attach"] .ajax_upload_block {
+      width: calc((100% - 1rem) / 3);
+  }
+  @media (max-width: 576px) {
+      .ajax_upload_group[data-field="attach"] .ajax_upload_block {
+          width: 100%;
+      }
+  }
+  ```
 - アップロード欄のある画面（新規登録・編集）は、`@push('head-extra')` で CSRF の `<meta>` と `vendor/neobit/core/resources/js/ajax_upload.js` を読み込みます。
 - **WYSIWYG**：`<textarea class="wysiwyg" data-upload-url="...">` を置き、`wysiwyg_suneditor.js` か `wysiwyg_summernote.js` を読み込みます（どちらでもサーバー側は同じ）。確認・詳細画面では `{!! safe_html($input['body']) !!}` で表示します。
 - **エディタは、1つの画面に1種類だけ読み込みます**。どちらのスクリプトも `textarea.wysiwyg` を探して置き換えるので、両方を読み込むとぶつかります。見本のサイトでは、ニュースの本文を summernote、固定ページの本文を SunEditor にして、両方の動作の見本にしています。

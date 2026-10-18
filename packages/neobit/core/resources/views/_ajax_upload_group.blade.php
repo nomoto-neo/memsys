@@ -28,6 +28,9 @@
     - $readonly ' readonly'または''（_ajax_upload_block.blade.phpと同じ
                 値をそのまま渡せばよい）
     - $uploadUrl  (読み取り専用モードでは未使用)Ajaxアップロード先のURL
+    - $inline   (省略可)trueなら、枠を横に並べる。省略すると縦に並べる。並べ方と枠の幅は
+                global.cssの.ajax_upload_inlineにあり、枠の幅は案件のCSSで変えられる。
+                読み取り専用モードでは使わない
 
     行数は$input[$field]（ファイル名の配列）の要素数で決める。4本の並行配列は
     AjaxFileUpload::ajaxUploadValues()が、0から始まる添え字・同じ要素数に
@@ -38,6 +41,7 @@
     $count = is_array($values) ? count($values) : 0;
     // 枠の数の上限。今の画面のコントローラーのUPLOAD_FILESの'max'
     $max = upload_field($field, 'max');
+    $inline ??= false;
 @endphp
 {{-- $readonlyは' readonly'または''のどちらかなので、そのままの
      真偽値判定で読み取り専用かどうかが決まる。 --}}
@@ -72,18 +76,21 @@
     @endif
 @else
     <div class="ajax_upload_group" data-field="{{ $field }}" data-max="{{ $max }}">
-        @for ($i = 0; $i < max($count, 1); $i++)
-            {{-- 1件も無いときは$i=0の1回だけ回る。$input[$field]が空なので
-                 どの値もnullになり、空の枠が1つ表示される。 --}}
-            @include('neobit::_ajax_upload_block', [
-                'model' => $model,
-                'input' => $input,
-                'field' => $field,
-                'idx' => $i,
-                'readonly' => $readonly,
-                'uploadUrl' => $uploadUrl,
-            ])
-        @endfor
+        {{-- 枠を並べる入れ物。ajax_upload.jsは、足した枠をこの末尾に入れる --}}
+        <div class="ajax_upload_blocks {{ $inline ? 'ajax_upload_inline' : '' }}">
+            @for ($i = 0; $i < max($count, 1); $i++)
+                {{-- 1件も無いときは$i=0の1回だけ回る。$input[$field]が空なので
+                     どの値もnullになり、空の枠が1つ表示される。 --}}
+                @include('neobit::_ajax_upload_block', [
+                    'model' => $model,
+                    'input' => $input,
+                    'field' => $field,
+                    'idx' => $i,
+                    'readonly' => $readonly,
+                    'uploadUrl' => $uploadUrl,
+                ])
+            @endfor
+        </div>
 
         <button type="button" class="btn btn-sm btn-outline-secondary ajax_add_block mt-1" @disabled($count >= $max)>ファイルを追加</button>
 

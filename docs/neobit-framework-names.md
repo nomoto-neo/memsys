@@ -208,7 +208,7 @@
 | 画面 | 渡す変数 | メモ |
 |---|---|---|
 | `_ajax_upload_block` | `$model`・`$input`・`$field`・`$readonly`・`$uploadUrl`・`$idx` | 種類・横幅は `upload_field()` で読む |
-| `_ajax_upload_group` | `$model`・`$input`・`$field`・`$readonly`・`$uploadUrl` | 種類・横幅・上限は `upload_field()` で読む |
+| `_ajax_upload_group` | `$model`・`$input`・`$field`・`$readonly`・`$uploadUrl`・`$inline`（省略可） | 種類・横幅・上限は `upload_field()` で読む |
 | `_confirm_hidden` | `$input`・`$exclude` | |
 | `_spam_guard`・`_passkey_suggest` | なし | |
 | `_passkeys` | `$passkeys`・`$passkeyRoute`・`$identityConfirmed`・`$codeSent`・`$confirmBy`・`$twoFactorMissing` | |
@@ -255,7 +255,7 @@
 |---|---|---|
 | ファイル | `global.js`・`global.css`・`ajax_upload.js`・`upload_request.js`・`passkeys.js`・`code_editor.js`・`ip_block.js`・`wysiwyg_suneditor.js`・`wysiwyg_suneditor_content.css`・`wysiwyg_summernote.js` | |
 | 短い名前 | `@neobit`（`vite.config.js` の alias） | |
-| 動かすクラス名 | `ajax_submit`・`wysiwyg`・`ajax_upload_block`・`ajax_upload_group`・`ajax_add_block`・`ajax_block_template`・`ajax_file_input`・`ajax_file_link`・`ajax_image_block`・`ajax_noimage_block`・`ajax_origin`・`ajax_tmp`・`ajax_del`・`ajax_cancel`・`ajax_submit_message`・`passkey_login`・`passkey_register`・`passkey_message`・`passkey_supported`・`passkey_unsupported`・`required-mark` | `required-mark` だけハイフン区切り |
+| 動かすクラス名 | `ajax_submit`・`wysiwyg`・`ajax_upload_block`・`ajax_upload_group`・`ajax_upload_blocks`・`ajax_upload_inline`・`ajax_add_block`・`ajax_block_template`・`ajax_file_input`・`ajax_file_link`・`ajax_image_block`・`ajax_noimage_block`・`ajax_origin`・`ajax_tmp`・`ajax_del`・`ajax_cancel`・`ajax_remove_block`・`ajax_submit_message`・`passkey_login`・`passkey_register`・`passkey_message`・`passkey_supported`・`passkey_unsupported`・`required-mark` | `required-mark` だけハイフン区切り |
 | `data-` 属性 | `data-confirm`・`data-item`・`data-field`・`data-is-image`・`data-upload-url`・`data-submit-url`・`data-options-url`・`data-remember`・`data-current`・`data-unsaved`・`data-switch-answer`・`data-remove-row` | |
 
 ## 13. そのほか
