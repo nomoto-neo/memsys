@@ -11,6 +11,7 @@ use App\Models\BulkMail;
 use App\Models\BulkMailTemplate;
 use App\Models\Member;
 use App\Rules\BulkMailPlaceholderRule;
+use App\Rules\MailDomainRule;
 use App\Services\BulkMailCleanup;
 use Illuminate\Bus\Batch;
 use Illuminate\Database\Eloquent\Model;
@@ -403,13 +404,29 @@ class BulkMailController extends Controller
 
     // ---- CSVの検証 ----
 
+    /**
+     * CSVの1行の検証ルール。config('mail.bulk_check_domain')がtrueなら、メールアドレスのドメインがあるかも
+     * 確かめる（MailDomainRule）。ドメインの打ち間違いを、送る前に見つけるため。
+     */
+    private function recipientRules(): array
+    {
+        $rules = self::RECIPIENT_RULES;
+
+        // 形の誤りがあれば、ドメインは引かずに形の誤りだけを出す
+        if (config('mail.bulk_check_domain')) {
+            $rules['email'] = ['bail', ...$rules['email'], new MailDomainRule()];
+        }
+
+        return $rules;
+    }
+
     /** 宛先のCSVを読んで全行を確かめる */
     private function readRecipients(string $path, string $filename, ?CsvEncoding $encoding): CsvImportResult
     {
         return $this->readCsv(
             settings: $this->recipientCsvSettings(),
             columnDefinitions: self::RECIPIENT_COLUMNS,
-            rulesFor: fn (?Model $record) => self::RECIPIENT_RULES,
+            rulesFor: fn (?Model $record) => $this->recipientRules(),
             path: $this->csvFilePath($path),
             filename: $filename,
             encoding: $encoding,

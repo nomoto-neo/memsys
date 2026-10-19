@@ -119,4 +119,9 @@ return [
     // App\Jobs\SendBulkMailが、AppServiceProviderのbulk-mailの制限として使う
     'bulk_per_minute' => (int) env('MAIL_BULK_PER_MINUTE', 5),
 
+    // 一斉メールの宛先のCSVを読むときに、メールアドレスのドメインがDNSにあるかを確かめるか
+    // （App\Rules\MailDomainRule）。ドメインの打ち間違いを、送る前に見つける。
+    // DNSを引けないサーバーと、外のネットワークに頼らないテストでは、falseにする
+    'bulk_check_domain' => (bool) env('MAIL_BULK_CHECK_DOMAIN', true),
+
 ];
