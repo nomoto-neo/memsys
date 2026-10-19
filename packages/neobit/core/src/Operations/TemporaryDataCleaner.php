@@ -4,6 +4,7 @@ namespace Neobit\Core\Operations;
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use League\Flysystem\UnableToRetrieveMetadata;
 use Neobit\Core\Csv\CsvImportSettings;
 use Neobit\Core\Models\OperationLog;
 use Neobit\Core\Models\TrustedDevice;
@@ -166,7 +167,11 @@ final class TemporaryDataCleaner
             ->delete();
     }
 
-    /** ディスクのディレクトリの直下にある、MAX_AGE_HOURSより古いファイルを消す。 */
+    /**
+     * ディスクのディレクトリの直下にある、MAX_AGE_HOURSより古いファイルを消す。
+     * 一覧を取った後に、ほかの片付けが同じファイルを消していることがある。アップロードのたびの片付けと
+     * 1時間ごとの片付けが重なったときなど。そのファイルは飛ばして、残りの片付けを続ける。
+     */
     private static function deleteOldFiles(string $diskName, string $directory): int
     {
         $disk = Storage::disk($diskName);
@@ -174,7 +179,14 @@ final class TemporaryDataCleaner
         $deleted = 0;
 
         foreach ($disk->files($directory) as $path) {
-            if ($disk->lastModified($path) < $cutoff && $disk->delete($path)) {
+            // 時刻が読めないのは、先に消されたとき
+            try {
+                $lastModified = $disk->lastModified($path);
+            } catch (UnableToRetrieveMetadata) {
+                continue;
+            }
+
+            if ($lastModified < $cutoff && $disk->delete($path)) {
                 $deleted++;
             }
         }
