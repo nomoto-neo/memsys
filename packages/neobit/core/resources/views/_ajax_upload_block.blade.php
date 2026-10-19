@@ -148,7 +148,7 @@
                     <a href="{{ $url }}" target="_blank" download="{{ $origin }}" class="ajax_file_link">{{ $linkText }}</a>
                 </div>
             @endif
-            <a href="#" class="ajax_cancel small text-danger">ファイルを削除する</a>
+            <a href="#" class="ajax_cancel small text-danger">[ファイルを削除]</a>
         </div>
 
         <div class="ajax_noimage_block d-flex align-items-center justify-content-center text-center text-muted {{ $hasFile ? 'd-none' : '' }}"
