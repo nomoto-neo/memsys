@@ -43,8 +43,10 @@ use Neobit\Core\Models\OperationLog;
  *                         メールアドレスを補足に残す
  * 一覧の表示と検索は記録しない。
  *
- * ■ 片付け
+ * ■ 片付けと、取らない設定
  * config('cleanup.operation_log_days')の日数を過ぎた行は、TemporaryDataCleanerが消す。
+ * 日数を0にすると、操作ログを取らない。操作ログを求められない案件のため。
+ * それまでに溜まった行は、片付けでは消さずに残る。
  */
 final class OperationRecorder
 {
@@ -75,6 +77,13 @@ final class OperationRecorder
         ?Model $operator = null,
         ?string $targetClass = null,
     ): void {
+        // 残す日数が0なら、取らない。設定に無いときは取る。設定のキャッシュが古くて項目がまだ無いときに、
+        // 黙って記録が止まらないようにするため
+        $days = config('cleanup.operation_log_days');
+        if ($days !== null && (int) $days <= 0) {
+            return;
+        }
+
         $operator ??= Auth::user();
 
         // 対象の種類。1件が分かっていればその種類、種類だけ渡されたときはそのクラスの種類

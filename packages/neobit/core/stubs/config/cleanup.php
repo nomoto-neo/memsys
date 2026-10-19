@@ -19,7 +19,8 @@ return [
     |
     */
 
-    // 操作ログ（operation_logs。Neobit\Core\Operations\OperationRecorder）を残す日数
+    // 操作ログ（operation_logs。Neobit\Core\Operations\OperationRecorder）を残す日数。
+    // 0にすると、操作ログを取らない。それまでに溜まった行は、消さずに残る
     // 'operation_log_days' => 365,
 
     // 試し直しても送れなかったキューのジョブ（failed_jobs）を残す日数。この間なら、

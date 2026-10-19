@@ -13,7 +13,7 @@ return [
     |
     */
 
-    // 操作ログ（operation_logs）を残す日数
+    // 操作ログ（operation_logs）を残す日数。0にすると、操作ログを取らない
     'operation_log_days' => 365,
 
     // 試し直しても送れなかったキューのジョブ（failed_jobs）を残す日数

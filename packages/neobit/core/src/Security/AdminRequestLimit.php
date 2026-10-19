@@ -19,7 +19,7 @@ use Symfony\Component\HttpFoundation\Response;
  * ■ 回数
  * config('neobit.admin_requests_per_minute')。
  * 人が普通に使って届かない数にする。画面の表示のほか、アップロードや、送信中の画面の
- * 読み直しも1回に数える。
+ * 読み直しも1回に数える。0にすると、制限を掛けない。
  *
  * ■ 超えたとき
  * その回は処理せずに、少し待つよう案内する画面を返す。案内の文は、
@@ -45,8 +45,14 @@ final class AdminRequestLimit
      */
     public static function limit(Request $request): Limit
     {
-        // 設定が無いか0のときは、既定の回数にする。0のまま使うと、全部の操作が止まる
-        $perMinute = (int) config('neobit.admin_requests_per_minute') ?: self::DEFAULT_PER_MINUTE;
+        // 設定が無いときは、既定の回数にする
+        $perMinute = (int) (config('neobit.admin_requests_per_minute') ?? self::DEFAULT_PER_MINUTE);
+
+        // 0なら、制限を掛けない
+        if ($perMinute <= 0) {
+            return Limit::none();
+        }
+
         $staffId = $request->user()?->getKey();
 
         return Limit::perMinute($perMinute)
