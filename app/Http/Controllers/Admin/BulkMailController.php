@@ -27,12 +27,10 @@ use Neobit\Core\Csv\CsvImportResult;
 use Neobit\Core\Csv\CsvImportRow;
 use Neobit\Core\Csv\CsvImportSettings;
 use Neobit\Core\Csv\CsvReader;
+use Neobit\Core\Csv\CsvWriter;
 use Neobit\Core\Enums\CsvEncoding;
 use Neobit\Core\Enums\CsvImportMode;
-use Neobit\Core\Enums\OperationLogAction;
 use Neobit\Core\Enums\OperationLogActionType;
-use Neobit\Core\Models\CsvDownloadLog;
-use Neobit\Core\Operations\OperationRecorder;
 use Neobit\Core\Upload\AjaxFileUpload;
 use Neobit\Core\Upload\UploadType;
 use Neobit\Core\Upload\UploadFilePath;
@@ -228,46 +226,24 @@ class BulkMailController extends Controller
     /**
      * 送れなかった宛先の全件のCSV。「氏名, メールアドレス, 送れなかった理由」の3列で、見出しの行は無い。
      * 3列目を消せば、そのまま宛先のCSVとして読み込めるようにするため。
-     * 宛先は個人情報なので、ほかのCSVのダウンロード（Neobit\Core\Csv\CsvDownload）と同じく、
-     * ダウンロードの記録と操作ログを残す。
+     * 宛先は個人情報なので、ほかのCSVと同じく、ダウンロードの記録と操作ログを残す（CsvWriter）。
      */
     public function failedCsv(BulkMail $bulkMail): StreamedResponse
     {
-        $recipients = $bulkMail->failedRecipients();
+        $rows = array_map(
+            fn (array $recipient) => [$recipient['name'], $recipient['email'], $recipient['reason']],
+            $bulkMail->failedRecipients(),
+        );
 
-        // ダウンロードの記録。条件として、どの送信の分かを残す
-        $log = CsvDownloadLog::create([
-            'name' => self::FAILED_CSV_NAME,
-            'operator_id' => Auth::id(),
-            'row_count' => count($recipients),
-            'conditions' => ['bulk_mail_id' => $bulkMail->id],
-            'ip' => request()->ip(),
-        ]);
-        OperationRecorder::record(OperationLogAction::CsvDownload, detail: ['name' => self::FAILED_CSV_NAME, 'csv_download_log_id' => $log->id]);
-
-        $filename = self::FAILED_CSV_NAME.'_'.now()->format('Ymd_Hi').'.csv';
-
-        return response()->streamDownload(function () use ($recipients) {
-            $out = fopen('php://output', 'w');
-
-            // Excelが文字コードを見分けられるよう、先頭にBOMを付ける
-            fwrite($out, "\xEF\xBB\xBF");
-
-            foreach ($recipients as $recipient) {
-                $fields = [$recipient['name'], $recipient['email'], $recipient['reason']];
-
-                // 数式として動きうる文字で始まる値は、先頭に「'」を付けて文字列として扱わせる。CsvDownloadと同じ
-                foreach ($fields as $i => $field) {
-                    if ($field !== '' && in_array($field[0], ['=', '+', '-', '@', "\t", "\r"], true)) {
-                        $fields[$i] = "'".$field;
-                    }
-                }
-
-                fputcsv($out, $fields, ',', '"', '', "\r\n");
-            }
-
-            fclose($out);
-        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
+        return CsvWriter::download(
+            name: self::FAILED_CSV_NAME,
+            rows: $rows,
+            encoding: CsvEncoding::Utf8Bom,
+            headings: null,
+            escapeFormula: true,
+            // どの送信の分かを、ダウンロードの記録に残す
+            conditions: ['bulk_mail_id' => $bulkMail->id],
+        );
     }
 
     // ---- 送信 ----

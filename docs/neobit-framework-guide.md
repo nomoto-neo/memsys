@@ -1056,7 +1056,7 @@ Blade には `\App\Enums\...` を書かず、`code_table()` 系で書きます�
 
 <p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
 
-**ファイル**：`packages/neobit/core/src/Csv/CsvDownload.php`・`CsvColumnSet.php`（項目の定義の書き方）・`CsvWriter.php`（共通の書き出し方）　**実例**：`Admin\MemberController`・`Admin\NewsController`
+**ファイル**：`packages/neobit/core/src/Csv/CsvDownload.php`・`CsvColumnSet.php`（項目の定義の書き方）・`CsvWriter.php`（共通の書き出し方）　**実例**：`Admin\MemberController`・`Admin\NewsController`・`Admin\BulkMailController::failedCsv()`
 
 ```php
 use CsvDownload;
