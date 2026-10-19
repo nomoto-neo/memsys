@@ -153,7 +153,7 @@
 | `MailTemplateParser` | `parse()` | |
 | `PasswordChange` | `resetAndNotify()` | |
 | `LoginProfileNotice` | `send()` | |
-| `LoginVerificationCode` | `issue()`・`issueForAddress()`・`hasPending()`・`verify()`・`verifyForAddress()`、定数 `PURPOSE_〜` | コンストラクタの引数の名前が `$memberClass`（会員以外も渡す） |
+| `LoginVerificationCode` | `issue()`・`issueForAddress()`（引数 `purposeLabel:` は省略可）・`hasPending()`・`verify()`・`verifyForAddress()`、定数 `PURPOSE_〜` | コンストラクタの引数の名前が `$memberClass`（会員以外も渡す） |
 | `LoginThrottle` | `isBlocked()`・`availableIn()`・`blockedMessage()`・`hit()`・`clear()` | |
 | `LoginRedirect` | `remember()`・`for()` | |
 | `LoginSession` | `logout()` | |

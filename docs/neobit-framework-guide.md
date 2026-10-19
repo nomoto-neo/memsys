@@ -1539,6 +1539,13 @@ if ($throttle->isBlocked()) {
 
 用途（`PURPOSE_LOGIN`・`PURPOSE_PASSWORD_RESET`・`PURPOSE_MYPAGE_PASSWORD`・`PURPOSE_REGISTER`・`PURPOSE_PASSKEY`・`PURPOSE_BACKUP_CODES`・`PURPOSE_FIRST_LOGIN`・`PURPOSE_EMAIL_CHANGE`）ごとにセッションで管理します。`issue()` で発行とメール送信、`verify()` で照合します。会員登録のようにまだ会員がいない場合と、初回のログインでの登録やメールアドレスの変更のようにメールアドレスがまだ保存されていない場合は、`issueForAddress()`・`verifyForAddress()` です。
 
+案件の側で決めた使い道（メルマガの登録など）にも使えます。使い道の文字列は案件の側で決め、メールの件名と本文に差し込む名前を `purposeLabel:` で渡します。使い道ごとにセッションのキーが分かれるので、ほかの画面のコードとは混ざりません。
+
+```php
+(new LoginVerificationCode(Member::class))->issueForAddress($request, $email, $name, 'newsletter', purposeLabel: 'メルマガの登録');
+// 件名は「【サイト名】メルマガの登録のお手続き」。照合は verifyForAddress($request, 'newsletter', $code)
+```
+
 ### メールアドレスの変更の確認（EmailChange）
 
 **ファイル**：`packages/neobit/core/src/Auth/EmailChange.php`　**実例**：`MypageController`・`Company\ProfileController`、画面は `mypage/email-verify.blade.php`・`company/mypage/profile-email-verify.blade.php`

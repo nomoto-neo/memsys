@@ -110,10 +110,12 @@ class LoginVerificationCode
     /**
      * まだ会員がいない会員登録や、これから変える先のアドレスを確かめるメールアドレスの変更の
      * ために、宛先のメールアドレスに結び付けてコードを発行してメールで送る。それ以外はissue()と同じ。
+     * 案件の側で決めた使い道（メルマガの登録など）は、メールの件名と本文に差し込む名前を
+     * $purposeLabelで渡す。省略すると、使い道の定数から決めた名前（「会員登録」など）を使う。
      *
      * @param  string  $name  メールの宛名に使う
      */
-    public function issueForAddress(Request $request, string $email, string $name, string $purpose): bool
+    public function issueForAddress(Request $request, string $email, string $name, string $purpose, ?string $purposeLabel = null): bool
     {
         $code = $this->generateCode();
 
@@ -123,7 +125,7 @@ class LoginVerificationCode
             'expires_at' => now()->addMinutes(self::VALID_MINUTES)->timestamp,
         ]);
 
-        return $this->sendMail($email, $name, $code, $purpose, []);
+        return $this->sendMail($email, $name, $code, $purpose, [], $purposeLabel);
     }
 
     /**
@@ -208,9 +210,10 @@ class LoginVerificationCode
      * @param  array<string, mixed>  $logContext  送れなかったときのログに添える情報。
      *         メールアドレスは個人情報なので、ログには出さない。
      */
-    private function sendMail(string $email, string $name, string $code, string $purpose, array $logContext): bool
+    private function sendMail(string $email, string $name, string $code, string $purpose, array $logContext, ?string $purposeLabel = null): bool
     {
-        $label = match ($purpose) {
+        // 渡された名前があればそれを使い、無ければ使い道の定数から決める
+        $label = $purposeLabel ?? match ($purpose) {
             self::PURPOSE_LOGIN => 'ログイン',
             self::PURPOSE_PASSWORD_RESET => 'パスワードの再設定',
             self::PURPOSE_MYPAGE_PASSWORD => 'パスワードの変更',
