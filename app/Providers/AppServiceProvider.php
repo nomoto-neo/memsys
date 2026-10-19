@@ -9,6 +9,7 @@ use App\Models\Company;
 use App\Models\CompanyUser;
 use App\Models\Inquiry;
 use App\Models\Member;
+use App\Models\NewsletterSubscriber;
 use App\Models\News;
 use App\Models\Page;
 use App\Models\Staff;
@@ -61,6 +62,7 @@ class AppServiceProvider extends ServiceProvider
             'page' => Page::class,
             'bulk_mail' => BulkMail::class,
             'bulk_mail_template' => BulkMailTemplate::class,
+            'newsletter_subscriber' => NewsletterSubscriber::class,
             'category' => Category::class,
             // 企業会員。企業と、ログインする担当者
             'company' => Company::class,

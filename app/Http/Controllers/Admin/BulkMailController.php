@@ -4,15 +4,14 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\AppOperationLogAction;
 use App\Enums\BulkMailStatus;
-use App\Enums\NoticeMail;
 use App\Http\Controllers\Controller;
 use App\Jobs\SendBulkMail;
 use App\Models\BulkMail;
 use App\Models\BulkMailTemplate;
-use App\Models\Member;
 use App\Rules\BulkMailPlaceholderRule;
 use App\Rules\MailDomainRule;
 use App\Services\BulkMailCleanup;
+use App\Services\NewsletterSubscription;
 use Illuminate\Bus\Batch;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
@@ -110,6 +109,9 @@ class BulkMailController extends Controller
 
     /** 送れなかった宛先のCSVの名前。ファイル名とダウンロードの記録に使う */
     private const FAILED_CSV_NAME = '一斉メールの送れなかった宛先';
+
+    /** メルマガ希望者の宛先のCSVの名前。ファイル名とダウンロードの記録に使う */
+    private const SUBSCRIBERS_CSV_NAME = 'メルマガ希望者';
 
     /** 「受け取らない」の会員を探すときに、1回の問い合わせで比べるメールアドレスの数 */
     private const OPT_OUT_CHECK_CHUNK = 1000;
@@ -244,6 +246,23 @@ class BulkMailController extends Controller
             escapeFormula: true,
             // どの送信の分かを、ダウンロードの記録に残す
             conditions: ['bulk_mail_id' => $bulkMail->id],
+        );
+    }
+
+    /**
+     * メルマガ希望者の宛先のCSV。お知らせメールを受け取る会員と、会員ではない人の全員を、
+     * 宛先のCSVと同じ「氏名, メールアドレス」の2列で出す。見出しの行は無い。落としたものを、
+     * そのまま宛先として読み込めるようにするため（App\Services\NewsletterSubscription::recipientRows()）。
+     */
+    public function subscribersCsv(): StreamedResponse
+    {
+        return CsvWriter::download(
+            name: self::SUBSCRIBERS_CSV_NAME,
+            rows: NewsletterSubscription::recipientRows(),
+            encoding: CsvEncoding::Utf8Bom,
+            headings: null,
+            escapeFormula: true,
+            conditions: [],
         );
     }
 
@@ -435,7 +454,8 @@ class BulkMailController extends Controller
 
     /**
      * 全行を確かめた後の、行をまたいだ確かめ。同じメールアドレスが2回以上あればエラーにする。
-     * 同じ人に2通届かないように。お知らせメールを受け取らない会員のアドレスも、エラーにする
+     * 同じ人に2通届かないように。お知らせメールの配信を停止しているアドレスも、エラーにする。
+     * 会員の設定と、会員ではない人の配信停止（App\Services\NewsletterSubscription）の両方を見る
      */
     private function validateCsvRows(CsvImportResult $result): void
     {
@@ -456,13 +476,14 @@ class BulkMailController extends Controller
             }
 
             if (isset($optedOut[$email])) {
-                $row->addError('お知らせメールを受け取らない会員です。宛先から外してください。', 'メールアドレス');
+                $row->addError('お知らせメールの配信を停止しているアドレスです。宛先から外してください。', 'メールアドレス');
             }
         }
     }
 
     /**
-     * CSVのメールアドレスのうち、お知らせメールを「受け取らない」にしている会員のもの。
+     * CSVのメールアドレスのうち、お知らせメールの配信を停止しているもの。会員の設定と、会員ではない人の
+     * メルマガの行の両方を見る。
      * 大文字と小文字は同じアドレスとして比べるので、小文字にしたアドレスをキーにして返す。
      *
      * @return array<string, true>
@@ -483,13 +504,7 @@ class BulkMailController extends Controller
 
         // 宛先が多いと問い合わせが長くなるので、分けて探す
         foreach (array_chunk(array_keys($emails), self::OPT_OUT_CHECK_CHUNK) as $chunk) {
-            $found = Member::whereIn('email', $chunk)
-                ->where('notice_mail', NoticeMail::Stop->value)
-                ->pluck('email');
-
-            foreach ($found as $email) {
-                $optedOut[mb_strtolower($email)] = true;
-            }
+            $optedOut += NewsletterSubscription::stoppedEmails($chunk);
         }
 
         return $optedOut;

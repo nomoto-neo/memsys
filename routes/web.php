@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\CompanyController as AdminCompanyController;
 use App\Http\Controllers\Admin\CompanyUserController as AdminCompanyUserController;
 use App\Http\Controllers\Admin\MemberController as AdminMemberController;
 use App\Http\Controllers\Admin\NewsController as AdminNewsController;
+use App\Http\Controllers\Admin\NewsletterSubscriberController as AdminNewsletterSubscriberController;
 use App\Http\Controllers\Admin\PageController as AdminPageController;
 use App\Http\Controllers\Admin\StaffController as AdminStaffController;
 use App\Http\Controllers\AuthPasswordController;
@@ -27,6 +28,7 @@ use App\Http\Controllers\ContactController;
 use App\Http\Controllers\MailUnsubscribeController;
 use App\Http\Controllers\MypageController;
 use App\Http\Controllers\NewsController;
+use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\TopController;
@@ -69,6 +71,20 @@ Route::get('/mail/unsubscribe', [MailUnsubscribeController::class, 'show'])->nam
 Route::post('/mail/unsubscribe', [MailUnsubscribeController::class, 'store'])
     ->middleware('throttle:10,1,mail-unsubscribe')
     ->name('mail.unsubscribe.store');
+
+// メルマガだけの申し込み（App\Services\NewsletterSubscription）。会員登録と同じ確認コードを送るので、
+// 送信と再送の回数を制限する。コード照合の回数の制限は、コントローラーの側で行う
+Route::get('/newsletter', [NewsletterController::class, 'create'])->name('newsletter.create');
+Route::post('/newsletter/send', [NewsletterController::class, 'send'])
+    ->middleware('throttle:5,1,newsletter-send')
+    ->name('newsletter.send');
+Route::get('/newsletter/verify', [NewsletterController::class, 'verifyForm'])->name('newsletter.verify');
+Route::post('/newsletter/verify', [NewsletterController::class, 'verify'])->name('newsletter.verify.confirm');
+Route::post('/newsletter/verify/resend', [NewsletterController::class, 'resend'])
+    ->middleware('throttle:3,1,newsletter-verify-resend')
+    ->name('newsletter.verify.resend');
+Route::post('/newsletter/verify/back', [NewsletterController::class, 'backFromVerify'])->name('newsletter.verify.back');
+Route::get('/newsletter/done', [NewsletterController::class, 'done'])->name('newsletter.done');
 
 // MailTemplate方式・AjaxFileUpload方式を使わない、普通のLaravelの書き方によるお問い合わせフォーム。
 // 比較用・技術習得のため残置（提携先向けのデモには含めない）
@@ -552,8 +568,15 @@ Route::prefix('admin')->name('admin.')->middleware('admin.ip')->group(function (
             Route::post('/bulk-mails/confirm', [AdminBulkMailController::class, 'confirm'])->name('bulk-mails.confirm');
             Route::post('/bulk-mails/back', [AdminBulkMailController::class, 'back'])->name('bulk-mails.back');
             Route::post('/bulk-mails', [AdminBulkMailController::class, 'store'])->name('bulk-mails.store');
+            // メルマガ希望者（お知らせメールを受け取る会員と、会員ではない人）の宛先のCSV。/bulk-mails/{bulkMail}より前に書く
+            Route::get('/bulk-mails/subscribers-csv', [AdminBulkMailController::class, 'subscribersCsv'])->name('bulk-mails.subscribersCsv');
             Route::get('/bulk-mails/{bulkMail}', [AdminBulkMailController::class, 'show'])->name('bulk-mails.show');
             Route::get('/bulk-mails/{bulkMail}/failed-csv', [AdminBulkMailController::class, 'failedCsv'])->name('bulk-mails.failedCsv');
+
+            // メルマガ希望者（会員ではない人）の一覧・検索と、手での停止（App\Services\NewsletterSubscription）
+            Route::get('/newsletter-subscribers', [AdminNewsletterSubscriberController::class, 'index'])->name('newsletter-subscribers.index');
+            Route::post('/newsletter-subscribers', [AdminNewsletterSubscriberController::class, 'storeSearchCondition'])->name('newsletter-subscribers.search');
+            Route::patch('/newsletter-subscribers/{subscriber}/stop', [AdminNewsletterSubscriberController::class, 'stop'])->name('newsletter-subscribers.stop');
 
             // 操作ログの一覧・検索（Neobit\Core\Operations\OperationRecorderが書いた記録を見るだけ。フレームワークの画面）。
             // 名前は「頭.index」「頭.search」「頭.csv」「頭.day」の組にする。コントローラーが組のほかの名前を作る

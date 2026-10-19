@@ -2,8 +2,9 @@
 
 namespace App\Services;
 
-use App\Enums\NoticeMail;
 use App\Enums\AppOperationLogAction;
+use App\Enums\NewsletterSource;
+use App\Enums\NoticeMail;
 use App\Models\Member;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -24,7 +25,8 @@ use Neobit\Core\Operations\OperationRecorder;
  * ■ 停止
  * URLを開くと「配信を停止する」のボタンの画面が出て、押すと停止する。開いただけで停止しないのは、
  * 受信側のウイルス検査やプレビューが、メールの中のURLを自動で開くことがあるため。
- * そのアドレスの会員がいれば「受け取らない」（App\Enums\NoticeMail）に変える。
+ * そのアドレスの会員がいれば「受け取らない」（App\Enums\NoticeMail）に変える。会員がいなければ、
+ * メルマガの行（App\Services\NewsletterSubscription）を「受け取らない」にする。
  * 会員がいなくても、URLが正しくなくても、画面の表示は同じにする。そのアドレスの会員が
  * いるかどうかを、外から確かめられないようにするため。
  * メールソフトの「登録解除」のボタン（List-Unsubscribeのヘッダー）からは、同じURLへPOSTが届く。
@@ -35,7 +37,8 @@ use Neobit\Core\Operations\OperationRecorder;
  * 停止の操作は、結果に関係なく全部を残す。会員がいたときは、対象を会員の種類とidで持つ。
  * 会員がいないときとURLが正しくないときは、どのアドレスへの操作かが分かるよう、
  * メールアドレスを補足に残す。操作ログには個人情報を残さない決まりの、ここだけの例外。
- * 会員ではない宛先から停止の操作があったことを、次に送るCSVから外すために確かめられるようにする。
+ * 会員ではない宛先の停止は、メルマガの行にも残るので、次の一斉メールでは宛先のCSVで自動でエラーになる。
+ * 操作ログのアドレスは、いつ止められたかを、問い合わせを受けたときに調べられるようにするため。
  */
 final class MailUnsubscribe
 {
@@ -71,12 +74,17 @@ final class MailUnsubscribe
 
         $member = Member::where('email', $email)->first();
 
-        // そのアドレスの会員がいないとき。会員ではない宛先か、退会やアドレスの変更の後
+        // そのアドレスの会員がいないとき。会員ではない宛先か、退会やアドレスの変更の後。
+        // メルマガの行を「受け取らない」にし、次の一斉メールの宛先のCSVでエラーにする（NewsletterSubscription）
         if ($member === null) {
-            OperationRecorder::record(AppOperationLogAction::MailUnsubscribe, detail: [
-                'result' => '会員が見つからない',
-                'email' => $loggedEmail,
-            ]);
+            DB::transaction(function () use ($email, $loggedEmail, $request) {
+                NewsletterSubscription::stop($email, NewsletterSource::UnsubscribeLink, $request->ip());
+
+                OperationRecorder::record(AppOperationLogAction::MailUnsubscribe, detail: [
+                    'result' => '会員ではない宛先',
+                    'email' => $loggedEmail,
+                ]);
+            });
 
             return;
         }

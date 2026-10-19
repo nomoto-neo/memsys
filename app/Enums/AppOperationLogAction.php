@@ -16,11 +16,15 @@ enum AppOperationLogAction: string implements OperationLogActionType
 {
     case BulkMailSend = 'bulk_mail_send';
     case MailUnsubscribe = 'mail_unsubscribe';
+    case NewsletterSubscribe = 'newsletter_subscribe';
+    case NewsletterStop = 'newsletter_stop';
 
     /** 値ごとの名前 */
     private const LABELS = [
         self::BulkMailSend->value => '一斉メールの送信',
         self::MailUnsubscribe->value => 'お知らせメールの配信停止',
+        self::NewsletterSubscribe->value => 'メルマガの登録',
+        self::NewsletterStop->value => 'メルマガの停止',
     ];
 
     public function label(): string

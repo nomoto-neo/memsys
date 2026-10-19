@@ -24,6 +24,9 @@
                  書いているので、ページの名前を変えたり、ページを消したりしたら、ここも直す --}}
             <a href="{{ route('pages.show', 'aboutus') }}" class="nav-link">会社概要</a>
             <a href="{{ route('contact.create') }}" class="nav-link">お問い合わせ</a>
+            {{-- 会員登録をしなくても、お知らせメールだけを受け取れる（NewsletterController）。
+                 会員が申し込んでも、会員の設定が「受け取る」になるだけなので、ログインしていても出す --}}
+            <a href="{{ route('newsletter.create') }}" class="nav-link">メルマガ登録</a>
         </div>
         <div class="ms-auto d-flex align-items-center gap-2">
             {{-- @auth / @guest はAuth::check()の結果で表示を切り替えるBladeの専用構文。

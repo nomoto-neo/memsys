@@ -18,6 +18,9 @@
                 <form method="POST" action="{{ route('admin.bulk-mails.confirm') }}" enctype="multipart/form-data">
                     @csrf
 
+                    <div class="mb-3">
+                        <a href="{{ route('admin.bulk-mails.subscribersCsv') }}" class="btn btn-outline-secondary btn-sm mt-2">メルマガ希望者のCSVをダウンロード</a>
+                    </div>
                     @if ($templates->isNotEmpty())
                         <div class="mb-3">
                             <label for="template" class="form-label">登録した文面から選ぶ</label>
@@ -68,6 +71,7 @@
                             1行に「氏名,メールアドレス」の2列を書いたCSVです。見出しの行は付けません。
                             確認画面から戻ったときは、選び直してください。
                         </div>
+                        {{-- お知らせメールを受け取る人全員（会員と、メルマガだけの人）の宛先のCSV。落としたものを、そのまま上で選べる --}}
                         <div class="invalid-feedback" data-item="csv_file">{{ $errors->first('csv_file') }}</div>
                     </div>
 

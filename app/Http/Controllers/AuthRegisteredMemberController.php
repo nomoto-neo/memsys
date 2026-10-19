@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\NoticeMail;
 use App\Models\Member;
 use App\Services\MemberActivityLog;
+use App\Services\NewsletterSubscription;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -225,6 +226,10 @@ class AuthRegisteredMemberController extends Controller
         }
 
         $request->session()->forget(self::PENDING_SESSION_KEY);
+
+        // 同じアドレスのメルマガの行があれば消し、ここからは会員の側で持つ。受け取るかは、この登録の画面で
+        // 本人が選んだものにする（App\Services\NewsletterSubscription）
+        NewsletterSubscription::forgetForMember($member);
 
         // 登録の記録をログに残す（個人情報は含めない）
         MemberActivityLog::registered($member, $request);

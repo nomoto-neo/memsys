@@ -23,6 +23,7 @@ enum AppOperationLogModel: string implements CodeTableEnum
     case Inquiry = 'inquiry';
     case BulkMail = 'bulk_mail';
     case BulkMailTemplate = 'bulk_mail_template';
+    case NewsletterSubscriber = 'newsletter_subscriber';
 
     /** 値ごとの名前 */
     private const LABELS = [
@@ -36,6 +37,7 @@ enum AppOperationLogModel: string implements CodeTableEnum
         self::Inquiry->value => 'お問い合わせ',
         self::BulkMail->value => '一斉メール',
         self::BulkMailTemplate->value => '一斉メールの文面',
+        self::NewsletterSubscriber->value => 'メルマガ希望者',
     ];
 
     public function label(): string

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Member;
 use App\Services\MemberActivityLog;
+use App\Services\NewsletterSubscription;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -299,7 +300,11 @@ class MypageController extends Controller
         LoginSession::logout($request, Member::loginGuard());
 
         // 会員と、会員に付いている記録・ファイルをまとめて消す
-        DB::transaction(function () use ($member) {
+        DB::transaction(function () use ($member, $request) {
+            // お知らせメールを受け取っていた会員は、「受け取らない」の行を残す。会員の情報が消えた後に、
+            // 同じアドレスが一斉メールの宛先に入っても送らないため（App\Services\NewsletterSubscription）
+            NewsletterSubscription::recordWithdrawal($member, $request->ip());
+
             // ログインのための記録（認証アプリの登録・バックアップコード・信頼済み端末・パスキー）
             $member->resetTwoFactor();
             $this->deleteSessionsOf($member);

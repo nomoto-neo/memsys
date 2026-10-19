@@ -30,6 +30,7 @@
         $sections['運用'] = [
             ['admin.staff.index', 'admin.staff.*', 'スタッフ'],
             ['admin.bulk-mails.index', ['admin.bulk-mails.*', 'admin.bulk-mail-templates.*'], '一斉メール'],
+            ['admin.newsletter-subscribers.index', 'admin.newsletter-subscribers.*', 'メルマガ希望者'],
             ['admin.codes.index', 'admin.codes.*', '項目見出し'],
             ['admin.operation-logs.index', 'admin.operation-logs.*', '操作ログ'],
         ];

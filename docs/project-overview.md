@@ -68,6 +68,7 @@ Laravel の標準の構成に、次のものを足している（各ディレク
 | `docs/two-factor-spec.md` | 2段階認証の設計 |
 | `docs/passkeys-spec.md` | パスキーの設計 |
 | `docs/member-types-spec.md` | 個人会員と企業会員を共存させる設計 |
+| `docs/newsletter-subscription-spec.md` | メルマガだけの申し込みと、会員・配信停止・一斉メールとのつながりの仕様メモ |
 | `docs/[スラッグ]-spec.md` | これから作る機能の仕様メモ。機能の実装の流れ（`CLAUDE.md`）で、実装の後に書く |
 | `docs/prompt/` | 機能の実装プロンプト（依頼の内容）。git で管理しない |
 | `docs/security-code-check.md` | コードのセキュリティを確かめる観点と、確かめた記録 |

@@ -206,6 +206,9 @@ has   routes/web.php                                                    'bulk-ma
 has   app/Rules/MailDomainRule.php                                      'class MailDomainRule'
 has   config/mail.php                                                   "'bulk_check_domain'"
 has   config/mail.php                                                   "'return_path'"
+has   app/Services/NewsletterSubscription.php                           'final class NewsletterSubscription'
+has   routes/web.php                                                    'newsletter-subscribers.index'
+has   packages/neobit/core/src/Auth/LoginVerificationCode.php           '?string $purposeLabel = null'
 has   packages/neobit/core/src/Csv/CsvWriter.php                       'final class CsvWriter'
 has   packages/neobit/core/src/Csv/CsvDownload.php                     'CsvWriter::download('
 

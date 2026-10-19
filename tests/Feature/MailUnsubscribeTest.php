@@ -164,7 +164,7 @@ class MailUnsubscribeTest extends TestCase
                 'csv_file' => $csv,
             ])
             ->assertOk()
-            ->assertSee('お知らせメールを受け取らない会員です。')
+            ->assertSee('お知らせメールの配信を停止しているアドレスです。')
             ->assertDontSee('件に送信する');
     }
 
