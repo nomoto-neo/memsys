@@ -553,6 +553,7 @@ Route::prefix('admin')->name('admin.')->middleware('admin.ip')->group(function (
             Route::post('/bulk-mails/back', [AdminBulkMailController::class, 'back'])->name('bulk-mails.back');
             Route::post('/bulk-mails', [AdminBulkMailController::class, 'store'])->name('bulk-mails.store');
             Route::get('/bulk-mails/{bulkMail}', [AdminBulkMailController::class, 'show'])->name('bulk-mails.show');
+            Route::get('/bulk-mails/{bulkMail}/failed-csv', [AdminBulkMailController::class, 'failedCsv'])->name('bulk-mails.failedCsv');
 
             // 操作ログの一覧・検索（Neobit\Core\Operations\OperationRecorderが書いた記録を見るだけ。フレームワークの画面）。
             // 名前は「頭.index」「頭.search」「頭.csv」「頭.day」の組にする。コントローラーが組のほかの名前を作る

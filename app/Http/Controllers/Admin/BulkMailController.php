@@ -29,10 +29,14 @@ use Neobit\Core\Csv\CsvImportSettings;
 use Neobit\Core\Csv\CsvReader;
 use Neobit\Core\Enums\CsvEncoding;
 use Neobit\Core\Enums\CsvImportMode;
+use Neobit\Core\Enums\OperationLogAction;
 use Neobit\Core\Enums\OperationLogActionType;
+use Neobit\Core\Models\CsvDownloadLog;
+use Neobit\Core\Operations\OperationRecorder;
 use Neobit\Core\Upload\AjaxFileUpload;
 use Neobit\Core\Upload\UploadType;
 use Neobit\Core\Upload\UploadFilePath;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Throwable;
 
 /**
@@ -44,6 +48,8 @@ use Throwable;
  * 2. 確認：CSVを読んで全行を確かめ、件名・本文と宛先の件数とエラーの行を出す
  * 3. 送信：送信の記録を1件作り、宛先の数だけSendBulkMailのジョブを1つのバッチに積む
  * 4. 状況：バッチから送信済み・失敗・残りの件数を読んで出す。終わったら件数を記録に写す
+ * 5. 送れなかった宛先：送り終えた後、送れなかったジョブ（failed_jobs）から宛先と理由を読んで出す。
+ *    全件はCSVで落とせる。送れなかったジョブが片付けで消えるまでの間だけ見られる
  *
  * ■ 宛先のCSV
  * 「氏名,メールアドレス」の2列で、見出しの行は無い。会員のデータからではなくCSVから送るのは、
@@ -97,6 +103,14 @@ class BulkMailController extends Controller
 
     /** 送信中の状況の画面を、自動で読み直す間隔の秒数 */
     private const REFRESH_SECONDS = 5;
+
+    // ---- 送れなかった宛先 ----
+
+    /** 状況の画面に並べる、送れなかった宛先の件数。全件はCSVで見る */
+    private const FAILED_PREVIEW_ROWS = 100;
+
+    /** 送れなかった宛先のCSVの名前。ファイル名とダウンロードの記録に使う */
+    private const FAILED_CSV_NAME = '一斉メールの送れなかった宛先';
 
     /** 「受け取らない」の会員を探すときに、1回の問い合わせで比べるメールアドレスの数 */
     private const OPT_OUT_CHECK_CHUNK = 1000;
@@ -194,16 +208,66 @@ class BulkMailController extends Controller
         ]);
     }
 
-    /** 1件の送信の状況。送信中なら自動で読み直す */
+    /** 1件の送信の状況。送信中なら自動で読み直す。送り終えて失敗があれば、送れなかった宛先も出す */
     public function show(BulkMail $bulkMail): View
     {
+        $showFailed = $bulkMail->status === BulkMailStatus::Finished && $bulkMail->failed_count > 0;
+
         return view('admin.bulk_mails.show', [
+            // 送れなかった宛先の先頭の分と、まだ残っている件数。失敗が無いか送信中ならnull
+            'failedRecipients' => $showFailed ? $bulkMail->failedRecipients(self::FAILED_PREVIEW_ROWS) : null,
+            'failedRecipientCount' => $showFailed ? $bulkMail->failedRecipientCount() : 0,
             'bulkMail' => $bulkMail,
             'counts' => $this->sendCounts($bulkMail),
             'refreshSeconds' => $bulkMail->status === BulkMailStatus::Sending ? self::REFRESH_SECONDS : null,
             // 送れなかった分を残す日数。0なら片付けで消さない（config/cleanup.phpのfailed_job_days）
             'failedJobDays' => (int) config('cleanup.failed_job_days'),
         ]);
+    }
+
+    /**
+     * 送れなかった宛先の全件のCSV。「氏名, メールアドレス, 送れなかった理由」の3列で、見出しの行は無い。
+     * 3列目を消せば、そのまま宛先のCSVとして読み込めるようにするため。
+     * 宛先は個人情報なので、ほかのCSVのダウンロード（Neobit\Core\Csv\CsvDownload）と同じく、
+     * ダウンロードの記録と操作ログを残す。
+     */
+    public function failedCsv(BulkMail $bulkMail): StreamedResponse
+    {
+        $recipients = $bulkMail->failedRecipients();
+
+        // ダウンロードの記録。条件として、どの送信の分かを残す
+        $log = CsvDownloadLog::create([
+            'name' => self::FAILED_CSV_NAME,
+            'operator_id' => Auth::id(),
+            'row_count' => count($recipients),
+            'conditions' => ['bulk_mail_id' => $bulkMail->id],
+            'ip' => request()->ip(),
+        ]);
+        OperationRecorder::record(OperationLogAction::CsvDownload, detail: ['name' => self::FAILED_CSV_NAME, 'csv_download_log_id' => $log->id]);
+
+        $filename = self::FAILED_CSV_NAME.'_'.now()->format('Ymd_Hi').'.csv';
+
+        return response()->streamDownload(function () use ($recipients) {
+            $out = fopen('php://output', 'w');
+
+            // Excelが文字コードを見分けられるよう、先頭にBOMを付ける
+            fwrite($out, "\xEF\xBB\xBF");
+
+            foreach ($recipients as $recipient) {
+                $fields = [$recipient['name'], $recipient['email'], $recipient['reason']];
+
+                // 数式として動きうる文字で始まる値は、先頭に「'」を付けて文字列として扱わせる。CsvDownloadと同じ
+                foreach ($fields as $i => $field) {
+                    if ($field !== '' && in_array($field[0], ['=', '+', '-', '@', "\t", "\r"], true)) {
+                        $fields[$i] = "'".$field;
+                    }
+                }
+
+                fputcsv($out, $fields, ',', '"', '', "\r\n");
+            }
+
+            fclose($out);
+        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 
     // ---- 送信 ----

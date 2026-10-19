@@ -202,6 +202,7 @@ has   resources/mail-templates/member_verification_code.blade.php       '【{!! 
 has   routes/web.php                                                    'CodeTableController'
 has   app/Http/Controllers/ContactController.php                        'catch (MailTemplateException'
 has   config/cleanup.php                                                'BulkMailCleanup::class'
+has   routes/web.php                                                    'bulk-mails.failedCsv'
 
 echo
 if [ $ng -eq 0 ]; then

@@ -3,12 +3,16 @@
 namespace App\Models;
 
 use App\Enums\BulkMailStatus;
+use App\Jobs\SendBulkMail;
 use Illuminate\Bus\Batch;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Query\Builder as QueryBuilder;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\DB;
 use Neobit\Core\Models\OperationLogRelatedRecord;
 use Neobit\Core\Upload\UploadFilePath;
 
@@ -81,6 +85,69 @@ class BulkMail extends Model implements OperationLogRelatedRecord
     public function batch(): ?Batch
     {
         return $this->batch_id !== null ? Bus::findBatch($this->batch_id) : null;
+    }
+
+    /**
+     * 送れなかった宛先。試し直しても送れなかったジョブ（failed_jobs）の中から、氏名とメールアドレスを読み出す。
+     * 宛先は送信の記録に保存しないので、送れなかったジョブが残っている間だけ読める
+     * （config/cleanup.phpのfailed_job_days）。送れなかった日時の順に、$limitの件数まで返す。nullなら全件。
+     *
+     * @return list<array{name: string, email: string, reason: string, failed_at: Carbon}>
+     */
+    public function failedRecipients(?int $limit = null): array
+    {
+        return $this->failedJobsQuery()
+            ->orderBy('failed_at')
+            ->orderBy('id')
+            ->when($limit !== null, fn ($query) => $query->limit($limit))
+            ->get()
+            ->map(function (object $failedJob) {
+                // ジョブを文字列から戻す。DBの中身から思わぬクラスを作らないよう、SendBulkMailだけを戻す
+                $command = json_decode($failedJob->payload, true)['data']['command'] ?? '';
+                $job = unserialize($command, ['allowed_classes' => [SendBulkMail::class]]);
+
+                if (! $job instanceof SendBulkMail) {
+                    return null;
+                }
+
+                return [
+                    'name' => $job->name,
+                    'email' => $job->email,
+                    'reason' => self::failureReason($failedJob->exception),
+                    'failed_at' => Carbon::parse($failedJob->failed_at),
+                ];
+            })
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    /** 送れなかった宛先のうち、まだ残っている件数 */
+    public function failedRecipientCount(): int
+    {
+        return $this->failedJobsQuery()->count();
+    }
+
+    /** この送信のバッチが覚えている、送れなかったジョブの行。バッチが片付けで消えていれば0件 */
+    private function failedJobsQuery(): QueryBuilder
+    {
+        $failed = config('queue.failed');
+
+        return DB::connection($failed['database'] ?? null)
+            ->table($failed['table'] ?? 'failed_jobs')
+            ->whereIn('uuid', $this->batch()?->failedJobIds ?? []);
+    }
+
+    /**
+     * 例外の文から、送れなかった理由の1文を取り出す。1行目から、先頭の例外のクラス名と、
+     * 末尾の「 in ファイル:行」を除く。画面とCSVに、プログラムの中の場所を出さないため。
+     */
+    private static function failureReason(string $exception): string
+    {
+        $firstLine = strtok($exception, "\n") ?: '';
+        $reason = preg_replace('/^[\w\\\\]+: /', '', $firstLine);
+
+        return trim(preg_replace('/ in \S+:\d+$/', '', $reason));
     }
 
     /** 添付ファイルのURL。添付が無ければnull */

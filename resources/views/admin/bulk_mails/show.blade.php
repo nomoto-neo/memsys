@@ -41,10 +41,6 @@
             <p class="text-muted small">送信中です。画面を閉じても送信処理は続きます。この画面は{{ $refreshSeconds }}秒ごとに読み直します。<span id="refresh-countdown" data-seconds="{{ $refreshSeconds }}"></span></p>
         @elseif ($counts['failed'] > 0)
             <p class="text-danger small fw-bold">送信処理は完了しました（失敗 {{ number_format($counts['failed']) }}件）。</p>
-            {{-- 送れなかった分を残す日数（config/cleanup.phpのfailed_job_days）。0なら片付けで消さないので出さない --}}
-            @if ($failedJobDays > 0)
-                <p class="text-muted small">送れなかった分は、{{ $failedJobDays }}日たつと消え、送り直せなくなります。</p>
-            @endif
         @else
             <p class="text-success small fw-bold">送信処理は完了しました。</p>
         @endif
@@ -76,6 +72,58 @@
         </dl>
     </div>
 </div>
+
+{{--
+    送れなかった宛先。送り終えて失敗があるときだけ出す。宛先は送信の記録に保存しないので、
+    送れなかったジョブ（failed_jobs）が片付けで消えるまでの間だけ見られる。画面には先頭の分だけを並べ、全件はCSVで見る。
+--}}
+@if ($failedRecipients !== null)
+    <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span>送れなかった宛先（{{ number_format($failedRecipientCount) }}件）</span>
+            @if ($failedRecipientCount > 0)
+                <a href="{{ route('admin.bulk-mails.failedCsv', $bulkMail) }}" class="btn btn-outline-secondary btn-sm">CSVダウンロード（全件）</a>
+            @endif
+        </div>
+        <div class="card-body">
+            @if ($failedRecipientCount === 0)
+                {{-- 送れなかったジョブが、残す日数を過ぎて片付けで消えたとき --}}
+                <p class="text-muted small mb-0">残す日数を過ぎたので、宛先は消えています。</p>
+            @else
+                <table class="table table-sm align-middle">
+                    <thead>
+                        <tr>
+                            <th>氏名</th>
+                            <th>メールアドレス</th>
+                            <th>送れなかった理由</th>
+                            <th>日時</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($failedRecipients as $recipient)
+                            <tr>
+                                <td class="text-nowrap">{{ $recipient['name'] }}</td>
+                                <td>{{ $recipient['email'] }}</td>
+                                {{-- 理由は長いことがあるので1行で切り、ポインターを載せると全文を出す --}}
+                                <td class="text-truncate" style="max-width: 20rem;" title="{{ $recipient['reason'] }}">{{ $recipient['reason'] }}</td>
+                                <td class="text-nowrap">{{ $recipient['failed_at']->format('Y-m-d H:i') }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+
+                @if ($failedRecipientCount > count($failedRecipients))
+                    <p class="small">ほか{{ number_format($failedRecipientCount - count($failedRecipients)) }}件は、CSVダウンロードで見られます。</p>
+                @endif
+
+                {{-- 送れなかった分を残す日数（config/cleanup.phpのfailed_job_days）。0なら片付けで消さないので出さない --}}
+                @if ($failedJobDays > 0)
+                    <p class="text-muted small mb-0">送れなかった分は、{{ $failedJobDays }}日たつと消え、宛先もこの一覧から消えます。</p>
+                @endif
+            @endif
+        </div>
+    </div>
+@endif
 @endsection
 
 @if ($refreshSeconds !== null)
