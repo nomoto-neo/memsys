@@ -9,6 +9,13 @@
     </div>
 </div>
 
+{{-- 送信の記録を残す日数（config/cleanup.phpのtasks）。消えることを知らずに頼らないよう、一覧の上に出す --}}
+@if ($keepDays === null)
+    <p class="text-muted small">送信の記録は、消さずに残します。</p>
+@else
+    <p class="text-muted small">送信の記録は{{ $keepDays }}日残し、過ぎたものは自動で消えます。</p>
+@endif
+
 @if ($bulkMails->isEmpty())
     <p class="text-muted">まだ送っていません。</p>
 @else

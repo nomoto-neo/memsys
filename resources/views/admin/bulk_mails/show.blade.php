@@ -41,6 +41,10 @@
             <p class="text-muted small">送信中です。画面を閉じても送信処理は続きます。この画面は{{ $refreshSeconds }}秒ごとに読み直します。<span id="refresh-countdown" data-seconds="{{ $refreshSeconds }}"></span></p>
         @elseif ($counts['failed'] > 0)
             <p class="text-danger small fw-bold">送信処理は完了しました（失敗 {{ number_format($counts['failed']) }}件）。</p>
+            {{-- 送れなかった分を残す日数（config/cleanup.phpのfailed_job_days）。0なら片付けで消さないので出さない --}}
+            @if ($failedJobDays > 0)
+                <p class="text-muted small">送れなかった分は、{{ $failedJobDays }}日たつと消え、送り直せなくなります。</p>
+            @endif
         @else
             <p class="text-success small fw-bold">送信処理は完了しました。</p>
         @endif

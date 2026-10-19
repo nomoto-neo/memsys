@@ -32,6 +32,19 @@ class OperationLogScreenTest extends TestCase
         ]);
     }
 
+    public function test_list_shows_how_long_logs_are_kept(): void
+    {
+        $manager = $this->manager();
+
+        $this->actingAs($manager, 'admin')->get(route('admin.operation-logs.index'))
+            ->assertSee('操作ログは365日残し、過ぎたものは自動で消えます。');
+
+        // 0なら操作ログを取らない
+        config(['cleanup.operation_log_days' => 0]);
+        $this->actingAs($manager, 'admin')->get(route('admin.operation-logs.index'))
+            ->assertSee('操作ログは取っていません。それまでに残したものは消えずに残ります。');
+    }
+
     public function test_list_shows_model_names_and_related_record_details(): void
     {
         $manager = $this->manager();

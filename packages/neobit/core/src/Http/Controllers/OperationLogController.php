@@ -106,6 +106,8 @@ class OperationLogController
             'orderOptions' => $result['orderOptions'],
             'selectedOrder' => $result['selectedOrder'],
             'routes' => $this->routeNames(),
+            // 操作ログを残す日数。0なら操作ログを取らない（config/cleanup.phpのoperation_log_days）
+            'keepDays' => (int) config('cleanup.operation_log_days'),
         ]);
     }
 

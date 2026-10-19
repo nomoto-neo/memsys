@@ -11,6 +11,7 @@ use App\Models\BulkMail;
 use App\Models\BulkMailTemplate;
 use App\Models\Member;
 use App\Rules\BulkMailPlaceholderRule;
+use App\Services\BulkMailCleanup;
 use Illuminate\Bus\Batch;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
@@ -188,6 +189,8 @@ class BulkMailController extends Controller
     {
         return view('admin.bulk_mails.index', [
             'bulkMails' => BulkMail::orderByDesc('id')->paginate(self::PER_PAGE),
+            // 送信の記録を残す日数。nullなら消さずに残す（config/cleanup.phpのtasks）
+            'keepDays' => BulkMailCleanup::days(),
         ]);
     }
 
@@ -198,6 +201,8 @@ class BulkMailController extends Controller
             'bulkMail' => $bulkMail,
             'counts' => $this->sendCounts($bulkMail),
             'refreshSeconds' => $bulkMail->status === BulkMailStatus::Sending ? self::REFRESH_SECONDS : null,
+            // 送れなかった分を残す日数。0なら片付けで消さない（config/cleanup.phpのfailed_job_days）
+            'failedJobDays' => (int) config('cleanup.failed_job_days'),
         ]);
     }
 
