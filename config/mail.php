@@ -115,6 +115,13 @@ return [
         'name' => env('MAIL_FROM_NAME', env('APP_NAME', 'Laravel')),
     ],
 
+    // 届かなかったときのエラーのメール（バウンス）が戻る先。サイトが送るすべてのメールのReturn-Pathと、
+    // SMTPの封筒の送信元（MAIL FROM）になる。空なら付けず、送信元のアドレスに戻る。
+    // SPFの確認に通るよう、送信元と同じドメインのアドレスにする
+    'return_path' => [
+        'address' => env('MAIL_RETURN_PATH'),
+    ],
+
     // 一斉メールを送る速さ。1分に送る通数の上限で、SMTPの送信の上限に合わせる。
     // App\Jobs\SendBulkMailが、AppServiceProviderのbulk-mailの制限として使う
     'bulk_per_minute' => (int) env('MAIL_BULK_PER_MINUTE', 5),

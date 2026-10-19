@@ -205,6 +205,7 @@ has   config/cleanup.php                                                'BulkMai
 has   routes/web.php                                                    'bulk-mails.failedCsv'
 has   app/Rules/MailDomainRule.php                                      'class MailDomainRule'
 has   config/mail.php                                                   "'bulk_check_domain'"
+has   config/mail.php                                                   "'return_path'"
 has   packages/neobit/core/src/Csv/CsvWriter.php                       'final class CsvWriter'
 has   packages/neobit/core/src/Csv/CsvDownload.php                     'CsvWriter::download('
 
