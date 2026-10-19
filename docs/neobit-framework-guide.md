@@ -230,7 +230,7 @@ GRANT ALL PRIVILEGES ON memsys_testing.* TO 'memsys'@'localhost';
 | `PdfDownload` | `packages/neobit/core/src/Pdf/` | Blade のテンプレートから PDF を作って返す（mPDF、同梱の IPAex フォント） | 18 |
 | `HtmlSanitizer`（`safe_html()`） | `packages/neobit/core/src/Upload/` | WYSIWYG の HTML の無害化 | 7 |
 | `CodeTable`（`code_table()` など） | `packages/neobit/core/src/Code/`・`packages/neobit/core/src/helpers.php` | 区分表（列挙型・CSV・DB） | 8 |
-| `CsvDownload`・`CsvColumnSet` | `packages/neobit/core/src/Csv/` | CSV ダウンロードと、CSV の項目の定義 | 9 |
+| `CsvDownload`・`CsvColumnSet`・`CsvWriter` | `packages/neobit/core/src/Csv/` | CSV ダウンロードと、CSV の項目の定義、CSV の共通の書き出し方 | 9 |
 | `CsvImport` ほか | `packages/neobit/core/src/Csv/` | CSV 取り込み（取り込み画面と保存の流れ） | 10 |
 | `CsvReader` | `packages/neobit/core/src/Csv/` | CSV を読んで確かめる部分。自分の画面を持つ機能が、CSV の読み込みと検証だけを借りるときに使う | 10 |
 | `MailTemplate`・`TemplatedMail` | `packages/neobit/core/src/Mail/`・`packages/neobit/core/src/Mail/` | テンプレートファイルによるメール送信 | 11 |
@@ -1056,7 +1056,7 @@ Blade には `\App\Enums\...` を書かず、`code_table()` 系で書きます�
 
 <p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
 
-**ファイル**：`packages/neobit/core/src/Csv/CsvDownload.php`・`CsvColumnSet.php`（項目の定義の書き方）　**実例**：`Admin\MemberController`・`Admin\NewsController`
+**ファイル**：`packages/neobit/core/src/Csv/CsvDownload.php`・`CsvColumnSet.php`（項目の定義の書き方）・`CsvWriter.php`（共通の書き出し方）　**実例**：`Admin\MemberController`・`Admin\NewsController`
 
 ```php
 use CsvDownload;
@@ -1094,6 +1094,29 @@ private function csvColumns(): array
 - `downloadCsv()` に渡したクエリのデータを出力します。`SearchableList` を使っていれば、一覧の検索条件と並び順が自動的に反映されます。
 - ルート：`Route::get('/members/csv', ...)->name('members.csv')`（`/members/{member}` より前）。一覧画面に「CSVダウンロード」ボタン。
 - ダウンロードのたびに `csv_download_logs` に記録します。
+
+### モデルではないデータを書き出す（CsvWriter）
+
+文字コード・BOM・数式の無害化・`fputcsv()` の書き方と、ダウンロードの記録は、CSV の共通の部品 `CsvWriter` が持っています。`downloadCsv()` も、モデルのクエリから行を作って、これを呼んでいます。モデルではないデータ（ジョブの中の宛先、集計の結果など）は、行の配列を作って直接呼びます。
+
+```php
+// ブラウザにダウンロードさせる。ダウンロードの記録と操作ログを残す
+return CsvWriter::download(
+    name: '一斉メールの送れなかった宛先',          // ファイル名「名前_年月日_時分.csv」・記録の名前
+    rows: $rows,                                  // 1行 = 値の配列。ジェネレーターなら少しずつ書き出す
+    encoding: CsvEncoding::Utf8Bom,               // Utf8Bom か Sjis
+    headings: null,                               // 見出しの行。null なら出さない
+    escapeFormula: true,                          // Excel の数式の無害化
+    conditions: ['bulk_mail_id' => $bulkMail->id], // ダウンロードの記録に残す条件
+);
+
+// CSV の中身を文字列で受け取る。保存先やメールへの添付は、呼んだ側が決める
+$csv = CsvWriter::fetch(rows: $rows, encoding: CsvEncoding::Utf8Bom, headings: ['氏名', 'メールアドレス'], escapeFormula: true);
+Storage::disk('local')->put('exports/members.csv', $csv);
+```
+
+- `fetch()` は全件をメモリに組み立てるので、大きな CSV には向きません。人がダウンロードしたことにはならないので、ダウンロードの記録は残しません。個人情報を書き出すときは、記録を残すかを呼んだ側で決めます。
+- 引数は、`downloadCsv()` と同じく既定の値を持たせず、名前付きで全部書きます。
 
 ## 10. CSV 取り込み（CsvImport）
 

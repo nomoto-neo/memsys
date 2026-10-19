@@ -4,11 +4,7 @@ namespace Neobit\Core\Csv;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Auth;
 use Neobit\Core\Enums\CsvEncoding;
-use Neobit\Core\Enums\OperationLogAction;
-use Neobit\Core\Models\CsvDownloadLog;
-use Neobit\Core\Operations\OperationRecorder;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -46,20 +42,10 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  * SearchableListも使っていれば、一覧の今の検索条件と並び順で全件を出す。
  * 500件ずつ読みながら書き出すので、件数が多くてもメモリを使い切らない。
  *
- * ■ 文字コードと書き出し方
- * - Shift_JISは、①や髙のようなWindowsの文字も含むCP932で変換する
- * - fputcsv()のエスケープ文字は空にする。既定の「\」だとShift_JISの「ソ」「表」などを
- *   壊すことがあるため
- * - 改行はExcelに合わせて\r\n
- *
- * ■ 数式の無害化
- * 利用者が入力した値が「=」「+」「-」「@」などで始まっていると、Excelで開いたときに
- * 数式として動くことがある。先頭に「'」を付けて文字列として扱わせる。-100のような数値は
- * そのまま。Excelで開かずにほかのシステムへ渡すCSVでは「'」が残ってしまうので、falseにする。
- *
- * ■ ダウンロードの記録
- * 1回ごとに、名前・日時・操作者・検索条件・IPアドレス・件数をcsv_download_logsに残す。
- * 途中で止まってもダウンロードしようとしたことが残るよう、書き出す前に行を作る。
+ * ■ 書き出し方とダウンロードの記録
+ * 文字コード・BOM・数式の無害化・fputcsv()の書き方と、ダウンロードの記録・操作ログは、
+ * CSVの共通の部品（Neobit\Core\Csv\CsvWriter）が行う。モデルではないデータを書き出すときは、
+ * 行の配列を作ってCsvWriterを直接呼ぶ。
  */
 trait CsvDownload
 {
@@ -94,69 +80,22 @@ trait CsvDownload
 
         // 連番・組の横展開の列の数を、絞り込んだデータの最大件数で決める
         $columns->prepareExport($query, $header);
-        $headings = $columns->headings();
 
-        // ダウンロードの記録。件数は書き出し終わってから入れる
-        $log = CsvDownloadLog::create([
-            'name' => $name,
-            'operator_id' => Auth::id(),
-            'row_count' => 0,
-            'conditions' => $conditions,
-            'ip' => request()->ip(),
-        ]);
-
-        // 操作ログ。検索条件と件数はダウンロードの記録が持つので、そのidでつなぐ
-        OperationRecorder::record(OperationLogAction::CsvDownload, detail: ['name' => $name, 'csv_download_log_id' => $log->id]);
-
-        $filename = $name.'_'.now()->format('Ymd_Hi').'.csv';
-        $charset = $encoding === CsvEncoding::Sjis ? 'Shift_JIS' : 'UTF-8';
-
-        // 500件ずつ読みながらそのままブラウザへ書き出す
-        return response()->streamDownload(function () use ($query, $columns, $headings, $encoding, $header, $escapeFormula, $log) {
-            $out = fopen('php://output', 'w');
-
-            // UTF-8は、Excelが文字コードを見分けられるよう先頭にBOMを付ける
-            if ($encoding === CsvEncoding::Utf8Bom) {
-                fwrite($out, "\xEF\xBB\xBF");
-            }
-
-            if ($header) {
-                // 見出しはこちらで決めた文字列なので、数式の無害化は掛けない
-                $this->writeCsvRow($out, $headings, $encoding, false);
-            }
-
-            $count = 0;
+        // 500件ずつ読みながら、1件ずつ行にする。書き出しが始まってから読むので、件数が多くてもメモリを使い切らない
+        $rows = (function () use ($query, $columns) {
             foreach ($query->lazy(500) as $record) {
-                $this->writeCsvRow($out, $columns->exportRow($record), $encoding, $escapeFormula);
-                $count++;
+                yield $columns->exportRow($record);
             }
+        })();
 
-            fclose($out);
-
-            // 書き出した件数を記録に入れる
-            $log->update(['row_count' => $count]);
-        }, $filename, ['Content-Type' => "text/csv; charset={$charset}"]);
-    }
-
-    /** 1行を書き出す。数式の無害化と文字コードの変換は1セルずつ行う。 */
-    private function writeCsvRow($out, array $fields, CsvEncoding $encoding, bool $escapeFormula): void
-    {
-        foreach ($fields as $i => $field) {
-            $field = (string) $field;
-
-            // 数式として動きうる文字で始まる値は、先頭に「'」を付けて文字列として扱わせる。数値はそのまま
-            if ($escapeFormula && $field !== '' && ! is_numeric($field)
-                && in_array($field[0], ['=', '+', '-', '@', "\t", "\r"], true)) {
-                $field = "'".$field;
-            }
-
-            if ($encoding === CsvEncoding::Sjis) {
-                $field = mb_convert_encoding($field, 'SJIS-win', 'UTF-8');
-            }
-
-            $fields[$i] = $field;
-        }
-
-        fputcsv($out, $fields, ',', '"', '', "\r\n");
+        // 書き出し方とダウンロードの記録は、CSVの共通の部品に任せる
+        return CsvWriter::download(
+            name: $name,
+            rows: $rows,
+            encoding: $encoding,
+            headings: $header ? $columns->headings() : null,
+            escapeFormula: $escapeFormula,
+            conditions: $conditions,
+        );
     }
 }

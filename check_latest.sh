@@ -203,6 +203,8 @@ has   routes/web.php                                                    'CodeTab
 has   app/Http/Controllers/ContactController.php                        'catch (MailTemplateException'
 has   config/cleanup.php                                                'BulkMailCleanup::class'
 has   routes/web.php                                                    'bulk-mails.failedCsv'
+has   packages/neobit/core/src/Csv/CsvWriter.php                       'final class CsvWriter'
+has   packages/neobit/core/src/Csv/CsvDownload.php                     'CsvWriter::download('
 
 echo
 if [ $ng -eq 0 ]; then

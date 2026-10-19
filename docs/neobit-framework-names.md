@@ -144,6 +144,7 @@
 | `UploadFieldDefinitions` | `of()`・`find()` | ふつうは `AjaxFileUpload` と `upload_field()` が使う |
 | `UploadFilePath` | `directory()`・`isPrivate()`・`disk()`・`url()`・`path()`・`tmpUrl()`・`previewUrl()`、定数 `TMP_DIR`・`TMP_DISK`・`TMP_SESSION_KEY`・`TMP_SESSION_MAX`・`PUBLIC_DISK`・`PRIVATE_DISK`・`SAFE_FILENAME` | |
 | `OperationRecorder` | `record()`・`loggableFields()` | |
+| `CsvWriter` | `download()`・`fetch()` | CSV の共通の書き出し方 |
 | `OperationLog` | `actionOptions()`・`modelOptions()`・`modelNames()`・`operatorLabel()`・`relatedRecords()`・`operatorTypes()`・`relatedKey()`・`countSummary()`・`csvName()`・`detailText()` | |
 | `OperationLogStats` | `hourly()`・`daily()`・`topOperators()`・`countsBy()` | |
 | `OperationLogReport` | `for()` | |
