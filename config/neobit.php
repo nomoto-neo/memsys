@@ -155,4 +155,19 @@ return [
     //     'login_failures_per_day' => 10,
     // ],
 
+    /*
+    |--------------------------------------------------------------------
+    | サーバーのcron
+    |--------------------------------------------------------------------
+    |
+    | サーバーでcron（毎分のphp artisan schedule:run）が動くか。動かないサーバーでは、cronの代わりに、
+    | サイトへのアクセスを契機にroutes/console.phpの予定を動かす（Neobit\Core\Operations\RequestScheduler）。
+    | 予定の時刻を過ぎて最初のアクセスで、応答を返した後に動く。キューのワーカーも予定の1つなので、
+    | 一斉メールなどもアクセスを契機に送られる。
+    |
+    */
+
+    // cronが動くならtrue。動かないサーバーだけ、.envにCRON_ENABLED=falseと書く
+    // 'cron_enabled' => env('CRON_ENABLED', true),
+
 ];

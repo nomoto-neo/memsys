@@ -169,7 +169,7 @@
 | `IpBlocker` | `isBlocked()`・`countMiss()`・`block()`・`changeUntil()`・`release()`・`deleteExpired()`・`normalizeRange()`・`rangeBounds()`・`coversProtected()` | |
 | `CsvImportSettings`・`CsvImportResult`・`CsvImportRow`・`CsvColumnSet` | 取り込みの設定と結果 | |
 | 検証のルール | `KatakanaRule`・`HiraganaRule`・`PhoneNumberRule`・`SameCountAsRule`・`MaxUploadCountRule` | |
-| ミドルウェア | `AjaxFormResponse`・`NormalizeInput`・`RejectBlockedIp`・`RestrictAdminAccess`・`RestrictSiteAccess`・`SecurityHeaders` | |
+| ミドルウェア | `AjaxFormResponse`・`NormalizeInput`・`RejectBlockedIp`・`RestrictAdminAccess`・`RestrictSiteAccess`・`RunScheduleOnRequest`・`SecurityHeaders` | |
 | コントローラー | `CodeTableController`・`IpBlockController`・`AccessRestrictionController`・`OperationLogController`（どれもルートは案件が書く）・`UploadedFileController` | |
 
 ## 7. ヘルパー
@@ -198,6 +198,7 @@
 | `neobit` | `admin_requests_per_minute`・`admin_requests_exceeded_message` | |
 | `neobit` | `ip_block_auto`・`ip_block_watch_minutes`・`ip_block_watch_count`・`ip_block_hours` | |
 | `neobit` | `operation_report_to`・`operation_report_thresholds` | 操作ログの設定は `operation_log_〜`、報告は `operation_report_〜` |
+| `neobit` | `cron_enabled` | `.env` は `CRON_ENABLED` |
 | `upload` | `image_types`・`attach_types`・`max_kb`・`max_image_pixels`・`csv_max_kb`・`directory_rule` | |
 | `cleanup` | `operation_log_days`・`failed_job_days`・`tasks` | |
 

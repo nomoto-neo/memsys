@@ -13,6 +13,7 @@ use Neobit\Core\Http\Middleware\NormalizeInput;
 use Neobit\Core\Http\Middleware\RejectBlockedIp;
 use Neobit\Core\Http\Middleware\RestrictAdminAccess;
 use Neobit\Core\Http\Middleware\RestrictSiteAccess;
+use Neobit\Core\Http\Middleware\RunScheduleOnRequest;
 use Neobit\Core\Http\Middleware\SecurityHeaders;
 use Psr\Log\LogLevel;
 
@@ -51,6 +52,11 @@ return Application::configure(basePath: dirname(__DIR__))
         // 自動で止める（Neobit\Core\Http\Middleware\RejectBlockedIp）。ルートの無いURLも止めるので、
         // 全体のミドルウェアに足す。本当のIPアドレスで判断するよう、信頼するプロキシの処理より後ろに通る
         $middleware->append(RejectBlockedIp::class);
+
+        // cronの動かないサーバー（.envのCRON_ENABLED=false）で、サイトへのアクセスを契機に、
+        // routes/console.phpの予定を動かす（Neobit\Core\Http\Middleware\RunScheduleOnRequest）。どのURLへの
+        // アクセスでも動くよう、全体のミドルウェアに足す。予定は応答を返した後に動く
+        $middleware->append(RunScheduleOnRequest::class);
 
         // ブラウザに守り方を伝えるヘッダーを付ける（Neobit\Core\Http\Middleware\SecurityHeaders）。
         // ルートが見つからないときのエラーの画面にも付けるので、全体のミドルウェアに足す

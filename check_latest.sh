@@ -165,6 +165,10 @@ has   packages/neobit/core/src/Models/OperationLogNamedModel.php        'interfa
 has   packages/neobit/core/src/Pdf/PdfDownload.php                      'private function downloadPdfOnSheet('
 has   packages/neobit/core/src/Upload/UploadFieldDefinitions.php        'final class UploadFieldDefinitions'
 has   packages/neobit/core/resources/js/ajax_upload.js                  'function addBlock(group)'
+has   packages/neobit/core/src/Http/Middleware/RunScheduleOnRequest.php 'class RunScheduleOnRequest'
+has   packages/neobit/core/src/Operations/RequestScheduler.php          'final class RequestScheduler'
+has   packages/neobit/core/src/Operations/TemporaryDataCleaner.php      'public static function allExclusively('
+has   packages/neobit/core/config/neobit.php                            "'cron_enabled'"
 has   app/Http/Controllers/Admin/NewsController.php                     "'attach.*' => ['type' => UploadType::File, 'max' => 5]"
 has   packages/neobit/core/database/migrations/2026_10_16_000000_create_settings_table.php "Schema::create('settings'"
 has   packages/neobit/core/database/migrations/2026_10_15_000000_create_ip_blocks_table.php "Schema::create('ip_blocks'"
@@ -179,6 +183,7 @@ has   packages/neobit/core/database/migrations/2026_10_13_000000_create_neobit_c
 has   vite.config.js                                                    'preserveSymlinks: true'
 has   vite.config.js                                                    'ip_block.js'
 has   bootstrap/app.php                                                 'RejectBlockedIp::class'
+has   bootstrap/app.php                                                 'RunScheduleOnRequest::class'
 has   routes/web.php                                                    'IpBlockController'
 has   routes/web.php                                                    'AccessRestrictionController'
 has   resources/pdf-sheets/resume_a4.pdf                                '%PDF'

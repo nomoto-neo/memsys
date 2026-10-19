@@ -2,7 +2,9 @@
 
 namespace Neobit\Core\Operations;
 
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use League\Flysystem\UnableToRetrieveMetadata;
 use Neobit\Core\Csv\CsvImportSettings;
@@ -45,8 +47,10 @@ use Neobit\Core\Upload\UploadFilePath;
  * これに当たる。残す日数（days）を書いた片付けには、その日数を引数で渡す。
  *
  * ■ 呼ぶところ
- * - スケジューラーから1時間ごとに、app:cleanup-temporary-dataコマンドがall()を呼ぶ。
+ * - スケジューラーから1時間ごとに、app:cleanup-temporary-dataコマンドがallExclusively()を呼ぶ。
  *   これが本来の片付け
+ * - cronの動かないサーバー（config('neobit.cron_enabled')がfalse）では、同じ予定を、サイトへのアクセスを
+ *   契機にNeobit\Core\Operations\RequestSchedulerが動かす
  * - 一時ファイルはアップロードとCSV取り込みのたびにも消す。サーバーのcronが動いていなくても
  *   溜まり続けないようにするための控え
  *
@@ -64,6 +68,38 @@ final class TemporaryDataCleaner
      * 開いたままにすると、ファイルが無くなってやり直しになる。
      */
     public const MAX_AGE_HOURS = 24;
+
+    /** 片付けを1本だけにするロックの名前 */
+    private const LOCK_KEY = 'neobit_temporary_data_cleanup';
+
+    /**
+     * ロックを持ち続けてよい秒数。片付けの途中で処理が止まっても、この時間がたてばロックが外れ、
+     * 次の回の片付けが動ける。
+     */
+    private const LOCK_SECONDS = 3600;
+
+    /**
+     * all()を、ほかの片付けと重ならないように動かす。消した件数を名前 => 件数で返し、
+     * ほかの片付けが動いていて取りやめたときはnullを返す。
+     * 予定から動いた片付けのコマンドと、手で動かしたコマンドが同時に動くと、
+     * 同じファイルを消しにいってぶつかるので、ロックで1本だけにする。
+     * 何かを消したときだけログに残す。何もしなかった回は、1時間ごとに同じ行が並ばないよう残さない。
+     */
+    public static function allExclusively(): ?array
+    {
+        $counts = Cache::lock(self::LOCK_KEY, self::LOCK_SECONDS)->get(fn () => self::all());
+
+        // ほかの片付けがロックを持っているとき
+        if ($counts === false) {
+            return null;
+        }
+
+        if (array_sum($counts) > 0) {
+            Log::info('一時データを消しました。', $counts);
+        }
+
+        return $counts;
+    }
 
     /** すべての一時データを片付け、消した件数を名前 => 件数で返す。 */
     public static function all(): array
