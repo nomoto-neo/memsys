@@ -1832,13 +1832,15 @@ Schedule::command(CleanupTemporaryData::class)->hourly()->withoutOverlapping();
 | 「この端末を信頼する」の記録 | `trusted_devices` テーブル | 期限（`expires_at`）の切れた行 |
 | 操作ログ（22章） | `operation_logs` テーブル | `config/cleanup.php` の `operation_log_days`（365日）より古い行 |
 | 送れなかったキューのジョブ（21章） | `failed_jobs` テーブル | `config/cleanup.php` の `failed_job_days`（7日）より古い行 |
+| 終わったジョブのバッチ（21章） | `job_batches` テーブル | 終わってから `failed_job_days`（7日）を過ぎた行。送り直せる間だけ残す |
 | 招待（23章） | `team_invitations` テーブル | 期限（`expires_at`）の切れた行（`TeamInvitationManager::deleteExpired()`） |
 
-業務のデータの片付けは、`TemporaryDataCleaner` には書かず、`config/cleanup.php` の `tasks` に足します。フレームワークの片付けの後に、同じ1時間ごとの片付けの中で呼ばれます。サンプルサイトでは、お問い合わせの片付けを足しています。
+業務のデータの片付けは、`TemporaryDataCleaner` には書かず、`config/cleanup.php` の `tasks` に足します。フレームワークの片付けの後に、同じ1時間ごとの片付けの中で呼ばれます。サンプルサイトでは、お問い合わせと一斉メールの記録の片付けを足しています。
 
 | 片付け | 置き場所 | 消すもの |
 |---|---|---|
 | お問い合わせ（12章） | `t_inquiries` テーブルと添付ファイル | `tasks` の `days` に書いた日数より古い行と、その添付ファイル。`null` なら消さない（`App\Services\InquiryCleanup`） |
+| 一斉メールの記録（21章） | `t_bulk_mails` テーブルと添付ファイル | 送り終えてから `tasks` の `days` に書いた日数を過ぎた記録と、その添付ファイル・バッチの行。`null` なら消さない（`App\Services\BulkMailCleanup`） |
 
 ```php
 // config/cleanup.php

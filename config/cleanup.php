@@ -6,6 +6,7 @@
  * 一緒に // を外す。
  */
 
+use App\Services\BulkMailCleanup;
 use App\Services\InquiryCleanup;
 
 return [
@@ -25,8 +26,8 @@ return [
     // 0にすると、操作ログを取らない。それまでに溜まった行は、消さずに残る
     // 'operation_log_days' => 365,
 
-    // 試し直しても送れなかったキューのジョブ（failed_jobs）を残す日数。この間なら、
-    // php artisan queue:retry all で送り直せる。一斉メールのジョブには宛先の氏名と
+    // 試し直しても送れなかったキューのジョブ（failed_jobs）と、終わったジョブのバッチ（job_batches）の行を
+    // 残す日数。この間なら、php artisan queue:retry all で送り直せる。一斉メールのジョブには宛先の氏名と
     // メールアドレスが入っているので、残し続けない
     // 'failed_job_days' => 7,
 
@@ -38,6 +39,11 @@ return [
         '保存期間を過ぎたお問い合わせ' => [
             'run' => [InquiryCleanup::class, 'deleteOld'],
             // nullなら、消さずに残し続ける。日数は、サイトの運用で決める
+            'days' => null,
+        ],
+        '保存期間を過ぎた一斉メールの記録' => [
+            'run' => [BulkMailCleanup::class, 'deleteOld'],
+            // 送り終えてから数える。nullなら、消さずに残し続ける。日数は、サイトの運用で決める
             'days' => null,
         ],
     ],

@@ -23,8 +23,8 @@ return [
     // 0にすると、操作ログを取らない。それまでに溜まった行は、消さずに残る
     // 'operation_log_days' => 365,
 
-    // 試し直しても送れなかったキューのジョブ（failed_jobs）を残す日数。この間なら、
-    // php artisan queue:retry all で送り直せる。一斉メールのジョブには宛先の氏名と
+    // 試し直しても送れなかったキューのジョブ（failed_jobs）と、終わったジョブのバッチ（job_batches）の行を
+    // 残す日数。この間なら、php artisan queue:retry all で送り直せる。一斉メールのジョブには宛先の氏名と
     // メールアドレスが入っているので、残し続けない
     // 'failed_job_days' => 7,
 

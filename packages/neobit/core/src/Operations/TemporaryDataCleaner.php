@@ -2,6 +2,8 @@
 
 namespace Neobit\Core\Operations;
 
+use Illuminate\Bus\BatchRepository;
+use Illuminate\Bus\PrunableBatchRepository;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -34,6 +36,9 @@ use Neobit\Core\Upload\UploadFilePath;
  *
  * 送れなかったキューのジョブ（failed_jobsテーブル）
  *   消すもの：config('cleanup.failed_job_days')の日数より古い行
+ *
+ * 終わったジョブのバッチ（job_batchesテーブル）
+ *   消すもの：終わってからconfig('cleanup.failed_job_days')の日数より古い行
  *
  * 招待（team_invitationsテーブル。Neobit\Core\Team\TeamInvitationManager）
  *   消すもの：期限の切れた行
@@ -111,6 +116,7 @@ final class TemporaryDataCleaner
             '期限の切れた信頼済み端末' => self::expiredTrustedDevices(),
             '保存期間を過ぎた操作ログ' => self::oldOperationLogs(),
             '保存期間を過ぎた、送れなかったジョブ' => self::oldFailedJobs(),
+            '保存期間を過ぎた、終わったジョブのバッチ' => self::oldJobBatches(),
             '期限の切れた招待' => TeamInvitationManager::deleteExpired(),
             '期限の過ぎたIPブロック' => IpBlocker::deleteExpired(),
         ];
@@ -201,6 +207,23 @@ final class TemporaryDataCleaner
             ->table($failed['table'] ?? 'failed_jobs')
             ->where('failed_at', '<', now()->subDays($days))
             ->delete();
+    }
+
+    /**
+     * ジョブのバッチ（job_batchesテーブル）のうち、終わってからconfig('cleanup.failed_job_days')の日数を過ぎた行。
+     * バッチの行は、送っている間の進み具合と、送れなかったジョブを送り直す間だけ使うので、
+     * 送り直せる日数と同じだけ残す。バッチをDB以外に置いているときと、日数が設定に無いときは何もしない。
+     */
+    public static function oldJobBatches(): int
+    {
+        $days = (int) config('cleanup.failed_job_days');
+        $repository = app(BatchRepository::class);
+
+        if ($days <= 0 || ! $repository instanceof PrunableBatchRepository) {
+            return 0;
+        }
+
+        return $repository->prune(now()->subDays($days));
     }
 
     /**

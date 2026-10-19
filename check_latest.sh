@@ -168,6 +168,7 @@ has   packages/neobit/core/resources/js/ajax_upload.js                  'functio
 has   packages/neobit/core/src/Http/Middleware/RunScheduleOnRequest.php 'class RunScheduleOnRequest'
 has   packages/neobit/core/src/Operations/RequestScheduler.php          'final class RequestScheduler'
 has   packages/neobit/core/src/Operations/TemporaryDataCleaner.php      'public static function allExclusively('
+has   packages/neobit/core/src/Operations/TemporaryDataCleaner.php      'public static function oldJobBatches('
 has   packages/neobit/core/config/neobit.php                            "'cron_enabled'"
 has   app/Http/Controllers/Admin/NewsController.php                     "'attach.*' => ['type' => UploadType::File, 'max' => 5]"
 has   packages/neobit/core/database/migrations/2026_10_16_000000_create_settings_table.php "Schema::create('settings'"
@@ -200,6 +201,7 @@ lacks config/logging.php                                                'operati
 has   resources/mail-templates/member_verification_code.blade.php       '【{!! $site_name !!}】'
 has   routes/web.php                                                    'CodeTableController'
 has   app/Http/Controllers/ContactController.php                        'catch (MailTemplateException'
+has   config/cleanup.php                                                'BulkMailCleanup::class'
 
 echo
 if [ $ng -eq 0 ]; then
