@@ -10,8 +10,6 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Neobit\Core\Operations\TemporaryDataCleaner;
-use Neobit\Core\Rules\MaxUploadCountRule;
-use Neobit\Core\Rules\SameCountAsRule;
 
 /**
  * 画像と添付ファイルを、確認画面をはさんで保存するAjaxアップロードのトレイト。
@@ -28,16 +26,12 @@ use Neobit\Core\Rules\SameCountAsRule;
  *    PRIVATE_FILE_FIELDSにあるフィールドは非公開のディスク。保存先の規則はUploadFilePathにある
  *
  * ■ コントローラーが用意するもの
- * - UPLOAD_FILES：['フィールド名' => ['type' => 種類, 'width' => 横幅(px), 'max' => 上限]]。
+ * - UPLOAD_FILES：['フィールド名' => ['type' => 種類, 'width' => 横幅(px)]]。
  *   書き方の決まりはUploadFieldDefinitionsにある。横幅はモデルの定数を参照する。
  *   例：'list_image' => ['type' => UploadType::Image, 'width' => News::LIST_IMAGE_WIDTH]
- * - 名前の末尾が「.*」のフィールドは、いくつでも足せる欄になる。例：'attach.*' => ['type' => UploadType::File, 'max' => 5]。
- *   'max'は枠の数の上限で、画面で枠を増やせなくするほか、保存のときの検証（ajaxUploadRules()）でも確かめる。
- *   モデルには「.*」を除いた名前のHasManyのリレーションを用意する。例：News::attach()。
- *   このトレイトは子テーブルの名前や外部キーを知らず、そのリレーションだけを使う
  * - uploadAjaxFile()を指すPOSTのルート。例：admin.news.ajaxUpload
  * - WYSIWYG_IMAGE_FIELDS：['フィールド名' => 横幅(px)]。画像を入れられるエディタの欄。省略できる
- * - 繰り返しの組（Neobit\Core\Crud\RepeatableGroup）の中のファイルの欄は、UPLOAD_FILESに'photos.*.image'のように書く。
+ * - 繰り返しの組（Neobit\Core\Crud\RepeatableGroup）の中のファイルの欄は、UPLOAD_FILESに'attach.*.file'のように書く。いくつでも足せるファイルは、この形で持つ。
  *   受け取り（uploadAjaxFile()）と一時ファイルの移し方はこのトレイトのものを使い、行への書き込みと
  *   使わなくなったファイルの削除は組の部品が受け持つ
  *
@@ -75,13 +69,13 @@ use Neobit\Core\Rules\SameCountAsRule;
  * コントローラーが画面へ渡す$inputにはフォームから送る項目だけを入れ、表示のためだけの値は
  * 入れない。確認画面の_confirm_hiddenが$inputをそのままhiddenに並べられるようにするため。
  * ajaxUploadValues()もそれに合わせて{field}・{field}_origin・{field}_tmp・{field}_delだけを
- * 返す。複数の欄ではどれも同じ要素数の配列になる。
+ * 返す。
  *
  *   $input = old() + [...] + $this->ajaxUploadValues(null, old());
  *
  * プレビューのURLはコントローラーでは作らず、_ajax_upload_blockの中でupload_preview_url()が
  * $inputの値から求める。都道府県の名前をcode_table()で引くのと同じ考え方。
- * _fields.blade.phpは_ajax_upload_blockと_ajax_upload_groupに$readonlyを渡すだけで、
+ * _fields.blade.phpは_ajax_upload_blockと_repeatable_groupに$readonlyを渡すだけで、
  * 入力の欄と表示だけのプレビューが切り替わる。
  */
 trait AjaxFileUpload
@@ -100,7 +94,7 @@ trait AjaxFileUpload
 
     /**
      * Ajaxでアップロードを受け取る。1回に1ファイルで、どのフィールドの分かはfieldで受け取る。
-     * fieldは末尾の「.*」や「[]」を付けない名前。
+     * fieldは画面から送る名前で、組の中の欄はattach_fileのような「組の名前_列」。
      */
     public function uploadAjaxFile(Request $request): JsonResponse
     {
@@ -267,8 +261,8 @@ trait AjaxFileUpload
     }
 
     /**
-     * アップロードの欄の定義。['field' => 名前, 'kind' => 種類, 'type' => UploadType, 'width' => 横幅, 'max' => 上限]の並び。
-     * kindは、single（1つだけの欄）・repeatable（「.*」の欄）・wysiwyg（エディタの欄）。
+     * アップロードの欄の定義。['field' => 名前, 'kind' => 種類, 'type' => UploadType, 'width' => 横幅, …]の並び。
+     * kindは、single（1つだけの欄）・wysiwyg（エディタの欄）・group（繰り返しの組の中の欄）。
      *
      * このトレイトのほかのメソッドは2つの定数を自分で読まず、必ずこの結果を使う。
      * 読み方と書き方の確かめは、画面の部品と共通のUploadFieldDefinitionsにある。
@@ -383,33 +377,15 @@ trait AjaxFileUpload
         foreach ($this->uploadFieldDefinitions() as $def) {
             // エディタの欄にはhiddenが無い。本文のルールはコントローラーのrules()に書く。
             // 繰り返しの組の中の欄は、組のルール（RepeatableGroup::repeatableGroupRules()）に入る
-            if ($def['kind'] === 'wysiwyg' || $def['kind'] === 'group') {
+            if ($def['kind'] !== 'single') {
                 continue;
             }
 
             $base = $def['field'];
-            $isRepeatable = $def['kind'] === 'repeatable';
-            $suffix = $isRepeatable ? '.*' : '';
-
-            $rules["{$base}{$suffix}"] = ['nullable', 'regex:'.UploadFilePath::SAFE_FILENAME];
-            $rules["{$base}_tmp{$suffix}"] = ['nullable', 'regex:'.UploadFilePath::SAFE_FILENAME];
-            $rules["{$base}_origin{$suffix}"] = ['nullable', 'string', 'max:255'];
-            $rules["{$base}_del{$suffix}"] = ['nullable', 'in:0,1'];
-
-            if ($isRepeatable) {
-                // 複数の欄は、4本とも配列で要素数がそろっていることを確かめる。
-                // 画面は4本を1組で増減させるので、そろっていなければhiddenが書き換えられている。
-                // 1本だけ送られてこなかったときも見逃さないよう4本それぞれに付ける
-                $keys = [$base, "{$base}_tmp", "{$base}_origin", "{$base}_del"];
-
-                foreach ($keys as $key) {
-                    $others = array_values(array_diff($keys, [$key]));
-                    $rules[$key] = ['array', new SameCountAsRule($others)];
-                }
-
-                // ファイルのある枠の数が、'max'を超えないこと。画面を通さずに送られても、上限を守るため
-                $rules[$base][] = new MaxUploadCountRule($base, $def['max']);
-            }
+            $rules[$base] = ['nullable', 'regex:'.UploadFilePath::SAFE_FILENAME];
+            $rules["{$base}_tmp"] = ['nullable', 'regex:'.UploadFilePath::SAFE_FILENAME];
+            $rules["{$base}_origin"] = ['nullable', 'string', 'max:255'];
+            $rules["{$base}_del"] = ['nullable', 'in:0,1'];
         }
 
         return $rules;
@@ -439,7 +415,7 @@ trait AjaxFileUpload
      * エディタの欄は本文をコントローラーが保存済みなので、更新前の本文はgetPrevious()から取る。
      *
      * ■ 入力にキーが無いフィールドは触らない
-     * 1つだけの欄は4つのキーのどれも無いとき、複数の欄は{field}が無いとき、ファイルは今のまま。
+     * 1つだけの欄は4つのキーのどれも無いとき、ファイルは今のまま。
      * 画面のフォームは4つのhiddenを必ず送るので、画面からの登録には関係しない。
      * CSVにアップロードの列が無いときに今のファイルを消さないため。
      *
@@ -459,7 +435,6 @@ trait AjaxFileUpload
         foreach ($this->uploadFieldDefinitions() as $def) {
             match ($def['kind']) {
                 'single' => $this->commitSingularUploadField($model, $def['field'], $input, $fromImport),
-                'repeatable' => $this->commitRepeatableUploadField($model, $def['field'], $input, $fromImport),
                 'wysiwyg' => $this->commitWysiwygField($model, $def['field']),
                 'group' => null,
             };
@@ -478,9 +453,7 @@ trait AjaxFileUpload
 
     /**
      * このレコードが参照しているファイル名の一覧。ファイル名 => フィールド名で、フィールド名は
-     * 消すときにディスクを決めるのに使う。1つだけの欄はカラムから、複数の欄は子テーブルから、
-     * エディタの欄は本文の<img>から取る。読み込み済みのリレーションは古いかもしれないので、
-     * 子テーブルは毎回DBに問い合わせる。
+     * 消すときにディスクを決めるのに使う。1つだけの欄はカラムから、エディタの欄は本文の<img>から取る。
      *
      * $beforeCommitがtrueなら更新前の一覧。エディタの本文はもう新しくなっているので
      * getPrevious()の値を使う。直前の保存で本文が変わっていなければ今の値を使う。
@@ -495,13 +468,6 @@ trait AjaxFileUpload
 
             // 繰り返しの組の中の欄は、組の保存が自分で前後を比べるので、ここでは数えない
             if ($def['kind'] === 'group') {
-                continue;
-            }
-
-            // 複数の欄は子テーブルの行から
-            if ($def['kind'] === 'repeatable') {
-                $filenames += array_fill_keys($model->{$field}()->pluck('filename')->all(), $field);
-
                 continue;
             }
 
@@ -590,97 +556,8 @@ trait AjaxFileUpload
         }
 
         // どちらでもなければ今の値を書き戻す。ふつうは何も変わらないが、
-        // 複数の欄と同じく送られた内容でDBの値を決め直す形にそろえる
+        // 送られた内容でDBの値を決め直す形にそろえる
         $model->update([$field => $kept, $originColumn => $kept !== null ? $currentOrigin : null]);
-    }
-
-    /**
-     * 子テーブルに行を持つ複数の欄を確定する。例：t_news_attachments。DBの行だけを決めて
-     * ファイルは消さない。行を1つずつ直すのではなく、今の行を全部消して残す分を作り直す。
-     *
-     * hiddenで届いた今のファイル名は子テーブルにあるものだけを使い、無いものは空の枠と同じく
-     * 飛ばす。同じ名前が2回届いても行は1つだけ作る。今のファイルの表示名はDBの値を使う。
-     * 新しいファイルの表示名が届かなければ空のままにする。保存したファイル名はランダムなので、
-     * 代わりに入れても意味が無いため。
-     */
-    private function commitRepeatableUploadField(Model $model, string $field, array $input, bool $fromImport): void
-    {
-        // 入力にこの欄のキーが無ければ触らない
-        if (! array_key_exists($field, $input)) {
-            return;
-        }
-
-        // 今の行。ファイル名 => 表示名
-        $current = $model->{$field}()->pluck('original_name', 'filename')->all();
-
-        if ($fromImport) {
-            // CSVの並び順のまま、ファイル名と表示名で行を作り直す。CSVに無いファイルは外れる
-            $rows = [];
-            foreach ((array) $input[$field] as $index => $filename) {
-                if ($filename && ! in_array($filename, array_column($rows, 'filename'), true)) {
-                    $rows[] = ['filename' => $filename, 'original_name' => ($input["{$field}_origin"][$index] ?? null) ?: null];
-                }
-            }
-
-            $model->{$field}()->delete();
-            if ($rows !== []) {
-                $model->{$field}()->createMany($rows);
-            }
-
-            return;
-        }
-
-        $names = $input[$field] ?? [];
-        $tmps = $input["{$field}_tmp"] ?? [];
-        $origins = $input["{$field}_origin"] ?? [];
-        $dels = $input["{$field}_del"] ?? [];
-
-        $rows = [];
-        $used = [];
-
-        foreach ($names as $index => $existing) {
-            $tmp = $tmps[$index] ?? null;
-            $del = ($dels[$index] ?? null) == '1';
-            $kept = ($existing !== null && $existing !== '' && array_key_exists($existing, $current)) ? $existing : null;
-
-            if (! $kept && ! $tmp) {
-                // 使われなかった空の枠か、今のファイル名が子テーブルに無い枠
-                continue;
-            }
-
-            // 新しいファイル
-            if ($tmp) {
-                $filename = $this->moveTmpToFinal($model, $field, $tmp);
-
-                if ($filename !== null) {
-                    $rows[] = [
-                        'filename' => $filename,
-                        'original_name' => ($origins[$index] ?? null) ?: null,
-                    ];
-
-                    continue;
-                }
-
-                // 一時ファイルが無ければ、_tmpが無かったときと同じく下へ進む
-            }
-
-            // 消さない今のファイルは、DBの表示名で行を作り直す
-            if (! $del && $kept && ! isset($used[$kept])) {
-                $rows[] = [
-                    'filename' => $kept,
-                    'original_name' => $current[$kept],
-                ];
-                $used[$kept] = true;
-            }
-
-            // 行を作らないのは、消す枠、一時ファイルも今のファイルも無い枠、同じファイルの2回目
-        }
-
-        $model->{$field}()->delete();
-
-        if ($rows !== []) {
-            $model->{$field}()->createMany($rows);
-        }
     }
 
     /**
@@ -867,12 +744,11 @@ trait AjaxFileUpload
     }
 
     /**
-     * レコードを消す前に呼び、全フィールドのファイルを消す。複数の欄は子テーブルの行も消し、
-     * エディタの欄は本文が使っているこのレコードの保存先の画像を消す。
-     * レコードそのものは呼び元がdelete()する。
+     * レコードを消す前に呼び、全フィールドのファイルを消す。エディタの欄は本文が使っている
+     * このレコードの保存先の画像を消す。レコードそのものは呼び元がdelete()する。
      *
-     * 子テーブルの行はその場で消し、ファイルはcommitUploads()と同じくトランザクションが
-     * 確定した後に消す。削除が取り消されたときに、残ったレコードのファイルが無くならないようにするため。
+     * ファイルはcommitUploads()と同じくトランザクションが確定した後に消す。削除が取り消されたときに、
+     * 残ったレコードのファイルが無くならないようにするため。
      */
     public function deleteAllUploads(Model $model): void
     {
@@ -890,14 +766,6 @@ trait AjaxFileUpload
             // エディタの欄は本文の<img>から
             if ($def['kind'] === 'wysiwyg') {
                 $filenames += array_fill_keys($this->wysiwygImageFilenames($model, $base, $model->{$base}), $base);
-
-                continue;
-            }
-
-            // 複数の欄は子テーブルの行から集め、行を消す
-            if ($def['kind'] === 'repeatable') {
-                $filenames += array_fill_keys($model->{$base}()->pluck('filename')->all(), $base);
-                $model->{$base}()->delete();
 
                 continue;
             }
@@ -923,8 +791,7 @@ trait AjaxFileUpload
 
     /**
      * 画面へ渡す$inputのうち、アップロードの欄の分。エディタの欄は含めない。
-     * {field}・{field}_origin・{field}_tmp・{field}_delの4つを返し、複数の欄では
-     * どれも同じ要素数の配列になる。フォームのname="attach[]"などの送られ方と同じ形。
+     * {field}・{field}_origin・{field}_tmp・{field}_delの4つを返す。
      * プレビューのURLのような表示のためだけの値は含めない。
      *
      * $sourceは入力し直していた値で、そこに無いフィールドは$modelの今の値で補う。
@@ -946,12 +813,6 @@ trait AjaxFileUpload
                 continue;
             }
 
-            if ($def['kind'] === 'repeatable') {
-                $result += $this->repeatableUploadInput($model, $field, $source);
-
-                continue;
-            }
-
             $originKey = "{$field}_origin";
 
             // ファイル名と表示名は、入力し直していた値があればそれを、無ければレコードの今の値を使う
@@ -969,47 +830,6 @@ trait AjaxFileUpload
 
             $result["{$field}_tmp"] = $source["{$field}_tmp"] ?? null;
             $result["{$field}_del"] = ($source["{$field}_del"] ?? null) == '1' ? '1' : '';
-        }
-
-        return $result;
-    }
-
-    /**
-     * ajaxUploadValues()の複数の欄1つ分。4本の配列を必ず同じ要素数にそろえて返す。
-     * $sourceにこの欄のキーが無ければ、$modelのリレーションの今の行を使う。
-     */
-    private function repeatableUploadInput(?Model $model, string $field, array $source): array
-    {
-        if (! array_key_exists($field, $source)) {
-            $rows = $model ? $model->{$field} : collect();
-            $count = count($rows);
-
-            return [
-                $field => $rows->pluck('filename')->all(),
-                "{$field}_origin" => $rows->pluck('original_name')->all(),
-                "{$field}_tmp" => array_fill(0, $count, null),
-                "{$field}_del" => array_fill(0, $count, ''),
-            ];
-        }
-
-        $names = array_values((array) ($source[$field] ?? []));
-        $origins = (array) ($source["{$field}_origin"] ?? []);
-        $tmps = (array) ($source["{$field}_tmp"] ?? []);
-        $dels = (array) ($source["{$field}_del"] ?? []);
-
-        $result = [
-            $field => $names,
-            "{$field}_origin" => [],
-            "{$field}_tmp" => [],
-            "{$field}_del" => [],
-        ];
-
-        // ふつうは4本の要素数はそろっているが、old()の値は要素数のずれで差し戻された入力の
-        // こともあるので、欠けを埋めておく
-        foreach ($names as $index => $name) {
-            $result["{$field}_origin"][] = $origins[$index] ?? null;
-            $result["{$field}_tmp"][] = $tmps[$index] ?? null;
-            $result["{$field}_del"][] = ($dels[$index] ?? null) == '1' ? '1' : '';
         }
 
         return $result;

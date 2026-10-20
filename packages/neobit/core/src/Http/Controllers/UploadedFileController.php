@@ -132,11 +132,6 @@ class UploadedFileController
      */
     private function fileBelongsToField(Model $owner, string $field, string $filename): bool
     {
-        if ($owner->isRelation($field)) {
-            // 複数のフィールド（attach.*）: 同じ名前のHasManyリレーションの行にあるか
-            return $owner->{$field}()->where('filename', $filename)->exists();
-        }
-
         // 繰り返しの組の中の欄（photos.*.image）: 欄の名前は「組の名前_列」（photos_image）なので、
         // 前から「_」で区切って、リレーションの名前と子テーブルの列を探す。その列の行にあるか。
         // 1つだけの欄とエディタの欄（モデルの列）は、ここを通さない

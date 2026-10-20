@@ -27,10 +27,10 @@ use LogicException;
  *                                                          // 「*」を含むと複数。「、」区切りで1セルに
  *     'カテゴリー:*' => ['categories.*.id', $categories, 'import' => 'category_ids'],
  *                                                          // 見出しの末尾「:*」で一覧の件数分の列に横展開
- *     '添付ファイル:*' => 'attach.*.original_name',        // 一覧なしの「:*」は連番の横展開。:1、:2…
+ *     '添付ファイル:*' => 'attach.*.file_origin',          // 一覧なしの「:*」は連番の横展開。:1、:2…
  *     '添付:*'       => ['attach', 'group' => [            // 組にした横展開
- *                            '添付ファイル'   => 'original_name',
- *                            '保存ファイル名' => 'filename',
+ *                            '添付ファイル'   => 'file_origin',
+ *                            '保存ファイル名' => 'file',
  *                        ]],
  *     '年齢'         => '@age',                            // csvCustomColumn('age', $record)の戻り値
  *     '氏名'         => ['@fullname', 'import' => ['last_name', 'first_name']],

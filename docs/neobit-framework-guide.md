@@ -253,7 +253,7 @@ GRANT ALL PRIVILEGES ON memsys_testing.* TO 'memsys'@'localhost';
 | `PasskeyLogin`・`PasskeyManagement` | `packages/neobit/core/src/Auth/` | パスキーでのログインと、本人によるパスキーの登録・削除 | 14 |
 | `PasswordChange` | `packages/neobit/core/src/Auth/` | パスワードを変えたときの後始末（信頼済み端末・パスキーの無効化、お知らせのメール） | 14 |
 | `_confirm_hidden` | `packages/neobit/core/resources/views/` | 確認画面の hidden を `$input` から組み立てる | 5 |
-| `_ajax_upload_block`・`_ajax_upload_group` | `packages/neobit/core/resources/views/` | アップロード欄（単数・複数） | 7 |
+| `_ajax_upload_block` | `packages/neobit/core/resources/views/` | アップロード欄（1つだけの欄と、繰り返しの組の中の欄） | 7 |
 | `RepeatableGroup`・`_repeatable_group` | `packages/neobit/core/src/Crud/`・`packages/neobit/core/resources/views/` | 繰り返しの組（子テーブルの行を、項目の組として増減しながら入力して保存する） | 5 |
 | `admin/csv_import/` | `packages/neobit/core/resources/views/` | CSV 取り込みの画面（全コーナー共通） | 10 |
 | `_passkeys` | `packages/neobit/core/resources/views/` | パスキーの一覧・本人確認・登録の画面の中身 | 14 |
@@ -677,9 +677,9 @@ private const RAW_INPUT_FIELDS = News::RAW_INPUT_FIELDS;
 
 ### 繰り返しの組（RepeatableGroup）
 
-**ファイル**：`packages/neobit/core/src/Crud/RepeatableGroup.php`・`RepeatableGroupDefinitions.php`（書き方）・`packages/neobit/core/resources/views/_repeatable_group.blade.php`・`packages/neobit/core/resources/js/repeatable_group.js`　**実例**：ニュースの写真（`Admin\NewsController`、画面は `admin/news/_photo_row.blade.php`）　**設計**：`docs/repeatable-group-spec.md`
+**ファイル**：`packages/neobit/core/src/Crud/RepeatableGroup.php`・`RepeatableGroupDefinitions.php`（書き方）・`packages/neobit/core/resources/views/_repeatable_group.blade.php`・`packages/neobit/core/resources/js/repeatable_group.js`　**実例**：ニュースの写真（`Admin\NewsController`、画面は `admin/news/_photo_row.blade.php`）・ニュースの添付ファイル（ファイルだけの組。画面は `admin/news/_attach_row.blade.php`）　**設計**：`docs/repeatable-group-spec.md`
 
-子テーブルの1行を「いくつかの項目（ファイルを含んでよい）の組」として、画面で行を増やしたり消したりしながら入力し、親と一緒に保存します。例：ニュースの写真（画像とキャプション）。
+子テーブルの1行を「いくつかの項目（ファイルを含んでよい）の組」として、画面で行を増やしたり消したりしながら入力し、親と一緒に保存します。例：ニュースの写真（画像とキャプション）。いくつでも足せるファイルの欄も、ファイルの項目だけの組として書きます（例：ニュースの添付ファイル）。
 
 ```php
 use FormFlow;
@@ -722,6 +722,18 @@ private const UPLOAD_FILES = [
 - **空の行**：全部の項目が空の行は、検証の前に除きます。必須の項目は、空でない行にだけ効きます。
 - **保存**：子テーブルの行の id を保って揃えます。届いた id の行は更新、id の無い行は追加、届かなかった行は削除します。ほかの親の行の id や、2回目に出てきた同じ id は、新しい行として扱います。並び順の列があれば、画面の並びの番号を入れます。
 - **ファイル**：受け取りと一時ファイルの移し方はアップロードの部品（7章）のものを使います。今のファイルは、ファイル名が「その行の今の値」と一致するときだけ残すので、hidden を書き換えてほかの欄のファイルを指させることはできません。使わなくなったファイルは、トランザクションが確定した後に消えます。
+- **ファイルだけの組**：ニュースの添付ファイルは、次のように書きます。子テーブルには `file`（保存したファイル名）・`file_origin`（表示名）・並び順の列を作ります。行の部分ビューは `_ajax_upload_block` を1つ置くだけです。
+
+    ```php
+    private const REPEATABLE_GROUPS = [
+        'attach' => ['relation' => 'attach', 'fields' => ['file'], 'order' => 'display_order', 'max' => 5],
+    ];
+    private const UPLOAD_FILES = [
+        'attach.*.file' => ['type' => UploadType::File],
+    ];
+    ```
+- **まとめて選ぶ**：ファイルの項目が1つだけの組では、ファイルをまとめて選べます（ドロップでも同じ）。1つ目は選んだ行に、2つ目から先は空いている行に入れ、1つずつ順に送ります。空いている行が無ければ、受け付けられてから行を足すので、許可されない種類のファイルで空の行は増えません。上限を超える分は足さずに知らせます。ファイルの項目が2つ以上ある組では、1つずつ選びます。
+- **ファイルを削除する**：行の中の「ファイルを削除」は、ファイルを空にするだけで、行は残します。行ごと消すのは右上の × です。
 - **FormFlow が呼ぶ**：値の組み立て（`inputPageValues()`・`confirmPageValues()`）、空の行の除き方、保存、削除は FormFlow が呼ぶので、入口の書き方は変わりません。
 - **画面**：「行を足す」・行の ×・行の数の上限・横並び（`'inline' => true`。行の幅は `global.css` の `.repeatable_inline`）は部品が持ちます。画面で `vendor/neobit/core/resources/js/repeatable_group.js` を読み込みます。
 - **CSV**：組は CSV では取り込みません（取り込みのときは組を保存しない）。書き出しは、`csvColumns()` に組の横展開（9章。`'写真:*' => ['photos', 'group' => ['キャプション' => 'caption']]`）を書けば出せます。ただし `csvColumns()` は取り込みと共通なので、取り込みもするコーナーでは、取り込めない列が混ざることに気を付けます。
@@ -767,12 +779,12 @@ private function beforeDelete(News $news): void
 use AjaxFileUpload;
 
 /**
- * フィールド名 => ['type' => 種類, 'width' => 縮小する横幅, 'max' => 枠の数の上限]。
- * 末尾が「.*」なら複数（添付ファイルの行を増やせる）
+ * フィールド名 => ['type' => 種類, 'width' => 縮小する横幅]。
+ * 「組の名前.*.列」は、繰り返しの組（5章）の中の欄
  */
 private const UPLOAD_FILES = [
     'list_image' => ['type' => UploadType::Image, 'width' => News::LIST_IMAGE_WIDTH],
-    'attach.*' => ['type' => UploadType::File, 'max' => 5],
+    'attach.*.file' => ['type' => UploadType::File],
 ];
 /** 画像を埋め込める WYSIWYG の欄と、入れた画像を縮小する横幅（無ければ書かない） */
 private const WYSIWYG_IMAGE_FIELDS = [
@@ -797,53 +809,49 @@ private function prepareInput(array $validated): array
 
 - **`UPLOAD_FILES` の書き方**（決まりは `UploadFieldDefinitions` にあり、誤りは最初に画面を開いたときに例外になります）
 
-    | キー | 1つだけの欄 | 複数の欄（`.*`） |
-    |---|---|---|
-    | `type` | 必ず書く。`UploadType::Image`（画像）か `UploadType::File`（添付ファイル） | 同じ |
-    | `width` | 画像なら必ず書く。この横幅を超えたら縮小する。添付ファイルには書かない | 同じ |
-    | `max` | 書かない | 必ず書く。枠の数の上限 |
+    | キー | 書き方 |
+    |---|---|
+    | `type` | 必ず書く。`UploadType::Image`（画像）か `UploadType::File`（添付ファイル） |
+    | `width` | 画像なら必ず書く。この横幅を超えたら縮小する。添付ファイルには書かない |
 
     受け付ける拡張子は、種類ごとに `config/upload.php` の `image_types`・`attach_types` を使います。
-- **複数の欄の上限**：画面では、上限まで枠があれば「ファイルを追加」を押せなくします。保存のときの検証（`ajaxUploadRules()` に入っている `MaxUploadCountRule`）でも、ファイルのある枠の数を確かめるので、画面を通さずに送られても上限は守られます。
-- **まとめて選ぶ**：複数の欄では、ファイルをまとめて選べます（ドロップでも同じ）。1つ目は選んだ枠に、2つ目から先は空いている枠に入れ、1つずつ順に送ります。空いている枠が無ければ、受け付けられてから枠を足すので、許可されない種類のファイルで空の枠は増えません。上限を超える分は足さずに知らせます。1つだけの欄は、今までどおり1つだけです。
-- **ファイルを削除する**：複数の欄で枠が2つ以上あれば、枠ごと消します。最後の1枠は空にして残します。
-- **空の枠を閉じる**：複数の欄の空いている枠は、右上の × で枠ごと消せます。枠が1つだけのときは × を出しません。
+- **いくつでも足せるファイル**：繰り返しの組（5章）に、ファイルの項目だけの組を書き、`UPLOAD_FILES` に「組の名前.*.列」で書きます（例：`'attach.*.file'`。画面から送る名前は `attach_file`）。行の数の上限は組の `'max'` です。末尾が「.*」だけの書き方（`'attach.*'`）は、例外にして組の書き方を案内します。
 - `$input` の組み立て（`inputPageValues()`・`confirmPageValues()`）と保存（`saveData()`）は FormFlow が自動でアップロードの処理を呼ぶので、入口の書き方は変わりません。
 - ルートにアップロード先を1本足します：`Route::post('/news/ajax-upload', [AdminNewsController::class, 'uploadAjaxFile'])->name('news.ajaxUpload');`（訪問者向けは `throttle` を付ける）。
 - **単数のフィールド**（`list_image`）：テーブルに `list_image`（保存ファイル名）と `list_image_origin`（元のファイル名）のカラムを作り、モデルの `$fillable` に入れます。
-- **複数のフィールド**（`attach.*`）：子テーブル（`filename`・`original_name`（NULL可）・親の id）と、フィールドと同じ名前の HasMany リレーション（`News::attach()`）を用意します。
+- **組の中のフィールド**（`attach.*.file`）：子テーブルに、列（`file`）と、列の名前に `_origin` を付けた表示名の列（`file_origin`。NULL可）を作り、組の名前と同じ HasMany リレーション（`News::attach()`）を用意します。
 - 許可する拡張子・大きさの上限は、サイト全体の方針として `config/upload.php` で決めます。コーナーごとには変えません。画像の種類を変えたら、エディタでファイルを選ぶときの絞り込み（`wysiwyg_suneditor.js`・`wysiwyg_summernote.js` の `ACCEPT_IMAGE_TYPES`）も合わせます。CSV の取り込みの大きさの上限（`csv_max_kb`）も、ここにあります。
 - **保存先**：モデルのクラス名と id から、保存先の規則が決めます（既定の例：`news/000/000012/xxxx.jpg`。規則の差し替えは下の「保存先の規則を変えるとき」）。1件分のファイルはフィールドに関係なく1つのディレクトリに入ります。表示の URL は `UploadFilePath::url(クラス, id, フィールド, ファイル名)` で作り、モデルのアクセサにしておきます（例：`News::list_image_url`、`NewsAttachment::url`）。
 
 ### 画面
 
 ```blade
-{{-- 単数 --}}
+{{-- 1つだけの欄 --}}
 @include('neobit::_ajax_upload_block', [
     'model' => $model, 'input' => $input, 'field' => 'list_image',
     'readonly' => $readonly, 'uploadUrl' => $uploadUrl,
 ])
-{{-- 複数 --}}
-@include('neobit::_ajax_upload_group', [
-    'model' => $model, 'input' => $input, 'field' => 'attach',
+{{-- 組の中の欄は、組の行の部分ビューに、何行目か（$idx）を付けて置く（5章） --}}
+@include('neobit::_ajax_upload_block', [
+    'model' => $model, 'input' => $input, 'field' => 'attach_file', 'idx' => $idx,
     'readonly' => $readonly, 'uploadUrl' => $uploadUrl,
 ])
 ```
 
-- 欄の種類・縮小する横幅・枠の数の上限は、画面には書きません。部品が、ヘルパーの `upload_field(欄の名前, 項目)` で、今の画面のコントローラーの `UPLOAD_FILES` から読みます。そのため、部品はその欄を定義したコントローラーの画面で使います。案内の文などで使いたいときは、画面からも呼べます（`{{ upload_field('attach', 'max') }} 件まで添付できます`）。項目は `'type'`・`'width'`・`'max'` です。
+- 欄の種類・縮小する横幅・まとめて選べるかは、画面には書きません。部品が、ヘルパーの `upload_field(欄の名前, 項目)` で、今の画面のコントローラーの `UPLOAD_FILES` から読みます。そのため、部品はその欄を定義したコントローラーの画面で使います。案内の文などで使いたいときは、画面からも呼べます（`横幅{{ upload_field('list_image', 'width') }}pxに縮小します`）。項目は `'type'`・`'width'`・`'multiple'` です。
 
 - `$readonly` を渡すだけで、入力画面ではアップロードの UI、確認・詳細画面では表示だけに切り替わります。
-- **横に並べる**：複数の欄は、`'inline' => true` を渡すと枠を横に並べ、入りきらなければ折り返します（見本はニュースの添付ファイル）。枠の幅は 14rem で、`global.css` の `.ajax_upload_inline` にあります。案件の CSS で枠に幅を当てれば変えられます（`.ajax_upload_group[data-field="attach"] .ajax_upload_block { width: 10rem; }`）。
+- **横に並べる**：組に `'inline' => true` を渡すと行を横に並べ、入りきらなければ折り返します（見本はニュースの添付ファイルと写真）。行の幅は 14rem で、`global.css` の `.repeatable_inline` にあります。案件の CSS で行に幅を当てれば変えられます（`.repeatable_group[data-group="attach"] .repeatable_row { width: 10rem; }`）。
 
-  固定の幅（rem・px）を当てると、1行に並ぶ数は入れ物の幅で変わります。画面の幅にかかわらず1行に並ぶ数を決めたいときは、枠の間（0.5rem）を差し引いた割合で幅を当てます。1行に n 個なら `calc((100% - 0.5rem × (n − 1)) / n)` です。割合だとスマホでも同じ数で並んで枠が細くなるので、狭い画面は `@media` で数を減らします。
+  固定の幅（rem・px）を当てると、1行に並ぶ数は入れ物の幅で変わります。画面の幅にかかわらず1行に並ぶ数を決めたいときは、行の間（0.5rem）を差し引いた割合で幅を当てます。1行に n 個なら `calc((100% - 0.5rem × (n − 1)) / n)` です。割合だとスマホでも同じ数で並んで行が細くなるので、狭い画面は `@media` で数を減らします。
 
   ```css
   /* 広い画面は1行に3つ、狭い画面は1つ */
-  .ajax_upload_group[data-field="attach"] .ajax_upload_block {
+  .repeatable_group[data-group="attach"] .repeatable_row {
       width: calc((100% - 1rem) / 3);
   }
   @media (max-width: 576px) {
-      .ajax_upload_group[data-field="attach"] .ajax_upload_block {
+      .repeatable_group[data-group="attach"] .repeatable_row {
           width: 100%;
       }
   }
@@ -915,7 +923,7 @@ SunEditor は npm のパッケージなので、`package.json` から外した�
 個人情報のように、URL を知っているだけで誰でも見られては困るファイルは、持ち主のモデルに、非公開にするフィールドの名前を並べます。公開か非公開かはデータ項目の性質なので、コントローラーではなくモデルが決めます。同じモデルに公開と非公開のフィールドがあってもかまいません。コントローラー・画面の書き方は、公開のファイルと同じです。
 
 ```php
-/** モデル。複数のフィールド（attach.*）は末尾の「.*」を除いた名前、WYSIWYG欄は欄の名前 */
+/** モデル。組の中のフィールド（attach.*.file）は画面から送る名前（attach_file）、WYSIWYG欄は欄の名前 */
 public const PRIVATE_FILE_FIELDS = ['photo'];
 ```
 
@@ -1143,7 +1151,7 @@ private function csvColumns(): array
 }
 ```
 
-- 書き方の全体（複数の値の「、」区切り、連番の横展開 `'添付ファイル:*' => 'attach.*.original_name'`、組の横展開 `'添付:*' => ['attach', 'group' => [...]]` など）は `CsvColumnSet.php` の冒頭にあります。
+- 書き方の全体（複数の値の「、」区切り、連番の横展開 `'添付ファイル:*' => 'attach.*.file_origin'`、組の横展開 `'添付:*' => ['attach', 'group' => [...]]` など）は `CsvColumnSet.php` の冒頭にあります。
 - `downloadCsv()` に渡したクエリのデータを出力します。`SearchableList` を使っていれば、一覧の検索条件と並び順が自動的に反映されます。
 - ルート：`Route::get('/members/csv', ...)->name('members.csv')`（`/members/{member}` より前）。一覧画面に「CSVダウンロード」ボタン。
 - ダウンロードのたびに `csv_download_logs` に記録します。

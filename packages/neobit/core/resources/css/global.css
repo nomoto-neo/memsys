@@ -74,24 +74,6 @@
 }
 
 /*
- * 複数のアップロードの欄（_ajax_upload_group）を、'inline' => true で横に並べるとき。
- * 枠は14remの幅で並び、入りきらなければ次の行へ折り返す。枠の幅は案件のCSSで変えられる。
- * 案件のCSSが少ないクラスの指定でも勝てるよう、ここはクラス2つ分の強さにしている。
- * 例：.ajax_upload_group[data-field="attach"] .ajax_upload_block { width: 10rem; }
- * 行の間はBootstrapの枠のmb-2（!important付き）で空くので、gapは枠の間の横だけにする。
- */
-.ajax_upload_inline {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-start;
-    column-gap: 0.5rem;
-}
-
-.ajax_upload_inline > .ajax_upload_block {
-    width: 14rem;
-}
-
-/*
  * 繰り返しの組（_repeatable_group）を、'inline' => true で横に並べるとき。
  * 行は14remの幅で並び、入りきらなければ次の行へ折り返す。行の幅は案件のCSSで変えられる。
  * 例：.repeatable_group[data-group="photos"] .repeatable_row { width: 10rem; }

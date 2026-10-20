@@ -1,7 +1,7 @@
 {{--
     繰り返しの組（Neobit\Core\Crud\RepeatableGroup）の一式。枠の外側（行の入れ物・行を足すボタン・
     空の行のひな型・行の×）を受け持ち、行の中の項目の並べ方は、コーナーの部分ビューに任せる。
-    $readonlyの値によって、次の2通りに切り替わる（考え方は_ajax_upload_groupと同じ）。
+    $readonlyの値によって、次の2通りに切り替わる（考え方は_ajax_upload_blockと同じ）。
 
     - $readonlyが空（create/edit）：行を並べ、「行を足す」で行を増やせるようにする。
       行の数の上限は、今の画面のコントローラーのREPEATABLE_GROUPSの'max'から読む。

@@ -177,9 +177,9 @@ if (! function_exists('safe_html')) {
 if (! function_exists('upload_input_value')) {
     /**
      * アップロード欄のhiddenの値を、$inputから1つ取り出す。見つからないか、形が合わなければnull。
-     * $idxがnullなら単数のフィールド、整数なら複数のフィールドの$idx番目の行。
+     * $idxがnullなら単数のフィールド、整数なら繰り返しの組の$idx番目の行。
      *
-     * 複数のフィールドの1行目は添え字が0なので、$idxは=== nullで判定する。
+     * 組の1行目は添え字が0なので、$idxは=== nullで判定する。
      * また、hiddenが書き換えられて配列のはずの値が文字列で届いても、1文字目を取り出して
      * しまわないよう、配列かどうかを必ず確かめる。この2つを呼ぶ側に書かせないための関数。
      */
@@ -187,7 +187,7 @@ if (! function_exists('upload_input_value')) {
     {
         $value = $input[$key] ?? null;
 
-        // 複数のフィールドなら、その行の値（配列でなければnull）
+        // 組の中の欄なら、その行の値（配列でなければnull）
         if ($idx !== null) {
             $value = is_array($value) ? ($value[$idx] ?? null) : null;
         }
@@ -200,10 +200,10 @@ if (! function_exists('upload_preview_url')) {
     /**
      * アップロード欄に出すプレビューのURLを、$inputの値から求める。$idxの意味は
      * upload_input_value()と同じ。$modelはファイルを持つレコードで、新規登録ではnull。
-     * 複数のフィールドでも、$modelには親のレコードを渡す。
+     * 繰り返しの組の中の欄でも、$modelには親のレコードを渡す。
      *
      *   upload_preview_url($model, $input, 'list_image')
-     *   upload_preview_url($model, $input, 'attach', $i)
+     *   upload_preview_url($model, $input, 'attach_file', $i)
      *
      * 入力値から求まる表示用の値なので、$inputには入れず、画面からこれを呼ぶ。
      * $inputには送信する項目だけを入れる決まりのため。
@@ -223,13 +223,13 @@ if (! function_exists('upload_preview_url')) {
 if (! function_exists('upload_field')) {
     /**
      * 今の画面のコントローラーのアップロードの欄の定義（UPLOAD_FILES・WYSIWYG_IMAGE_FIELDS）から、
-     * 欄の項目を1つ返す。$keyは'type'（UploadType）・'width'（縮小する横幅）・'max'（枠の数の上限）。
-     * 値の無い項目（添付ファイルのwidth、1つだけの欄のmax）はnull。
+     * 欄の項目を1つ返す。$keyは'type'（UploadType）・'width'（縮小する横幅）・'multiple'（ファイルをまとめて選べるか）。
+     * 添付ファイルのwidthはnull。組の中の欄は、画面から送る名前（attach_file）で渡す。
      *
-     *   upload_field('attach', 'max')        // 5
-     *   upload_field('list_image', 'width')  // 800
+     *   upload_field('list_image', 'width')   // 800
+     *   upload_field('attach_file', 'multiple')  // true
      *
-     * アップロードの部品（_ajax_upload_block・_ajax_upload_group）が、欄の種類や上限を知るのに使う。
+     * アップロードの部品（_ajax_upload_block）が、欄の種類や横幅を知るのに使う。
      * 画面にも同じ定義を書かせず、コントローラーの1か所で済ませるため。そのため、部品はその欄を定義した
      * コントローラーの画面で使う。定義に無い欄や項目を渡したときは、書き間違いなので例外にする。
      */
@@ -242,8 +242,8 @@ if (! function_exists('upload_field')) {
             throw new LogicException("アップロードの欄「{$field}」が、今の画面のコントローラー（{$controllerClass}）のUPLOAD_FILESにありません。");
         }
 
-        if (! in_array($key, ['type', 'width', 'max'], true)) {
-            throw new LogicException("upload_field()の2つ目には、'type'・'width'・'max'のどれかを渡してください：{$key}");
+        if (! in_array($key, ['type', 'width', 'multiple'], true)) {
+            throw new LogicException("upload_field()の2つ目には、'type'・'width'・'multiple'のどれかを渡してください：{$key}");
         }
 
         return $definition[$key];

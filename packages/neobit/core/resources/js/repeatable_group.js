@@ -7,7 +7,8 @@
  * 行が1つだけのときは×を隠す。最後の1行は残し、空のまま送れば保存のときに除かれるため。
  *
  * 行の中のファイルの欄は、ajax_upload.jsが受け持つ。足した行の中の欄にも同じ動きをさせるため、
- * どちらもdocument全体へのイベント委譲で書いている。
+ * どちらもdocument全体へのイベント委譲で書いている。ファイルをまとめて選んだときに行を足すのは、
+ * ajax_upload.jsが出すrepeatable:add-rowのイベントを受けて、ここで行う。
  */
 (() => {
 
@@ -38,16 +39,25 @@
         });
     }
 
+    // ひな型を複製して、組の末尾に行を足し、足した行を返す。上限まで行があれば、足さずにnullを返す
+    function addRow(group) {
+        if (rowsOf(group).length >= maxRows(group)) {
+            return null;
+        }
+
+        const template = group.querySelector(':scope > .repeatable_template');
+        const row = template.content.firstElementChild.cloneNode(true);
+        group.querySelector(':scope > .repeatable_rows').appendChild(row);
+        updateButtons(group);
+
+        return row;
+    }
+
     document.addEventListener('click', (event) => {
         // 「行を足す」。上限までなら、ひな型を複製して末尾に足す
         const addButton = event.target.closest('.repeatable_add');
         if (addButton) {
-            const group = addButton.closest('.repeatable_group');
-            if (rowsOf(group).length < maxRows(group)) {
-                const template = group.querySelector(':scope > .repeatable_template');
-                group.querySelector(':scope > .repeatable_rows').appendChild(template.content.cloneNode(true));
-                updateButtons(group);
-            }
+            addRow(addButton.closest('.repeatable_group'));
 
             return;
         }
@@ -75,6 +85,15 @@
         const removeButton = event.target.closest('.repeatable_remove');
         if (removeButton) {
             removeButton.style.color = '#6c757d';
+        }
+    });
+
+    // ほかのスクリプトから、行を足すのを頼まれたとき。ファイルをまとめて選んだときにajax_upload.jsが使う。
+    // 足した行（上限で足せなければnull）を、イベントのdetail.rowに入れて返す
+    document.addEventListener('repeatable:add-row', (event) => {
+        const group = event.target.closest('.repeatable_group');
+        if (group) {
+            event.detail.row = addRow(group);
         }
     });
 
