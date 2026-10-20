@@ -14,7 +14,7 @@
     </h1>
     <div class="d-flex gap-2">
         @if ($actor->isManager())
-            <a href="{{ route('admin.staff.index', ['back']) }}" class="btn btn-sm btn-outline-secondary">一覧へ戻る</a>
+            <a href="{{ route('admin.staff.index', ['back']) }}#id{{ $staff->id }}" class="btn btn-sm btn-outline-secondary">一覧へ戻る</a>
         @else
             <a href="{{ route('admin.dashboard') }}" class="btn btn-sm btn-outline-secondary">管理画面TOPへ</a>
         @endif

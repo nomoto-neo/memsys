@@ -267,9 +267,11 @@ class StaffController extends Controller
     /** 新規登録の実行 */
     public function store(Request $request): RedirectResponse
     {
-        $this->saveData(new Staff(), $request);
+        $staff = new Staff();
+        $this->saveData($staff, $request);
 
-        return redirect()->route(self::INDEX_ROUTE, ['back'])
+        // 一覧の、登録した行へ戻す
+        return redirect()->to(route(self::INDEX_ROUTE, ['back']).'#id'.$staff->id)
             ->with('status', 'スタッフを登録しました。');
     }
 
@@ -331,8 +333,8 @@ class StaffController extends Controller
         $this->saveData($staff, $request);
 
         if (Auth::guard('admin')->user()->isManager()) {
-            // 管理者が編集したときは、元の一覧（?back）へ戻る
-            return redirect()->route(self::INDEX_ROUTE, ['back'])
+            // 管理者が編集したときは、元の一覧（?back）の、編集した行へ戻る
+            return redirect()->to(route(self::INDEX_ROUTE, ['back']).'#id'.$staff->id)
                 ->with('status', 'スタッフ情報を更新しました。');
         }
 

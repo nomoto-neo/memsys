@@ -9,7 +9,7 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="h4 mb-0">固定ページ詳細</h1>
     <div class="d-flex gap-2">
-        <a href="{{ route('admin.pages.index', ['back']) }}" class="btn btn-sm btn-outline-secondary">一覧へ戻る</a>
+        <a href="{{ route('admin.pages.index', ['back']) }}#id{{ $page->id }}" class="btn btn-sm btn-outline-secondary">一覧へ戻る</a>
         {{-- 訪問者の側の画面を、別のタブで開く。非表示のページは404になるので出さない --}}
         @if ($page->disp_flg)
             <a href="{{ route('pages.show', $page->slug) }}" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener">公開中のページを開く</a>

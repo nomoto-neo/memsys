@@ -4,7 +4,7 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="h4 mb-0">会員詳細</h1>
     <div class="d-flex gap-2">
-        <a href="{{ route('admin.members.index', ['back']) }}" class="btn btn-sm btn-outline-secondary">一覧へ戻る</a>
+        <a href="{{ route('admin.members.index', ['back']) }}#id{{ $member->id }}" class="btn btn-sm btn-outline-secondary">一覧へ戻る</a>
         {{-- この会員の操作ログ。管理者だけが開けるので、ボタンも管理者にだけ出す --}}
         @if (Auth::guard('admin')->user()->isManager())
             <a href="{{ route('admin.members.operation-logs', $member) }}" class="btn btn-sm btn-outline-secondary">操作ログ</a>

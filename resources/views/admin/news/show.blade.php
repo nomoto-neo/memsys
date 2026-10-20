@@ -4,7 +4,7 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="h4 mb-0">ニュース記事詳細</h1>
     <div class="d-flex gap-2">
-        <a href="{{ route('admin.news.index', ['back']) }}" class="btn btn-sm btn-outline-secondary">一覧へ戻る</a>
+        <a href="{{ route('admin.news.index', ['back']) }}#id{{ $news->id }}" class="btn btn-sm btn-outline-secondary">一覧へ戻る</a>
         <a href="{{ route('admin.news.edit', $news) }}" class="btn btn-sm btn-primary">編集する</a>
     </div>
 </div>

@@ -110,10 +110,11 @@ class PageTest extends TestCase
             ->assertSee('固定ページ登録の確認');
         $this->assertSame(0, Page::count());
 
-        $this->actingAs($staff, 'admin')->post(route('admin.pages.store'), self::INPUT)
-            ->assertRedirect(route('admin.pages.index', ['back']));
+        $response = $this->actingAs($staff, 'admin')->post(route('admin.pages.store'), self::INPUT);
 
+        // 一覧の、登録した行へ戻す
         $page = Page::sole();
+        $response->assertRedirect(route('admin.pages.index', ['back']).'#id'.$page->id);
         $this->assertSame('aboutus', $page->slug);
         $this->assertTrue($page->disp_flg);
 

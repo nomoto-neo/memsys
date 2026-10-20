@@ -30,7 +30,7 @@
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-primary">確認する</button>
                         @if ($actor->isManager())
-                            <a href="{{ route('admin.staff.index', ['back']) }}" class="btn btn-outline-secondary">キャンセル</a>
+                            <a href="{{ route('admin.staff.index', ['back']) }}#id{{ $staff->id }}" class="btn btn-outline-secondary">キャンセル</a>
                         @else
                             {{-- スタッフ（acl=0）は一覧を見る権限が無いので、
                                  戻り先は一覧ではなく管理画面TOPにしている。 --}}

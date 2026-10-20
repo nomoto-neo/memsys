@@ -23,7 +23,7 @@
 
             <div class="d-flex gap-2">
                 <button type="submit" class="btn btn-primary">確認する</button>
-                <a href="{{ route('admin.pages.index', ['back']) }}" class="btn btn-outline-secondary">キャンセル</a>
+                <a href="{{ route('admin.pages.index', ['back']) }}#id{{ $page->id }}" class="btn btn-outline-secondary">キャンセル</a>
             </div>
         </form>
     </div>

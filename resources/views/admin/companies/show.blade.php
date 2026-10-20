@@ -11,7 +11,7 @@
         <span class="align-middle fs-6">@include('admin.companies._status', ['company' => $company])</span>
     </h1>
     <div class="d-flex gap-2">
-        <a href="{{ route('admin.companies.index', ['back']) }}" class="btn btn-sm btn-outline-secondary">一覧へ戻る</a>
+        <a href="{{ route('admin.companies.index', ['back']) }}#id{{ $company->id }}" class="btn btn-sm btn-outline-secondary">一覧へ戻る</a>
         <a href="{{ route('admin.companies.edit', $company) }}" class="btn btn-sm btn-primary">編集する</a>
     </div>
 </div>

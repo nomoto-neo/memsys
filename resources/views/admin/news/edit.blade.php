@@ -31,7 +31,7 @@
 
             <div class="d-flex gap-2">
                 <button type="submit" class="btn btn-primary">確認する</button>
-                <a href="{{ route('admin.news.index', ['back']) }}" class="btn btn-outline-secondary">キャンセル</a>
+                <a href="{{ route('admin.news.index', ['back']) }}#id{{ $news->id }}" class="btn btn-outline-secondary">キャンセル</a>
             </div>
         </form>
     </div>

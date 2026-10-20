@@ -340,7 +340,7 @@ class MemberController extends Controller
     {
         $this->saveData($member, $request);
 
-        return redirect()->route(self::INDEX_ROUTE, ['back'])
+        return redirect()->to(route(self::INDEX_ROUTE, ['back']).'#id'.$member->id)
             ->with('status', '会員情報を更新しました。');
     }
 

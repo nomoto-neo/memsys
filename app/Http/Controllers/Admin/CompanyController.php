@@ -367,7 +367,7 @@ class CompanyController extends Controller
     {
         $this->saveData($company, $request);
 
-        return redirect()->route(self::INDEX_ROUTE, ['back'])
+        return redirect()->to(route(self::INDEX_ROUTE, ['back']).'#id'.$company->id)
             ->with('status', '企業の情報を更新しました。');
     }
 

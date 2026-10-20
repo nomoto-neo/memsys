@@ -210,9 +210,11 @@ class PageController extends Controller
     /** 新規登録の実行 */
     public function store(Request $request): RedirectResponse
     {
-        $this->saveData(new Page(), $request);
+        $page = new Page();
+        $this->saveData($page, $request);
 
-        return redirect()->route(self::INDEX_ROUTE, ['back'])
+        // 一覧の、登録した行へ戻す
+        return redirect()->to(route(self::INDEX_ROUTE, ['back']).'#id'.$page->id)
             ->with('status', '固定ページを登録しました。');
     }
 
@@ -261,7 +263,7 @@ class PageController extends Controller
     {
         $this->saveData($page, $request);
 
-        return redirect()->route(self::INDEX_ROUTE, ['back'])
+        return redirect()->to(route(self::INDEX_ROUTE, ['back']).'#id'.$page->id)
             ->with('status', '固定ページを更新しました。');
     }
 

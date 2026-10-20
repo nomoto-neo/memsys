@@ -111,7 +111,7 @@ class CompanyAdminTest extends TestCase
         // 企業IDと状態を一緒に送っても、保存しない
         $this->actingAs($staff, 'admin')
             ->patch("/admin/companies/{$company->id}/update", $input + ['code' => 'other', 'status' => 'suspended'])
-            ->assertRedirect(route('admin.companies.index', ['back']));
+            ->assertRedirect(route('admin.companies.index', ['back']).'#id'.$company->id);
 
         $company->refresh();
         $this->assertSame(['株式会社新社名', '電話で確認済み', $staff->id], [$company->name, $company->staff_memo, $company->staff_id]);
