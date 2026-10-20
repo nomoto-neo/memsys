@@ -138,16 +138,22 @@ class UploadedFileController
         }
 
         // 繰り返しの組の中の欄（photos.*.image）: 欄の名前は「組の名前_列」（photos_image）なので、
-        // 前から「_」で区切って、リレーションの名前と子テーブルの列を探す。その列の行にあるか
-        foreach (array_keys(array_filter(str_split($field), fn ($c) => $c === '_')) as $position) {
-            $relationName = substr($field, 0, $position);
-            $column = substr($field, $position + 1);
+        // 前から「_」で区切って、リレーションの名前と子テーブルの列を探す。その列の行にあるか。
+        // 1つだけの欄とエディタの欄（モデルの列）は、ここを通さない
+        if (! array_key_exists($field, $owner->getAttributes())) {
+            foreach (array_keys(array_filter(str_split($field), fn ($c) => $c === '_')) as $position) {
+                $relationName = substr($field, 0, $position);
+                $column = substr($field, $position + 1);
 
-            if ($owner->isRelation($relationName)) {
-                $related = $owner->{$relationName}()->getRelated();
+                // isRelation()はメソッドがあるかを見るだけなので、本当にリレーションを返すかも確かめる
+                $relation = $owner->isRelation($relationName) ? $owner->{$relationName}() : null;
+                if (! $relation instanceof Relation) {
+                    continue;
+                }
 
+                $related = $relation->getRelated();
                 if (Schema::connection($related->getConnectionName())->hasColumn($related->getTable(), $column)) {
-                    return $owner->{$relationName}()->where($column, $filename)->exists();
+                    return $relation->where($column, $filename)->exists();
                 }
             }
         }
