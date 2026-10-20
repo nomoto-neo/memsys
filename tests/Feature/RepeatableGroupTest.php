@@ -1,0 +1,439 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Enums\StaffAcl;
+use App\Http\Controllers\Admin\NewsController;
+use App\Models\Category;
+use App\Models\News;
+use App\Models\NewsPhoto;
+use App\Models\Staff;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Testing\TestResponse;
+use LogicException;
+use Neobit\Core\Crud\RepeatableGroupDefinitions;
+use Neobit\Core\Csv\CsvColumnSet;
+use Neobit\Core\Upload\UploadFieldDefinitions;
+use Neobit\Core\Upload\UploadFilePath;
+use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\TestCase;
+use Neobit\Core\Upload\UploadType;
+
+/**
+ * 繰り返しの組（Neobit\Core\Crud\RepeatableGroup）。見本はニュースの写真（画像とキャプションの組）。
+ * 行のidを保った保存、空の行の除き方、行の数、ファイルの確定と削除、書き換えた送信への備え。
+ */
+class RepeatableGroupTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private Staff $staff;
+
+    private Category $category;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Storage::fake(UploadFilePath::PRIVATE_DISK);
+        Storage::fake(UploadFilePath::PUBLIC_DISK);
+
+        $this->staff = Staff::create([
+            'name' => '管理 花子',
+            'login_id' => 'hanako',
+            'email' => 'hanako@example.com',
+            'password' => Hash::make('staff-password'),
+            'acl' => StaffAcl::Manager,
+        ]);
+        $this->category = Category::create(['name' => 'お知らせ', 'display_order' => 0]);
+    }
+
+    /** 保存済みのニュースを1件作る */
+    private function news(): News
+    {
+        $news = News::create([
+            'title' => '既存の記事',
+            'article_date' => '2026-10-20',
+            'disp_flg' => true,
+            'members_only' => false,
+        ]);
+        $news->categories()->attach($this->category->id);
+
+        return $news;
+    }
+
+    /** ニュースの本体の入力。写真の組は$photosで足す */
+    private function newsInput(array $photos): array
+    {
+        return [
+            'title' => '写真のある記事',
+            'article_date' => '2026-10-20',
+            'disp_flg' => '1',
+            'members_only' => '0',
+            'category_ids' => [$this->category->id],
+            'photos_group' => '1',
+        ] + $photos;
+    }
+
+    /**
+     * 写真の組の列ごとの配列。1行は['id' => …, 'caption' => …, 'image' => …, 'tmp' => …, 'origin' => …, 'del' => …]
+     *
+     * @param  list<array<string, mixed>>  $rows
+     */
+    private function photoRows(array $rows): array
+    {
+        $columns = ['photos_id' => [], 'photos_caption' => [], 'photos_image' => [], 'photos_image_tmp' => [], 'photos_image_origin' => [], 'photos_image_del' => []];
+
+        foreach ($rows as $row) {
+            $columns['photos_id'][] = $row['id'] ?? '';
+            $columns['photos_caption'][] = $row['caption'] ?? '';
+            $columns['photos_image'][] = $row['image'] ?? '';
+            $columns['photos_image_tmp'][] = $row['tmp'] ?? '';
+            $columns['photos_image_origin'][] = $row['origin'] ?? '';
+            $columns['photos_image_del'][] = $row['del'] ?? '';
+        }
+
+        return $columns;
+    }
+
+    /** アップロードしたばかりの一時ファイルを置き、その名前を返す */
+    private function tmpImage(): string
+    {
+        $name = Str::random(40).'.jpg';
+        Storage::disk(UploadFilePath::TMP_DISK)->put(UploadFilePath::TMP_DIR.'/'.$name, 'image');
+
+        return $name;
+    }
+
+    /** 記事の保存先にあるファイルのパス */
+    private function storedPath(News $news, string $filename): string
+    {
+        return UploadFilePath::directory(News::class, $news->id).'/'.$filename;
+    }
+
+    private function store(array $photoRows): TestResponse
+    {
+        return $this->actingAs($this->staff, 'admin')->post(route('admin.news.store'), $this->newsInput($this->photoRows($photoRows)));
+    }
+
+    private function update(News $news, array $input): TestResponse
+    {
+        return $this->actingAs($this->staff, 'admin')->patch(route('admin.news.update', $news), $input);
+    }
+
+    // ---- 登録 ----
+
+    public function test_rows_are_saved_in_screen_order_without_empty_rows(): void
+    {
+        $tmp = $this->tmpImage();
+
+        $this->store([
+            ['caption' => '外観', 'tmp' => $tmp, 'origin' => 'gaikan.jpg'],
+            [],
+            ['caption' => '受付'],
+        ])->assertRedirect();
+
+        $news = News::sole();
+        $photos = $news->photos;
+
+        // 空の行は入らない。並び順は画面の順
+        $this->assertSame(['外観', '受付'], $photos->pluck('caption')->all());
+        $this->assertSame([0, 1], $photos->pluck('display_order')->all());
+
+        // 画像は記事の保存先へ移る
+        $this->assertSame($tmp, $photos[0]->image);
+        $this->assertSame('gaikan.jpg', $photos[0]->image_origin);
+        Storage::disk(UploadFilePath::PRIVATE_DISK)->assertExists($this->storedPath($news, $tmp));
+        $this->assertNull($photos[1]->image);
+    }
+
+    public function test_ids_posted_on_create_are_ignored(): void
+    {
+        $other = $this->news();
+        $otherPhoto = $other->photos()->create(['caption' => 'ほかの記事', 'display_order' => 0]);
+
+        $this->store([['id' => $otherPhoto->id, 'caption' => '書き換え']]);
+
+        // ほかの記事の行は変わらず、新しい記事に新しい行ができる
+        $this->assertSame('ほかの記事', $otherPhoto->fresh()->caption);
+        $news = News::where('id', '!=', $other->id)->sole();
+        $this->assertSame(['書き換え'], $news->photos->pluck('caption')->all());
+        $this->assertNotSame($otherPhoto->id, $news->photos[0]->id);
+    }
+
+    // ---- 更新 ----
+
+    public function test_update_keeps_ids_and_adds_and_removes_rows(): void
+    {
+        $news = $this->news();
+        $first = $news->photos()->create(['caption' => '1枚目', 'display_order' => 0]);
+        $second = $news->photos()->create(['caption' => '2枚目', 'display_order' => 1]);
+
+        // 1枚目のキャプションを直し、2枚目を消し、新しい行を先頭に足す
+        $this->update($news, $this->newsInput($this->photoRows([
+            ['caption' => '新しい行'],
+            ['id' => $first->id, 'caption' => '1枚目（直した）'],
+        ])))->assertRedirect();
+
+        $photos = $news->fresh()->photos;
+        $this->assertSame(['新しい行', '1枚目（直した）'], $photos->pluck('caption')->all());
+        $this->assertSame($first->id, $photos[1]->id);
+        $this->assertSame([0, 1], $photos->pluck('display_order')->all());
+        $this->assertNull(NewsPhoto::find($second->id));
+    }
+
+    public function test_replaced_and_removed_files_are_deleted(): void
+    {
+        $news = $this->news();
+        $oldA = Str::random(40).'.jpg';
+        $oldB = Str::random(40).'.jpg';
+        Storage::disk(UploadFilePath::PRIVATE_DISK)->put($this->storedPath($news, $oldA), 'a');
+        Storage::disk(UploadFilePath::PRIVATE_DISK)->put($this->storedPath($news, $oldB), 'b');
+        $a = $news->photos()->create(['image' => $oldA, 'image_origin' => 'a.jpg', 'caption' => 'A', 'display_order' => 0]);
+        $b = $news->photos()->create(['image' => $oldB, 'image_origin' => 'b.jpg', 'caption' => 'B', 'display_order' => 1]);
+        $new = $this->tmpImage();
+
+        // Aは新しい画像に差し替え、Bは画像だけ消す（キャプションは残すので行は残る）
+        $this->update($news, $this->newsInput($this->photoRows([
+            ['id' => $a->id, 'caption' => 'A', 'image' => $oldA, 'tmp' => $new, 'origin' => 'new.jpg', 'del' => '1'],
+            ['id' => $b->id, 'caption' => 'B', 'image' => $oldB, 'del' => '1'],
+        ])))->assertRedirect();
+
+        $this->assertSame($new, $a->fresh()->image);
+        $this->assertSame('new.jpg', $a->fresh()->image_origin);
+        $this->assertNull($b->fresh()->image);
+        Storage::disk(UploadFilePath::PRIVATE_DISK)->assertMissing($this->storedPath($news, $oldA));
+        Storage::disk(UploadFilePath::PRIVATE_DISK)->assertMissing($this->storedPath($news, $oldB));
+        Storage::disk(UploadFilePath::PRIVATE_DISK)->assertExists($this->storedPath($news, $new));
+    }
+
+    public function test_a_row_cannot_point_at_another_rows_file(): void
+    {
+        $news = $this->news();
+        $file = Str::random(40).'.jpg';
+        Storage::disk(UploadFilePath::PRIVATE_DISK)->put($this->storedPath($news, $file), 'a');
+        $owner = $news->photos()->create(['image' => $file, 'caption' => '持ち主', 'display_order' => 0]);
+        $other = $news->photos()->create(['caption' => 'ほかの行', 'display_order' => 1]);
+
+        // ほかの行のhiddenに、持ち主の行のファイル名を書いて送る
+        $this->update($news, $this->newsInput($this->photoRows([
+            ['id' => $owner->id, 'caption' => '持ち主', 'image' => $file],
+            ['id' => $other->id, 'caption' => 'ほかの行', 'image' => $file],
+        ])));
+
+        $this->assertSame($file, $owner->fresh()->image);
+        $this->assertNull($other->fresh()->image);
+        Storage::disk(UploadFilePath::PRIVATE_DISK)->assertExists($this->storedPath($news, $file));
+    }
+
+    public function test_same_id_twice_makes_the_second_a_new_row(): void
+    {
+        $news = $this->news();
+        $photo = $news->photos()->create(['caption' => '元', 'display_order' => 0]);
+
+        $this->update($news, $this->newsInput($this->photoRows([
+            ['id' => $photo->id, 'caption' => '1つ目'],
+            ['id' => $photo->id, 'caption' => '2つ目'],
+        ])));
+
+        $photos = $news->fresh()->photos;
+        $this->assertSame(['1つ目', '2つ目'], $photos->pluck('caption')->all());
+        $this->assertSame($photo->id, $photos[0]->id);
+    }
+
+    public function test_all_rows_can_be_removed_and_missing_marker_keeps_rows(): void
+    {
+        $news = $this->news();
+        $news->photos()->create(['caption' => '残る', 'display_order' => 0]);
+
+        // 組の印が無ければ（組を送っていなければ）触らない
+        $input = $this->newsInput([]);
+        unset($input['photos_group']);
+        $this->update($news, $input);
+        $this->assertSame(1, $news->photos()->count());
+
+        // 印があって行が1つも無ければ、全部消す
+        $this->update($news, $this->newsInput([]));
+        $this->assertSame(0, $news->photos()->count());
+    }
+
+    public function test_row_count_is_limited_by_max(): void
+    {
+        $rows = array_fill(0, 11, ['caption' => '写真']);
+
+        $this->store($rows)->assertSessionHasErrors('photos_id');
+        $this->assertSame(0, News::count());
+    }
+
+    // ---- 確認画面・削除・ファイルの表示 ----
+
+    public function test_confirm_page_carries_the_rows_without_empty_ones(): void
+    {
+        $this->actingAs($this->staff, 'admin')
+            ->post(route('admin.news.confirm.store'), $this->newsInput($this->photoRows([
+                ['caption' => '外観'],
+                [],
+            ])))
+            ->assertOk()
+            ->assertSee('外観')
+            ->assertSee('name="photos_group" value="1"', false)
+            ->assertSee('name="photos_caption[]" value="外観"', false)
+            ->assertDontSee('name="photos_caption[]" value=""', false);
+    }
+
+    public function test_edit_screen_shows_the_rows_in_order(): void
+    {
+        $news = $this->news();
+        $news->photos()->create(['caption' => '2枚目', 'display_order' => 1]);
+        $news->photos()->create(['caption' => '1枚目', 'display_order' => 0]);
+
+        $html = $this->actingAs($this->staff, 'admin')->get(route('admin.news.edit', $news))->assertOk()->getContent();
+
+        $this->assertLessThan(strpos($html, 'value="2枚目"'), strpos($html, 'value="1枚目"'));
+        $this->assertStringContainsString('class="repeatable_group" data-group="photos" data-max="10"', $html);
+    }
+
+    public function test_deleting_the_news_deletes_rows_and_files(): void
+    {
+        $news = $this->news();
+        $file = Str::random(40).'.jpg';
+        Storage::disk(UploadFilePath::PRIVATE_DISK)->put($this->storedPath($news, $file), 'a');
+        $news->photos()->create(['image' => $file, 'caption' => '消える', 'display_order' => 0]);
+
+        $this->actingAs($this->staff, 'admin')->delete(route('admin.news.destroy', $news))->assertRedirect();
+
+        $this->assertSame(0, NewsPhoto::count());
+        Storage::disk(UploadFilePath::PRIVATE_DISK)->assertMissing($this->storedPath($news, $file));
+    }
+
+    public function test_private_photo_is_served_for_its_row(): void
+    {
+        $news = $this->news();
+        $file = Str::random(40).'.jpg';
+        Storage::disk(UploadFilePath::PRIVATE_DISK)->put($this->storedPath($news, $file), 'a');
+        $photo = $news->photos()->create(['image' => $file, 'caption' => '見える', 'display_order' => 0]);
+
+        $this->actingAs($this->staff, 'admin')->get($photo->image_url)->assertOk();
+
+        // 行に無いファイル名では返さない
+        $this->actingAs($this->staff, 'admin')
+            ->get(UploadFilePath::url(News::class, $news->id, 'photos_image', Str::random(40).'.jpg'))
+            ->assertNotFound();
+    }
+
+    public function test_admin_show_and_update_confirm_display_the_rows(): void
+    {
+        $news = $this->news();
+        $file = Str::random(40).'.jpg';
+        Storage::disk(UploadFilePath::PRIVATE_DISK)->put($this->storedPath($news, $file), 'a');
+        $photo = $news->photos()->create(['image' => $file, 'image_origin' => 'a.jpg', 'caption' => '詳細に出る', 'display_order' => 0]);
+
+        // 詳細画面は、読み取り専用で行を並べる
+        $this->actingAs($this->staff, 'admin')->get(route('admin.news.show', $news))
+            ->assertOk()
+            ->assertSee('詳細に出る')
+            ->assertSee($photo->image_url);
+
+        // 更新の確認画面は、保存済みの画像のプレビューとhiddenを出す
+        $this->actingAs($this->staff, 'admin')
+            ->patch(route('admin.news.confirm.update', $news), $this->newsInput($this->photoRows([
+                ['id' => $photo->id, 'caption' => '直した', 'image' => $file, 'origin' => 'a.jpg'],
+            ])))
+            ->assertOk()
+            ->assertSee('直した')
+            ->assertSee($photo->image_url)
+            ->assertSee('name="photos_id[]" value="'.$photo->id.'"', false);
+    }
+
+    public function test_public_news_page_shows_photos_and_captions(): void
+    {
+        $news = $this->news();
+        $file = Str::random(40).'.jpg';
+        Storage::disk(UploadFilePath::PRIVATE_DISK)->put($this->storedPath($news, $file), 'a');
+        $photo = $news->photos()->create(['image' => $file, 'caption' => '公開の写真', 'display_order' => 0]);
+        $news->photos()->create(['caption' => 'キャプションだけ', 'display_order' => 1]);
+
+        $this->get(route('news.show', $news))
+            ->assertOk()
+            ->assertSee($photo->image_url)
+            ->assertSee('公開の写真')
+            ->assertSee('キャプションだけ');
+
+        // 一般公開の記事の写真は、ログインしていなくても見られる
+        $this->get($photo->image_url)->assertOk();
+    }
+
+    public function test_rows_can_be_exported_with_the_csv_group_expansion(): void
+    {
+        $news = $this->news();
+        $news->photos()->create(['image' => 'a.jpg', 'caption' => '1枚目', 'display_order' => 0]);
+        $news->photos()->create(['image' => 'b.jpg', 'caption' => '2枚目', 'display_order' => 1]);
+
+        $columns = new CsvColumnSet([
+            '記事ID' => 'id',
+            '写真:*' => ['photos', 'group' => ['キャプション' => 'caption', '画像' => 'image']],
+        ]);
+        $query = News::query()->with('photos');
+        $columns->prepareExport($query, true);
+
+        $this->assertSame(['記事ID', 'キャプション:1', '画像:1', 'キャプション:2', '画像:2'], $columns->headings());
+        $this->assertSame([(string) $news->id, '1枚目', 'a.jpg', '2枚目', 'b.jpg'], array_map('strval', $columns->exportRow($query->first())));
+    }
+
+    // ---- 定義の書き方 ----
+
+    public function test_definitions_are_read_from_the_controller(): void
+    {
+        $group = RepeatableGroupDefinitions::find(NewsController::class, 'photos');
+        $this->assertSame(['caption'], $group['texts']);
+        $this->assertSame(['image'], $group['files']);
+        $this->assertSame('display_order', $group['order']);
+        $this->assertSame(10, $group['max']);
+
+        $upload = UploadFieldDefinitions::find(NewsController::class, 'photos_image');
+        $this->assertSame('group', $upload['kind']);
+        $this->assertSame('photos', $upload['group']);
+        $this->assertSame('image', $upload['column']);
+    }
+
+    #[DataProvider('wrongDefinitions')]
+    public function test_wrong_definition_is_rejected(string $class, string $message): void
+    {
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage($message);
+
+        RepeatableGroupDefinitions::of($class);
+    }
+
+    public static function wrongDefinitions(): array
+    {
+        return [
+            'maxが無い' => [TestGroupWithoutMax::class, "'max'に1以上の数"],
+            '組に無いファイルの欄' => [TestGroupUnknownFileField::class, "'fields'にも書いて"],
+            'AjaxFileUploadが無い' => [TestGroupWithoutUpload::class, 'AjaxFileUploadを使って'],
+        ];
+    }
+}
+
+/** テスト用：書き方を誤った定義 */
+class TestGroupWithoutMax
+{
+    private const REPEATABLE_GROUPS = ['photos' => ['relation' => 'photos', 'fields' => ['caption']]];
+}
+
+class TestGroupUnknownFileField
+{
+    private const REPEATABLE_GROUPS = ['photos' => ['relation' => 'photos', 'fields' => ['caption'], 'max' => 3]];
+
+    private const UPLOAD_FILES = ['photos.*.image' => ['type' => UploadType::Image, 'width' => 100]];
+}
+
+class TestGroupWithoutUpload
+{
+    private const REPEATABLE_GROUPS = ['photos' => ['relation' => 'photos', 'fields' => ['image'], 'max' => 3]];
+
+    private const UPLOAD_FILES = ['photos.*.image' => ['type' => UploadType::Image, 'width' => 100]];
+}

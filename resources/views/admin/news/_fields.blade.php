@@ -197,3 +197,20 @@
         'inline' => true,
     ])
 </div>
+
+{{-- 写真。画像とキャプションの組を、行ごとに増やしたり消したりする（繰り返しの組。Neobit\Core\Crud\RepeatableGroup）。
+     行の中身は_photo_rowに書く --}}
+<div class="mb-3">
+    <label class="form-label d-block">写真</label>
+    @include('neobit::_repeatable_group', [
+        'group' => 'photos',
+        'row' => 'admin.news._photo_row',
+        'model' => $model,
+        'input' => $input,
+        'readonly' => $readonly,
+        'uploadUrl' => $uploadUrl,
+        'addLabel' => '写真を追加',
+        'inline' => true,
+    ])
+    <div class="invalid-feedback" data-item="photos_id">{{ $errors->first('photos_id') }}</div>
+</div>

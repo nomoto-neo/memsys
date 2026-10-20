@@ -24,13 +24,16 @@ class News extends Model
     /** 本文のエディタで挿入する画像の横幅(px)。これより大きい画像は、この横幅に縮めて保存する。 */
     public const BODY_IMAGE_WIDTH = 1000;
 
+    /** 写真（photos）の画像の横幅(px)。これより大きい画像は、この横幅に縮めて保存する。 */
+    public const PHOTO_WIDTH = 1000;
+
     /**
      * ログインした人だけが見られる場所に置くアップロードのフィールド。記事は一般公開と
      * 会員限定を切り替えられるので、すべてのフィールドを非公開の場所に置き、見せるかどうかを
      * 記事の今の状態で決める。切り替えのたびにファイルを移さなくて済むようにするため。
      * 見てよいかはApp\Policies\NewsPolicyで判断する。
      */
-    public const PRIVATE_FILE_FIELDS = ['list_image', 'attach', 'body'];
+    public const PRIVATE_FILE_FIELDS = ['list_image', 'attach', 'body', 'photos_image'];
 
     /**
      * 入力の全角と半角をそろえない項目（Neobit\Core\Crud\InputNormalizer）。
@@ -132,6 +135,15 @@ class News extends Model
     public function attach(): HasMany
     {
         return $this->hasMany(NewsAttachment::class, 'news_id');
+    }
+
+    /**
+     * この記事の写真。画像とキャプションの組で、画面の並びの順。繰り返しの組の処理
+     * （Neobit\Core\Crud\RepeatableGroup）は、NewsControllerのREPEATABLE_GROUPSに書いたこのリレーションを通して、保存・削除を行う。
+     */
+    public function photos(): HasMany
+    {
+        return $this->hasMany(NewsPhoto::class, 'news_id')->orderBy('display_order')->orderBy('id');
     }
 
     /**

@@ -57,6 +57,23 @@
             {!! safe_html($news->body) !!}
         </div>
 
+        {{-- 写真（1枚も無ければ見出しごと出さない）。画面の並びの順で、画像とキャプションを並べる。
+             画像のURLはNewsPhotoモデルのアクセサ$photo->image_url。画像の無い行（キャプションだけ）は、キャプションだけを出す --}}
+        @if ($news->photos->isNotEmpty())
+            <div class="mt-4 d-flex flex-wrap gap-3">
+                @foreach ($news->photos as $photo)
+                    <figure class="mb-0" style="width: 14rem;">
+                        @if ($photo->image_url)
+                            <img src="{{ $photo->image_url }}" alt="{{ $photo->caption }}" class="img-fluid border rounded">
+                        @endif
+                        @if ($photo->caption)
+                            <figcaption class="small text-muted mt-1">{{ $photo->caption }}</figcaption>
+                        @endif
+                    </figure>
+                @endforeach
+            </div>
+        @endif
+
         {{-- 添付ファイル（1件も無ければ見出しごと出さない）。リンク先は
              NewsAttachmentモデルのアクセサ$attachment->url、表示名は
              アップロード時の元のファイル名。download属性で、保存される

@@ -209,6 +209,11 @@ has   config/mail.php                                                   "'return
 has   app/Services/NewsletterSubscription.php                           'final class NewsletterSubscription'
 has   routes/web.php                                                    'newsletter-subscribers.index'
 has   packages/neobit/core/src/Auth/LoginVerificationCode.php           '?string $purposeLabel = null'
+has   packages/neobit/core/src/Crud/RepeatableGroup.php                 'trait RepeatableGroup'
+has   packages/neobit/core/src/Crud/FormFlow.php                        'saveRepeatableGroups'
+has   packages/neobit/core/resources/js/repeatable_group.js             'repeatable_template'
+has   vite.config.js                                                    'repeatable_group.js'
+has   app/Http/Controllers/Admin/NewsController.php                     'REPEATABLE_GROUPS'
 has   packages/neobit/core/src/Csv/CsvWriter.php                       'final class CsvWriter'
 has   packages/neobit/core/src/Csv/CsvDownload.php                     'CsvWriter::download('
 
