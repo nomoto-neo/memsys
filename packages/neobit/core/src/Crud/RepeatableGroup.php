@@ -38,6 +38,8 @@ use Neobit\Core\Upload\UploadFilePath;
  * - idの無い行は足す
  * - 届かなかった行は消す
  * - 並び順の列があれば、画面の並びの番号を入れる
+ * 組に'delete_insert' => trueを書くと、今の行を全部消して、画面の順に入れ直す。行のidは保たないが、
+ * idの順が画面の順になるので、並び順の列が要らない。ほかのテーブルから子の行を参照するときは使わない。
  * ファイルの項目は、今のファイル名が「その行の今の値」と一致するときだけ残す。hiddenを書き換えて、
  * ほかの欄のファイルを指させないため。使わなくなったファイルは、トランザクションが確定した後に消す。
  * CSV取り込みでは、組を保存しない（組の列を取り込む仕組みはまだ無い）。
@@ -253,13 +255,17 @@ trait RepeatableGroup
         $filesBefore = $this->repeatableGroupFilenames($current, $def);
 
         $keptIds = [];
+        $usedIds = [];
         $count = count($validated["{$group}_id"] ?? []);
 
         for ($i = 0; $i < $count; $i++) {
             // この親の行のidで、まだ使っていないものだけを今の行として扱う
             $id = $validated["{$group}_id"][$i] ?? null;
-            $isCurrentRow = filled($id) && isset($current[$id]) && ! in_array((int) $id, $keptIds, true);
+            $isCurrentRow = filled($id) && isset($current[$id]) && ! in_array((int) $id, $usedIds, true);
             $row = $isCurrentRow ? $current[$id] : null;
+            if ($row !== null) {
+                $usedIds[] = (int) $row->getKey();
+            }
 
             $values = [];
 
@@ -276,7 +282,10 @@ trait RepeatableGroup
                 $values[$def['order']] = count($keptIds);
             }
 
-            if ($row !== null) {
+            if ($def['delete_insert']) {
+                // 作り直す保存。今の行は下でまとめて消すので、どの行も新しく入れる
+                $keptIds[] = (int) $relation->create($values)->getKey();
+            } elseif ($row !== null) {
                 $row->update($values);
                 $keptIds[] = (int) $row->getKey();
             } else {
@@ -284,7 +293,8 @@ trait RepeatableGroup
             }
         }
 
-        // 届かなかった行を消す。条件を足すとリレーションの問い合わせが変わるので、新しく作ったものに足す
+        // 届かなかった行を消す（作り直す保存では、入れ直す前の行がすべて当たる）。
+        // 条件を足すとリレーションの問い合わせが変わるので、新しく作ったものに足す
         $model->{$def['relation']}()->whereNotIn($keyName, $keptIds)->delete();
 
         // 使わなくなったファイルを、トランザクションが確定した後に消す

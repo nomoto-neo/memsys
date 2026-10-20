@@ -24,6 +24,8 @@ use ReflectionClass;
  * - fields    必ず書く。組の項目で、子テーブルの列の名前。画面から送る名前は「組の名前_項目」になる
  *             （photos_caption[]）。ファイルの項目は、UPLOAD_FILESにも'photos.*.image'のように書く
  * - order     子テーブルの並び順の列。書けば、画面の並びの順の番号を入れる。省略できる
+ * - delete_insert  trueなら、保存のたびに子テーブルの行を全部消し、画面の順に入れ直す。行のidは保たない。
+ *             idの順が画面の順になるので、並び順の列が要らない。省略するとfalse（行のidを保って揃える）
  * - max       必ず書く。行の数の上限
  * - min       行の数の下限。省略すると0
  *
@@ -35,13 +37,13 @@ final class RepeatableGroupDefinitions
     private const CONSTANT = 'REPEATABLE_GROUPS';
 
     /** 1つの組に書けるキー */
-    private const KEYS = ['relation', 'fields', 'order', 'max', 'min'];
+    private const KEYS = ['relation', 'fields', 'order', 'delete_insert', 'max', 'min'];
 
     /** 組の名前と項目の名前に使える形。画面から送る名前とDBの列の名前になるので、英小文字・数字・「_」だけ */
     private const NAME_PATTERN = '/^[a-z][a-z0-9_]*$/';
 
     // コントローラーのクラスごとの、読み終えた定義
-    /** @var array<string, array<string, array{group: string, relation: string, texts: list<string>, files: list<string>, order: ?string, max: int, min: int}>> */
+    /** @var array<string, array<string, array{group: string, relation: string, texts: list<string>, files: list<string>, order: ?string, delete_insert: bool, max: int, min: int}>> */
     private static array $cache = [];
 
     /**
@@ -49,7 +51,7 @@ final class RepeatableGroupDefinitions
      * textsはファイルではない項目、filesはファイルの項目（UPLOAD_FILESに書いたもの）。
      * REPEATABLE_GROUPSが無いコントローラーでは空の配列。
      *
-     * @return array<string, array{group: string, relation: string, texts: list<string>, files: list<string>, order: ?string, max: int, min: int}>
+     * @return array<string, array{group: string, relation: string, texts: list<string>, files: list<string>, order: ?string, delete_insert: bool, max: int, min: int}>
      */
     public static function of(string $controllerClass): array
     {
@@ -149,6 +151,11 @@ final class RepeatableGroupDefinitions
             throw new LogicException("{$where}の'order'には、組の項目ではない並び順の列の名前を書いてください。");
         }
 
+        $deleteInsert = $spec['delete_insert'] ?? false;
+        if (! is_bool($deleteInsert)) {
+            throw new LogicException("{$where}の'delete_insert'は、trueかfalseで書いてください。");
+        }
+
         // ファイルの項目はアップロードの部品が受け取って移すので、コントローラーにAjaxFileUploadが要る
         if ($fileColumns !== [] && ! in_array(AjaxFileUpload::class, class_uses_recursive($controllerClass), true)) {
             throw new LogicException("{$where}にはファイルの項目があるので、コントローラーでAjaxFileUploadを使ってください。");
@@ -160,6 +167,7 @@ final class RepeatableGroupDefinitions
             'texts' => array_values(array_diff($fields, $fileColumns)),
             'files' => array_values(array_intersect($fields, $fileColumns)),
             'order' => $order,
+            'delete_insert' => $deleteInsert,
             'max' => $spec['max'],
             'min' => $min,
         ];
