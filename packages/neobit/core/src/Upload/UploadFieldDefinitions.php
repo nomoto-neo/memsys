@@ -16,6 +16,8 @@ use ReflectionClass;
  *
  * - type   必ず書く。UploadType::ImageかUploadType::File
  * - width  画像なら必ず書く。この横幅を超えたら縮小する。添付ファイルには書かない
+ * - required  trueなら必須。新しいファイルか、消していない今のファイルが要る（Neobit\Core\Rules\UploadRequiredRule）。
+ *          組の中の欄では、空でない行のどれにも要る。省略するとfalse
  *
  * 1つのレコードに1つのファイルの欄は、名前をそのまま書く。ファイル名はその列、表示名は「名前_origin」の列に入る。
  * いくつでも足せるファイルは、繰り返しの組（Neobit\Core\Crud\RepeatableGroup）の中の欄にして、
@@ -38,21 +40,21 @@ final class UploadFieldDefinitions
     private const REPEATABLE_GROUPS = 'REPEATABLE_GROUPS';
 
     /** UPLOAD_FILESの1つの欄に書けるキー */
-    private const KEYS = ['type', 'width'];
+    private const KEYS = ['type', 'width', 'required'];
 
     /** 繰り返しの組の中のファイルの欄の書き方。1は組の名前、2は子テーブルの列の名前 */
     private const GROUP_FIELD_PATTERN = '/^([a-z][a-z0-9_]*)\.\*\.([a-z][a-z0-9_]*)$/';
 
     // コントローラーのクラスごとの、読み終えた定義
-    /** @var array<string, list<array{field: string, kind: string, type: UploadType, width: ?int, group: ?string, column: ?string, multiple: bool}>> */
+    /** @var array<string, list<array{field: string, kind: string, type: UploadType, width: ?int, required: bool, group: ?string, column: ?string, multiple: bool}>> */
     private static array $cache = [];
 
     /**
      * コントローラーの全部の欄の定義。
      * kindは、single（1つだけの欄）・wysiwyg（エディタの欄）・group（繰り返しの組の中のファイルの欄。
-     * groupとcolumnに組の名前と子テーブルの列の名前が入る）。multipleは、ファイルをまとめて選べる欄か。
+     * groupとcolumnに組の名前と子テーブルの列の名前が入る）。requiredは必須の欄か、multipleはファイルをまとめて選べる欄か。
      *
-     * @return list<array{field: string, kind: string, type: UploadType, width: ?int, group: ?string, column: ?string, multiple: bool}>
+     * @return list<array{field: string, kind: string, type: UploadType, width: ?int, required: bool, group: ?string, column: ?string, multiple: bool}>
      */
     public static function of(string $controllerClass): array
     {
@@ -94,7 +96,7 @@ final class UploadFieldDefinitions
         // WYSIWYG_IMAGE_FIELDSは省略できるので、あるときだけ読む
         if ($class->hasConstant(self::WYSIWYG_IMAGE_FIELDS)) {
             foreach ((array) $class->getConstant(self::WYSIWYG_IMAGE_FIELDS) as $field => $width) {
-                $fields[] = ['field' => $field, 'kind' => 'wysiwyg', 'type' => UploadType::Image, 'width' => (int) $width, 'group' => null, 'column' => null, 'multiple' => false];
+                $fields[] = ['field' => $field, 'kind' => 'wysiwyg', 'type' => UploadType::Image, 'width' => (int) $width, 'required' => false, 'group' => null, 'column' => null, 'multiple' => false];
             }
         }
 
@@ -113,7 +115,7 @@ final class UploadFieldDefinitions
         return null;
     }
 
-    /** UPLOAD_FILESの1つの欄の種類と横幅を確かめて、field・type・widthを返す */
+    /** UPLOAD_FILESの1つの欄の種類・横幅・必須を確かめて、field・type・width・requiredを返す */
     private static function check(string $controllerClass, string $field, mixed $spec): array
     {
         $where = "{$controllerClass}のUPLOAD_FILESの「{$field}」";
@@ -134,10 +136,16 @@ final class UploadFieldDefinitions
                 : "{$where}は添付ファイルなので、'width'は書きません。");
         }
 
+        $required = $spec['required'] ?? false;
+        if (! is_bool($required)) {
+            throw new LogicException("{$where}の'required'は、trueかfalseで書いてください。");
+        }
+
         return [
             'field' => $field,
             'type' => $spec['type'],
             'width' => $isImage ? (int) $spec['width'] : null,
+            'required' => $required,
         ];
     }
 

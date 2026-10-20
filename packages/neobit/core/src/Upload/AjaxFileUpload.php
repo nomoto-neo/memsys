@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Neobit\Core\Operations\TemporaryDataCleaner;
+use Neobit\Core\Rules\UploadRequiredRule;
 
 /**
  * 画像と添付ファイルを、確認画面をはさんで保存するAjaxアップロードのトレイト。
@@ -389,6 +390,41 @@ trait AjaxFileUpload
         }
 
         return $rules;
+    }
+
+    /**
+     * 必須の欄（UPLOAD_FILESの'required' => true）のルール。FormFlowが検証のときに、rules()の結果に足す。
+     * 今のファイルを、編集しているレコード（新規登録ではnull）の今の値と照らすため、レコードを受け取る。
+     * 繰り返しの組の中の欄は、組のルール（RepeatableGroup::repeatableGroupRequiredRules()）に入る
+     */
+    private function requiredUploadRules(?Model $record): array
+    {
+        $rules = [];
+
+        foreach ($this->uploadFieldDefinitions() as $def) {
+            if ($def['kind'] !== 'single' || ! $def['required']) {
+                continue;
+            }
+
+            $field = $def['field'];
+            $rules[$field] = [new UploadRequiredRule("{$field}_tmp", "{$field}_del", $record?->getRawOriginal($field))];
+        }
+
+        return $rules;
+    }
+
+    /** 必須の欄の名前（組の中の欄も入る）。FormFlowが必須マークを付けるのに使う */
+    private function requiredUploadFields(): array
+    {
+        $fields = [];
+
+        foreach ($this->uploadFieldDefinitions() as $def) {
+            if ($def['required']) {
+                $fields[] = $def['field'];
+            }
+        }
+
+        return $fields;
     }
 
     /**

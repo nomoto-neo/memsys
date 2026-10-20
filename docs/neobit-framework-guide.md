@@ -819,8 +819,14 @@ private function prepareInput(array $validated): array
     |---|---|
     | `type` | 必ず書く。`UploadType::Image`（画像）か `UploadType::File`（添付ファイル） |
     | `width` | 画像なら必ず書く。この横幅を超えたら縮小する。添付ファイルには書かない |
+    | `required` | 省略できる。`true` なら必須（下の「必須の欄」） |
 
     受け付ける拡張子は、種類ごとに `config/upload.php` の `image_types`・`attach_types` を使います。
+- **必須の欄**：`'required' => true` の欄は、新しいファイル（一時ファイルが今ある）か、消していない今のファイルが無いと、確認画面へ進めず、保存もできません。今のファイルは、hidden の値をそのまま信じず、編集しているレコードの今の値と照らします。組の中の欄では、空でない行のどれにもファイルを求めます（今のファイルは、その行の今の値と照らします）。「少なくとも1つ」は、組の `'min' => 1` で決めます。
+    - エラーの文は、通常の項目と同じ `validation.required` です。エラーは欄の名前（組の中の欄は `photos_image.0` のように行ごと）に付き、`_ajax_upload_block` が自分で `invalid-feedback` を出します。
+    - 必須マークは `requiredFields()` が付けます。画面では `{!! $required['list_image'] ?? '' !!}` と書きます。
+    - ルールは FormFlow の検証（`validatedInput()`）が足すので、コントローラーの `rules()` には書きません。CSV の取り込みには効きません。
+    - 見本は、ニュースの一覧用画像です。
 - **いくつでも足せるファイル**：繰り返しの組（5章）に、ファイルの項目だけの組を書き、`UPLOAD_FILES` に「組の名前.*.列」で書きます（例：`'attach.*.file'`。画面から送る名前は `attach_file`）。行の数の上限は組の `'max'` です。末尾が「.*」だけの書き方（`'attach.*'`）は、例外にして組の書き方を案内します。
 - `$input` の組み立て（`inputPageValues()`・`confirmPageValues()`）と保存（`saveData()`）は FormFlow が自動でアップロードの処理を呼ぶので、入口の書き方は変わりません。
 - ルートにアップロード先を1本足します：`Route::post('/news/ajax-upload', [AdminNewsController::class, 'uploadAjaxFile'])->name('news.ajaxUpload');`（訪問者向けは `throttle` を付ける）。
@@ -844,7 +850,7 @@ private function prepareInput(array $validated): array
 ])
 ```
 
-- 欄の種類・縮小する横幅・まとめて選べるかは、画面には書きません。部品が、ヘルパーの `upload_field(欄の名前, 項目)` で、今の画面のコントローラーの `UPLOAD_FILES` から読みます。そのため、部品はその欄を定義したコントローラーの画面で使います。案内の文などで使いたいときは、画面からも呼べます（`横幅{{ upload_field('list_image', 'width') }}pxに縮小します`）。項目は `'type'`・`'width'`・`'multiple'` です。
+- 欄の種類・縮小する横幅・まとめて選べるかは、画面には書きません。部品が、ヘルパーの `upload_field(欄の名前, 項目)` で、今の画面のコントローラーの `UPLOAD_FILES` から読みます。そのため、部品はその欄を定義したコントローラーの画面で使います。案内の文などで使いたいときは、画面からも呼べます（`横幅{{ upload_field('list_image', 'width') }}pxに縮小します`）。項目は `'type'`・`'width'`・`'required'`・`'multiple'` です。
 
 - `$readonly` を渡すだけで、入力画面ではアップロードの UI、確認・詳細画面では表示だけに切り替わります。
 - **横に並べる**：組に `'inline' => true` を渡すと行を横に並べ、入りきらなければ折り返します（見本はニュースの添付ファイルと写真）。行の幅は 14rem で、`global.css` の `.repeatable_inline` にあります。案件の CSS で行に幅を当てれば変えられます（`.repeatable_group[data-group="attach"] .repeatable_row { width: 10rem; }`）。

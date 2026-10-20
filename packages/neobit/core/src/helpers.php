@@ -223,7 +223,7 @@ if (! function_exists('upload_preview_url')) {
 if (! function_exists('upload_field')) {
     /**
      * 今の画面のコントローラーのアップロードの欄の定義（UPLOAD_FILES・WYSIWYG_IMAGE_FIELDS）から、
-     * 欄の項目を1つ返す。$keyは'type'（UploadType）・'width'（縮小する横幅）・'multiple'（ファイルをまとめて選べるか）。
+     * 欄の項目を1つ返す。$keyは'type'（UploadType）・'width'（縮小する横幅）・'required'（必須か）・'multiple'（ファイルをまとめて選べるか）。
      * 添付ファイルのwidthはnull。組の中の欄は、画面から送る名前（attach_file）で渡す。
      *
      *   upload_field('list_image', 'width')   // 800
@@ -242,8 +242,8 @@ if (! function_exists('upload_field')) {
             throw new LogicException("アップロードの欄「{$field}」が、今の画面のコントローラー（{$controllerClass}）のUPLOAD_FILESにありません。");
         }
 
-        if (! in_array($key, ['type', 'width', 'multiple'], true)) {
-            throw new LogicException("upload_field()の2つ目には、'type'・'width'・'multiple'のどれかを渡してください：{$key}");
+        if (! in_array($key, ['type', 'width', 'required', 'multiple'], true)) {
+            throw new LogicException("upload_field()の2つ目には、'type'・'width'・'required'・'multiple'のどれかを渡してください：{$key}");
         }
 
         return $definition[$key];

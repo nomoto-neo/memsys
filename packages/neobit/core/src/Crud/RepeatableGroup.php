@@ -8,6 +8,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Neobit\Core\Rules\SameCountAsRule;
+use Neobit\Core\Rules\UploadRequiredRule;
+use Neobit\Core\Upload\UploadFieldDefinitions;
 use Neobit\Core\Upload\UploadFilePath;
 
 /**
@@ -85,6 +87,53 @@ trait RepeatableGroup
                 $rules["{$base}_tmp.*"] = ['nullable', 'regex:'.UploadFilePath::SAFE_FILENAME];
                 $rules["{$base}_origin.*"] = ['nullable', 'string', 'max:255'];
                 $rules["{$base}_del.*"] = ['nullable', 'in:0,1'];
+            }
+        }
+
+        return $rules;
+    }
+
+    /**
+     * 組の中の必須のファイルの欄（UPLOAD_FILESの'required' => true）のルール。FormFlowが検証のときに、
+     * rules()の結果に足す。空の行は除いてあるので、残っている行のどれにもファイルを求める。
+     * 今のファイルは、その行（この親の行のidで、同じidの2回目ではないもの）の今の値と照らす。保存のときと同じ見分け方
+     */
+    private function repeatableGroupRequiredRules(Request $request, ?Model $record): array
+    {
+        $rules = [];
+
+        // 組ごとの、必須のファイルの欄の列
+        $requiredColumns = [];
+        foreach (UploadFieldDefinitions::of(static::class) as $upload) {
+            if ($upload['kind'] === 'group' && $upload['required']) {
+                $requiredColumns[$upload['group']][] = $upload['column'];
+            }
+        }
+
+        foreach ($this->repeatableGroupDefinitions() as $group => $def) {
+            if (! isset($requiredColumns[$group])) {
+                continue;
+            }
+
+            // この親の今の行。新規登録では無い
+            $relation = $record?->{$def['relation']}();
+            $current = $relation ? $relation->get()->keyBy($relation->getRelated()->getKeyName()) : collect();
+
+            $usedIds = [];
+            $ids = $request->input("{$group}_id", []);
+
+            foreach (array_values(is_array($ids) ? $ids : []) as $i => $id) {
+                // 行の見分け方は、保存のとき（saveRepeatableGroup()）と同じ
+                $isCurrentRow = filled($id) && isset($current[$id]) && ! in_array((int) $id, $usedIds, true);
+                $row = $isCurrentRow ? $current[$id] : null;
+                if ($row !== null) {
+                    $usedIds[] = (int) $row->getKey();
+                }
+
+                foreach ($requiredColumns[$group] as $column) {
+                    $base = "{$group}_{$column}";
+                    $rules["{$base}.{$i}"] = [new UploadRequiredRule("{$base}_tmp.{$i}", "{$base}_del.{$i}", $row?->getRawOriginal($column))];
+                }
             }
         }
 

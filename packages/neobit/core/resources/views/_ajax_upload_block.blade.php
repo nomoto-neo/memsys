@@ -75,6 +75,8 @@
     $hasFile = $url !== null;
     // 添付ファイルのリンクの文字。表示名が無い（CSV取り込みで空欄にした等）ときは「添付ファイル1」のようにする
     $linkText = ($origin ?? '') !== '' ? $origin : '添付ファイル'.($idx === null ? '' : $idx + 1);
+    // エラーの欄の名前。組の中の欄は行ごと（photos_image.0）
+    $errorKey = $idx === null ? $field : "{$field}.{$idx}";
 @endphp
 {{-- $readonlyは' readonly'または''のどちらかなので、そのままの
      真偽値判定で読み取り専用かどうかが決まる（他のtext input等で
@@ -163,4 +165,6 @@
             </span>
         </div>
     </div>
+    {{-- 欄のエラー（必須の欄にファイルが無いときなど）。枠の外に出す --}}
+    <div class="invalid-feedback mb-2" data-item="{{ $errorKey }}">{{ $errors->first($errorKey) }}</div>
 @endif

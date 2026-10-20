@@ -70,6 +70,11 @@ trait FormFlow
      */
     private function requiredFields(?Model $record = null, array $alsoRequired = []): array
     {
+        // 必須のアップロードの欄（UPLOAD_FILESの'required' => true）は、rules()に無いので足す
+        if (method_exists($this, 'requiredUploadFields')) {
+            $alsoRequired = array_merge($alsoRequired, $this->requiredUploadFields());
+        }
+
         return required_fields($this->rules($record), $alsoRequired);
     }
 
@@ -84,7 +89,20 @@ trait FormFlow
             $this->dropEmptyRepeatableRows($request);
         }
 
-        return $this->prepareInput($request->validate($this->rules($record)));
+        // 必須のアップロードの欄のルールを足す。今のファイルを、編集しているレコードの今の値と照らすため、ここで足す
+        $rules = $this->rules($record);
+        $requiredUploads = [];
+        if (method_exists($this, 'requiredUploadRules')) {
+            $requiredUploads += $this->requiredUploadRules($record);
+        }
+        if (method_exists($this, 'repeatableGroupRequiredRules')) {
+            $requiredUploads += $this->repeatableGroupRequiredRules($request, $record);
+        }
+        foreach ($requiredUploads as $key => $keyRules) {
+            $rules[$key] = array_merge((array) ($rules[$key] ?? []), $keyRules);
+        }
+
+        return $this->prepareInput($request->validate($rules));
     }
 
     /** 確認画面に渡す$input。表示にもhiddenにもこれを使う。アップロードと繰り返しの組の項目は組み立て直した値を使う */

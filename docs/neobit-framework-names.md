@@ -92,7 +92,7 @@
 | `SearchableList` | `PER_PAGE` | 1ページの件数 | 同じ |
 | `SearchableList` | `ORDER_OPTIONS` | 並び順の選択肢 | 同じ |
 | `SearchableList` | `FREE_WORD_COLUMNS` | フリーワード検索の対象の列 | 同じ |
-| `AjaxFileUpload` | `UPLOAD_FILES` | アップロードの欄。欄の名前 => `type`・`width`（書き方は `UploadFieldDefinitions`）。いくつでも足せる欄は、繰り返しの組の中の欄 `組.*.列` で書く | 同じ |
+| `AjaxFileUpload` | `UPLOAD_FILES` | アップロードの欄。欄の名前 => `type`・`width`・`required`（書き方は `UploadFieldDefinitions`）。いくつでも足せる欄は、繰り返しの組の中の欄 `組.*.列` で書く | 同じ |
 | `RepeatableGroup` | `REPEATABLE_GROUPS` | 繰り返しの組。組の名前 => `relation`・`fields`・`order`・`delete_insert`・`max`・`min`（書き方は `RepeatableGroupDefinitions`） | 同じ |
 | `AjaxFileUpload` | `WYSIWYG_IMAGE_FIELDS` | エディタの欄と、入れた画像を縮小する横幅 | 同じ |
 | `InputNormalizer` | `RAW_INPUT_FIELDS` | 全角と半角をそろえない項目 | |
@@ -171,7 +171,7 @@
 | `AccessRestriction` | `allowsSite()`・`allowsAdmin()`・`allowedIps()`・`siteIps()`・`adminIps()`・`envSiteIps()`・`envAdminIps()`・`settings()`・`save()`・`turnOff()`・`parseList()`・`lockoutMessage()` | |
 | `IpBlocker` | `isBlocked()`・`countMiss()`・`block()`・`changeUntil()`・`release()`・`deleteExpired()`・`normalizeRange()`・`rangeBounds()`・`coversProtected()` | |
 | `CsvImportSettings`・`CsvImportResult`・`CsvImportRow`・`CsvColumnSet` | 取り込みの設定と結果 | |
-| 検証のルール | `KatakanaRule`・`HiraganaRule`・`PhoneNumberRule`・`SameCountAsRule` | |
+| 検証のルール | `KatakanaRule`・`HiraganaRule`・`PhoneNumberRule`・`SameCountAsRule`・`UploadRequiredRule` | |
 | ミドルウェア | `AjaxFormResponse`・`NormalizeInput`・`RejectBlockedIp`・`RestrictAdminAccess`・`RestrictSiteAccess`・`RunScheduleOnRequest`・`SecurityHeaders` | |
 | コントローラー | `CodeTableController`・`IpBlockController`・`AccessRestrictionController`・`OperationLogController`（どれもルートは案件が書く）・`UploadedFileController` | |
 
@@ -187,7 +187,7 @@
 | `safe_html($html)` | エディタの HTML を安全にする | |
 | `upload_input_value($input, $key, $idx)` | アップロードの欄の値 | |
 | `upload_preview_url($model, $input, $field, $idx)` | アップロードの欄に出す URL | |
-| `upload_field($field, $key)` | 今の画面のコントローラーの `UPLOAD_FILES` から、欄の `type`・`width`・`multiple` を1つ返す | |
+| `upload_field($field, $key)` | 今の画面のコントローラーの `UPLOAD_FILES` から、欄の `type`・`width`・`required`・`multiple` を1つ返す | |
 | `required_mark($area)` | 必須マーク | |
 | `required_fields($rules, $alsoRequired)` | 必須マークの配列 | |
 
