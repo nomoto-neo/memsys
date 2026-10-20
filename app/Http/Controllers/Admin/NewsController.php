@@ -78,19 +78,26 @@ class NewsController extends Controller
     // ---- アップロード（AjaxFileUpload）の設定 ----
 
     /**
-     * AjaxFileUploadが要求する設定。欄の名前 => 種類・横幅・上限（書き方はUploadFieldDefinitions）。
-     * 末尾が「.*」の欄はいくつでも足せる欄、「photos.*.image」は繰り返しの組の中の欄。
+     * AjaxFileUploadが要求する設定。欄の名前 => 種類・横幅（書き方はUploadFieldDefinitions）。
+     * 「attach.*.file」のような名前は、繰り返しの組（REPEATABLE_GROUPS）の中の欄。
      */
     private const UPLOAD_FILES = [
         'list_image' => ['type' => UploadType::Image, 'width' => News::LIST_IMAGE_WIDTH],
-        'attach.*' => ['type' => UploadType::File, 'max' => 5],
+        'attach.*.file' => ['type' => UploadType::File],
         'photos.*.image' => ['type' => UploadType::Image, 'width' => News::PHOTO_WIDTH],
     ];
 
     // ---- 繰り返しの組（RepeatableGroup）の設定 ----
 
-    /** 写真。画像とキャプションの組を、子テーブル（News::photos()）に画面の並びの順で持つ。書き方はRepeatableGroupDefinitions */
+    /** 添付ファイルと写真。どちらも子テーブル（News::attach()・photos()）に画面の並びの順で持つ。書き方はRepeatableGroupDefinitions */
     private const REPEATABLE_GROUPS = [
+        // 添付ファイル。ファイルの項目が1つだけの組なので、画面でファイルをまとめて選べる
+        'attach' => [
+            'relation' => 'attach',
+            'fields' => ['file'],
+            'order' => 'display_order',
+            'max' => 5,
+        ],
         'photos' => [
             'relation' => 'photos',
             'fields' => ['image', 'caption'],
@@ -268,8 +275,8 @@ class NewsController extends Controller
             '一覧用画像の表示名' => 'list_image_origin',
             // 添付ファイルは、表示名と保存ファイル名を1件ずつ組にして横に並べる
             '添付:*' => ['attach', 'group' => [
-                '添付ファイル' => 'original_name',
-                '保存ファイル名' => 'filename',
+                '添付ファイル' => 'file_origin',
+                '保存ファイル名' => 'file',
             ]],
             '登録日時' => 'created_at|date:Y/m/d H:i',
             // 取り込みのとき、ダウンロードした後に画面から変更された行を見分けるのに使う

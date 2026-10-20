@@ -9,6 +9,7 @@ use App\Models\News;
 use App\Models\NewsPhoto;
 use App\Models\Staff;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -16,6 +17,7 @@ use Illuminate\Testing\TestResponse;
 use LogicException;
 use Neobit\Core\Crud\RepeatableGroupDefinitions;
 use Neobit\Core\Csv\CsvColumnSet;
+use Neobit\Core\Csv\CsvImportSettings;
 use Neobit\Core\Upload\UploadFieldDefinitions;
 use Neobit\Core\Upload\UploadFilePath;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -381,6 +383,93 @@ class RepeatableGroupTest extends TestCase
 
         $this->assertSame(['記事ID', 'キャプション:1', '画像:1', 'キャプション:2', '画像:2'], $columns->headings());
         $this->assertSame([(string) $news->id, '1枚目', 'a.jpg', '2枚目', 'b.jpg'], array_map('strval', $columns->exportRow($query->first())));
+    }
+
+    // ---- 添付ファイル（ファイルだけの組） ----
+
+    public function test_attachments_are_saved_with_their_original_names_in_screen_order(): void
+    {
+        $first = Str::random(40).'.pdf';
+        $second = Str::random(40).'.pdf';
+        Storage::disk(UploadFilePath::TMP_DISK)->put(UploadFilePath::TMP_DIR.'/'.$first, 'a');
+        Storage::disk(UploadFilePath::TMP_DISK)->put(UploadFilePath::TMP_DIR.'/'.$second, 'b');
+
+        // 空の行は保存しない
+        $input = $this->newsInput([]) + [
+            'attach_group' => '1',
+            'attach_id' => ['', '', ''],
+            'attach_file' => ['', '', ''],
+            'attach_file_tmp' => [$first, '', $second],
+            'attach_file_origin' => ['案内.pdf', '', '申込書.pdf'],
+            'attach_file_del' => ['', '', ''],
+        ];
+        $this->actingAs($this->staff, 'admin')->post(route('admin.news.store'), $input)->assertRedirect();
+
+        $news = News::firstOrFail();
+        $this->assertSame(['案内.pdf', '申込書.pdf'], $news->attach->pluck('file_origin')->all());
+        $this->assertSame([0, 1], $news->attach->pluck('display_order')->all());
+        Storage::disk(UploadFilePath::PRIVATE_DISK)->assertExists($this->storedPath($news, $first));
+
+        // 管理画面からは、行のファイルを返す。行に無いファイル名では返さない
+        $this->actingAs($this->staff, 'admin')->get($news->attach->first()->url)->assertOk();
+        $this->actingAs($this->staff, 'admin')
+            ->get(UploadFilePath::url(News::class, $news->id, 'attach_file', Str::random(40).'.pdf'))
+            ->assertNotFound();
+
+        // 訪問者の詳細の画面には、元のファイル名で出す
+        $this->get(route('news.show', $news))->assertOk()->assertSeeInOrder(['案内.pdf', '申込書.pdf']);
+    }
+
+    public function test_removed_attachment_row_deletes_its_file(): void
+    {
+        $news = $this->news();
+        $kept = Str::random(40).'.pdf';
+        $removed = Str::random(40).'.pdf';
+        Storage::disk(UploadFilePath::PRIVATE_DISK)->put($this->storedPath($news, $kept), 'a');
+        Storage::disk(UploadFilePath::PRIVATE_DISK)->put($this->storedPath($news, $removed), 'b');
+        $keptRow = $news->attach()->create(['file' => $kept, 'file_origin' => '残す.pdf', 'display_order' => 0]);
+        $news->attach()->create(['file' => $removed, 'file_origin' => '消す.pdf', 'display_order' => 1]);
+
+        $input = $this->newsInput([]) + [
+            'attach_group' => '1',
+            'attach_id' => [(string) $keptRow->id],
+            'attach_file' => [$kept],
+            'attach_file_tmp' => [''],
+            'attach_file_origin' => ['残す.pdf'],
+            'attach_file_del' => [''],
+        ];
+        $this->update($news, $input)->assertRedirect();
+
+        $this->assertSame([$keptRow->id], $news->attach()->pluck('id')->all());
+        Storage::disk(UploadFilePath::PRIVATE_DISK)->assertExists($this->storedPath($news, $kept));
+        Storage::disk(UploadFilePath::PRIVATE_DISK)->assertMissing($this->storedPath($news, $removed));
+    }
+
+    public function test_attachments_are_exported_to_csv_and_ignored_on_import(): void
+    {
+        Storage::fake(CsvImportSettings::TMP_DISK);
+        $news = $this->news();
+        $news->attach()->create(['file' => 'a.pdf', 'file_origin' => '案内.pdf', 'display_order' => 0]);
+
+        // 書き出しには、表示名と保存ファイル名の組が出る
+        $csv = $this->actingAs($this->staff, 'admin')->get(route('admin.news.csv'))->streamedContent();
+        $csv = mb_convert_encoding($csv, 'UTF-8', 'UTF-8, SJIS-win');
+        $this->assertStringContainsString('添付ファイル:1', $csv);
+        $this->assertStringContainsString('案内.pdf', $csv);
+
+        // 取り込みでは、添付ファイルの列を無視する（組の取り込みはまだ受け持たない）
+        $file = UploadedFile::fake()->createWithContent('news.csv', "\xEF\xBB\xBF".implode("\r\n", [
+            '記事ID,タイトル,記事日付,状態,公開範囲,カテゴリー,添付ファイル:1,保存ファイル名:1',
+            "{$news->id},書き換えた記事,2026/10/20,表示,一般公開,お知らせ,別の名前.pdf,b.pdf",
+        ])."\r\n");
+        $confirm = $this->actingAs($this->staff, 'admin')->post(route('admin.news.csv-import.confirm'), ['csv_file' => $file])->assertOk();
+        $this->assertNotNull($confirm->viewData('token'));
+        $this->actingAs($this->staff, 'admin')
+            ->post(route('admin.news.csv-import.execute'), ['confirm_token' => $confirm->viewData('token')])
+            ->assertSessionMissing('error');
+
+        $this->assertSame('書き換えた記事', $news->fresh()->title);
+        $this->assertSame([['a.pdf', '案内.pdf']], $news->attach()->get()->map(fn ($row) => [$row->file, $row->file_origin])->all());
     }
 
     // ---- 定義の書き方 ----

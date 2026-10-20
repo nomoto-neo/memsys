@@ -90,7 +90,7 @@
                 <ul class="ps-3 mb-0">
                     @foreach ($news->attach as $attachment)
                         <li>
-                            <a href="{{ $attachment->url }}" target="_blank" download="{{ $attachment->original_name }}">{{ $attachment->original_name ?: '添付ファイル'.$loop->iteration }}</a>
+                            <a href="{{ $attachment->url }}" target="_blank" download="{{ $attachment->file_origin }}">{{ $attachment->file_origin ?: '添付ファイル'.$loop->iteration }}</a>
                         </li>
                     @endforeach
                 </ul>

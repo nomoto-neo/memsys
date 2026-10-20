@@ -33,7 +33,7 @@ class News extends Model
      * 記事の今の状態で決める。切り替えのたびにファイルを移さなくて済むようにするため。
      * 見てよいかはApp\Policies\NewsPolicyで判断する。
      */
-    public const PRIVATE_FILE_FIELDS = ['list_image', 'attach', 'body', 'photos_image'];
+    public const PRIVATE_FILE_FIELDS = ['list_image', 'attach_file', 'body', 'photos_image'];
 
     /**
      * 入力の全角と半角をそろえない項目（Neobit\Core\Crud\InputNormalizer）。
@@ -129,12 +129,12 @@ class News extends Model
     }
 
     /**
-     * この記事に付いている添付ファイル。アップロードの処理（Neobit\Core\Upload\AjaxFileUpload）は、
-     * 複数のフィールド'attach.*'と同じ名前のこのリレーションを通して、保存・削除を行う。
+     * この記事に付いている添付ファイル。画面の並びの順。繰り返しの組の処理（Neobit\Core\Crud\RepeatableGroup）は、
+     * NewsControllerのREPEATABLE_GROUPSに書いたこのリレーションを通して、保存・削除を行う。
      */
     public function attach(): HasMany
     {
-        return $this->hasMany(NewsAttachment::class, 'news_id');
+        return $this->hasMany(NewsAttachment::class, 'news_id')->orderBy('display_order')->orderBy('id');
     }
 
     /**

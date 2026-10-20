@@ -139,14 +139,8 @@ class NewsController extends Controller
         // 存在自体を訪問者に気付かせないため。
         abort_unless($news->isVisibleTo(Auth::guard('web')->user()), 404);
 
-        // 添付ファイルは登録した順（idの昇順）に並べる。並び順を
-        // News::attach()リレーション自体に書かないのは、管理画面側の
-        // アップロード処理（AjaxFileUpload）もこのリレーション経由で
-        // 削除・作り直しをしていて、そちらに影響させたくないため。
-        $news->load([
-            'categories',
-            'attach' => fn ($query) => $query->orderBy('id'),
-        ]);
+        // 添付ファイルと写真は、リレーション（News::attach()・photos()）に書いた画面の並びの順
+        $news->load(['categories', 'attach', 'photos']);
 
         return view('news.show', [
             'news' => $news,

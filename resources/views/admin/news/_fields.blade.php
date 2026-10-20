@@ -28,7 +28,7 @@
 
     一覧用画像(list_image)・添付ファイル(attach)のアップロード欄は、
     4画面すべてでここに表示する。$readonly（他のtext input等と同じ値）を
-    そのまま_ajax_upload_block/_ajax_upload_groupへ渡すことで、
+    そのまま_ajax_upload_block/_repeatable_groupへ渡すことで、
     入力用のインタラクティブなUI（create/edit）と、表示専用のプレビュー
     （confirm/show）が自動的に切り替わる（詳しくは
     _ajax_upload_blockのコメント参照）。どちらの部分ビューにも
@@ -188,14 +188,19 @@
 
 <div class="mb-3">
     <label class="form-label d-block">添付ファイル</label>
-    @include('neobit::_ajax_upload_group', [
+    {{-- 添付ファイル。ファイルだけの繰り返しの組（Neobit\Core\Crud\RepeatableGroup）で、ファイルをまとめて選べる。
+         行の中身は_attach_rowに書く --}}
+    @include('neobit::_repeatable_group', [
+        'group' => 'attach',
+        'row' => 'admin.news._attach_row',
         'model' => $model,
         'input' => $input,
-        'field' => 'attach',
         'readonly' => $readonly,
         'uploadUrl' => $uploadUrl,
+        'addLabel' => 'ファイルを追加',
         'inline' => true,
     ])
+    <div class="invalid-feedback" data-item="attach_id">{{ $errors->first('attach_id') }}</div>
 </div>
 
 {{-- 写真。画像とキャプションの組を、行ごとに増やしたり消したりする（繰り返しの組。Neobit\Core\Crud\RepeatableGroup）。

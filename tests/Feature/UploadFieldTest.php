@@ -7,9 +7,7 @@ use App\Http\Controllers\Admin\NewsController;
 use App\Models\Staff;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Validator;
 use LogicException;
-use Neobit\Core\Rules\MaxUploadCountRule;
 use Neobit\Core\Upload\UploadFieldDefinitions;
 use Neobit\Core\Upload\UploadType;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -17,7 +15,7 @@ use Tests\TestCase;
 
 /**
  * アップロードの欄の定義（UPLOAD_FILES。Neobit\Core\Upload\UploadFieldDefinitions）と、
- * いくつでも足せる欄の枠の数の上限（'max'）。
+ * ファイルをまとめて選べる欄の出し分け。
  */
 class UploadFieldTest extends TestCase
 {
@@ -28,13 +26,16 @@ class UploadFieldTest extends TestCase
         $listImage = UploadFieldDefinitions::find(NewsController::class, 'list_image');
         $this->assertSame(UploadType::Image, $listImage['type']);
         $this->assertSame('single', $listImage['kind']);
-        $this->assertNull($listImage['max']);
+        $this->assertFalse($listImage['multiple']);
 
-        $attach = UploadFieldDefinitions::find(NewsController::class, 'attach');
+        // 添付ファイルは、ファイルだけの組の欄。ファイルの項目が1つだけの組なので、まとめて選べる
+        $attach = UploadFieldDefinitions::find(NewsController::class, 'attach_file');
         $this->assertSame(UploadType::File, $attach['type']);
-        $this->assertSame('repeatable', $attach['kind']);
+        $this->assertSame('group', $attach['kind']);
+        $this->assertSame('attach', $attach['group']);
+        $this->assertSame('file', $attach['column']);
         $this->assertNull($attach['width']);
-        $this->assertSame(5, $attach['max']);
+        $this->assertTrue($attach['multiple']);
 
         // エディタの欄は、画像の欄として読む
         $this->assertSame('wysiwyg', UploadFieldDefinitions::find(NewsController::class, 'body')['kind']);
@@ -56,37 +57,13 @@ class UploadFieldTest extends TestCase
             'typeが無い' => [TestUploadNoType::class, "'type' => UploadType::Image"],
             '画像なのにwidthが無い' => [TestUploadImageWithoutWidth::class, "'width'に書いて"],
             '添付ファイルにwidth' => [TestUploadFileWithWidth::class, "'width'は書きません"],
-            '「.*」なのにmaxが無い' => [TestUploadRepeatableWithoutMax::class, "'max'に書いて"],
-            '1つだけの欄にmax' => [TestUploadSingleWithMax::class, "'max'は書きません"],
+            '組を使わない「.*」' => [TestUploadRepeatableField::class, 'REPEATABLE_GROUPSに組を書き'],
+            '1つだけの欄にmax' => [TestUploadSingleWithMax::class, '使えないキー（max）'],
             '使えないキー' => [TestUploadUnknownKey::class, '使えないキー（size）'],
         ];
     }
 
-    public function test_file_count_over_the_limit_is_rejected_on_save(): void
-    {
-        $rules = ['attach' => ['array', new MaxUploadCountRule('attach', 2)]];
-
-        // ファイルのある枠が2つまでは通る。空の枠と、削除の印の立った枠は数えない
-        $ok = [
-            'attach' => ['a.pdf', '', 'c.pdf', ''],
-            'attach_tmp' => ['', '', '', ''],
-            'attach_del' => ['0', '0', '1', '0'],
-        ];
-        $ok['attach_tmp'][3] = 'd.pdf';
-        $this->assertTrue(Validator::make($ok, $rules)->passes());
-
-        // 3つあれば断る
-        $over = [
-            'attach' => ['a.pdf', 'b.pdf', ''],
-            'attach_tmp' => ['', '', 'c.pdf'],
-            'attach_del' => ['0', '0', '0'],
-        ];
-        $validator = Validator::make($over, $rules);
-        $this->assertTrue($validator->fails());
-        $this->assertSame('ファイルは2件までにしてください。', $validator->errors()->first('attach'));
-    }
-
-    public function test_screen_lets_only_repeatable_fields_choose_many_files(): void
+    public function test_screen_lets_only_group_fields_choose_many_files(): void
     {
         $staff = Staff::create([
             'name' => '管理 花子',
@@ -98,17 +75,14 @@ class UploadFieldTest extends TestCase
 
         $html = $this->actingAs($staff, 'admin')->get(route('admin.news.create'))->assertOk()->getContent();
 
-        // 添付ファイル（いくつでも足せる欄）は、上限を持ち、まとめて選べる
-        $this->assertStringContainsString('data-field="attach" data-max="5"', $html);
-        $this->assertMatchesRegularExpression('/data-field="attach".*?class="ajax_file_input d-none" accept=""\s+multiple/s', $html);
+        // 添付ファイル（ファイルだけの組）は、行の数の上限を持ち、まとめて選べる
+        $this->assertStringContainsString('data-group="attach" data-max="5"', $html);
+        $this->assertMatchesRegularExpression('/data-field="attach_file".*?class="ajax_file_input d-none" accept=""\s+multiple/s', $html);
         // 一覧の画像（1つだけの欄）は、まとめて選べない
         $this->assertMatchesRegularExpression('/data-field="list_image".*?class="ajax_file_input d-none" accept="image\/\*" >/s', $html);
 
-        // 枠を閉じる×は、いくつでも足せる欄の枠にだけ出す。ひな型の中の1つと、表示している枠の1つ
-        $this->assertSame(2, substr_count($html, 'class="ajax_remove_block"'));
-
-        // 'inline' => true を渡した添付ファイルの欄は、枠を並べる入れ物に横並びのクラスが付く
-        $this->assertMatchesRegularExpression('/data-field="attach" data-max="5">\s*<div class="ajax_upload_blocks ajax_upload_inline">/', $html);
+        // 'inline' => true を渡した添付ファイルの組は、行を並べる入れ物に横並びのクラスが付く
+        $this->assertMatchesRegularExpression('/data-group="attach" data-max="5">\s*<input[^>]*>\s*<div class="repeatable_rows repeatable_inline">/', $html);
     }
 }
 
@@ -128,7 +102,7 @@ class TestUploadFileWithWidth
     private const UPLOAD_FILES = ['attach' => ['type' => UploadType::File, 'width' => 100]];
 }
 
-class TestUploadRepeatableWithoutMax
+class TestUploadRepeatableField
 {
     private const UPLOAD_FILES = ['attach.*' => ['type' => UploadType::File]];
 }

@@ -140,6 +140,8 @@ done
 # フレームワークの中で消したファイル
 gone packages/neobit/core/src/Security/AllowedIps.php
 gone packages/neobit/core/src/Models/OperationLogSubjectModel.php
+gone packages/neobit/core/src/Rules/MaxUploadCountRule.php
+gone packages/neobit/core/resources/views/_ajax_upload_group.blade.php
 
 # フレームワークへ移した操作ログの画面と、名前を変えた列挙型
 gone app/Http/Controllers/Admin/OperationLogController.php
@@ -164,13 +166,13 @@ has   packages/neobit/core/src/Http/Controllers/OperationLogController.php 'priv
 has   packages/neobit/core/src/Models/OperationLogNamedModel.php        'interface OperationLogNamedModel'
 has   packages/neobit/core/src/Pdf/PdfDownload.php                      'private function downloadPdfOnSheet('
 has   packages/neobit/core/src/Upload/UploadFieldDefinitions.php        'final class UploadFieldDefinitions'
-has   packages/neobit/core/resources/js/ajax_upload.js                  'function addBlock(group)'
+has   packages/neobit/core/resources/js/ajax_upload.js                  'repeatable:add-row'
 has   packages/neobit/core/src/Http/Middleware/RunScheduleOnRequest.php 'class RunScheduleOnRequest'
 has   packages/neobit/core/src/Operations/RequestScheduler.php          'final class RequestScheduler'
 has   packages/neobit/core/src/Operations/TemporaryDataCleaner.php      'public static function allExclusively('
 has   packages/neobit/core/src/Operations/TemporaryDataCleaner.php      'public static function oldJobBatches('
 has   packages/neobit/core/config/neobit.php                            "'cron_enabled'"
-has   app/Http/Controllers/Admin/NewsController.php                     "'attach.*' => ['type' => UploadType::File, 'max' => 5]"
+has   app/Http/Controllers/Admin/NewsController.php                     "'attach.*.file' => ['type' => UploadType::File]"
 has   packages/neobit/core/database/migrations/2026_10_16_000000_create_settings_table.php "Schema::create('settings'"
 has   packages/neobit/core/database/migrations/2026_10_15_000000_create_ip_blocks_table.php "Schema::create('ip_blocks'"
 has   packages/neobit/core/config/neobit.php                            "'code_table_enum_namespaces'"
@@ -216,6 +218,10 @@ has   vite.config.js                                                    'repeata
 has   app/Http/Controllers/Admin/NewsController.php                     'REPEATABLE_GROUPS'
 has   packages/neobit/core/src/Csv/CsvWriter.php                       'final class CsvWriter'
 has   packages/neobit/core/src/Csv/CsvDownload.php                     'CsvWriter::download('
+has   packages/neobit/core/resources/js/repeatable_group.js             'repeatable:add-row'
+has   database/migrations/2026_10_21_000000_rename_columns_on_t_news_attachments_table.php "renameColumn('original_name', 'file_origin')"
+has   app/Models/NewsAttachment.php                                     "'file_origin'"
+has   resources/views/admin/news/_attach_row.blade.php                  "'field' => 'attach_file'"
 
 echo
 if [ $ng -eq 0 ]; then

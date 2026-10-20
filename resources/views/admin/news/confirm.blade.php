@@ -20,7 +20,7 @@
 
             一覧用画像・添付ファイルも、他の項目（タイトル・カテゴリー等）
             と同じく_fields.blade.phpが表示する。$readonly=' readonly'
-            なので、_ajax_upload_block/_ajax_upload_groupは自動的に
+            なので、_ajax_upload_block/_repeatable_groupは自動的に
             表示専用のプレビュー（画像またはリンクのみ、アップロードUIは
             出さない）に切り替わる（詳しくは_ajax_upload_blockの
             コメント参照）。
