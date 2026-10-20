@@ -16,7 +16,7 @@
     <p class="text-muted small">送信の記録は{{ $keepDays }}日残し、過ぎたものは自動で消えます。</p>
 @endif
 
-@if ($bulkMails->isEmpty())
+@if ($records->isEmpty())
     <p class="text-muted">まだ送っていません。</p>
 @else
     <table class="table table-hover align-middle bg-white">
@@ -31,7 +31,7 @@
             </tr>
         </thead>
         <tbody>
-            @foreach ($bulkMails as $bulkMail)
+            @foreach ($records as $bulkMail)
                 <tr>
                     <td class="text-nowrap">{{ $bulkMail->created_at->format('Y-m-d H:i') }}</td>
                     <td><a href="{{ route('admin.bulk-mails.show', $bulkMail) }}">{{ $bulkMail->subject }}</a></td>
@@ -45,6 +45,6 @@
         </tbody>
     </table>
 
-    {{ $bulkMails->links('pagination::bootstrap-5') }}
+    {{ $records->links('pagination::bootstrap-5') }}
 @endif
 @endsection

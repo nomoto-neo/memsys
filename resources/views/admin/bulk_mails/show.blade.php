@@ -18,7 +18,7 @@
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="h4 mb-0">一斉メールの送信の状況</h1>
-    <a href="{{ route('admin.bulk-mails.index') }}" class="btn btn-outline-secondary btn-sm">送信の履歴へ</a>
+    <a href="{{ route('admin.bulk-mails.index', ['back']) }}#id{{ $bulkMail->id }}" class="btn btn-outline-secondary btn-sm">送信の履歴へ</a>
 </div>
 
 <div class="card mb-3">

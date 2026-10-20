@@ -77,7 +77,7 @@
 
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-primary">確認画面へ</button>
-                        <a href="{{ route('admin.bulk-mails.index') }}" class="btn btn-outline-secondary">送信の履歴へ</a>
+                        <a href="{{ route('admin.bulk-mails.index', ['back']) }}" class="btn btn-outline-secondary">送信の履歴へ</a>
                     </div>
                 </form>
             </div>

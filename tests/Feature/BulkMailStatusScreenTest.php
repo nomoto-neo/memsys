@@ -215,4 +215,28 @@ class BulkMailStatusScreenTest extends TestCase
         $this->actingAs($staff, 'admin')->get(route('admin.bulk-mails.index'))
             ->assertSee('送信の記録は365日残し、過ぎたものは自動で消えます。');
     }
+
+    public function test_history_returns_to_the_page_being_viewed(): void
+    {
+        $staff = $this->manager();
+
+        // 2ページ目まである履歴。新しい順なので、2ページ目には最初に送った分が出る
+        foreach (range(1, 21) as $number) {
+            BulkMail::create([
+                'subject' => "お知らせ{$number}号",
+                'body' => '本文',
+                'csv_filename' => 'recipients.csv',
+                'recipient_count' => 1,
+                'status' => BulkMailStatus::Finished,
+            ]);
+        }
+
+        $this->actingAs($staff, 'admin')->get(route('admin.bulk-mails.index', ['page' => 2]))
+            ->assertOk()
+            ->assertSee('お知らせ1号');
+
+        // 詳細から?backで戻ると、見ていた2ページ目に戻る
+        $this->actingAs($staff, 'admin')->get(route('admin.bulk-mails.index', ['back']))
+            ->assertRedirect(route('admin.bulk-mails.index', ['page' => 2]));
+    }
 }

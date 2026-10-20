@@ -13,6 +13,7 @@ use App\Rules\MailDomainRule;
 use App\Services\BulkMailCleanup;
 use App\Services\NewsletterSubscription;
 use Illuminate\Bus\Batch;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -23,6 +24,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Neobit\Core\Crud\FormFlow;
+use Neobit\Core\Crud\SearchableList;
 use Neobit\Core\Csv\CsvImportResult;
 use Neobit\Core\Csv\CsvImportRow;
 use Neobit\Core\Csv\CsvImportSettings;
@@ -71,14 +73,28 @@ class BulkMailController extends Controller
     use AjaxFileUpload;
     use CsvReader;
     use FormFlow;
+    use SearchableList;
 
-    // ---- 一覧の設定 ----
+    // ---- 送信の履歴の一覧（SearchableList）の設定 ----
 
-    /** 送信の履歴の一覧のルート名 */
+    /** 送信の履歴の一覧のルート名。見ていたページを覚えるセッションのキーにも使う */
     private const INDEX_ROUTE = 'admin.bulk-mails.index';
+
+    /** フリーワード検索の対象の列。履歴は検索しない */
+    private const FREE_WORD_COLUMNS = [];
 
     /** 履歴の1ページの件数 */
     private const PER_PAGE = 20;
+
+    /** 履歴の並び順。新しく送ったものから並べる */
+    private const ORDER_OPTIONS = [
+        'id_desc' => [
+            'label' => '新しい順',
+            'orderBy' => [
+                ['id', 'desc'],
+            ],
+        ],
+    ];
 
     // ---- 送信の設定 ----
 
@@ -199,11 +215,30 @@ class BulkMailController extends Controller
 
     // ---- 履歴 ----
 
-    /** 送信の履歴。新しいものから並べる */
-    public function index(): View
+    /** 履歴の検索の項目の検証ルール（SearchableListが要求する）。履歴は検索しない */
+    private function srchRules(): array
     {
+        return [];
+    }
+
+    /** 列と直接比べられない検索条件の処理（SearchableListが要求する）。履歴は検索しない */
+    private function applyCustomSearch(Builder $query, string $key, mixed $value): bool
+    {
+        return false;
+    }
+
+    /** 送信の履歴。新しいものから並べる。詳細などから?backで戻ると、見ていたページを出す */
+    public function index(Request $request): View|RedirectResponse
+    {
+        $result = $this->listPageValues($request, BulkMail::query());
+
+        if ($result instanceof RedirectResponse) {
+            // リダイレクトが要求された場合
+            return $result;
+        }
+
         return view('admin.bulk_mails.index', [
-            'bulkMails' => BulkMail::orderByDesc('id')->paginate(self::PER_PAGE),
+            'records' => $result['records'],
             // 送信の記録を残す日数。nullなら消さずに残す（config/cleanup.phpのtasks）
             'keepDays' => BulkMailCleanup::days(),
         ]);
