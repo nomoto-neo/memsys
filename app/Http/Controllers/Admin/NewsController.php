@@ -91,13 +91,15 @@ class NewsController extends Controller
 
     /** 添付ファイルと写真。どちらも子テーブル（News::attach()・photos()）に画面の並びの順で持つ。書き方はRepeatableGroupDefinitions */
     private const REPEATABLE_GROUPS = [
-        // 添付ファイル。ファイルの項目が1つだけの組なので、画面でファイルをまとめて選べる
+        // 添付ファイル。ファイルの項目が1つだけの組なので、画面でファイルをまとめて選べる。
+        // ほかから行を参照しないので、保存のたびに行を消して画面の順に入れ直す。idの順が画面の順になるので、並び順の列は持たない
         'attach' => [
             'relation' => 'attach',
             'fields' => ['file'],
-            'order' => 'seq',
+            'delete_insert' => true,
             'max' => 5,
         ],
+        // 写真。行のidを保って保存し、画面の順は並び順の列に持つ
         'photos' => [
             'relation' => 'photos',
             'fields' => ['image', 'caption'],

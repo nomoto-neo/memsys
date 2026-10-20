@@ -385,7 +385,7 @@ class RepeatableGroupTest extends TestCase
         $this->assertSame([(string) $news->id, '1枚目', 'a.jpg', '2枚目', 'b.jpg'], array_map('strval', $columns->exportRow($query->first())));
     }
 
-    // ---- 添付ファイル（ファイルだけの組） ----
+    // ---- 添付ファイル（ファイルだけの組。保存のたびに行を入れ直す） ----
 
     public function test_attachments_are_saved_with_their_original_names_in_screen_order(): void
     {
@@ -407,7 +407,6 @@ class RepeatableGroupTest extends TestCase
 
         $news = News::firstOrFail();
         $this->assertSame(['案内.pdf', '申込書.pdf'], $news->attach->pluck('file_origin')->all());
-        $this->assertSame([0, 1], $news->attach->pluck('seq')->all());
         Storage::disk(UploadFilePath::PRIVATE_DISK)->assertExists($this->storedPath($news, $first));
 
         // 管理画面からは、行のファイルを返す。行に無いファイル名では返さない
@@ -420,15 +419,15 @@ class RepeatableGroupTest extends TestCase
         $this->get(route('news.show', $news))->assertOk()->assertSeeInOrder(['案内.pdf', '申込書.pdf']);
     }
 
-    public function test_removed_attachment_row_deletes_its_file(): void
+    public function test_attachments_are_reinserted_and_removed_row_deletes_its_file(): void
     {
         $news = $this->news();
         $kept = Str::random(40).'.pdf';
         $removed = Str::random(40).'.pdf';
         Storage::disk(UploadFilePath::PRIVATE_DISK)->put($this->storedPath($news, $kept), 'a');
         Storage::disk(UploadFilePath::PRIVATE_DISK)->put($this->storedPath($news, $removed), 'b');
-        $keptRow = $news->attach()->create(['file' => $kept, 'file_origin' => '残す.pdf', 'seq' => 0]);
-        $news->attach()->create(['file' => $removed, 'file_origin' => '消す.pdf', 'seq' => 1]);
+        $keptRow = $news->attach()->create(['file' => $kept, 'file_origin' => '残す.pdf']);
+        $news->attach()->create(['file' => $removed, 'file_origin' => '消す.pdf']);
 
         $input = $this->newsInput([]) + [
             'attach_group' => '1',
@@ -440,16 +439,67 @@ class RepeatableGroupTest extends TestCase
         ];
         $this->update($news, $input)->assertRedirect();
 
-        $this->assertSame([$keptRow->id], $news->attach()->pluck('id')->all());
+        // 残した行は、新しいidで入れ直される。ファイルと表示名はそのまま
+        $rows = $news->attach()->get();
+        $this->assertCount(1, $rows);
+        $this->assertNotSame($keptRow->id, $rows[0]->id);
+        $this->assertSame([$kept, '残す.pdf'], [$rows[0]->file, $rows[0]->file_origin]);
         Storage::disk(UploadFilePath::PRIVATE_DISK)->assertExists($this->storedPath($news, $kept));
         Storage::disk(UploadFilePath::PRIVATE_DISK)->assertMissing($this->storedPath($news, $removed));
+    }
+
+    public function test_attachment_put_in_an_empty_middle_row_keeps_screen_order(): void
+    {
+        $news = $this->news();
+        $first = Str::random(40).'.pdf';
+        $last = Str::random(40).'.pdf';
+        Storage::disk(UploadFilePath::PRIVATE_DISK)->put($this->storedPath($news, $first), 'a');
+        Storage::disk(UploadFilePath::PRIVATE_DISK)->put($this->storedPath($news, $last), 'c');
+        $firstRow = $news->attach()->create(['file' => $first, 'file_origin' => '1つ目.pdf']);
+        $lastRow = $news->attach()->create(['file' => $last, 'file_origin' => '3つ目.pdf']);
+        $middle = Str::random(40).'.pdf';
+        Storage::disk(UploadFilePath::TMP_DISK)->put(UploadFilePath::TMP_DIR.'/'.$middle, 'b');
+
+        // 2つの行の間の空いた行に、新しいファイルを入れる
+        $input = $this->newsInput([]) + [
+            'attach_group' => '1',
+            'attach_id' => [(string) $firstRow->id, '', (string) $lastRow->id],
+            'attach_file' => [$first, '', $last],
+            'attach_file_tmp' => ['', $middle, ''],
+            'attach_file_origin' => ['1つ目.pdf', '2つ目.pdf', '3つ目.pdf'],
+            'attach_file_del' => ['', '', ''],
+        ];
+        $this->update($news, $input)->assertRedirect();
+
+        $this->assertSame(['1つ目.pdf', '2つ目.pdf', '3つ目.pdf'], $news->attach()->pluck('file_origin')->all());
+    }
+
+    public function test_same_attachment_id_twice_keeps_the_file_only_in_the_first_row(): void
+    {
+        $news = $this->news();
+        $file = Str::random(40).'.pdf';
+        Storage::disk(UploadFilePath::PRIVATE_DISK)->put($this->storedPath($news, $file), 'a');
+        $row = $news->attach()->create(['file' => $file, 'file_origin' => 'a.pdf']);
+
+        // 同じidを2回送っても、ファイルが残るのは1行目だけ。2行目は新しい行になり、ファイルは付かない
+        $input = $this->newsInput([]) + [
+            'attach_group' => '1',
+            'attach_id' => [(string) $row->id, (string) $row->id],
+            'attach_file' => [$file, $file],
+            'attach_file_tmp' => ['', ''],
+            'attach_file_origin' => ['a.pdf', 'a.pdf'],
+            'attach_file_del' => ['', ''],
+        ];
+        $this->update($news, $input)->assertRedirect();
+
+        $this->assertSame([$file, null], $news->attach()->pluck('file')->all());
     }
 
     public function test_attachments_are_exported_to_csv_and_ignored_on_import(): void
     {
         Storage::fake(CsvImportSettings::TMP_DISK);
         $news = $this->news();
-        $news->attach()->create(['file' => 'a.pdf', 'file_origin' => '案内.pdf', 'seq' => 0]);
+        $news->attach()->create(['file' => 'a.pdf', 'file_origin' => '案内.pdf']);
 
         // 書き出しには、表示名と保存ファイル名の組が出る
         $csv = $this->actingAs($this->staff, 'admin')->get(route('admin.news.csv'))->streamedContent();
@@ -481,6 +531,12 @@ class RepeatableGroupTest extends TestCase
         $this->assertSame(['image'], $group['files']);
         $this->assertSame('seq', $group['order']);
         $this->assertSame(10, $group['max']);
+        $this->assertFalse($group['delete_insert']);
+
+        // 添付ファイルは、保存のたびに行を入れ直す組。並び順の列は持たない
+        $attach = RepeatableGroupDefinitions::find(NewsController::class, 'attach');
+        $this->assertTrue($attach['delete_insert']);
+        $this->assertNull($attach['order']);
 
         $upload = UploadFieldDefinitions::find(NewsController::class, 'photos_image');
         $this->assertSame('group', $upload['kind']);
@@ -503,6 +559,7 @@ class RepeatableGroupTest extends TestCase
             'maxが無い' => [TestGroupWithoutMax::class, "'max'に1以上の数"],
             '組に無いファイルの欄' => [TestGroupUnknownFileField::class, "'fields'にも書いて"],
             'AjaxFileUploadが無い' => [TestGroupWithoutUpload::class, 'AjaxFileUploadを使って'],
+            'delete_insertが真偽値でない' => [TestGroupDeleteInsertNotBool::class, "'delete_insert'は、trueかfalse"],
         ];
     }
 }
@@ -525,4 +582,9 @@ class TestGroupWithoutUpload
     private const REPEATABLE_GROUPS = ['photos' => ['relation' => 'photos', 'fields' => ['image'], 'max' => 3]];
 
     private const UPLOAD_FILES = ['photos.*.image' => ['type' => UploadType::Image, 'width' => 100]];
+}
+
+class TestGroupDeleteInsertNotBool
+{
+    private const REPEATABLE_GROUPS = ['photos' => ['relation' => 'photos', 'fields' => ['caption'], 'delete_insert' => 1, 'max' => 3]];
 }

@@ -229,6 +229,10 @@ has   app/Models/Category.php                                           "'seq'"
 has   database/migrations/2026_10_21_200000_rename_display_order_to_seq_on_news_child_tables.php "'t_news_attachments'"
 has   packages/neobit/core/resources/js/repeatable_group.js             'repeatable:remove-row'
 has   packages/neobit/core/resources/views/_repeatable_group.blade.php  'data-files-only'
+has   packages/neobit/core/src/Crud/RepeatableGroupDefinitions.php     "'delete_insert'"
+has   packages/neobit/core/src/Crud/RepeatableGroup.php                 '作り直す保存。今の行は下でまとめて消す'
+has   database/migrations/2026_10_21_300000_drop_seq_on_t_news_attachments_table.php "dropColumn('seq')"
+has   app/Http/Controllers/Admin/NewsController.php                     "'delete_insert' => true"
 
 echo
 if [ $ng -eq 0 ]; then
