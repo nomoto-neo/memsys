@@ -56,6 +56,7 @@
 | `CsvReader` | `readCsv(...)` | CSV を読んで検証する | トレイトなのに「〜er」 |
 | `AjaxFileUpload` | `uploadAjaxFile($request)` | 入口。アップロードを受け取る | ほかは `ajaxUpload〜` の語順 |
 | `AjaxFileUpload` | `ajaxUploadRules()` | アップロードの欄の検証ルール | |
+| `RepeatableGroup` | `repeatableGroupRules()` | 繰り返しの組の検証ルール | |
 | `AjaxFileUpload` | `ajaxUploadValues($model, $source)` | アップロードの欄の画面の値 | |
 | `AjaxFileUpload` | `commitUploads($model, $input, $fromImport)` | 一時ファイルを正式な保存先へ移す | |
 | `AjaxFileUpload` | `deleteAllUploads($model)` | 1件分のファイルを全部消す | |
@@ -91,7 +92,8 @@
 | `SearchableList` | `PER_PAGE` | 1ページの件数 | 同じ |
 | `SearchableList` | `ORDER_OPTIONS` | 並び順の選択肢 | 同じ |
 | `SearchableList` | `FREE_WORD_COLUMNS` | フリーワード検索の対象の列 | 同じ |
-| `AjaxFileUpload` | `UPLOAD_FILES` | アップロードの欄。欄の名前 => `type`・`width`・`max`（書き方は `UploadFieldDefinitions`） | 同じ |
+| `AjaxFileUpload` | `UPLOAD_FILES` | アップロードの欄。欄の名前 => `type`・`width`・`max`（書き方は `UploadFieldDefinitions`）。組の中の欄は `組.*.列` | 同じ |
+| `RepeatableGroup` | `REPEATABLE_GROUPS` | 繰り返しの組。組の名前 => `relation`・`fields`・`order`・`max`・`min`（書き方は `RepeatableGroupDefinitions`） | 同じ |
 | `AjaxFileUpload` | `WYSIWYG_IMAGE_FIELDS` | エディタの欄と、入れた画像を縮小する横幅 | 同じ |
 | `InputNormalizer` | `RAW_INPUT_FIELDS` | 全角と半角をそろえない項目 | |
 | `TwoFactorLogin` | `LOGIN_ACCOUNT` | ログインする人のモデル | |
@@ -133,7 +135,7 @@
 | モデル | `IpBlock` | IPブロック管理の1行 | |
 | モデル | `Setting` | 管理画面から変えられる設定の1行（キーと値） | |
 | モデルのトレイト | `IsLoginAccount`・`HasTwoFactor`・`HasPasskeys`・`TeamInvitationRelation` | ログイン・2段階認証・パスキー・招待 | `TeamInvitationRelation` だけ `Has〜`・`Is〜` の形でない |
-| コントローラーのトレイト | `FormFlow`・`SearchableList`・`AjaxFileUpload`・`CsvDownload`・`CsvImport`・`CsvReader`・`PdfDownload`・`EmailChange`・`TwoFactorLogin`・`TwoFactorManagement`・`PasskeyLogin`・`PasskeyManagement` | | `CsvReader` だけ「〜er」 |
+| コントローラーのトレイト | `FormFlow`・`SearchableList`・`AjaxFileUpload`・`RepeatableGroup`・`CsvDownload`・`CsvImport`・`CsvReader`・`PdfDownload`・`EmailChange`・`TwoFactorLogin`・`TwoFactorManagement`・`PasskeyLogin`・`PasskeyManagement` | | `CsvReader` だけ「〜er」 |
 | 列挙型 | `UploadType`（`Image`・`File`）・`SheetPaging`（`Once`・`Sequential`・`Cycle`）・`OperationLogAction`（`ip_block`・`ip_unblock`・`access_restriction_change` を含む）・`TwoFactorMethod`・`LoginIdType`・`CsvEncoding`・`CsvImportMode`・`SpamCheckResult` | | |
 
 ## 6. 案件が呼ぶクラスと、その公開のメソッド
@@ -211,6 +213,7 @@
 |---|---|---|
 | `_ajax_upload_block` | `$model`・`$input`・`$field`・`$readonly`・`$uploadUrl`・`$idx` | 種類・横幅は `upload_field()` で読む |
 | `_ajax_upload_group` | `$model`・`$input`・`$field`・`$readonly`・`$uploadUrl`・`$inline`（省略可） | 種類・横幅・上限は `upload_field()` で読む |
+| `_repeatable_group` | `$group`・`$row`・`$model`・`$input`・`$readonly`・`$uploadUrl`・`$addLabel`・`$inline`（省略可） | 行の中身の部分ビュー（`$row`）は `$model`・`$input`・`$idx`・`$readonly`・`$uploadUrl` を受け取る |
 | `_confirm_hidden` | `$input`・`$exclude` | |
 | `_spam_guard`・`_passkey_suggest` | なし | |
 | `_passkeys` | `$passkeys`・`$passkeyRoute`・`$identityConfirmed`・`$codeSent`・`$confirmBy`・`$twoFactorMissing` | |
@@ -255,10 +258,10 @@
 
 | 種類 | 名前 | メモ |
 |---|---|---|
-| ファイル | `global.js`・`global.css`・`ajax_upload.js`・`upload_request.js`・`passkeys.js`・`code_editor.js`・`ip_block.js`・`wysiwyg_suneditor.js`・`wysiwyg_suneditor_content.css`・`wysiwyg_summernote.js` | |
+| ファイル | `global.js`・`global.css`・`ajax_upload.js`・`repeatable_group.js`・`upload_request.js`・`passkeys.js`・`code_editor.js`・`ip_block.js`・`wysiwyg_suneditor.js`・`wysiwyg_suneditor_content.css`・`wysiwyg_summernote.js` | |
 | 短い名前 | `@neobit`（`vite.config.js` の alias） | |
-| 動かすクラス名 | `ajax_submit`・`wysiwyg`・`ajax_upload_block`・`ajax_upload_group`・`ajax_upload_blocks`・`ajax_upload_inline`・`ajax_add_block`・`ajax_block_template`・`ajax_file_input`・`ajax_file_link`・`ajax_image_block`・`ajax_noimage_block`・`ajax_origin`・`ajax_tmp`・`ajax_del`・`ajax_cancel`・`ajax_remove_block`・`ajax_submit_message`・`passkey_login`・`passkey_register`・`passkey_message`・`passkey_supported`・`passkey_unsupported`・`required-mark` | `required-mark` だけハイフン区切り |
-| `data-` 属性 | `data-confirm`・`data-item`・`data-field`・`data-is-image`・`data-upload-url`・`data-submit-url`・`data-options-url`・`data-remember`・`data-current`・`data-unsaved`・`data-switch-answer`・`data-remove-row` | |
+| 動かすクラス名 | `ajax_submit`・`wysiwyg`・`ajax_upload_block`・`ajax_upload_group`・`ajax_upload_blocks`・`ajax_upload_inline`・`ajax_add_block`・`ajax_block_template`・`ajax_file_input`・`ajax_file_link`・`ajax_image_block`・`ajax_noimage_block`・`ajax_origin`・`ajax_tmp`・`ajax_del`・`ajax_cancel`・`ajax_remove_block`・`repeatable_group`・`repeatable_rows`・`repeatable_row`・`repeatable_inline`・`repeatable_add`・`repeatable_remove`・`repeatable_template`・`ajax_submit_message`・`passkey_login`・`passkey_register`・`passkey_message`・`passkey_supported`・`passkey_unsupported`・`required-mark` | `required-mark` だけハイフン区切り |
+| `data-` 属性 | `data-confirm`・`data-item`・`data-field`・`data-group`・`data-is-image`・`data-upload-url`・`data-submit-url`・`data-options-url`・`data-remember`・`data-current`・`data-unsaved`・`data-switch-answer`・`data-remove-row` | |
 
 ## 13. そのほか
 

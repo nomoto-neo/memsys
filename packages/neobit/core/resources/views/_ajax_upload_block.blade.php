@@ -43,6 +43,9 @@
                    渡せばよい。空でなければ読み取り専用モードになる）
     - $uploadUrl   (読み取り専用モードでは未使用)Ajaxアップロード先のURL
 
+    繰り返しの組（_repeatable_group）の行の中でも使う。$fieldは「組の名前_列」（photos_image）、
+    $idxは行の番号で、name属性の末尾に[]が付く。
+
     表示するURLは、コントローラーから受け取るのではなく、ここで
     upload_preview_url()を呼んで$inputの値から求める。hiddenに出す値と
     プレビューのURLが、どちらも同じ$inputから作られるので、食い違うことが
@@ -153,9 +156,10 @@
 
         <div class="ajax_noimage_block d-flex align-items-center justify-content-center text-center text-muted {{ $hasFile ? 'd-none' : '' }}"
              style="{{ $hasFile ? 'display:none;' : '' }} position: relative; border: 2px dashed #ced4da; border-radius: 0.5rem; background-color: #f8f9fa; min-height: 4rem; cursor: pointer; padding: 0.75rem;">
-            {{-- 複数の欄の空いている枠を、枠ごと消すボタン。枠が1つだけのときはJavaScriptが隠す。
+            {{-- いくつでも足せる欄の空いている枠を、枠ごと消すボタン。枠が1つだけのときはJavaScriptが隠す。
+                 繰り返しの組の中の欄（行の番号はあるが、いくつでも足せる欄ではない）には出さない。行を消すのは組の×。
                  Bootstrapが無い画面でも見えるよう、文字の×とインラインのstyleで描く --}}
-            @if ($idx !== null)
+            @if ($multiple)
                 <button type="button" class="ajax_remove_block" aria-label="この枠を閉じる"
                         style="position: absolute; top: 0.125rem; right: 0.375rem; border: 0; background: none; padding: 0 0.25rem; font-size: 1.25rem; line-height: 1; color: #6c757d; cursor: pointer;">&times;</button>
             @endif

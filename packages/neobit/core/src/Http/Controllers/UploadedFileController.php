@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Neobit\Core\Upload\UploadFilePath;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -134,6 +135,21 @@ class UploadedFileController
         if ($owner->isRelation($field)) {
             // 複数のフィールド（attach.*）: 同じ名前のHasManyリレーションの行にあるか
             return $owner->{$field}()->where('filename', $filename)->exists();
+        }
+
+        // 繰り返しの組の中の欄（photos.*.image）: 欄の名前は「組の名前_列」（photos_image）なので、
+        // 前から「_」で区切って、リレーションの名前と子テーブルの列を探す。その列の行にあるか
+        foreach (array_keys(array_filter(str_split($field), fn ($c) => $c === '_')) as $position) {
+            $relationName = substr($field, 0, $position);
+            $column = substr($field, $position + 1);
+
+            if ($owner->isRelation($relationName)) {
+                $related = $owner->{$relationName}()->getRelated();
+
+                if (Schema::connection($related->getConnectionName())->hasColumn($related->getTable(), $column)) {
+                    return $owner->{$relationName}()->where($column, $filename)->exists();
+                }
+            }
         }
 
         $value = (string) $owner->{$field};

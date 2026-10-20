@@ -147,11 +147,12 @@ trait CsvReader
         $model = $settings->query?->getModel();
         $keyName = $model?->getKeyName() ?? '';
 
-        // 追加と更新で取り込む、AjaxFileUploadのアップロードの欄。エディタの欄は除く
+        // 追加と更新で取り込む、AjaxFileUploadのアップロードの欄。エディタの欄と、繰り返しの組の中の欄は除く。
+        // 繰り返しの組は、CSVでは取り込まない
         $uploadFields = [];
         if ($isSave && method_exists($this, 'uploadFieldDefinitions')) {
             foreach ($this->uploadFieldDefinitions() as $def) {
-                if ($def['kind'] !== 'wysiwyg') {
+                if (! in_array($def['kind'], ['wysiwyg', 'group'], true)) {
                     $uploadFields[$def['field']] = $def['kind'];
                 }
             }

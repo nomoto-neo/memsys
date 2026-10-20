@@ -254,6 +254,7 @@ GRANT ALL PRIVILEGES ON memsys_testing.* TO 'memsys'@'localhost';
 | `PasswordChange` | `packages/neobit/core/src/Auth/` | パスワードを変えたときの後始末（信頼済み端末・パスキーの無効化、お知らせのメール） | 14 |
 | `_confirm_hidden` | `packages/neobit/core/resources/views/` | 確認画面の hidden を `$input` から組み立てる | 5 |
 | `_ajax_upload_block`・`_ajax_upload_group` | `packages/neobit/core/resources/views/` | アップロード欄（単数・複数） | 7 |
+| `RepeatableGroup`・`_repeatable_group` | `packages/neobit/core/src/Crud/`・`packages/neobit/core/resources/views/` | 繰り返しの組（子テーブルの行を、項目の組として増減しながら入力して保存する） | 5 |
 | `admin/csv_import/` | `packages/neobit/core/resources/views/` | CSV 取り込みの画面（全コーナー共通） | 10 |
 | `_passkeys` | `packages/neobit/core/resources/views/` | パスキーの一覧・本人確認・登録の画面の中身 | 14 |
 | `TemporaryDataCleaner` | `packages/neobit/core/src/Operations/` | 一時データの後片付け（一時ファイル・期限の切れたキャッシュと信頼済み端末・古い操作ログ）。プロジェクトの片付けは `config/cleanup.php` に足す | 19 |
@@ -673,6 +674,58 @@ private const RAW_INPUT_FIELDS = News::RAW_INPUT_FIELDS;
 - **ひらがなとカタカナは、変換しません**。フリガナの欄には `new KatakanaRule()` を付けて、ひらがなを入れたらエラーにします。通すのは、全角カタカナ・長音（`ー`）・中点（`・`）・全角と半角の空白です。英数字とハイフンは通しません。ひらがなの欄には `new HiraganaRule()` を使います。
 - すでに保存されているデータは、変わりません。これから入力される分だけがそろいます。
 - 探すときは、DB の照合順序（`utf8mb4_unicode_ci`）が、全角と半角・大文字と小文字・ひらがなとカタカナの違いを無視して比べます。そろえていない古いデータも、検索やログインでは見つかります。
+
+### 繰り返しの組（RepeatableGroup）
+
+**ファイル**：`packages/neobit/core/src/Crud/RepeatableGroup.php`・`RepeatableGroupDefinitions.php`（書き方）・`packages/neobit/core/resources/views/_repeatable_group.blade.php`・`packages/neobit/core/resources/js/repeatable_group.js`　**実例**：ニュースの写真（`Admin\NewsController`、画面は `admin/news/_photo_row.blade.php`）　**設計**：`docs/repeatable-group-spec.md`
+
+子テーブルの1行を「いくつかの項目（ファイルを含んでよい）の組」として、画面で行を増やしたり消したりしながら入力し、親と一緒に保存します。例：ニュースの写真（画像とキャプション）。
+
+```php
+use FormFlow;
+use AjaxFileUpload;      // 組にファイルの項目があるときは要る
+use RepeatableGroup;
+
+private const REPEATABLE_GROUPS = [
+    'photos' => [
+        'relation' => 'photos',            // 子テーブルへのHasMany（News::photos()）
+        'fields' => ['image', 'caption'],  // 組の項目。子テーブルの列の名前
+        'order' => 'display_order',        // 並び順の列。無ければ書かない
+        'max' => 10,                       // 行の数の上限。'min' も書ける
+    ],
+];
+
+private const UPLOAD_FILES = [
+    // 組の中のファイルの項目。子テーブルに image（保存したファイル名）と image_origin（表示名）の列を作る
+    'photos.*.image' => ['type' => UploadType::Image, 'width' => News::PHOTO_WIDTH],
+];
+
+// rules()：組の項目の要素のルールを「組の名前_項目.*」に書き、repeatableGroupRules() を足す
+'photos_caption.*' => ['nullable', 'string', 'max:200'],
+] + $this->ajaxUploadRules() + $this->repeatableGroupRules();
+```
+
+```blade
+{{-- _fields.blade.php。行の中身は、コーナーの部分ビュー（$model・$input・$idx・$readonly・$uploadUrl を受け取る）に書く --}}
+@include('neobit::_repeatable_group', [
+    'group' => 'photos', 'row' => 'admin.news._photo_row',
+    'model' => $model, 'input' => $input, 'readonly' => $readonly, 'uploadUrl' => $uploadUrl,
+    'addLabel' => '写真を追加', 'inline' => true,
+])
+
+{{-- _photo_row.blade.php。name は「組の名前_項目[]」、値は $input['photos_caption'][$idx] --}}
+@include('neobit::_ajax_upload_block', ['field' => 'photos_image', 'idx' => $idx, ...])
+<input type="text" name="photos_caption[]" value="{{ $input['photos_caption'][$idx] ?? '' }}">
+```
+
+- **送る値**：行の並びを揃えた、列ごとの配列（`photos_id[]`・`photos_caption[]`・`photos_image[]`・`photos_image_tmp[]`…）です。確認画面の hidden（`_confirm_hidden`）が1段の配列しか持ち回れないためです。行の id と、組が送られたことを示す印（`photos_group`）は、部品が出します。印は、行を全部消したときに「組を空にする」と伝えるためのものです。
+- **空の行**：全部の項目が空の行は、検証の前に除きます。必須の項目は、空でない行にだけ効きます。
+- **保存**：子テーブルの行の id を保って揃えます。届いた id の行は更新、id の無い行は追加、届かなかった行は削除します。ほかの親の行の id や、2回目に出てきた同じ id は、新しい行として扱います。並び順の列があれば、画面の並びの番号を入れます。
+- **ファイル**：受け取りと一時ファイルの移し方はアップロードの部品（7章）のものを使います。今のファイルは、ファイル名が「その行の今の値」と一致するときだけ残すので、hidden を書き換えてほかの欄のファイルを指させることはできません。使わなくなったファイルは、トランザクションが確定した後に消えます。
+- **FormFlow が呼ぶ**：値の組み立て（`inputPageValues()`・`confirmPageValues()`）、空の行の除き方、保存、削除は FormFlow が呼ぶので、入口の書き方は変わりません。
+- **画面**：「行を足す」・行の ×・行の数の上限・横並び（`'inline' => true`。行の幅は `global.css` の `.repeatable_inline`）は部品が持ちます。画面で `vendor/neobit/core/resources/js/repeatable_group.js` を読み込みます。
+- **CSV**：組は CSV では取り込みません（取り込みのときは組を保存しない）。書き出しは、`CsvColumnSet` の組の横展開（9章）で出せます。
+- 組の子テーブルの変更は、操作ログの「変わった列」には入りません。
 
 ## 6. 削除
 

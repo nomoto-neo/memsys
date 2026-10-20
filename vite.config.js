@@ -13,6 +13,7 @@ export default defineConfig({
                 `${NEOBIT}/css/global.css`,
                 `${NEOBIT}/js/global.js`,
                 `${NEOBIT}/js/ajax_upload.js`,
+                `${NEOBIT}/js/repeatable_group.js`,
                 `${NEOBIT}/js/passkeys.js`,
                 `${NEOBIT}/js/wysiwyg_suneditor.js`,
                 `${NEOBIT}/css/wysiwyg_suneditor_content.css`,

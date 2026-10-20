@@ -18,6 +18,9 @@ use ReflectionClass;
  * - width  画像なら必ず書く。この横幅を超えたら縮小する。添付ファイルには書かない
  * - max    名前の末尾が「.*」の、いくつでも足せる欄だけに必ず書く。枠の数の上限
  *
+ * 繰り返しの組（Neobit\Core\Crud\RepeatableGroup）の中のファイルの欄は、'photos.*.image'のように
+ * 「組の名前.*.子テーブルの列」で書く。画面から送る名前はphotos_imageになり、行の数の上限は組の'max'で決める。
+ *
  * ■ WYSIWYG_IMAGE_FIELDS
  *   'body' => Page::BODY_IMAGE_WIDTH,
  * エディタの欄に入れる画像の横幅。エディタに入るのは画像だけなので、種類は書かない。省略できる。
@@ -31,18 +34,24 @@ final class UploadFieldDefinitions
 
     private const WYSIWYG_IMAGE_FIELDS = 'WYSIWYG_IMAGE_FIELDS';
 
+    private const REPEATABLE_GROUPS = 'REPEATABLE_GROUPS';
+
     /** UPLOAD_FILESの1つの欄に書けるキー */
     private const KEYS = ['type', 'width', 'max'];
 
+    /** 繰り返しの組の中のファイルの欄の書き方。1は組の名前、2は子テーブルの列の名前 */
+    private const GROUP_FIELD_PATTERN = '/^([a-z][a-z0-9_]*)\.\*\.([a-z][a-z0-9_]*)$/';
+
     // コントローラーのクラスごとの、読み終えた定義
-    /** @var array<string, list<array{field: string, kind: string, type: UploadType, width: ?int, max: ?int}>> */
+    /** @var array<string, list<array{field: string, kind: string, type: UploadType, width: ?int, max: ?int, group: ?string, column: ?string}>> */
     private static array $cache = [];
 
     /**
      * コントローラーの全部の欄の定義。
-     * kindは、single（1つだけの欄）・repeatable（「.*」の欄）・wysiwyg（エディタの欄）
+     * kindは、single（1つだけの欄）・repeatable（「.*」の欄）・wysiwyg（エディタの欄）・
+     * group（繰り返しの組の中のファイルの欄。groupとcolumnに組の名前と子テーブルの列の名前が入る）
      *
-     * @return list<array{field: string, kind: string, type: UploadType, width: ?int, max: ?int}>
+     * @return list<array{field: string, kind: string, type: UploadType, width: ?int, max: ?int, group: ?string, column: ?string}>
      */
     public static function of(string $controllerClass): array
     {
@@ -53,7 +62,17 @@ final class UploadFieldDefinitions
         $class = new ReflectionClass($controllerClass);
         $fields = [];
 
-        foreach ((array) $class->getConstant(self::UPLOAD_FILES) as $rawField => $spec) {
+        // UPLOAD_FILESが無いコントローラーでも読まれる（繰り返しの組の定義を読むとき）ので、無ければ空にする
+        $uploadFiles = $class->hasConstant(self::UPLOAD_FILES) ? (array) $class->getConstant(self::UPLOAD_FILES) : [];
+
+        foreach ($uploadFiles as $rawField => $spec) {
+            // 繰り返しの組の中のファイルの欄。'photos.*.image'は、画面から送る名前がphotos_imageになる
+            if (preg_match(self::GROUP_FIELD_PATTERN, $rawField, $m)) {
+                $fields[] = self::checkGroupField($class, $m[1], $m[2], $spec);
+
+                continue;
+            }
+
             $isRepeatable = str_ends_with($rawField, '.*');
             $field = $isRepeatable ? substr($rawField, 0, -2) : $rawField;
             $fields[] = self::check($controllerClass, $field, $isRepeatable, $spec);
@@ -62,7 +81,7 @@ final class UploadFieldDefinitions
         // WYSIWYG_IMAGE_FIELDSは省略できるので、あるときだけ読む
         if ($class->hasConstant(self::WYSIWYG_IMAGE_FIELDS)) {
             foreach ((array) $class->getConstant(self::WYSIWYG_IMAGE_FIELDS) as $field => $width) {
-                $fields[] = ['field' => $field, 'kind' => 'wysiwyg', 'type' => UploadType::Image, 'width' => (int) $width, 'max' => null];
+                $fields[] = ['field' => $field, 'kind' => 'wysiwyg', 'type' => UploadType::Image, 'width' => (int) $width, 'max' => null, 'group' => null, 'column' => null];
             }
         }
 
@@ -114,6 +133,33 @@ final class UploadFieldDefinitions
             'type' => $spec['type'],
             'width' => $isImage ? (int) $spec['width'] : null,
             'max' => $isRepeatable ? (int) $spec['max'] : null,
+            'group' => null,
+            'column' => null,
         ];
+    }
+
+    /**
+     * UPLOAD_FILESの、繰り返しの組の中のファイルの欄を確かめて、定義の形にする。
+     * 組がREPEATABLE_GROUPSにあり、列がその組のfieldsにあること。行の数は組の'max'で決めるので、'max'は書かない。
+     * 画面から送る名前（field）は「組の名前_列」で、ファイル名はその列、表示名は「列_origin」の列に入る。
+     */
+    private static function checkGroupField(ReflectionClass $class, string $group, string $column, mixed $spec): array
+    {
+        $field = "{$group}_{$column}";
+        $where = "{$class->getName()}のUPLOAD_FILESの「{$group}.*.{$column}」";
+
+        $groups = $class->hasConstant(self::REPEATABLE_GROUPS) ? (array) $class->getConstant(self::REPEATABLE_GROUPS) : [];
+        if (! in_array($column, (array) ($groups[$group]['fields'] ?? []), true)) {
+            throw new LogicException("{$where}の組と項目を、REPEATABLE_GROUPSの「{$group}」の'fields'にも書いてください。");
+        }
+
+        if (is_array($spec) && array_key_exists('max', $spec)) {
+            throw new LogicException("{$where}は繰り返しの組の中の欄なので、'max'は書きません。行の数の上限は組の'max'に書きます。");
+        }
+
+        // type・widthの確かめは、1つだけの欄と同じ
+        $definition = self::check($class->getName(), $field, false, $spec);
+
+        return ['kind' => 'group', 'group' => $group, 'column' => $column] + $definition;
     }
 }

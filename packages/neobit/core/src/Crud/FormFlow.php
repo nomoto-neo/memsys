@@ -56,6 +56,11 @@ use Neobit\Core\Operations\OperationRecorder;
  * ■ アップロード
  * コントローラーがAjaxFileUploadも使っていれば、$inputの組み立てと保存のときにその処理も呼ぶ。
  * コントローラーの書き方はアップロードの有無で変わらない。
+ *
+ * ■ 繰り返しの組
+ * コントローラーがRepeatableGroupも使っていれば、検証の前の空の行の除き方、$inputの組み立て、
+ * 保存（アップロードの確定の後）、削除（本体を消す前）のときにその処理も呼ぶ。
+ * 組の子テーブルの変更は、操作ログの変わった列には入らない。
  */
 trait FormFlow
 {
@@ -74,15 +79,21 @@ trait FormFlow
      */
     private function validatedInput(Request $request, ?Model $record = null): array
     {
+        // 繰り返しの組は、全部の項目が空の行を除いてから確かめる。確認画面へ進むときと保存のときの両方がここを通る
+        if (method_exists($this, 'dropEmptyRepeatableRows')) {
+            $this->dropEmptyRepeatableRows($request);
+        }
+
         return $this->prepareInput($request->validate($this->rules($record)));
     }
 
-    /** 確認画面に渡す$input。表示にもhiddenにもこれを使う。アップロードの項目は組み立て直した値を使う */
+    /** 確認画面に渡す$input。表示にもhiddenにもこれを使う。アップロードと繰り返しの組の項目は組み立て直した値を使う */
     private function confirmPageValues(Request $request, ?Model $record = null): array
     {
         $validated = $this->validatedInput($request, $record);
 
-        return $this->uploadFormValues($record, $validated) + $validated + $this->emptyFormValues($record);
+        return $this->groupFormValues($record, $validated) + $this->uploadFormValues($record, $validated)
+            + $validated + $this->emptyFormValues($record);
     }
 
     /**
@@ -95,7 +106,9 @@ trait FormFlow
     {
         $base = $record === null ? $this->defaultValues() : $this->formValues($record);
 
-        return $source + $base + $this->uploadFormValues($record, $source) + $this->emptyFormValues($record);
+        // 繰り返しの組は、入力し直していた値も行の並びを揃えた形に組み立て直すので、$sourceより先に置く
+        return $this->groupFormValues($record, $source) + $source + $base
+            + $this->uploadFormValues($record, $source) + $this->emptyFormValues($record);
     }
 
     /**
@@ -122,6 +135,12 @@ trait FormFlow
     private function uploadFormValues(?Model $record, array $source = []): array
     {
         return method_exists($this, 'ajaxUploadValues') ? $this->ajaxUploadValues($record, $source) : [];
+    }
+
+    /** 繰り返しの組の項目の$input。RepeatableGroupを使っていなければ空 */
+    private function groupFormValues(?Model $record, array $source = []): array
+    {
+        return method_exists($this, 'repeatableGroupValues') ? $this->repeatableGroupValues($record, $source) : [];
     }
 
     /**
@@ -184,6 +203,11 @@ trait FormFlow
             }
         }
 
+        // 繰り返しの組の子テーブルを、送られた行に揃える。親のidが要るので、アップロードの確定の後に行う
+        if (method_exists($this, 'saveRepeatableGroups')) {
+            $this->saveRepeatableGroups($record, $validated, $fromImport);
+        }
+
         // 新規登録では全部の列が対象なので、変わった列は持たない。更新では、保存のたびに変わる列などを除く
         $loggable = $created ? [] : OperationRecorder::loggableFields($record, array_keys($changed));
         $changed = array_intersect_key($changed, array_flip($loggable));
@@ -206,6 +230,11 @@ trait FormFlow
     {
         DB::transaction(function () use ($record) {
             $this->beforeDelete($record);
+
+            // 繰り返しの組の子テーブルの行とファイル。子テーブルが親を参照しているので、親より先に消す
+            if (method_exists($this, 'deleteRepeatableGroups')) {
+                $this->deleteRepeatableGroups($record);
+            }
 
             if (method_exists($this, 'deleteAllUploads')) {
                 $this->deleteAllUploads($record);
