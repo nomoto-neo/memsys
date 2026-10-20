@@ -41,7 +41,7 @@
     @else
         <div class="repeatable_rows {{ $inline ? 'repeatable_inline' : '' }}">
             @for ($i = 0; $i < $count; $i++)
-                <div class="repeatable_row border rounded p-2 mb-2">
+                <div class="repeatable_row rounded p-2 mb-2">
                     @include($row, ['model' => $model, 'input' => $input, 'idx' => $i, 'readonly' => $readonly, 'uploadUrl' => $uploadUrl])
                 </div>
             @endfor
