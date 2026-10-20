@@ -48,7 +48,8 @@
         </div>
     @endif
 @else
-    <div class="repeatable_group" data-group="{{ $group }}" data-max="{{ $definition['max'] }}">
+    {{-- data-files-onlyは、ファイルの項目だけの組の目印。ajax_upload.jsが、「ファイルを削除」で行ごと消すのに使う --}}
+    <div class="repeatable_group" data-group="{{ $group }}" data-max="{{ $definition['max'] }}"@if ($definition['texts'] === []) data-files-only="1"@endif>
         <input type="hidden" name="{{ $markerKey }}" value="1">
 
         {{-- 行の入れ物。repeatable_group.jsは、足した行をこの末尾に入れる --}}

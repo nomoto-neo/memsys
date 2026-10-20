@@ -82,7 +82,11 @@ class UploadFieldTest extends TestCase
         $this->assertMatchesRegularExpression('/data-field="list_image".*?class="ajax_file_input d-none" accept="image\/\*" >/s', $html);
 
         // 'inline' => true を渡した添付ファイルの組は、行を並べる入れ物に横並びのクラスが付く
-        $this->assertMatchesRegularExpression('/data-group="attach" data-max="5">\s*<input[^>]*>\s*<div class="repeatable_rows repeatable_inline">/', $html);
+        $this->assertMatchesRegularExpression('/data-group="attach" data-max="5"[^>]*>\s*<input[^>]*>\s*<div class="repeatable_rows repeatable_inline">/', $html);
+
+        // ファイルの項目だけの組（添付ファイル）にだけ、「ファイルを削除」で行ごと消す目印が付く
+        $this->assertStringContainsString('data-group="attach" data-max="5" data-files-only="1">', $html);
+        $this->assertStringContainsString('data-group="photos" data-max="10">', $html);
     }
 }
 

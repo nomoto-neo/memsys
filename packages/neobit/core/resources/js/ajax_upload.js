@@ -216,11 +216,18 @@ import { postUploadFile } from '@neobit/upload_request.js';
         // クライアント側の状態だけを「未選択」に戻す。実際にサーバー上の
         // 既存ファイルを消すかどうかは、確定(登録/更新)時に_delを見て
         // AjaxFileUpload::commitUploads()か繰り返しの組の保存の側で判断する。
-        // 繰り返しの組の行は消さない。行を消すのは組の×で、ファイルの無くなった空の行は保存のときに除かれる
+        // ファイルだけの組で行が2つ以上あれば、行ごと消す（repeatable_group.jsに頼む）。
+        // それ以外の組の行は消さない。同じ行のほかの項目の入力を残すため。ファイルの無くなった空の行は保存のときに除かれる
         const cancelLink = event.target.closest('.ajax_cancel');
         if (cancelLink) {
             event.preventDefault();
             const block = findBlock(cancelLink);
+
+            const filesOnlyGroup = block.closest('.repeatable_group[data-files-only]');
+            if (filesOnlyGroup && rowsOf(filesOnlyGroup).length >= 2) {
+                block.dispatchEvent(new CustomEvent('repeatable:remove-row', { bubbles: true }));
+                return;
+            }
 
             block.querySelector('.ajax_origin').value = '';
             block.querySelector('.ajax_tmp').value = '';

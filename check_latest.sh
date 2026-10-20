@@ -226,6 +226,9 @@ has   packages/neobit/core/database/migrations/2026_10_21_000000_rename_sort_ord
 has   packages/neobit/core/src/Models/Code.php                          "'seq'"
 has   database/migrations/2026_10_21_100000_rename_display_order_to_seq_on_t_categories_table.php "renameColumn('display_order', 'seq')"
 has   app/Models/Category.php                                           "'seq'"
+has   database/migrations/2026_10_21_200000_rename_display_order_to_seq_on_news_child_tables.php "'t_news_attachments'"
+has   packages/neobit/core/resources/js/repeatable_group.js             'repeatable:remove-row'
+has   packages/neobit/core/resources/views/_repeatable_group.blade.php  'data-files-only'
 
 echo
 if [ $ng -eq 0 ]; then

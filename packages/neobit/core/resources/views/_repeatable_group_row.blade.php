@@ -1,6 +1,6 @@
 {{--
     繰り返しの組の入力の1行（_repeatable_groupから使う）。行のidのhiddenと、行を消す×を置き、
-    行の中身はコーナーの部分ビュー（$row）に任せる。×は、行が1つだけのときはrepeatable_group.jsが隠す。
+    行の中身はコーナーの部分ビュー（$row）に任せる。最後の1行の×は、行を消さずに空にする（repeatable_group.js）。
     Bootstrapが無い画面でも見えるよう、×は文字とインラインのstyleで描く（_ajax_upload_blockの×と同じ）。
 --}}
 <div class="repeatable_row border rounded p-2 mb-2" style="position: relative;">

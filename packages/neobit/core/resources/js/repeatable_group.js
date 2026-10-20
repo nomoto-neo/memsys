@@ -4,11 +4,13 @@
  * .repeatable_groupが1つの組で、その中の.repeatable_rowsに行（.repeatable_row）が並ぶ。
  * 「行を足す」で<template>のひな型を複製して末尾に足し、行の×で行ごと消す。
  * 行の数は組のdata-max（REPEATABLE_GROUPSの'max'）までで、上限まで行があれば「行を足す」を押せなくする。
- * 行が1つだけのときは×を隠す。最後の1行は残し、空のまま送れば保存のときに除かれるため。
+ * 最後の1行の×は、行を消さずに、ひな型の空の行に置き換える。行の入れ物を残したまま、行のid・ファイルの欄の
+ * hidden・文字の欄をまとめて空にするため。空の行は保存のときに除かれるので、今の行は削除になる。
  *
  * 行の中のファイルの欄は、ajax_upload.jsが受け持つ。足した行の中の欄にも同じ動きをさせるため、
- * どちらもdocument全体へのイベント委譲で書いている。ファイルをまとめて選んだときに行を足すのは、
- * ajax_upload.jsが出すrepeatable:add-rowのイベントを受けて、ここで行う。
+ * どちらもdocument全体へのイベント委譲で書いている。ファイルをまとめて選んだときに行を足すのと、
+ * ファイルだけの組で「ファイルを削除」を押したときに行を消すのは、ajax_upload.jsが出す
+ * repeatable:add-row・repeatable:remove-rowのイベントを受けて、ここで行う。
  */
 (() => {
 
@@ -22,21 +24,17 @@
         return Number(group.dataset.max) || Infinity;
     }
 
-    // 行の数に合わせて、「行を足す」を押せるかと、×を出すかを決める
+    // 行の数に合わせて、「行を足す」を押せるかを決める
     function updateButtons(group) {
-        const count = rowsOf(group).length;
-
         const addButton = group.querySelector(':scope > .repeatable_add');
         if (addButton) {
-            addButton.disabled = count >= maxRows(group);
+            addButton.disabled = rowsOf(group).length >= maxRows(group);
         }
+    }
 
-        rowsOf(group).forEach((row) => {
-            const removeButton = row.querySelector(':scope > .repeatable_remove');
-            if (removeButton) {
-                removeButton.style.display = count >= 2 ? '' : 'none';
-            }
-        });
+    // ひな型を複製した、空の行
+    function blankRow(group) {
+        return group.querySelector(':scope > .repeatable_template').content.firstElementChild.cloneNode(true);
     }
 
     // ひな型を複製して、組の末尾に行を足し、足した行を返す。上限まで行があれば、足さずにnullを返す
@@ -45,12 +43,22 @@
             return null;
         }
 
-        const template = group.querySelector(':scope > .repeatable_template');
-        const row = template.content.firstElementChild.cloneNode(true);
+        const row = blankRow(group);
         group.querySelector(':scope > .repeatable_rows').appendChild(row);
         updateButtons(group);
 
         return row;
+    }
+
+    // 行を消す。最後の1行は消さずに、ひな型の空の行に置き換える
+    function removeRow(group, row) {
+        if (rowsOf(group).length >= 2) {
+            row.remove();
+        } else {
+            row.replaceWith(blankRow(group));
+        }
+
+        updateButtons(group);
     }
 
     document.addEventListener('click', (event) => {
@@ -62,14 +70,10 @@
             return;
         }
 
-        // 行の×。行が2つ以上あれば、行ごと消す
+        // 行の×。行が2つ以上あれば行ごと消し、最後の1行なら空にする
         const removeButton = event.target.closest('.repeatable_remove');
         if (removeButton) {
-            const group = removeButton.closest('.repeatable_group');
-            if (rowsOf(group).length >= 2) {
-                removeButton.closest('.repeatable_row').remove();
-                updateButtons(group);
-            }
+            removeRow(removeButton.closest('.repeatable_group'), removeButton.closest('.repeatable_row'));
         }
     });
 
@@ -94,6 +98,16 @@
         const group = event.target.closest('.repeatable_group');
         if (group) {
             event.detail.row = addRow(group);
+        }
+    });
+
+    // ほかのスクリプトから、行を消すのを頼まれたとき。ファイルだけの組で「ファイルを削除」を押したときに
+    // ajax_upload.jsが、消す行からイベントを出す
+    document.addEventListener('repeatable:remove-row', (event) => {
+        const group = event.target.closest('.repeatable_group');
+        const row = event.target.closest('.repeatable_row');
+        if (group && row) {
+            removeRow(group, row);
         }
     });
 

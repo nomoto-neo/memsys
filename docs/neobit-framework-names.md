@@ -260,7 +260,8 @@
 | ファイル | `global.js`・`global.css`・`ajax_upload.js`・`repeatable_group.js`・`upload_request.js`・`passkeys.js`・`code_editor.js`・`ip_block.js`・`wysiwyg_suneditor.js`・`wysiwyg_suneditor_content.css`・`wysiwyg_summernote.js` | |
 | 短い名前 | `@neobit`（`vite.config.js` の alias） | |
 | 動かすクラス名 | `ajax_submit`・`wysiwyg`・`ajax_upload_block`・`ajax_file_input`・`ajax_file_link`・`ajax_image_block`・`ajax_noimage_block`・`ajax_origin`・`ajax_tmp`・`ajax_del`・`ajax_cancel`・`repeatable_group`・`repeatable_rows`・`repeatable_row`・`repeatable_inline`・`repeatable_add`・`repeatable_remove`・`repeatable_template`・`ajax_submit_message`・`passkey_login`・`passkey_register`・`passkey_message`・`passkey_supported`・`passkey_unsupported`・`required-mark` | `required-mark` だけハイフン区切り |
-| `data-` 属性 | `data-confirm`・`data-item`・`data-field`・`data-group`・`data-is-image`・`data-upload-url`・`data-submit-url`・`data-options-url`・`data-remember`・`data-current`・`data-unsaved`・`data-switch-answer`・`data-remove-row` | |
+| `data-` 属性 | `data-confirm`・`data-item`・`data-field`・`data-group`・`data-files-only`・`data-is-image`・`data-upload-url`・`data-submit-url`・`data-options-url`・`data-remember`・`data-current`・`data-unsaved`・`data-switch-answer`・`data-remove-row` | |
+| イベント | `repeatable:add-row`・`repeatable:remove-row` | `ajax_upload.js` が出し、`repeatable_group.js` が受ける |
 
 ## 13. そのほか
 
