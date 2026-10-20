@@ -27,6 +27,7 @@ class UploadFieldTest extends TestCase
         $this->assertSame(UploadType::Image, $listImage['type']);
         $this->assertSame('single', $listImage['kind']);
         $this->assertFalse($listImage['multiple']);
+        $this->assertTrue($listImage['required']);
 
         // 添付ファイルは、ファイルだけの組の欄。ファイルの項目が1つだけの組なので、まとめて選べる
         $attach = UploadFieldDefinitions::find(NewsController::class, 'attach_file');
@@ -60,6 +61,7 @@ class UploadFieldTest extends TestCase
             '組を使わない「.*」' => [TestUploadRepeatableField::class, 'REPEATABLE_GROUPSに組を書き'],
             '1つだけの欄にmax' => [TestUploadSingleWithMax::class, '使えないキー（max）'],
             '使えないキー' => [TestUploadUnknownKey::class, '使えないキー（size）'],
+            'requiredが真偽値でない' => [TestUploadRequiredNotBool::class, "'required'は、trueかfalse"],
         ];
     }
 
@@ -119,4 +121,9 @@ class TestUploadSingleWithMax
 class TestUploadUnknownKey
 {
     private const UPLOAD_FILES = ['attach' => ['type' => UploadType::File, 'size' => 3]];
+}
+
+class TestUploadRequiredNotBool
+{
+    private const UPLOAD_FILES = ['attach' => ['type' => UploadType::File, 'required' => 'yes']];
 }

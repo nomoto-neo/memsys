@@ -233,6 +233,10 @@ has   packages/neobit/core/src/Crud/RepeatableGroupDefinitions.php     "'delete_
 has   packages/neobit/core/src/Crud/RepeatableGroup.php                 '作り直す保存。今の行は下でまとめて消す'
 has   database/migrations/2026_10_21_300000_drop_seq_on_t_news_attachments_table.php "dropColumn('seq')"
 has   app/Http/Controllers/Admin/NewsController.php                     "'delete_insert' => true"
+has   packages/neobit/core/src/Rules/UploadRequiredRule.php             'class UploadRequiredRule'
+has   packages/neobit/core/src/Crud/FormFlow.php                        'requiredUploadRules'
+has   packages/neobit/core/resources/views/_ajax_upload_block.blade.php 'errorKey'
+has   app/Http/Controllers/Admin/NewsController.php                     "News::LIST_IMAGE_WIDTH, 'required' => true"
 
 echo
 if [ $ng -eq 0 ]; then

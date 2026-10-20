@@ -121,7 +121,7 @@
 </div>
 
 <div class="mb-3">
-    <label class="form-label d-block">一覧用画像</label>
+    <label class="form-label d-block">一覧用画像 {!! $required['list_image'] ?? '' !!}</label>
     @include('neobit::_ajax_upload_block', [
         'model' => $model,
         'input' => $input,

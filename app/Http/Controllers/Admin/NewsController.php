@@ -78,11 +78,11 @@ class NewsController extends Controller
     // ---- アップロード（AjaxFileUpload）の設定 ----
 
     /**
-     * AjaxFileUploadが要求する設定。欄の名前 => 種類・横幅（書き方はUploadFieldDefinitions）。
+     * AjaxFileUploadが要求する設定。欄の名前 => 種類・横幅・必須（書き方はUploadFieldDefinitions）。
      * 「attach.*.file」のような名前は、繰り返しの組（REPEATABLE_GROUPS）の中の欄。
      */
     private const UPLOAD_FILES = [
-        'list_image' => ['type' => UploadType::Image, 'width' => News::LIST_IMAGE_WIDTH],
+        'list_image' => ['type' => UploadType::Image, 'width' => News::LIST_IMAGE_WIDTH, 'required' => true],
         'attach.*.file' => ['type' => UploadType::File],
         'photos.*.image' => ['type' => UploadType::Image, 'width' => News::PHOTO_WIDTH],
     ];

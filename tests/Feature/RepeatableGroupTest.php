@@ -67,7 +67,7 @@ class RepeatableGroupTest extends TestCase
         return $news;
     }
 
-    /** ニュースの本体の入力。写真の組は$photosで足す */
+    /** ニュースの本体の入力。写真の組は$photosで足す。一覧用画像は必須なので、新しい画像を付ける */
     private function newsInput(array $photos): array
     {
         return [
@@ -76,6 +76,8 @@ class RepeatableGroupTest extends TestCase
             'disp_flg' => '1',
             'members_only' => '0',
             'category_ids' => [$this->category->id],
+            'list_image_tmp' => $this->tmpImage(),
+            'list_image_origin' => 'list.jpg',
             'photos_group' => '1',
         ] + $photos;
     }
