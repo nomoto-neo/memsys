@@ -222,6 +222,10 @@ has   packages/neobit/core/resources/js/repeatable_group.js             'repeata
 has   database/migrations/2026_10_21_000000_rename_columns_on_t_news_attachments_table.php "renameColumn('original_name', 'file_origin')"
 has   app/Models/NewsAttachment.php                                     "'file_origin'"
 has   resources/views/admin/news/_attach_row.blade.php                  "'field' => 'attach_file'"
+has   packages/neobit/core/database/migrations/2026_10_21_000000_rename_sort_order_to_seq_on_code_tables_table.php "renameColumn('sort_order', 'seq')"
+has   packages/neobit/core/src/Models/Code.php                          "'seq'"
+has   database/migrations/2026_10_21_100000_rename_display_order_to_seq_on_t_categories_table.php "renameColumn('display_order', 'seq')"
+has   app/Models/Category.php                                           "'seq'"
 
 echo
 if [ $ng -eq 0 ]; then

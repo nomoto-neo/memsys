@@ -20,11 +20,11 @@ class NewsPhoto extends Model
         'image',
         'image_origin',
         'caption',
-        'display_order',
+        'seq',
     ];
 
     protected $casts = [
-        'display_order' => 'integer',
+        'seq' => 'integer',
     ];
 
     public function news(): BelongsTo

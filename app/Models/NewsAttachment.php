@@ -19,11 +19,11 @@ class NewsAttachment extends Model
         'news_id',
         'file',
         'file_origin',
-        'display_order',
+        'seq',
     ];
 
     protected $casts = [
-        'display_order' => 'integer',
+        'seq' => 'integer',
     ];
 
     public function news(): BelongsTo

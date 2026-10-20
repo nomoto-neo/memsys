@@ -14,11 +14,11 @@ class Category extends Model
 
     protected $fillable = [
         'name',
-        'display_order',
+        'seq',
     ];
 
     protected $casts = [
-        'display_order' => 'integer',
+        'seq' => 'integer',
     ];
 
     /**

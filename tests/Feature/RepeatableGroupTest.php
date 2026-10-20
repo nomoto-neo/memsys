@@ -50,7 +50,7 @@ class RepeatableGroupTest extends TestCase
             'password' => Hash::make('staff-password'),
             'acl' => StaffAcl::Manager,
         ]);
-        $this->category = Category::create(['name' => 'お知らせ', 'display_order' => 0]);
+        $this->category = Category::create(['name' => 'お知らせ', 'seq' => 0]);
     }
 
     /** 保存済みのニュースを1件作る */
@@ -143,7 +143,7 @@ class RepeatableGroupTest extends TestCase
 
         // 空の行は入らない。並び順は画面の順
         $this->assertSame(['外観', '受付'], $photos->pluck('caption')->all());
-        $this->assertSame([0, 1], $photos->pluck('display_order')->all());
+        $this->assertSame([0, 1], $photos->pluck('seq')->all());
 
         // 画像は記事の保存先へ移る
         $this->assertSame($tmp, $photos[0]->image);
@@ -155,7 +155,7 @@ class RepeatableGroupTest extends TestCase
     public function test_ids_posted_on_create_are_ignored(): void
     {
         $other = $this->news();
-        $otherPhoto = $other->photos()->create(['caption' => 'ほかの記事', 'display_order' => 0]);
+        $otherPhoto = $other->photos()->create(['caption' => 'ほかの記事', 'seq' => 0]);
 
         $this->store([['id' => $otherPhoto->id, 'caption' => '書き換え']]);
 
@@ -171,8 +171,8 @@ class RepeatableGroupTest extends TestCase
     public function test_update_keeps_ids_and_adds_and_removes_rows(): void
     {
         $news = $this->news();
-        $first = $news->photos()->create(['caption' => '1枚目', 'display_order' => 0]);
-        $second = $news->photos()->create(['caption' => '2枚目', 'display_order' => 1]);
+        $first = $news->photos()->create(['caption' => '1枚目', 'seq' => 0]);
+        $second = $news->photos()->create(['caption' => '2枚目', 'seq' => 1]);
 
         // 1枚目のキャプションを直し、2枚目を消し、新しい行を先頭に足す
         $this->update($news, $this->newsInput($this->photoRows([
@@ -183,7 +183,7 @@ class RepeatableGroupTest extends TestCase
         $photos = $news->fresh()->photos;
         $this->assertSame(['新しい行', '1枚目（直した）'], $photos->pluck('caption')->all());
         $this->assertSame($first->id, $photos[1]->id);
-        $this->assertSame([0, 1], $photos->pluck('display_order')->all());
+        $this->assertSame([0, 1], $photos->pluck('seq')->all());
         $this->assertNull(NewsPhoto::find($second->id));
     }
 
@@ -194,8 +194,8 @@ class RepeatableGroupTest extends TestCase
         $oldB = Str::random(40).'.jpg';
         Storage::disk(UploadFilePath::PRIVATE_DISK)->put($this->storedPath($news, $oldA), 'a');
         Storage::disk(UploadFilePath::PRIVATE_DISK)->put($this->storedPath($news, $oldB), 'b');
-        $a = $news->photos()->create(['image' => $oldA, 'image_origin' => 'a.jpg', 'caption' => 'A', 'display_order' => 0]);
-        $b = $news->photos()->create(['image' => $oldB, 'image_origin' => 'b.jpg', 'caption' => 'B', 'display_order' => 1]);
+        $a = $news->photos()->create(['image' => $oldA, 'image_origin' => 'a.jpg', 'caption' => 'A', 'seq' => 0]);
+        $b = $news->photos()->create(['image' => $oldB, 'image_origin' => 'b.jpg', 'caption' => 'B', 'seq' => 1]);
         $new = $this->tmpImage();
 
         // Aは新しい画像に差し替え、Bは画像だけ消す（キャプションは残すので行は残る）
@@ -217,8 +217,8 @@ class RepeatableGroupTest extends TestCase
         $news = $this->news();
         $file = Str::random(40).'.jpg';
         Storage::disk(UploadFilePath::PRIVATE_DISK)->put($this->storedPath($news, $file), 'a');
-        $owner = $news->photos()->create(['image' => $file, 'caption' => '持ち主', 'display_order' => 0]);
-        $other = $news->photos()->create(['caption' => 'ほかの行', 'display_order' => 1]);
+        $owner = $news->photos()->create(['image' => $file, 'caption' => '持ち主', 'seq' => 0]);
+        $other = $news->photos()->create(['caption' => 'ほかの行', 'seq' => 1]);
 
         // ほかの行のhiddenに、持ち主の行のファイル名を書いて送る
         $this->update($news, $this->newsInput($this->photoRows([
@@ -234,7 +234,7 @@ class RepeatableGroupTest extends TestCase
     public function test_same_id_twice_makes_the_second_a_new_row(): void
     {
         $news = $this->news();
-        $photo = $news->photos()->create(['caption' => '元', 'display_order' => 0]);
+        $photo = $news->photos()->create(['caption' => '元', 'seq' => 0]);
 
         $this->update($news, $this->newsInput($this->photoRows([
             ['id' => $photo->id, 'caption' => '1つ目'],
@@ -249,7 +249,7 @@ class RepeatableGroupTest extends TestCase
     public function test_all_rows_can_be_removed_and_missing_marker_keeps_rows(): void
     {
         $news = $this->news();
-        $news->photos()->create(['caption' => '残る', 'display_order' => 0]);
+        $news->photos()->create(['caption' => '残る', 'seq' => 0]);
 
         // 組の印が無ければ（組を送っていなければ）触らない
         $input = $this->newsInput([]);
@@ -289,8 +289,8 @@ class RepeatableGroupTest extends TestCase
     public function test_edit_screen_shows_the_rows_in_order(): void
     {
         $news = $this->news();
-        $news->photos()->create(['caption' => '2枚目', 'display_order' => 1]);
-        $news->photos()->create(['caption' => '1枚目', 'display_order' => 0]);
+        $news->photos()->create(['caption' => '2枚目', 'seq' => 1]);
+        $news->photos()->create(['caption' => '1枚目', 'seq' => 0]);
 
         $html = $this->actingAs($this->staff, 'admin')->get(route('admin.news.edit', $news))->assertOk()->getContent();
 
@@ -303,7 +303,7 @@ class RepeatableGroupTest extends TestCase
         $news = $this->news();
         $file = Str::random(40).'.jpg';
         Storage::disk(UploadFilePath::PRIVATE_DISK)->put($this->storedPath($news, $file), 'a');
-        $news->photos()->create(['image' => $file, 'caption' => '消える', 'display_order' => 0]);
+        $news->photos()->create(['image' => $file, 'caption' => '消える', 'seq' => 0]);
 
         $this->actingAs($this->staff, 'admin')->delete(route('admin.news.destroy', $news))->assertRedirect();
 
@@ -316,7 +316,7 @@ class RepeatableGroupTest extends TestCase
         $news = $this->news();
         $file = Str::random(40).'.jpg';
         Storage::disk(UploadFilePath::PRIVATE_DISK)->put($this->storedPath($news, $file), 'a');
-        $photo = $news->photos()->create(['image' => $file, 'caption' => '見える', 'display_order' => 0]);
+        $photo = $news->photos()->create(['image' => $file, 'caption' => '見える', 'seq' => 0]);
 
         $this->actingAs($this->staff, 'admin')->get($photo->image_url)->assertOk();
 
@@ -331,7 +331,7 @@ class RepeatableGroupTest extends TestCase
         $news = $this->news();
         $file = Str::random(40).'.jpg';
         Storage::disk(UploadFilePath::PRIVATE_DISK)->put($this->storedPath($news, $file), 'a');
-        $photo = $news->photos()->create(['image' => $file, 'image_origin' => 'a.jpg', 'caption' => '詳細に出る', 'display_order' => 0]);
+        $photo = $news->photos()->create(['image' => $file, 'image_origin' => 'a.jpg', 'caption' => '詳細に出る', 'seq' => 0]);
 
         // 詳細画面は、読み取り専用で行を並べる
         $this->actingAs($this->staff, 'admin')->get(route('admin.news.show', $news))
@@ -355,8 +355,8 @@ class RepeatableGroupTest extends TestCase
         $news = $this->news();
         $file = Str::random(40).'.jpg';
         Storage::disk(UploadFilePath::PRIVATE_DISK)->put($this->storedPath($news, $file), 'a');
-        $photo = $news->photos()->create(['image' => $file, 'caption' => '公開の写真', 'display_order' => 0]);
-        $news->photos()->create(['caption' => 'キャプションだけ', 'display_order' => 1]);
+        $photo = $news->photos()->create(['image' => $file, 'caption' => '公開の写真', 'seq' => 0]);
+        $news->photos()->create(['caption' => 'キャプションだけ', 'seq' => 1]);
 
         $this->get(route('news.show', $news))
             ->assertOk()
@@ -371,8 +371,8 @@ class RepeatableGroupTest extends TestCase
     public function test_rows_can_be_exported_with_the_csv_group_expansion(): void
     {
         $news = $this->news();
-        $news->photos()->create(['image' => 'a.jpg', 'caption' => '1枚目', 'display_order' => 0]);
-        $news->photos()->create(['image' => 'b.jpg', 'caption' => '2枚目', 'display_order' => 1]);
+        $news->photos()->create(['image' => 'a.jpg', 'caption' => '1枚目', 'seq' => 0]);
+        $news->photos()->create(['image' => 'b.jpg', 'caption' => '2枚目', 'seq' => 1]);
 
         $columns = new CsvColumnSet([
             '記事ID' => 'id',
@@ -407,7 +407,7 @@ class RepeatableGroupTest extends TestCase
 
         $news = News::firstOrFail();
         $this->assertSame(['案内.pdf', '申込書.pdf'], $news->attach->pluck('file_origin')->all());
-        $this->assertSame([0, 1], $news->attach->pluck('display_order')->all());
+        $this->assertSame([0, 1], $news->attach->pluck('seq')->all());
         Storage::disk(UploadFilePath::PRIVATE_DISK)->assertExists($this->storedPath($news, $first));
 
         // 管理画面からは、行のファイルを返す。行に無いファイル名では返さない
@@ -427,8 +427,8 @@ class RepeatableGroupTest extends TestCase
         $removed = Str::random(40).'.pdf';
         Storage::disk(UploadFilePath::PRIVATE_DISK)->put($this->storedPath($news, $kept), 'a');
         Storage::disk(UploadFilePath::PRIVATE_DISK)->put($this->storedPath($news, $removed), 'b');
-        $keptRow = $news->attach()->create(['file' => $kept, 'file_origin' => '残す.pdf', 'display_order' => 0]);
-        $news->attach()->create(['file' => $removed, 'file_origin' => '消す.pdf', 'display_order' => 1]);
+        $keptRow = $news->attach()->create(['file' => $kept, 'file_origin' => '残す.pdf', 'seq' => 0]);
+        $news->attach()->create(['file' => $removed, 'file_origin' => '消す.pdf', 'seq' => 1]);
 
         $input = $this->newsInput([]) + [
             'attach_group' => '1',
@@ -449,7 +449,7 @@ class RepeatableGroupTest extends TestCase
     {
         Storage::fake(CsvImportSettings::TMP_DISK);
         $news = $this->news();
-        $news->attach()->create(['file' => 'a.pdf', 'file_origin' => '案内.pdf', 'display_order' => 0]);
+        $news->attach()->create(['file' => 'a.pdf', 'file_origin' => '案内.pdf', 'seq' => 0]);
 
         // 書き出しには、表示名と保存ファイル名の組が出る
         $csv = $this->actingAs($this->staff, 'admin')->get(route('admin.news.csv'))->streamedContent();
@@ -479,7 +479,7 @@ class RepeatableGroupTest extends TestCase
         $group = RepeatableGroupDefinitions::find(NewsController::class, 'photos');
         $this->assertSame(['caption'], $group['texts']);
         $this->assertSame(['image'], $group['files']);
-        $this->assertSame('display_order', $group['order']);
+        $this->assertSame('seq', $group['order']);
         $this->assertSame(10, $group['max']);
 
         $upload = UploadFieldDefinitions::find(NewsController::class, 'photos_image');

@@ -690,7 +690,7 @@ private const REPEATABLE_GROUPS = [
     'photos' => [
         'relation' => 'photos',            // 子テーブルへのHasMany（News::photos()）
         'fields' => ['image', 'caption'],  // 組の項目。子テーブルの列の名前
-        'order' => 'display_order',        // 並び順の列。無ければ書かない
+        'order' => 'seq',                  // 並び順の列。無ければ書かない
         'max' => 10,                       // 行の数の上限。'min' も書ける
     ],
 ];
@@ -726,7 +726,7 @@ private const UPLOAD_FILES = [
 
     ```php
     private const REPEATABLE_GROUPS = [
-        'attach' => ['relation' => 'attach', 'fields' => ['file'], 'order' => 'display_order', 'max' => 5],
+        'attach' => ['relation' => 'attach', 'fields' => ['file'], 'order' => 'seq', 'max' => 5],
     ];
     private const UPLOAD_FILES = [
         'attach.*.file' => ['type' => UploadType::File],

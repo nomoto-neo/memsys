@@ -59,7 +59,7 @@ class CategoryController extends Controller
         // カテゴリーごとの記事数も一緒に取る（withCount()で1回のクエリにまとめ、
         // 1件ずつ数えるN+1を避ける。使用中の件数の表示と、削除ボタンの無効化に使う）
         $categories = Category::withCount('news')
-            ->orderBy('display_order')
+            ->orderBy('seq')
             ->get();
 
         return view('admin.categories.index', [
@@ -85,7 +85,7 @@ class CategoryController extends Controller
         // 途中で失敗して一部だけ書き換わらないよう、トランザクションでまとめる
         DB::transaction(function () use ($validated) {
             foreach ($validated['order'] as $index => $categoryId) {
-                Category::whereKey($categoryId)->update(['display_order' => $index]);
+                Category::whereKey($categoryId)->update(['seq' => $index]);
             }
         });
 
@@ -164,10 +164,10 @@ class CategoryController extends Controller
 
         $values = $this->pickValues($validated, $saveFieldNames);
 
-        // 新しいカテゴリーは常に一覧の末尾に追加する（既存の最大display_order + 1。1件も無ければ0）。
+        // 新しいカテゴリーは常に一覧の末尾に追加する（既存の最大seq + 1。1件も無ければ0）。
         // 更新では表示順を変えない（並び替えはreorder()で行う）
         if (! $category->exists) {
-            $values['display_order'] = (int) (Category::max('display_order') ?? -1) + 1;
+            $values['seq'] = (int) (Category::max('seq') ?? -1) + 1;
         }
 
         return $values;

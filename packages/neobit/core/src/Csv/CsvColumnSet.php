@@ -37,7 +37,7 @@ use LogicException;
  *                                                          // 取り込むときはcsvCustomImport()で逆向きに変換
  *
  * - 一覧は「値 => 表示名」の配列。コード表ならcode_table('prefectures')、DBなら
- *   Category::orderBy('display_order')->pluck('name', 'id')->all() のように作って渡す
+ *   Category::orderBy('seq')->pluck('name', 'id')->all() のように作って渡す
  * - 一覧ありの横展開の見出しは「見出し:表示名」。そのデータが持っている値の列に1を入れ、
  *   ほかは空欄にする
  * - 一覧なしの「:*」の連番の横展開と、組にした横展開の見出しは「見出し:1」「見出し:2」…。

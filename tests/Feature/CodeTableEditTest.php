@@ -30,7 +30,7 @@ class CodeTableEditTest extends TestCase
         foreach (['gender' => ['1' => '男性', '2' => '女性'], 'contact' => ['1' => 'LINE', '2' => '電話']] as $type => $rows) {
             $order = 0;
             foreach ($rows as $code => $name) {
-                Code::create(['type' => $type, 'code' => $code, 'name' => $name, 'sort_order' => $order++]);
+                Code::create(['type' => $type, 'code' => $code, 'name' => $name, 'seq' => $order++]);
             }
         }
     }

@@ -18,12 +18,12 @@ class Code extends Model
         'type',
         'code',
         'name',
-        'sort_order',
+        'seq',
         'staff_id',
     ];
 
     protected $casts = [
-        'sort_order' => 'integer',
+        'seq' => 'integer',
         'staff_id' => 'integer',
     ];
 }

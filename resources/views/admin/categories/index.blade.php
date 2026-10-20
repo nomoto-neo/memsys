@@ -88,7 +88,7 @@
         {{-- 送信直前に、今のDOM上の並び順（li[data-id]の出現順）から
              order[]という名前のhiddenをまとめて作り直す。サーバー側は
              この配列のインデックス（0, 1, 2, ...）をそのまま新しい
-             display_orderとして書き込む（CategoryController::reorder()参照）。 --}}
+             seqとして書き込む（CategoryController::reorder()参照）。 --}}
         document.getElementById('category-order-form').addEventListener('submit', (event) => {
             const form = event.target;
 

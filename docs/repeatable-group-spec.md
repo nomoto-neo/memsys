@@ -33,7 +33,7 @@ private const REPEATABLE_GROUPS = [
     'photos' => [
         'relation' => 'photos',            // 必須。子テーブルへのHasMany
         'fields' => ['image', 'caption'],  // 必須。組の項目＝子テーブルの列
-        'order' => 'display_order',        // 省略可。並び順の列
+        'order' => 'seq',                  // 省略可。並び順の列
         'max' => 10,                       // 必須。行の数の上限
         'min' => 0,                        // 省略可。行の数の下限
     ],
@@ -83,7 +83,7 @@ private const UPLOAD_FILES = [
 
 **見本**
 
-- テーブル `t_news_photos`（`news_id`・`image`・`image_origin`・`caption`・`display_order`）、モデル `NewsPhoto`（`image_url` のアクセサ）、`News::photos()`
+- テーブル `t_news_photos`（`news_id`・`image`・`image_origin`・`caption`・`seq`）、モデル `NewsPhoto`（`image_url` のアクセサ）、`News::photos()`
 - 管理画面のニュースの入力・確認・詳細に「写真」（横並び、上限10）、訪問者向けの詳細に写真とキャプション
 - 写真は、ニュースのほかのファイルと同じく非公開の置き場所（`News::PRIVATE_FILE_FIELDS` に `photos_image`）
 

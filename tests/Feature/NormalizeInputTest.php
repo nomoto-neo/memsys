@@ -187,7 +187,7 @@ class NormalizeInputTest extends TestCase
     public function test_csv_import_normalizes_the_other_columns_of_a_model_with_raw_fields(): void
     {
         Storage::fake(CsvImportSettings::TMP_DISK);
-        Category::create(['name' => 'イベント', 'display_order' => 0]);
+        Category::create(['name' => 'イベント', 'seq' => 0]);
 
         // ニュースは、本文をそろえない（News::RAW_INPUT_FIELDS）。件名や日付の列は、そろえる
         $this->importCsv($this->manager(), '/admin/news/csv-import', $this->csvFile('news.csv', [

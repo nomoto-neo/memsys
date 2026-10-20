@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Schema;
  * 繰り返しの組（Neobit\Core\Crud\RepeatableGroup）の見本。行のidを保って更新するので、
  * 添付ファイル（t_news_attachments）と違い、行のidはほかから参照してもよい。
  * imageは保存したファイル名、image_originは表示名で、ファイルは記事の保存先（news/000/000012/）に置く。
- * display_orderは画面の並びの順の番号。
+ * seqは画面の並びの順の番号。
  *
  * ほかの子テーブルと同じく、外部キー制約（constrained()）は付けない。
  */
@@ -24,7 +24,7 @@ return new class extends Migration
             $table->string('image')->nullable();
             $table->string('image_origin')->nullable();
             $table->string('caption', 200)->nullable();
-            $table->unsignedInteger('display_order')->default(0);
+            $table->unsignedInteger('seq')->default(0);
             $table->timestamps();
         });
     }

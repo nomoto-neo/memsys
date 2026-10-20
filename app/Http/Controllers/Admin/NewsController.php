@@ -95,13 +95,13 @@ class NewsController extends Controller
         'attach' => [
             'relation' => 'attach',
             'fields' => ['file'],
-            'order' => 'display_order',
+            'order' => 'seq',
             'max' => 5,
         ],
         'photos' => [
             'relation' => 'photos',
             'fields' => ['image', 'caption'],
-            'order' => 'display_order',
+            'order' => 'seq',
             'max' => 10,
         ],
     ];
@@ -181,7 +181,7 @@ class NewsController extends Controller
     /** すべてのカテゴリーを表示順で取得（プルダウンやチェックボックスの選択肢の表示に使う）。 */
     private function allCategories()
     {
-        return Category::orderBy('display_order')->get();
+        return Category::orderBy('seq')->get();
     }
 
     // ---- 一覧・検索 ----
@@ -259,7 +259,7 @@ class NewsController extends Controller
      */
     private function csvColumns(): array
     {
-        $categories = Category::orderBy('display_order')->pluck('name', 'id')->all();
+        $categories = Category::orderBy('seq')->pluck('name', 'id')->all();
 
         return [
             '記事ID' => 'id|format:%06d',

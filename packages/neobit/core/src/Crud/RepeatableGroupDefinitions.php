@@ -15,7 +15,7 @@ use ReflectionClass;
  *       'photos' => [
  *           'relation' => 'photos',
  *           'fields' => ['image', 'caption'],
- *           'order' => 'display_order',
+ *           'order' => 'seq',
  *           'max' => 10,
  *       ],
  *   ];

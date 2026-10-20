@@ -68,7 +68,7 @@ class NewsController extends Controller
         return view('news.index', [
             'records' => $result['records'],
             'filters' => $result['filters'],
-            'categories' => Category::orderBy('display_order')->get(),
+            'categories' => Category::orderBy('seq')->get(),
             'years' => $this->availableYears(),
         ]);
     }

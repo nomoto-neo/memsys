@@ -134,7 +134,7 @@ class News extends Model
      */
     public function attach(): HasMany
     {
-        return $this->hasMany(NewsAttachment::class, 'news_id')->orderBy('display_order')->orderBy('id');
+        return $this->hasMany(NewsAttachment::class, 'news_id')->orderBy('seq')->orderBy('id');
     }
 
     /**
@@ -143,7 +143,7 @@ class News extends Model
      */
     public function photos(): HasMany
     {
-        return $this->hasMany(NewsPhoto::class, 'news_id')->orderBy('display_order')->orderBy('id');
+        return $this->hasMany(NewsPhoto::class, 'news_id')->orderBy('seq')->orderBy('id');
     }
 
     /**

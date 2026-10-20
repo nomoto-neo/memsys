@@ -151,7 +151,7 @@ class CodeTable
         // DBのコード表：code_tablesを表示順に読む
         if ($isDb) {
             $options = [];
-            $rows = Code::where('type', $codeName)->orderBy('sort_order')->orderBy('id')->get(['code', 'name']);
+            $rows = Code::where('type', $codeName)->orderBy('seq')->orderBy('id')->get(['code', 'name']);
             foreach ($rows as $row) {
                 $options[self::normalizeKey($row->code)] = self::normalizeLabel($row->name);
             }

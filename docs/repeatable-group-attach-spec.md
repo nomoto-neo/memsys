@@ -31,7 +31,7 @@ private const UPLOAD_FILES = [
 ];
 
 private const REPEATABLE_GROUPS = [
-    'attach' => ['relation' => 'attach', 'fields' => ['file'], 'order' => 'display_order', 'max' => 5],
+    'attach' => ['relation' => 'attach', 'fields' => ['file'], 'order' => 'seq', 'max' => 5],
     'photos' => [...],
 ];
 ```
@@ -74,7 +74,7 @@ private const REPEATABLE_GROUPS = [
 **マイグレーション**（`2026_10_21_000000_rename_columns_on_t_news_attachments_table.php`）
 
 - `filename` → `file`、`original_name` → `file_origin` に名前を変える。今の行とファイルはそのまま使う。
-- `display_order`（`unsignedInteger`、既定 0）を `news_id` の後ろに足し、今の行には記事ごとに id の順で 0, 1, 2… を入れる。
+- `seq`（`unsignedInteger`、既定 0）を `news_id` の後ろに足し、今の行には記事ごとに id の順で 0, 1, 2… を入れる。
 - `file` を NULL 可にする（組の中のファイルの列は、行に残る値として扱うため。見本の写真の `image` と揃えた）。
 - `down()` は、NULL 可を戻し、並び順の列を消し、列の名前を戻す。
 
@@ -82,7 +82,7 @@ private const REPEATABLE_GROUPS = [
 
 - 繰り返しの組（`RepeatableGroup`・`_repeatable_group`・`repeatable_group.js`）。`docs/repeatable-group-spec.md`
 - AjaxFileUpload（組の中の欄の受け取り・一時ファイルの移し方）、UploadFieldDefinitions、UploadedFileController
-- `NewsAttachment` の `$fillable` に `file`・`file_origin`・`display_order`。`News::attach()` は `display_order`、`id` の順
+- `NewsAttachment` の `$fillable` に `file`・`file_origin`・`seq`。`News::attach()` は `seq`、`id` の順
 - 画面で `ajax_upload.js` と `repeatable_group.js` を読み込む（ニュースの入力画面は読み込み済み）
 
 ## D. 設計判断とトレードオフ
@@ -139,5 +139,4 @@ private const REPEATABLE_GROUPS = [
 ## H. 今後の改善提案・TODO
 
 - CSV の取り込みで、組の横展開の列から子テーブルを書き戻す（添付ファイルの取り込みを戻す）
-- 並び順の列の名前を、ほかのテーブルと揃えて `seq` にする（次の作業）
 - 行の並べ替えの操作（ドラッグ、上下のボタン）

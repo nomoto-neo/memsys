@@ -86,7 +86,7 @@ class CodeTableController
         } else {
             // 初期表示のとき
             $rows = Code::where('type', $type)
-                ->orderBy('sort_order')
+                ->orderBy('seq')
                 ->orderBy('id')
                 ->get(['code', 'name'])
                 ->map(fn (Code $code) => ['code' => $code->code, 'name' => $code->name])
@@ -109,7 +109,7 @@ class CodeTableController
      * 更新の実行。
      *
      * コード値が空欄の行は保存しない（削除される）。残った行を画面の並び順で
-     * sort_orderにし、そのコード表の行を一旦全削除してから再登録する。
+     * seqにし、そのコード表の行を一旦全削除してから再登録する。
      *
      * コード値の重複はエラーにして、何も保存しない。数字だけの値は前ゼロを
      * 除いて比べる（'01'と'1'は重複）。code_table()が数字だけの値を
@@ -166,7 +166,7 @@ class CodeTableController
                     'type' => $type,
                     'code' => $row['code'],
                     'name' => $row['name'],
-                    'sort_order' => $order++,
+                    'seq' => $order++,
                     'staff_id' => $staffId,
                 ]);
             }

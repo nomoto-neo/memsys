@@ -44,7 +44,7 @@ return new class extends Migration
     /**
      * コード表。
      * type がコード名、code がコード値（数字でも文字でもよいので文字列）、name が表示名、
-     * sort_order が表示順、staff_id が最後に更新したスタッフ。更新は、そのコード表の行を全部消して
+     * seq が表示順、staff_id が最後に更新したスタッフ。更新は、そのコード表の行を全部消して
      * 入れ直すので、ほかのデータは行のidでなくコード値で参照する。
      */
     private function createCodeTables(): void
@@ -71,7 +71,7 @@ return new class extends Migration
             $table->string('type', 50);
             $table->string('code', 50);
             $table->string('name')->default('');
-            $table->unsignedInteger('sort_order')->default(0);
+            $table->unsignedInteger('seq')->default(0);
             $table->unsignedBigInteger('staff_id')->nullable();
             $table->timestamps();
 

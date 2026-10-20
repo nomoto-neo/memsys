@@ -40,7 +40,7 @@ class CodeSeeder extends Seeder
                     'type' => $type,
                     'code' => (string) $code,
                     'name' => $name,
-                    'sort_order' => $order++,
+                    'seq' => $order++,
                 ]);
             }
         }

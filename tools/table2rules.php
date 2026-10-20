@@ -165,7 +165,7 @@ const NAME_RULES = [
         'add' => [],
         'note' => 'ほかのテーブルのidと推測。行があるかは、Rule::exists()か、選択肢の一覧で確かめる',
     ],
-    '/(^|_)(sort_order|sort|display_order)$/' => [
+    '/(^|_)(seq|sort_order|sort|display_order)$/' => [
         'types' => ['tinyint', 'smallint', 'mediumint', 'int', 'bigint', 'decimal'],
         'add' => ["'min:0'"],
         'note' => '表示順と推測',
