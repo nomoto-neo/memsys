@@ -20,7 +20,8 @@ use ReflectionClass;
  *       ],
  *   ];
  *
- * - relation  必ず書く。子テーブルへのHasManyのリレーションの名前
+ * - relation  必ず書く。子テーブルへのHasManyのリレーションの名前。1:多のテーブルだけが書ける
+ *             （多対多は、コントローラーのafterSave()でsync()する）
  * - fields    必ず書く。組の項目で、子テーブルの列の名前。画面から送る名前は「組の名前_項目」になる
  *             （photos_caption[]）。ファイルの項目は、UPLOAD_FILESにも'photos.*.image'のように書く
  * - order     子テーブルの並び順の列。書けば、画面の並びの順の番号を入れる。省略できる

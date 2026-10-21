@@ -214,6 +214,7 @@ has   app/Services/NewsletterSubscription.php                           'final c
 has   routes/web.php                                                    'newsletter-subscribers.index'
 has   packages/neobit/core/src/Auth/LoginVerificationCode.php           '?string $purposeLabel = null'
 has   packages/neobit/core/src/Crud/ChildTables.php                 'trait ChildTables'
+has   packages/neobit/core/src/Crud/ChildTables.php                 'private function childTableRelation('
 has   packages/neobit/core/src/Crud/FormFlow.php                        'saveChildTables'
 has   packages/neobit/core/resources/js/repeatable_group.js             'repeatable_template'
 has   vite.config.js                                                    'repeatable_group.js'

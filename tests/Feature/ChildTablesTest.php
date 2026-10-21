@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\StaffAcl;
 use App\Http\Controllers\Admin\NewsController;
+use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\News;
 use App\Models\NewsPhoto;
@@ -16,6 +17,7 @@ use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use LogicException;
 use Neobit\Core\Crud\ChildTableDefinitions;
+use Neobit\Core\Crud\ChildTables;
 use Neobit\Core\Csv\CsvColumnSet;
 use Neobit\Core\Csv\CsvImportSettings;
 use Neobit\Core\Upload\UploadFieldDefinitions;
@@ -524,6 +526,29 @@ class ChildTablesTest extends TestCase
         $this->assertSame([['a.pdf', '案内.pdf']], $news->attach()->get()->map(fn ($row) => [$row->file, $row->file_origin])->all());
     }
 
+    // ---- 1:多のテーブルだけ ----
+
+    public function test_many_to_many_relation_is_rejected_without_touching_the_related_table(): void
+    {
+        $news = $this->news();
+        $other = Category::create(['name' => 'イベント', 'seq' => 1]);
+
+        try {
+            (new TestChildTablesManyToManyController())->saveFor($news, [
+                'categories_group' => '1',
+                'categories_id' => [(string) $this->category->id],
+                'categories_name' => ['書き換えた名前'],
+            ]);
+            $this->fail('例外になりませんでした。');
+        } catch (LogicException $e) {
+            $this->assertSame(TestChildTablesManyToManyController::class.'のCHILD_TABLESには1:多のテーブルしか定義できません。News::categories()はBelongsToManyです。', $e->getMessage());
+        }
+
+        // カテゴリーは作られも、消されも、書き換えられもしない
+        $this->assertSame([[$this->category->id, 'お知らせ'], [$other->id, 'イベント']], Category::orderBy('id')->get()->map(fn ($c) => [$c->id, $c->name])->all());
+        $this->assertSame([$this->category->id], $news->categories()->pluck('t_categories.id')->all());
+    }
+
     // ---- 定義の書き方 ----
 
     public function test_definitions_are_read_from_the_controller(): void
@@ -589,4 +614,20 @@ class TestGroupWithoutUpload
 class TestGroupDeleteInsertNotBool
 {
     private const CHILD_TABLES = ['photos' => ['relation' => 'photos', 'fields' => ['caption'], 'delete_insert' => 1, 'max' => 3]];
+}
+
+/** テスト用：多対多のリレーションをCHILD_TABLESに書いたコントローラー */
+class TestChildTablesManyToManyController extends Controller
+{
+    use ChildTables;
+
+    private const CHILD_TABLES = [
+        'categories' => ['relation' => 'categories', 'fields' => ['name'], 'max' => 10],
+    ];
+
+    /** 子テーブルの保存だけを呼ぶ */
+    public function saveFor(News $news, array $validated): void
+    {
+        $this->saveChildTables($news, $validated);
+    }
 }

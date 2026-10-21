@@ -718,6 +718,7 @@ private const UPLOAD_FILES = [
 <input type="text" name="photos_caption[]" value="{{ $input['photos_caption'][$idx] ?? '' }}">
 ```
 
+- **書けるのは1:多だけ**：`relation` には、親から子への HasMany のリレーションを書きます。多対多（BelongsToMany）などを書くと、確認画面へ進むときか保存のときに「…のCHILD_TABLESには1:多のテーブルしか定義できません。News::categories()はBelongsToManyです。」の例外になります。多対多（ニュースのカテゴリーなど）は、選んだ id の配列を受けて、`afterSave()` で `$news->categories()->sync($validated['category_ids'])` のように揃えます。
 - **送る値**：行の並びを揃えた、列ごとの配列（`photos_id[]`・`photos_caption[]`・`photos_image[]`・`photos_image_tmp[]`…）です。確認画面の hidden（`_confirm_hidden`）が1段の配列しか持ち回れないためです。行の id と、組が送られたことを示す印（`photos_group`）は、部品が出します。印は、行を全部消したときに「組を空にする」と伝えるためのものです。
 - **空の行**：全部の項目が空の行は、検証の前に除きます。必須の項目は、空でない行にだけ効きます。
 - **保存**：子テーブルの行の id を保って揃えます。届いた id の行は更新、id の無い行は追加、届かなかった行は削除します。ほかの親の行の id や、2回目に出てきた同じ id は、新しい行として扱います。並び順の列があれば、画面の並びの番号を入れます。

@@ -4,9 +4,11 @@ namespace Neobit\Core\Crud;
 
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use LogicException;
 use Neobit\Core\Rules\SameCountAsRule;
 use Neobit\Core\Rules\UploadRequiredRule;
 use Neobit\Core\Upload\UploadFieldDefinitions;
@@ -15,6 +17,7 @@ use Neobit\Core\Upload\UploadFilePath;
 /**
  * 1:多の子テーブルを、親と同じ画面で入力して、親と一緒に保存する。子テーブルの1行を
  * 「いくつかの項目（ファイルを含んでよい）の組」として、画面で行を増やしたり消したりしながら入力する。
+ * 書けるのは、親から子へのHasManyのリレーションだけ。多対多は、afterSave()でsync()する。
  *
  * ■ コントローラーが用意するもの
  * - CHILD_TABLES：子テーブルの定義。書き方はChildTableDefinitionsにある
@@ -52,6 +55,23 @@ trait ChildTables
     private function childTableDefinitions(): array
     {
         return ChildTableDefinitions::of(static::class);
+    }
+
+    /**
+     * 親のレコードの、子テーブルへのリレーション。1:多（HasMany）でなければ例外にする。
+     * 多対多などを書くと、行を足す・消す処理が相手のテーブルの行そのものを作ったり消したりしてしまうため。
+     * リレーションの種類は親のモデルのメソッドを呼ばないと分からないので、取り出すたびにここで確かめる
+     */
+    private function childTableRelation(Model $model, array $def): HasMany
+    {
+        $relation = $model->{$def['relation']}();
+
+        if (! $relation instanceof HasMany) {
+            throw new LogicException(static::class.'のCHILD_TABLESには1:多のテーブルしか定義できません。'
+                .class_basename($model)."::{$def['relation']}()は".class_basename($relation).'です。');
+        }
+
+        return $relation;
     }
 
     /**
@@ -116,7 +136,7 @@ trait ChildTables
             }
 
             // この親の今の行。新規登録では無い
-            $relation = $record?->{$def['relation']}();
+            $relation = $record !== null ? $this->childTableRelation($record, $def) : null;
             $current = $relation ? $relation->get()->keyBy($relation->getRelated()->getKeyName()) : collect();
 
             $usedIds = [];
@@ -267,7 +287,7 @@ trait ChildTables
     /** 子テーブルの今の行。並び順の列があればその順、無ければidの順。リレーションに書いた並び順は使わない */
     private function childTableRows(Model $model, array $def): Collection
     {
-        $relation = $model->{$def['relation']}();
+        $relation = $this->childTableRelation($model, $def);
         $orderColumn = $def['order'] ?? $relation->getRelated()->getKeyName();
 
         return $relation->reorder()->orderBy($orderColumn)->get();
@@ -296,7 +316,7 @@ trait ChildTables
     private function saveChildTable(Model $model, array $def, array $validated): void
     {
         $group = $def['group'];
-        $relation = $model->{$def['relation']}();
+        $relation = $this->childTableRelation($model, $def);
         $keyName = $relation->getRelated()->getKeyName();
 
         // この親の今の行。id => 行
@@ -344,10 +364,10 @@ trait ChildTables
 
         // 届かなかった行を消す（作り直す保存では、入れ直す前の行がすべて当たる）。
         // 条件を足すとリレーションの問い合わせが変わるので、新しく作ったものに足す
-        $model->{$def['relation']}()->whereNotIn($keyName, $keptIds)->delete();
+        $this->childTableRelation($model, $def)->whereNotIn($keyName, $keptIds)->delete();
 
         // 使わなくなったファイルを、トランザクションが確定した後に消す
-        $filesAfter = $this->childTableFilenames($model->{$def['relation']}()->get(), $def);
+        $filesAfter = $this->childTableFilenames($this->childTableRelation($model, $def)->get(), $def);
         $this->deleteChildTableFilesAfterCommit($model, array_diff_key($filesBefore, $filesAfter));
     }
 
@@ -419,7 +439,7 @@ trait ChildTables
     private function deleteChildTables(Model $model): void
     {
         foreach ($this->childTableDefinitions() as $def) {
-            $relation = $model->{$def['relation']}();
+            $relation = $this->childTableRelation($model, $def);
             $filenames = $this->childTableFilenames($relation->get(), $def);
 
             $relation->delete();
