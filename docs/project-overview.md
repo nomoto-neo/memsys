@@ -73,6 +73,7 @@ Laravel の標準の構成に、次のものを足している（各ディレク
 | `docs/[スラッグ]-spec.md` | これから作る機能の仕様メモ。機能の実装の流れ（`CLAUDE.md`）で、実装の後に書く |
 | `docs/prompt/` | 機能の実装プロンプト（依頼の内容）。git で管理しない |
 | `docs/security-code-check.md` | コードのセキュリティを確かめる観点と、確かめた記録 |
+| `docs/laravel-dependency.md` | Laravel の機能とパッケージへの依存の一覧。脆弱性が出たときに、影響があるかを判断するのに使う |
 | `docs/security-external-check.md` | 設置したサイトを外から確かめる手順と、その記録 |
 | `docs/security-issues.md` | まだ対応していないセキュリティ面の課題 |
 
