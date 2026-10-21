@@ -274,6 +274,7 @@
 - 子テーブルの行の id を保って保存する。行の id をほかから参照できる
 - 複数の欄（`attach.*`）は、2026-10-21 にファイルだけの組に作り直して、仕組みを1つにまとめた（`_ajax_upload_group`・`MaxUploadCountRule` は消した）。ファイルの項目が1つだけの組では、ファイルをまとめて選べる。設計は `docs/repeatable-group-attach-spec.md`
 - CSV の取り込みは、まだ受け持たない。添付ファイルの取り込みも、組の取り込みを足すまで止まっている
+- 2026-10-21 に、PHP の側の名前を、1:多の子テーブルを表す名前に変えた（`REPEATABLE_GROUPS` → `CHILD_TABLES`、`RepeatableGroup` → `ChildTables`、`RepeatableGroupDefinitions` → `ChildTableDefinitions`、`repeatableGroupRules()` → `childTableRules()`）。画面の部品（`_repeatable_group`・`repeatable_group.js`・`repeatable_*` のクラス名）は、行を繰り返す部品の名前なのでそのまま。設計は `docs/child-tables-rename-spec.md`
 - 設計は `docs/repeatable-group-spec.md`、使い方は利用ガイドの5章「繰り返しの組」
 ### 段階4-7　設定ファイルの分け方
 

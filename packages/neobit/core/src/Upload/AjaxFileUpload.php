@@ -32,7 +32,7 @@ use Neobit\Core\Rules\UploadRequiredRule;
  *   例：'list_image' => ['type' => UploadType::Image, 'width' => News::LIST_IMAGE_WIDTH]
  * - uploadAjaxFile()を指すPOSTのルート。例：admin.news.ajaxUpload
  * - WYSIWYG_IMAGE_FIELDS：['フィールド名' => 横幅(px)]。画像を入れられるエディタの欄。省略できる
- * - 繰り返しの組（Neobit\Core\Crud\RepeatableGroup）の中のファイルの欄は、UPLOAD_FILESに'attach.*.file'のように書く。いくつでも足せるファイルは、この形で持つ。
+ * - 子テーブル（Neobit\Core\Crud\ChildTables）の中のファイルの欄は、UPLOAD_FILESに'attach.*.file'のように書く。いくつでも足せるファイルは、この形で持つ。
  *   受け取り（uploadAjaxFile()）と一時ファイルの移し方はこのトレイトのものを使い、行への書き込みと
  *   使わなくなったファイルの削除は組の部品が受け持つ
  *
@@ -263,7 +263,7 @@ trait AjaxFileUpload
 
     /**
      * アップロードの欄の定義。['field' => 名前, 'kind' => 種類, 'type' => UploadType, 'width' => 横幅, …]の並び。
-     * kindは、single（1つだけの欄）・wysiwyg（エディタの欄）・group（繰り返しの組の中の欄）。
+     * kindは、single（1つだけの欄）・wysiwyg（エディタの欄）・group（子テーブルの中の欄）。
      *
      * このトレイトのほかのメソッドは2つの定数を自分で読まず、必ずこの結果を使う。
      * 読み方と書き方の確かめは、画面の部品と共通のUploadFieldDefinitionsにある。
@@ -377,7 +377,7 @@ trait AjaxFileUpload
 
         foreach ($this->uploadFieldDefinitions() as $def) {
             // エディタの欄にはhiddenが無い。本文のルールはコントローラーのrules()に書く。
-            // 繰り返しの組の中の欄は、組のルール（RepeatableGroup::repeatableGroupRules()）に入る
+            // 子テーブルの中の欄は、組のルール（ChildTables::childTableRules()）に入る
             if ($def['kind'] !== 'single') {
                 continue;
             }
@@ -395,7 +395,7 @@ trait AjaxFileUpload
     /**
      * 必須の欄（UPLOAD_FILESの'required' => true）のルール。FormFlowが検証のときに、rules()の結果に足す。
      * 今のファイルを、編集しているレコード（新規登録ではnull）の今の値と照らすため、レコードを受け取る。
-     * 繰り返しの組の中の欄は、組のルール（RepeatableGroup::repeatableGroupRequiredRules()）に入る
+     * 子テーブルの中の欄は、組のルール（ChildTables::childTableRequiredRules()）に入る
      */
     private function requiredUploadRules(?Model $record): array
     {
@@ -466,7 +466,7 @@ trait AjaxFileUpload
         // 1. 更新前のファイル名
         $before = $this->storedFilenames($model, true);
 
-        // 2. フィールドごとにDBを更新する。繰り返しの組の中の欄は、組の保存（RepeatableGroup）が
+        // 2. フィールドごとにDBを更新する。子テーブルの中の欄は、組の保存（ChildTables）が
         // 行と一緒に確定し、使わなくなったファイルも自分で消す
         foreach ($this->uploadFieldDefinitions() as $def) {
             match ($def['kind']) {
@@ -502,7 +502,7 @@ trait AjaxFileUpload
         foreach ($this->uploadFieldDefinitions() as $def) {
             $field = $def['field'];
 
-            // 繰り返しの組の中の欄は、組の保存が自分で前後を比べるので、ここでは数えない
+            // 子テーブルの中の欄は、組の保存が自分で前後を比べるので、ここでは数えない
             if ($def['kind'] === 'group') {
                 continue;
             }
@@ -794,7 +794,7 @@ trait AjaxFileUpload
         foreach ($this->uploadFieldDefinitions() as $def) {
             $base = $def['field'];
 
-            // 繰り返しの組の中の欄は、組の削除（RepeatableGroup）が行と一緒に消す
+            // 子テーブルの中の欄は、組の削除（ChildTables）が行と一緒に消す
             if ($def['kind'] === 'group') {
                 continue;
             }
@@ -844,7 +844,7 @@ trait AjaxFileUpload
             $field = $def['field'];
 
             // エディタの欄は画像が本文に入っているので、呼び元がほかの項目と同じく入れる。
-            // 繰り返しの組の中の欄は、組の値（RepeatableGroup::repeatableGroupValues()）に入る
+            // 子テーブルの中の欄は、組の値（ChildTables::childTableValues()）に入る
             if ($def['kind'] === 'wysiwyg' || $def['kind'] === 'group') {
                 continue;
             }

@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use LogicException;
-use Neobit\Core\Crud\RepeatableGroupDefinitions;
+use Neobit\Core\Crud\ChildTableDefinitions;
 use Neobit\Core\Csv\CsvColumnSet;
 use Neobit\Core\Csv\CsvImportSettings;
 use Neobit\Core\Upload\UploadFieldDefinitions;
@@ -25,10 +25,10 @@ use Tests\TestCase;
 use Neobit\Core\Upload\UploadType;
 
 /**
- * 繰り返しの組（Neobit\Core\Crud\RepeatableGroup）。見本はニュースの写真（画像とキャプションの組）。
+ * 子テーブル（Neobit\Core\Crud\ChildTables）。見本はニュースの写真（画像とキャプションの組）。
  * 行のidを保った保存、空の行の除き方、行の数、ファイルの確定と削除、書き換えた送信への備え。
  */
-class RepeatableGroupTest extends TestCase
+class ChildTablesTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -528,7 +528,7 @@ class RepeatableGroupTest extends TestCase
 
     public function test_definitions_are_read_from_the_controller(): void
     {
-        $group = RepeatableGroupDefinitions::find(NewsController::class, 'photos');
+        $group = ChildTableDefinitions::find(NewsController::class, 'photos');
         $this->assertSame(['caption'], $group['texts']);
         $this->assertSame(['image'], $group['files']);
         $this->assertSame('seq', $group['order']);
@@ -536,7 +536,7 @@ class RepeatableGroupTest extends TestCase
         $this->assertFalse($group['delete_insert']);
 
         // 添付ファイルは、保存のたびに行を入れ直す組。並び順の列は持たない
-        $attach = RepeatableGroupDefinitions::find(NewsController::class, 'attach');
+        $attach = ChildTableDefinitions::find(NewsController::class, 'attach');
         $this->assertTrue($attach['delete_insert']);
         $this->assertNull($attach['order']);
 
@@ -552,7 +552,7 @@ class RepeatableGroupTest extends TestCase
         $this->expectException(LogicException::class);
         $this->expectExceptionMessage($message);
 
-        RepeatableGroupDefinitions::of($class);
+        ChildTableDefinitions::of($class);
     }
 
     public static function wrongDefinitions(): array
@@ -569,24 +569,24 @@ class RepeatableGroupTest extends TestCase
 /** テスト用：書き方を誤った定義 */
 class TestGroupWithoutMax
 {
-    private const REPEATABLE_GROUPS = ['photos' => ['relation' => 'photos', 'fields' => ['caption']]];
+    private const CHILD_TABLES = ['photos' => ['relation' => 'photos', 'fields' => ['caption']]];
 }
 
 class TestGroupUnknownFileField
 {
-    private const REPEATABLE_GROUPS = ['photos' => ['relation' => 'photos', 'fields' => ['caption'], 'max' => 3]];
+    private const CHILD_TABLES = ['photos' => ['relation' => 'photos', 'fields' => ['caption'], 'max' => 3]];
 
     private const UPLOAD_FILES = ['photos.*.image' => ['type' => UploadType::Image, 'width' => 100]];
 }
 
 class TestGroupWithoutUpload
 {
-    private const REPEATABLE_GROUPS = ['photos' => ['relation' => 'photos', 'fields' => ['image'], 'max' => 3]];
+    private const CHILD_TABLES = ['photos' => ['relation' => 'photos', 'fields' => ['image'], 'max' => 3]];
 
     private const UPLOAD_FILES = ['photos.*.image' => ['type' => UploadType::Image, 'width' => 100]];
 }
 
 class TestGroupDeleteInsertNotBool
 {
-    private const REPEATABLE_GROUPS = ['photos' => ['relation' => 'photos', 'fields' => ['caption'], 'delete_insert' => 1, 'max' => 3]];
+    private const CHILD_TABLES = ['photos' => ['relation' => 'photos', 'fields' => ['caption'], 'delete_insert' => 1, 'max' => 3]];
 }

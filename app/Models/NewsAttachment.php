@@ -9,7 +9,7 @@ use Neobit\Core\Upload\UploadFilePath;
 
 /**
  * ニュース記事に付いた添付ファイル1件分。fileは保存したファイル名、file_originは表示名。
- * 保存・削除はNeobit\Core\Crud\RepeatableGroupが、News::attach()のリレーションを通して行う。
+ * 保存・削除はNeobit\Core\Crud\ChildTablesが、News::attach()のリレーションを通して行う。
  */
 class NewsAttachment extends Model
 {

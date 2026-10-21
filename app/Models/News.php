@@ -129,8 +129,8 @@ class News extends Model
     }
 
     /**
-     * この記事に付いている添付ファイル。画面の並びの順。繰り返しの組の処理（Neobit\Core\Crud\RepeatableGroup）は、
-     * NewsControllerのREPEATABLE_GROUPSに書いたこのリレーションを通して、保存・削除を行う。
+     * この記事に付いている添付ファイル。画面の並びの順。子テーブルの処理（Neobit\Core\Crud\ChildTables）は、
+     * NewsControllerのCHILD_TABLESに書いたこのリレーションを通して、保存・削除を行う。
      * 保存のたびに画面の順に入れ直す組（delete_insert）なので、idの順が画面の順になる。
      */
     public function attach(): HasMany
@@ -139,8 +139,8 @@ class News extends Model
     }
 
     /**
-     * この記事の写真。画像とキャプションの組で、画面の並びの順。繰り返しの組の処理
-     * （Neobit\Core\Crud\RepeatableGroup）は、NewsControllerのREPEATABLE_GROUPSに書いたこのリレーションを通して、保存・削除を行う。
+     * この記事の写真。画像とキャプションの組で、画面の並びの順。子テーブルの処理
+     * （Neobit\Core\Crud\ChildTables）は、NewsControllerのCHILD_TABLESに書いたこのリレーションを通して、保存・削除を行う。
      */
     public function photos(): HasMany
     {

@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * ニュースの添付ファイル（t_news_attachments）を、繰り返しの組（Neobit\Core\Crud\RepeatableGroup）の形に揃える。
+ * ニュースの添付ファイル（t_news_attachments）を、子テーブル（Neobit\Core\Crud\ChildTables）の形に揃える。
  *
  * アップロードの欄の決まりは「名前」（保存したファイル名）と「名前_origin」（表示名）なので、
  * filenameをfile、original_nameをfile_originに変える。組の行の順を画面の順で持つよう、seqを足す。

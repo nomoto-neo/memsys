@@ -132,7 +132,7 @@ class UploadedFileController
      */
     private function fileBelongsToField(Model $owner, string $field, string $filename): bool
     {
-        // 繰り返しの組の中の欄（photos.*.image）: 欄の名前は「組の名前_列」（photos_image）なので、
+        // 子テーブルの中の欄（photos.*.image）: 欄の名前は「組の名前_列」（photos_image）なので、
         // 前から「_」で区切って、リレーションの名前と子テーブルの列を探す。その列の行にあるか。
         // 1つだけの欄とエディタの欄（モデルの列）は、ここを通さない
         if (! array_key_exists($field, $owner->getAttributes())) {

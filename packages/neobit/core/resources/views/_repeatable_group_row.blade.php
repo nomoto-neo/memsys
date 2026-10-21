@@ -1,5 +1,5 @@
 {{--
-    繰り返しの組の入力の1行（_repeatable_groupから使う）。行のidのhiddenと、行を消す×を置き、
+    子テーブルの入力の1行（_repeatable_groupから使う）。行のidのhiddenと、行を消す×を置き、
     行の中身はコーナーの部分ビュー（$row）に任せる。最後の1行の×は、行を消さずに空にする（repeatable_group.js）。
     Bootstrapが無い画面でも見えるよう、×は文字とインラインのstyleで描く。
 --}}

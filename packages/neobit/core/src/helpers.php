@@ -177,7 +177,7 @@ if (! function_exists('safe_html')) {
 if (! function_exists('upload_input_value')) {
     /**
      * アップロード欄のhiddenの値を、$inputから1つ取り出す。見つからないか、形が合わなければnull。
-     * $idxがnullなら単数のフィールド、整数なら繰り返しの組の$idx番目の行。
+     * $idxがnullなら単数のフィールド、整数なら子テーブルの$idx番目の行。
      *
      * 組の1行目は添え字が0なので、$idxは=== nullで判定する。
      * また、hiddenが書き換えられて配列のはずの値が文字列で届いても、1文字目を取り出して
@@ -200,7 +200,7 @@ if (! function_exists('upload_preview_url')) {
     /**
      * アップロード欄に出すプレビューのURLを、$inputの値から求める。$idxの意味は
      * upload_input_value()と同じ。$modelはファイルを持つレコードで、新規登録ではnull。
-     * 繰り返しの組の中の欄でも、$modelには親のレコードを渡す。
+     * 子テーブルの中の欄でも、$modelには親のレコードを渡す。
      *
      *   upload_preview_url($model, $input, 'list_image')
      *   upload_preview_url($model, $input, 'attach_file', $i)

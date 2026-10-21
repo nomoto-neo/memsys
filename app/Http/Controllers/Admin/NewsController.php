@@ -11,7 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Neobit\Core\Crud\FormFlow;
-use Neobit\Core\Crud\RepeatableGroup;
+use Neobit\Core\Crud\ChildTables;
 use Neobit\Core\Crud\SearchableList;
 use Neobit\Core\Csv\CsvDownload;
 use Neobit\Core\Csv\CsvImport;
@@ -37,9 +37,9 @@ class NewsController extends Controller
     // アップロードまわりの共通処理は AjaxFileUpload トレイトが提供する。
     use AjaxFileUpload;
 
-    // 繰り返しの組（写真）の値の組み立て・保存・削除はRepeatableGroupトレイトが提供する。
-    // クラス側は REPEATABLE_GROUPS と、rules()の組の項目のルールを用意する。
-    use RepeatableGroup;
+    // 子テーブル（写真）の値の組み立て・保存・削除はChildTablesトレイトが提供する。
+    // クラス側は CHILD_TABLES と、rules()の組の項目のルールを用意する。
+    use ChildTables;
 
     // CSVダウンロードの共通処理はCsvDownloadトレイトが提供する。
     // クラス側は csvColumns() を用意する。
@@ -79,7 +79,7 @@ class NewsController extends Controller
 
     /**
      * AjaxFileUploadが要求する設定。欄の名前 => 種類・横幅・必須（書き方はUploadFieldDefinitions）。
-     * 「attach.*.file」のような名前は、繰り返しの組（REPEATABLE_GROUPS）の中の欄。
+     * 「attach.*.file」のような名前は、子テーブル（CHILD_TABLES）の中の欄。
      */
     private const UPLOAD_FILES = [
         'list_image' => ['type' => UploadType::Image, 'width' => News::LIST_IMAGE_WIDTH, 'required' => true],
@@ -87,10 +87,10 @@ class NewsController extends Controller
         'photos.*.image' => ['type' => UploadType::Image, 'width' => News::PHOTO_WIDTH],
     ];
 
-    // ---- 繰り返しの組（RepeatableGroup）の設定 ----
+    // ---- 子テーブル（ChildTables）の設定 ----
 
-    /** 添付ファイルと写真。どちらも子テーブル（News::attach()・photos()）に画面の並びの順で持つ。書き方はRepeatableGroupDefinitions */
-    private const REPEATABLE_GROUPS = [
+    /** 添付ファイルと写真。どちらも子テーブル（News::attach()・photos()）に画面の並びの順で持つ。書き方はChildTableDefinitions */
+    private const CHILD_TABLES = [
         // 添付ファイル。ファイルの項目が1つだけの組なので、画面でファイルをまとめて選べる。
         // ほかから行を参照しないので、保存のたびに行を消して画面の順に入れ直す。idの順が画面の順になるので、並び順の列は持たない
         'attach' => [
@@ -139,7 +139,7 @@ class NewsController extends Controller
             'category_ids.*' => ['integer', Rule::exists('t_categories', 'id')],
             // 写真のキャプション。組の行ごとの値は、列ごとの配列の要素に書く
             'photos_caption.*' => ['nullable', 'string', 'max:200'],
-        ] + $this->ajaxUploadRules() + $this->repeatableGroupRules();
+        ] + $this->ajaxUploadRules() + $this->childTableRules();
     }
 
     /**

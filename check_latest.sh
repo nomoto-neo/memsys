@@ -142,6 +142,8 @@ gone packages/neobit/core/src/Security/AllowedIps.php
 gone packages/neobit/core/src/Models/OperationLogSubjectModel.php
 gone packages/neobit/core/src/Rules/MaxUploadCountRule.php
 gone packages/neobit/core/resources/views/_ajax_upload_group.blade.php
+gone packages/neobit/core/src/Crud/RepeatableGroup.php
+gone packages/neobit/core/src/Crud/RepeatableGroupDefinitions.php
 
 # フレームワークへ移した操作ログの画面と、名前を変えた列挙型
 gone app/Http/Controllers/Admin/OperationLogController.php
@@ -211,11 +213,11 @@ has   config/mail.php                                                   "'return
 has   app/Services/NewsletterSubscription.php                           'final class NewsletterSubscription'
 has   routes/web.php                                                    'newsletter-subscribers.index'
 has   packages/neobit/core/src/Auth/LoginVerificationCode.php           '?string $purposeLabel = null'
-has   packages/neobit/core/src/Crud/RepeatableGroup.php                 'trait RepeatableGroup'
-has   packages/neobit/core/src/Crud/FormFlow.php                        'saveRepeatableGroups'
+has   packages/neobit/core/src/Crud/ChildTables.php                 'trait ChildTables'
+has   packages/neobit/core/src/Crud/FormFlow.php                        'saveChildTables'
 has   packages/neobit/core/resources/js/repeatable_group.js             'repeatable_template'
 has   vite.config.js                                                    'repeatable_group.js'
-has   app/Http/Controllers/Admin/NewsController.php                     'REPEATABLE_GROUPS'
+has   app/Http/Controllers/Admin/NewsController.php                     'CHILD_TABLES'
 has   packages/neobit/core/src/Csv/CsvWriter.php                       'final class CsvWriter'
 has   packages/neobit/core/src/Csv/CsvDownload.php                     'CsvWriter::download('
 has   packages/neobit/core/resources/js/repeatable_group.js             'repeatable:add-row'
@@ -229,8 +231,8 @@ has   app/Models/Category.php                                           "'seq'"
 has   database/migrations/2026_10_21_200000_rename_display_order_to_seq_on_news_child_tables.php "'t_news_attachments'"
 has   packages/neobit/core/resources/js/repeatable_group.js             'repeatable:remove-row'
 has   packages/neobit/core/resources/views/_repeatable_group.blade.php  'data-files-only'
-has   packages/neobit/core/src/Crud/RepeatableGroupDefinitions.php     "'delete_insert'"
-has   packages/neobit/core/src/Crud/RepeatableGroup.php                 '作り直す保存。今の行は下でまとめて消す'
+has   packages/neobit/core/src/Crud/ChildTableDefinitions.php     "'delete_insert'"
+has   packages/neobit/core/src/Crud/ChildTables.php                 '作り直す保存。今の行は下でまとめて消す'
 has   database/migrations/2026_10_21_300000_drop_seq_on_t_news_attachments_table.php "dropColumn('seq')"
 has   app/Http/Controllers/Admin/NewsController.php                     "'delete_insert' => true"
 has   packages/neobit/core/src/Rules/UploadRequiredRule.php             'class UploadRequiredRule'

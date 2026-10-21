@@ -74,7 +74,7 @@
 }
 
 /*
- * 繰り返しの組（_repeatable_group）を、'inline' => true で横に並べるとき。
+ * 子テーブル（_repeatable_group）を、'inline' => true で横に並べるとき。
  * 行は14remの幅で並び、入りきらなければ次の行へ折り返す。行の幅は案件のCSSで変えられる。
  * 例：.repeatable_group[data-group="photos"] .repeatable_row { width: 10rem; }
  * 案件のCSSが少ないクラスの指定でも勝てるよう、ここはクラス2つ分の強さにしている。

@@ -3,6 +3,9 @@
 - 実装プロンプト：`docs/prompt/repeatable-group-delete-insert.md`
 - 実装完了日：2026-10-21
 
+> **名前の変更（2026-10-21 追記）**
+> PHP の側の名前を変えた。`REPEATABLE_GROUPS` → `CHILD_TABLES`、`RepeatableGroup` → `ChildTables`、`RepeatableGroupDefinitions` → `ChildTableDefinitions`、`repeatableGroupRules()` → `childTableRules()`、テストは `ChildTablesTest`。画面の部品（`_repeatable_group` など）の名前は変わらない。下の文中の古い名前は、この追記の前の名前を指す。詳しくは `docs/child-tables-rename-spec.md`。
+
 ## A. 概要
 
 **目的・解決する課題**

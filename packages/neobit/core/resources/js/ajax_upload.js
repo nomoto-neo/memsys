@@ -3,14 +3,14 @@
  * Neobit\Core\Upload\AjaxFileUpload・resources/views/_ajax_upload_block.blade.phpと対応している。
  *
  * .ajax_upload_blockという単位が1ファイル分のアップロード枠で、画面内に
- * 何個あってもよい(idではなくclassでまとめているのはこのため)。繰り返しの組で
+ * 何個あってもよい(idではなくclassでまとめているのはこのため)。子テーブルで
  * 足された行の中の枠にも同じ挙動をさせたいので、個々の要素へ直接addEventListener()するのではなく、
  * document全体へのイベント委譲(delegation)で統一的に処理している。
  *
- * ファイルの項目が1つだけの繰り返しの組（_repeatable_group）の枠では、ファイルをまとめて選べる
+ * ファイルの項目が1つだけの子テーブル（_repeatable_group）の枠では、ファイルをまとめて選べる
  * （file inputにmultipleが付いている）。1つ目は選んだ枠に、2つ目から先はほかの行の同じ欄で空いているものに入れ、
  * 1つずつ順に送る。空いている枠が無ければ、受け付けられてから行を足す（repeatable_group.jsに頼む）。
- * 行の数は組のdata-max（REPEATABLE_GROUPSの'max'）までで、超える分は送らずに最後にまとめて知らせる。
+ * 行の数は組のdata-max（CHILD_TABLESの'max'）までで、超える分は送らずに最後にまとめて知らせる。
  *
  * サーバーへの送信そのものは、WYSIWYGエディタの画像アップロードと共通の
  * upload_request.jsのpostUploadFile()で行う。
@@ -99,14 +99,14 @@ import { postUploadFile } from '@neobit/upload_request.js';
         showImageBlock(block);
     }
 
-    // まとめて選べる枠なら、その枠のある繰り返しの組を返す。そうでなければnull
+    // まとめて選べる枠なら、その枠のある子テーブルを返す。そうでなければnull
     function multipleGroupOf(block) {
         const input = block.querySelector('.ajax_file_input');
 
         return input && input.multiple ? block.closest('.repeatable_group') : null;
     }
 
-    // 組の行の数の上限（REPEATABLE_GROUPSの'max'。_repeatable_groupのdata-max）
+    // 組の行の数の上限（CHILD_TABLESの'max'。_repeatable_groupのdata-max）
     function maxRows(group) {
         return Number(group.dataset.max) || Infinity;
     }
@@ -215,7 +215,7 @@ import { postUploadFile } from '@neobit/upload_request.js';
         // 「ファイルを削除する」リンク。サーバーへの通信は行わず、
         // クライアント側の状態だけを「未選択」に戻す。実際にサーバー上の
         // 既存ファイルを消すかどうかは、確定(登録/更新)時に_delを見て
-        // AjaxFileUpload::commitUploads()か繰り返しの組の保存の側で判断する。
+        // AjaxFileUpload::commitUploads()か子テーブルの保存の側で判断する。
         // ファイルだけの組で行が2つ以上あれば、行ごと消す（repeatable_group.jsに頼む）。
         // それ以外の組の行は消さない。同じ行のほかの項目の入力を残すため。ファイルの無くなった空の行は保存のときに除かれる
         const cancelLink = event.target.closest('.ajax_cancel');

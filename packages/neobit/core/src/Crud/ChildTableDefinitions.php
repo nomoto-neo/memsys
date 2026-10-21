@@ -8,10 +8,10 @@ use Neobit\Core\Upload\UploadFieldDefinitions;
 use ReflectionClass;
 
 /**
- * コントローラーの繰り返しの組の定義（REPEATABLE_GROUPS）を読んで、確かめる。
- * RepeatableGroupトレイトと、画面の部品（_repeatable_group）の両方がここを通る。
+ * コントローラーの子テーブルの定義（CHILD_TABLES）を読んで、確かめる。
+ * ChildTablesトレイトと、画面の部品（_repeatable_group）の両方がここを通る。
  *
- *   private const REPEATABLE_GROUPS = [
+ *   private const CHILD_TABLES = [
  *       'photos' => [
  *           'relation' => 'photos',
  *           'fields' => ['image', 'caption'],
@@ -31,10 +31,10 @@ use ReflectionClass;
  *
  * 書き方の誤りは、最初に読んだときに例外にする。どの組の何が誤りかを、文言に書く。
  */
-final class RepeatableGroupDefinitions
+final class ChildTableDefinitions
 {
     /** 定義の定数の名前 */
-    private const CONSTANT = 'REPEATABLE_GROUPS';
+    private const CONSTANT = 'CHILD_TABLES';
 
     /** 1つの組に書けるキー */
     private const KEYS = ['relation', 'fields', 'order', 'delete_insert', 'max', 'min'];
@@ -49,7 +49,7 @@ final class RepeatableGroupDefinitions
     /**
      * コントローラーの全部の組の定義。組の名前 => 定義。
      * textsはファイルではない項目、filesはファイルの項目（UPLOAD_FILESに書いたもの）。
-     * REPEATABLE_GROUPSが無いコントローラーでは空の配列。
+     * CHILD_TABLESが無いコントローラーでは空の配列。
      *
      * @return array<string, array{group: string, relation: string, texts: list<string>, files: list<string>, order: ?string, delete_insert: bool, max: int, min: int}>
      */
@@ -114,10 +114,10 @@ final class RepeatableGroupDefinitions
         return "{$group}_group";
     }
 
-    /** REPEATABLE_GROUPSの1つの組の書き方を確かめて、定義の形にする */
+    /** CHILD_TABLESの1つの組の書き方を確かめて、定義の形にする */
     private static function check(string $controllerClass, string $group, mixed $spec, array $fileColumns): array
     {
-        $where = "{$controllerClass}のREPEATABLE_GROUPSの「{$group}」";
+        $where = "{$controllerClass}のCHILD_TABLESの「{$group}」";
 
         if (! preg_match(self::NAME_PATTERN, $group) || ! is_array($spec)) {
             throw new LogicException("{$where}は、英小文字・数字・「_」の名前に、定義の配列を書いてください。");

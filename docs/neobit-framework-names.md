@@ -56,7 +56,7 @@
 | `CsvReader` | `readCsv(...)` | CSV を読んで検証する | トレイトなのに「〜er」 |
 | `AjaxFileUpload` | `uploadAjaxFile($request)` | 入口。アップロードを受け取る | ほかは `ajaxUpload〜` の語順 |
 | `AjaxFileUpload` | `ajaxUploadRules()` | アップロードの欄の検証ルール | |
-| `RepeatableGroup` | `repeatableGroupRules()` | 繰り返しの組の検証ルール | |
+| `ChildTables` | `childTableRules()` | 子テーブルの検証ルール | |
 | `AjaxFileUpload` | `ajaxUploadValues($model, $source)` | アップロードの欄の画面の値 | |
 | `AjaxFileUpload` | `commitUploads($model, $input, $fromImport)` | 一時ファイルを正式な保存先へ移す | |
 | `AjaxFileUpload` | `deleteAllUploads($model)` | 1件分のファイルを全部消す | |
@@ -92,8 +92,8 @@
 | `SearchableList` | `PER_PAGE` | 1ページの件数 | 同じ |
 | `SearchableList` | `ORDER_OPTIONS` | 並び順の選択肢 | 同じ |
 | `SearchableList` | `FREE_WORD_COLUMNS` | フリーワード検索の対象の列 | 同じ |
-| `AjaxFileUpload` | `UPLOAD_FILES` | アップロードの欄。欄の名前 => `type`・`width`・`required`（書き方は `UploadFieldDefinitions`）。いくつでも足せる欄は、繰り返しの組の中の欄 `組.*.列` で書く | 同じ |
-| `RepeatableGroup` | `REPEATABLE_GROUPS` | 繰り返しの組。組の名前 => `relation`・`fields`・`order`・`delete_insert`・`max`・`min`（書き方は `RepeatableGroupDefinitions`） | 同じ |
+| `AjaxFileUpload` | `UPLOAD_FILES` | アップロードの欄。欄の名前 => `type`・`width`・`required`（書き方は `UploadFieldDefinitions`）。いくつでも足せる欄は、子テーブルの中の欄 `組.*.列` で書く | 同じ |
+| `ChildTables` | `CHILD_TABLES` | 子テーブル。組の名前 => `relation`・`fields`・`order`・`delete_insert`・`max`・`min`（書き方は `ChildTableDefinitions`） | 同じ |
 | `AjaxFileUpload` | `WYSIWYG_IMAGE_FIELDS` | エディタの欄と、入れた画像を縮小する横幅 | 同じ |
 | `InputNormalizer` | `RAW_INPUT_FIELDS` | 全角と半角をそろえない項目 | |
 | `TwoFactorLogin` | `LOGIN_ACCOUNT` | ログインする人のモデル | |
@@ -135,7 +135,7 @@
 | モデル | `IpBlock` | IPブロック管理の1行 | |
 | モデル | `Setting` | 管理画面から変えられる設定の1行（キーと値） | |
 | モデルのトレイト | `IsLoginAccount`・`HasTwoFactor`・`HasPasskeys`・`TeamInvitationRelation` | ログイン・2段階認証・パスキー・招待 | `TeamInvitationRelation` だけ `Has〜`・`Is〜` の形でない |
-| コントローラーのトレイト | `FormFlow`・`SearchableList`・`AjaxFileUpload`・`RepeatableGroup`・`CsvDownload`・`CsvImport`・`CsvReader`・`PdfDownload`・`EmailChange`・`TwoFactorLogin`・`TwoFactorManagement`・`PasskeyLogin`・`PasskeyManagement` | | `CsvReader` だけ「〜er」 |
+| コントローラーのトレイト | `FormFlow`・`SearchableList`・`AjaxFileUpload`・`ChildTables`・`CsvDownload`・`CsvImport`・`CsvReader`・`PdfDownload`・`EmailChange`・`TwoFactorLogin`・`TwoFactorManagement`・`PasskeyLogin`・`PasskeyManagement` | | `CsvReader` だけ「〜er」 |
 | 列挙型 | `UploadType`（`Image`・`File`）・`SheetPaging`（`Once`・`Sequential`・`Cycle`）・`OperationLogAction`（`ip_block`・`ip_unblock`・`access_restriction_change` を含む）・`TwoFactorMethod`・`LoginIdType`・`CsvEncoding`・`CsvImportMode`・`SpamCheckResult` | | |
 
 ## 6. 案件が呼ぶクラスと、その公開のメソッド

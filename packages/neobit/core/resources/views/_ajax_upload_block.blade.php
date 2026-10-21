@@ -5,7 +5,7 @@
     - $readonlyが空（create/edit）: Ajaxアップロード用のインタラクティブな
       UI一式（Neobit\Core\Upload\AjaxFileUploadトレイト・resources/js/ajax_upload.js
       と対応するマークアップ）。1枠が.ajax_upload_blockという単位になって
-      いる。繰り返しの組（_repeatable_group）の行の中にも置ける。
+      いる。子テーブル（_repeatable_group）の行の中にも置ける。
     - $readonlyが空でない（confirm/show）: 表示専用の、ごく単純な
       プレビュー（画像またはリンク1つだけ）。file input・ドロップ
       エリア・hiddenの類は一切出さない。
@@ -24,14 +24,14 @@
 
     呼び出し側が用意する変数:
     - $model       ファイルを持っているレコード（ニュースなら$news）。
-                   新規登録の画面ではnull。繰り返しの組の中の欄でも、
+                   新規登録の画面ではnull。子テーブルの中の欄でも、
                    保存先は親のディレクトリなので親のレコードを渡す。
     - $input       画面の入力値の配列（コントローラーが組み立てた$input
                    そのもの）。この部分ビューは、その中から{field}・
                    {field}_origin・{field}_tmp・{field}_delを自分で読む。
-    - $field       画面から送る名前(例: "list_image")。繰り返しの組の中の欄は
+    - $field       画面から送る名前(例: "list_image")。子テーブルの中の欄は
                    「組の名前_列」(例: "attach_file")
-    - $idx         (省略可)繰り返しの組の何行目か。省略(null)なら単独の
+    - $idx         (省略可)子テーブルの何行目か。省略(null)なら単独の
                    フィールド。整数なら組の$idx番目の行で、name属性の末尾に[]が
                    付く。$inputからの値の取り出し方
                    （upload_input_value()・upload_preview_url()）と同じ意味。
@@ -56,7 +56,7 @@
     // 欄の種類と横幅。今の画面のコントローラーのUPLOAD_FILESから読む
     $isImage = upload_field($field, 'type') === \Neobit\Core\Upload\UploadType::Image;
     $width = upload_field($field, 'width');
-    // ファイルの項目が1つだけの繰り返しの組の欄では、ファイルをまとめて選べる。
+    // ファイルの項目が1つだけの子テーブルの欄では、ファイルをまとめて選べる。
     // ajax_upload.jsが、2つ目から先を空いている行か新しく足した行に入れる
     $multiple = upload_field($field, 'multiple');
     $suffix = $idx === null ? '' : '[]';

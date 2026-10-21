@@ -57,8 +57,8 @@ use Neobit\Core\Operations\OperationRecorder;
  * コントローラーがAjaxFileUploadも使っていれば、$inputの組み立てと保存のときにその処理も呼ぶ。
  * コントローラーの書き方はアップロードの有無で変わらない。
  *
- * ■ 繰り返しの組
- * コントローラーがRepeatableGroupも使っていれば、検証の前の空の行の除き方、$inputの組み立て、
+ * ■ 子テーブル
+ * コントローラーがChildTablesも使っていれば、検証の前の空の行の除き方、$inputの組み立て、
  * 保存（アップロードの確定の後）、削除（本体を消す前）のときにその処理も呼ぶ。
  * 組の子テーブルの変更は、操作ログの変わった列には入らない。
  */
@@ -84,9 +84,9 @@ trait FormFlow
      */
     private function validatedInput(Request $request, ?Model $record = null): array
     {
-        // 繰り返しの組は、全部の項目が空の行を除いてから確かめる。確認画面へ進むときと保存のときの両方がここを通る
-        if (method_exists($this, 'dropEmptyRepeatableRows')) {
-            $this->dropEmptyRepeatableRows($request);
+        // 子テーブルは、全部の項目が空の行を除いてから確かめる。確認画面へ進むときと保存のときの両方がここを通る
+        if (method_exists($this, 'dropEmptyChildRows')) {
+            $this->dropEmptyChildRows($request);
         }
 
         // 必須のアップロードの欄のルールを足す。今のファイルを、編集しているレコードの今の値と照らすため、ここで足す
@@ -95,8 +95,8 @@ trait FormFlow
         if (method_exists($this, 'requiredUploadRules')) {
             $requiredUploads += $this->requiredUploadRules($record);
         }
-        if (method_exists($this, 'repeatableGroupRequiredRules')) {
-            $requiredUploads += $this->repeatableGroupRequiredRules($request, $record);
+        if (method_exists($this, 'childTableRequiredRules')) {
+            $requiredUploads += $this->childTableRequiredRules($request, $record);
         }
         foreach ($requiredUploads as $key => $keyRules) {
             $rules[$key] = array_merge((array) ($rules[$key] ?? []), $keyRules);
@@ -105,7 +105,7 @@ trait FormFlow
         return $this->prepareInput($request->validate($rules));
     }
 
-    /** 確認画面に渡す$input。表示にもhiddenにもこれを使う。アップロードと繰り返しの組の項目は組み立て直した値を使う */
+    /** 確認画面に渡す$input。表示にもhiddenにもこれを使う。アップロードと子テーブルの項目は組み立て直した値を使う */
     private function confirmPageValues(Request $request, ?Model $record = null): array
     {
         $validated = $this->validatedInput($request, $record);
@@ -124,7 +124,7 @@ trait FormFlow
     {
         $base = $record === null ? $this->defaultValues() : $this->formValues($record);
 
-        // 繰り返しの組は、入力し直していた値も行の並びを揃えた形に組み立て直すので、$sourceより先に置く
+        // 子テーブルは、入力し直していた値も行の並びを揃えた形に組み立て直すので、$sourceより先に置く
         return $this->groupFormValues($record, $source) + $source + $base
             + $this->uploadFormValues($record, $source) + $this->emptyFormValues($record);
     }
@@ -155,10 +155,10 @@ trait FormFlow
         return method_exists($this, 'ajaxUploadValues') ? $this->ajaxUploadValues($record, $source) : [];
     }
 
-    /** 繰り返しの組の項目の$input。RepeatableGroupを使っていなければ空 */
+    /** 子テーブルの項目の$input。ChildTablesを使っていなければ空 */
     private function groupFormValues(?Model $record, array $source = []): array
     {
-        return method_exists($this, 'repeatableGroupValues') ? $this->repeatableGroupValues($record, $source) : [];
+        return method_exists($this, 'childTableValues') ? $this->childTableValues($record, $source) : [];
     }
 
     /**
@@ -221,9 +221,9 @@ trait FormFlow
             }
         }
 
-        // 繰り返しの組の子テーブルを、送られた行に揃える。親のidが要るので、アップロードの確定の後に行う
-        if (method_exists($this, 'saveRepeatableGroups')) {
-            $this->saveRepeatableGroups($record, $validated, $fromImport);
+        // 子テーブルを、送られた行に揃える。親のidが要るので、アップロードの確定の後に行う
+        if (method_exists($this, 'saveChildTables')) {
+            $this->saveChildTables($record, $validated, $fromImport);
         }
 
         // 新規登録では全部の列が対象なので、変わった列は持たない。更新では、保存のたびに変わる列などを除く
@@ -249,9 +249,9 @@ trait FormFlow
         DB::transaction(function () use ($record) {
             $this->beforeDelete($record);
 
-            // 繰り返しの組の子テーブルの行とファイル。子テーブルが親を参照しているので、親より先に消す
-            if (method_exists($this, 'deleteRepeatableGroups')) {
-                $this->deleteRepeatableGroups($record);
+            // 子テーブルの行とファイル。子テーブルが親を参照しているので、親より先に消す
+            if (method_exists($this, 'deleteChildTables')) {
+                $this->deleteChildTables($record);
             }
 
             if (method_exists($this, 'deleteAllUploads')) {

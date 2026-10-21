@@ -1,9 +1,9 @@
 /*
- * 繰り返しの組（Neobit\Core\Crud\RepeatableGroup・_repeatable_group.blade.php）の行の追加と削除。
+ * 子テーブル（Neobit\Core\Crud\ChildTables・_repeatable_group.blade.php）の行の追加と削除。
  *
  * .repeatable_groupが1つの組で、その中の.repeatable_rowsに行（.repeatable_row）が並ぶ。
  * 「行を足す」で<template>のひな型を複製して末尾に足し、行の×で行ごと消す。
- * 行の数は組のdata-max（REPEATABLE_GROUPSの'max'）までで、上限まで行があれば「行を足す」を押せなくする。
+ * 行の数は組のdata-max（CHILD_TABLESの'max'）までで、上限まで行があれば「行を足す」を押せなくする。
  * 最後の1行の×は、行を消さずに、ひな型の空の行に置き換える。行の入れ物を残したまま、行のid・ファイルの欄の
  * hidden・文字の欄をまとめて空にするため。空の行は保存のときに除かれるので、今の行は削除になる。
  *

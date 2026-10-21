@@ -9,7 +9,7 @@ use Neobit\Core\Upload\UploadFilePath;
 
 /**
  * ニュース記事の写真1枚分。画像とキャプションの組。
- * 保存・削除はNeobit\Core\Crud\RepeatableGroupが、News::photos()のリレーションを通して行う。
+ * 保存・削除はNeobit\Core\Crud\ChildTablesが、News::photos()のリレーションを通して行う。
  */
 class NewsPhoto extends Model
 {

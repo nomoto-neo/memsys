@@ -69,7 +69,7 @@ Laravel の標準の構成に、次のものを足している（各ディレク
 | `docs/passkeys-spec.md` | パスキーの設計 |
 | `docs/member-types-spec.md` | 個人会員と企業会員を共存させる設計 |
 | `docs/newsletter-subscription-spec.md` | メルマガだけの申し込みと、会員・配信停止・一斉メールとのつながりの仕様メモ |
-| `docs/repeatable-group-spec.md` | 繰り返しの組（子テーブルの行を、項目の組として増減しながら入力して保存する部品）の仕様メモ |
+| `docs/repeatable-group-spec.md` | 子テーブル（1:多の子テーブルを、親と同じ画面で行を増減しながら入力して保存する部品。`ChildTables`）の仕様メモ |
 | `docs/[スラッグ]-spec.md` | これから作る機能の仕様メモ。機能の実装の流れ（`CLAUDE.md`）で、実装の後に書く |
 | `docs/prompt/` | 機能の実装プロンプト（依頼の内容）。git で管理しない |
 | `docs/security-code-check.md` | コードのセキュリティを確かめる観点と、確かめた記録 |

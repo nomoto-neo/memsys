@@ -20,7 +20,7 @@ use Illuminate\Support\Facades\Storage;
  *
  *   public const PRIVATE_FILE_FIELDS = ['photo'];
  *
- * 公開か非公開かはデータの性質なので、モデルが決める。繰り返しの組の中の欄は「組の名前_列」（attach_file）、
+ * 公開か非公開かはデータの性質なので、モデルが決める。子テーブルの中の欄は「組の名前_列」（attach_file）、
  * エディタの欄は欄の名前を書く。非公開のファイルは、Webサーバーから直接は見えない
  * storage/app/privateに同じ規則のディレクトリで置く。
  * URLはファイルの場所ではなく、UploadedFileControllerのuploads.showのルートになる。
@@ -109,7 +109,7 @@ final class UploadFilePath
 
     /**
      * そのフィールドのファイルを非公開にするか。モデルのPRIVATE_FILE_FIELDSにあれば非公開。
-     * $fieldは画面から送る名前で、繰り返しの組の中の欄なら「組の名前_列」
+     * $fieldは画面から送る名前で、子テーブルの中の欄なら「組の名前_列」
      */
     public static function isPrivate(string $ownerClass, string $field): bool
     {

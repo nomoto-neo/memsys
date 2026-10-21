@@ -11,7 +11,7 @@ use Neobit\Core\Upload\UploadFilePath;
 
 /**
  * アップロードの欄に、ファイルがあるかを確かめるルール。UPLOAD_FILESの'required' => trueの欄に、
- * AjaxFileUpload・RepeatableGroupが付ける。エラーは通常の項目と同じvalidation.requiredの文。
+ * AjaxFileUpload・ChildTablesが付ける。エラーは通常の項目と同じvalidation.requiredの文。
  *
  * 新しいファイル（_tmpの名前の一時ファイルが今ある）か、今のファイル（欄の値がレコードの今の値と一致し、
  * _delが立っていない）のどちらかがあれば通る。欄の値は書き換えられるので、レコードの今の値と照らす。

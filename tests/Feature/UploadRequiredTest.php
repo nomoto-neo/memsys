@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Neobit\Core\Crud\FormFlow;
-use Neobit\Core\Crud\RepeatableGroup;
+use Neobit\Core\Crud\ChildTables;
 use Neobit\Core\Upload\AjaxFileUpload;
 use Neobit\Core\Upload\UploadFilePath;
 use Neobit\Core\Upload\UploadType;
@@ -197,13 +197,13 @@ class TestUploadRequiredController extends Controller
 {
     use AjaxFileUpload;
     use FormFlow;
-    use RepeatableGroup;
+    use ChildTables;
 
     private const UPLOAD_FILES = [
         'photos.*.image' => ['type' => UploadType::Image, 'width' => 100, 'required' => true],
     ];
 
-    private const REPEATABLE_GROUPS = [
+    private const CHILD_TABLES = [
         'photos' => ['relation' => 'photos', 'fields' => ['image', 'caption'], 'max' => 10],
     ];
 
@@ -216,6 +216,6 @@ class TestUploadRequiredController extends Controller
     {
         return [
             'photos_caption.*' => ['nullable', 'string'],
-        ] + $this->ajaxUploadRules() + $this->repeatableGroupRules();
+        ] + $this->ajaxUploadRules() + $this->childTableRules();
     }
 }

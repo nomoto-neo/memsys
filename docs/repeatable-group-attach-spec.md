@@ -3,6 +3,9 @@
 - 実装プロンプト：`docs/prompt/repeatable-group-attach.md`
 - 実装完了日：2026-10-21
 
+> **名前の変更（2026-10-21 追記）**
+> PHP の側の名前を変えた。`REPEATABLE_GROUPS` → `CHILD_TABLES`、`RepeatableGroup` → `ChildTables`、`RepeatableGroupDefinitions` → `ChildTableDefinitions`、`repeatableGroupRules()` → `childTableRules()`、テストは `ChildTablesTest`。画面の部品（`_repeatable_group` など）の名前は変わらない。下の文中の古い名前は、この追記の前の名前を指す。詳しくは `docs/child-tables-rename-spec.md`。
+
 > **後続タスクによる変更（2026-10-21 追記）**
 > 添付ファイルの組は、保存のたびに行を消して画面の順に入れ直す保存（`'delete_insert' => true`）にし、並び順の列（`t_news_attachments.seq`）は消した。下の文中の並び順の列と、行の id を保つ保存の説明は、この追記の前の形を指す。詳しくは `docs/repeatable-group-delete-insert-spec.md`。
 

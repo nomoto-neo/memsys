@@ -188,7 +188,7 @@
 
 <div class="mb-3">
     <label class="form-label d-block">添付ファイル</label>
-    {{-- 添付ファイル。ファイルだけの繰り返しの組（Neobit\Core\Crud\RepeatableGroup）で、ファイルをまとめて選べる。
+    {{-- 添付ファイル。ファイルだけの子テーブル（Neobit\Core\Crud\ChildTables）で、ファイルをまとめて選べる。
          行の中身は_attach_rowに書く --}}
     @include('neobit::_repeatable_group', [
         'group' => 'attach',
@@ -203,7 +203,7 @@
     <div class="invalid-feedback" data-item="attach_id">{{ $errors->first('attach_id') }}</div>
 </div>
 
-{{-- 写真。画像とキャプションの組を、行ごとに増やしたり消したりする（繰り返しの組。Neobit\Core\Crud\RepeatableGroup）。
+{{-- 写真。画像とキャプションの組を、行ごとに増やしたり消したりする（子テーブル。Neobit\Core\Crud\ChildTables）。
      行の中身は_photo_rowに書く --}}
 <div class="mb-3">
     <label class="form-label d-block">写真</label>

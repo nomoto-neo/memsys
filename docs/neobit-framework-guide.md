@@ -253,8 +253,8 @@ GRANT ALL PRIVILEGES ON memsys_testing.* TO 'memsys'@'localhost';
 | `PasskeyLogin`・`PasskeyManagement` | `packages/neobit/core/src/Auth/` | パスキーでのログインと、本人によるパスキーの登録・削除 | 14 |
 | `PasswordChange` | `packages/neobit/core/src/Auth/` | パスワードを変えたときの後始末（信頼済み端末・パスキーの無効化、お知らせのメール） | 14 |
 | `_confirm_hidden` | `packages/neobit/core/resources/views/` | 確認画面の hidden を `$input` から組み立てる | 5 |
-| `_ajax_upload_block` | `packages/neobit/core/resources/views/` | アップロード欄（1つだけの欄と、繰り返しの組の中の欄） | 7 |
-| `RepeatableGroup`・`_repeatable_group` | `packages/neobit/core/src/Crud/`・`packages/neobit/core/resources/views/` | 繰り返しの組（子テーブルの行を、項目の組として増減しながら入力して保存する） | 5 |
+| `_ajax_upload_block` | `packages/neobit/core/resources/views/` | アップロード欄（1つだけの欄と、子テーブルの中の欄） | 7 |
+| `ChildTables`・`_repeatable_group` | `packages/neobit/core/src/Crud/`・`packages/neobit/core/resources/views/` | 1:多の子テーブルを、親と同じ画面で入力して保存する（画面の部品は `_repeatable_group`） | 5 |
 | `admin/csv_import/` | `packages/neobit/core/resources/views/` | CSV 取り込みの画面（全コーナー共通） | 10 |
 | `_passkeys` | `packages/neobit/core/resources/views/` | パスキーの一覧・本人確認・登録の画面の中身 | 14 |
 | `TemporaryDataCleaner` | `packages/neobit/core/src/Operations/` | 一時データの後片付け（一時ファイル・期限の切れたキャッシュと信頼済み端末・古い操作ログ）。プロジェクトの片付けは `config/cleanup.php` に足す | 19 |
@@ -675,18 +675,18 @@ private const RAW_INPUT_FIELDS = News::RAW_INPUT_FIELDS;
 - すでに保存されているデータは、変わりません。これから入力される分だけがそろいます。
 - 探すときは、DB の照合順序（`utf8mb4_unicode_ci`）が、全角と半角・大文字と小文字・ひらがなとカタカナの違いを無視して比べます。そろえていない古いデータも、検索やログインでは見つかります。
 
-### 繰り返しの組（RepeatableGroup）
+### 子テーブル（ChildTables）
 
-**ファイル**：`packages/neobit/core/src/Crud/RepeatableGroup.php`・`RepeatableGroupDefinitions.php`（書き方）・`packages/neobit/core/resources/views/_repeatable_group.blade.php`・`packages/neobit/core/resources/js/repeatable_group.js`　**実例**：ニュースの写真（`Admin\NewsController`、画面は `admin/news/_photo_row.blade.php`）・ニュースの添付ファイル（ファイルだけの組。画面は `admin/news/_attach_row.blade.php`）　**設計**：`docs/repeatable-group-spec.md`
+**ファイル**：`packages/neobit/core/src/Crud/ChildTables.php`・`ChildTableDefinitions.php`（書き方）・`packages/neobit/core/resources/views/_repeatable_group.blade.php`・`packages/neobit/core/resources/js/repeatable_group.js`　**実例**：ニュースの写真（`Admin\NewsController`、画面は `admin/news/_photo_row.blade.php`）・ニュースの添付ファイル（ファイルだけの組。画面は `admin/news/_attach_row.blade.php`）　**設計**：`docs/repeatable-group-spec.md`
 
-子テーブルの1行を「いくつかの項目（ファイルを含んでよい）の組」として、画面で行を増やしたり消したりしながら入力し、親と一緒に保存します。例：ニュースの写真（画像とキャプション）。いくつでも足せるファイルの欄も、ファイルの項目だけの組として書きます（例：ニュースの添付ファイル）。
+1:多の子テーブルを、親と同じ画面で入力して、親と一緒に保存します。子テーブルの1行を「いくつかの項目（ファイルを含んでよい）の組」として、画面で行を増やしたり消したりしながら入力します。例：ニュースの写真（画像とキャプション）。コントローラーの側の名前は `CHILD_TABLES`・`ChildTables`、画面の部品の名前は `_repeatable_group`・`repeatable_group.js`（行を繰り返す部品）です。いくつでも足せるファイルの欄も、ファイルの項目だけの組として書きます（例：ニュースの添付ファイル）。
 
 ```php
 use FormFlow;
 use AjaxFileUpload;      // 組にファイルの項目があるときは要る
-use RepeatableGroup;
+use ChildTables;
 
-private const REPEATABLE_GROUPS = [
+private const CHILD_TABLES = [
     'photos' => [
         'relation' => 'photos',            // 子テーブルへのHasMany（News::photos()）
         'fields' => ['image', 'caption'],  // 組の項目。子テーブルの列の名前
@@ -700,9 +700,9 @@ private const UPLOAD_FILES = [
     'photos.*.image' => ['type' => UploadType::Image, 'width' => News::PHOTO_WIDTH],
 ];
 
-// rules()：組の項目の要素のルールを「組の名前_項目.*」に書き、repeatableGroupRules() を足す
+// rules()：組の項目の要素のルールを「組の名前_項目.*」に書き、childTableRules() を足す
 'photos_caption.*' => ['nullable', 'string', 'max:200'],
-] + $this->ajaxUploadRules() + $this->repeatableGroupRules();
+] + $this->ajaxUploadRules() + $this->childTableRules();
 ```
 
 ```blade
@@ -730,7 +730,7 @@ private const UPLOAD_FILES = [
 - **ファイルだけの組**：ニュースの添付ファイルは、次のように書きます。作り直す保存にして、子テーブルには `file`（保存したファイル名）・`file_origin`（表示名）だけを作ります。行の部分ビューは `_ajax_upload_block` を1つ置くだけです。
 
     ```php
-    private const REPEATABLE_GROUPS = [
+    private const CHILD_TABLES = [
         'attach' => ['relation' => 'attach', 'fields' => ['file'], 'delete_insert' => true, 'max' => 5],
     ];
     private const UPLOAD_FILES = [
@@ -786,7 +786,7 @@ use AjaxFileUpload;
 
 /**
  * フィールド名 => ['type' => 種類, 'width' => 縮小する横幅]。
- * 「組の名前.*.列」は、繰り返しの組（5章）の中の欄
+ * 「組の名前.*.列」は、子テーブル（5章）の中の欄
  */
 private const UPLOAD_FILES = [
     'list_image' => ['type' => UploadType::Image, 'width' => News::LIST_IMAGE_WIDTH],
@@ -827,7 +827,7 @@ private function prepareInput(array $validated): array
     - 必須マークは `requiredFields()` が付けます。画面では `{!! $required['list_image'] ?? '' !!}` と書きます。
     - ルールは FormFlow の検証（`validatedInput()`）が足すので、コントローラーの `rules()` には書きません。CSV の取り込みには効きません。
     - 見本は、ニュースの一覧用画像です。
-- **いくつでも足せるファイル**：繰り返しの組（5章）に、ファイルの項目だけの組を書き、`UPLOAD_FILES` に「組の名前.*.列」で書きます（例：`'attach.*.file'`。画面から送る名前は `attach_file`）。行の数の上限は組の `'max'` です。末尾が「.*」だけの書き方（`'attach.*'`）は、例外にして組の書き方を案内します。
+- **いくつでも足せるファイル**：子テーブル（5章）に、ファイルの項目だけの組を書き、`UPLOAD_FILES` に「組の名前.*.列」で書きます（例：`'attach.*.file'`。画面から送る名前は `attach_file`）。行の数の上限は組の `'max'` です。末尾が「.*」だけの書き方（`'attach.*'`）は、例外にして組の書き方を案内します。
 - `$input` の組み立て（`inputPageValues()`・`confirmPageValues()`）と保存（`saveData()`）は FormFlow が自動でアップロードの処理を呼ぶので、入口の書き方は変わりません。
 - ルートにアップロード先を1本足します：`Route::post('/news/ajax-upload', [AdminNewsController::class, 'uploadAjaxFile'])->name('news.ajaxUpload');`（訪問者向けは `throttle` を付ける）。
 - **単数のフィールド**（`list_image`）：テーブルに `list_image`（保存ファイル名）と `list_image_origin`（元のファイル名）のカラムを作り、モデルの `$fillable` に入れます。

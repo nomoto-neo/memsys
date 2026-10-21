@@ -46,7 +46,7 @@ private const UPLOAD_FILES = [
 
 - FormFlow の `validatedInput()` が、`rules($record)` の結果に足す。キーが同じなら、今のルールの後ろに足す（ファイル名の形を確かめるルールは残る）。
 - 1つだけの欄：`AjaxFileUpload::requiredUploadRules($record)`。キーは欄の名前（`list_image`）。
-- 組の中の欄：`RepeatableGroup::repeatableGroupRequiredRules($request, $record)`。空の行を除いた後の行ごとに、キーは `photos_image.0` の形。行の今のファイルは、保存のときと同じ見分け方（この親の行の id で、同じ id の2回目ではないもの）で決める。
+- 組の中の欄：`ChildTables::childTableRequiredRules($request, $record)`。空の行を除いた後の行ごとに、キーは `photos_image.0` の形。行の今のファイルは、保存のときと同じ見分け方（この親の行の id で、同じ id の2回目ではないもの）で決める。
 - 「少なくとも1つ」は書き方を足さない。ファイルだけの組では、組の `'min' => 1` で決まる。
 
 **画面**
@@ -59,7 +59,7 @@ private const UPLOAD_FILES = [
 
 - FormFlow の `validatedInput()`（確認画面へ進むときと、保存のときの両方が通る）
 - AjaxFileUpload・UploadFieldDefinitions・UploadFilePath（一時ディレクトリと、ファイル名の形）
-- 繰り返しの組（空の行の除き方と、行の見分け方）
+- 子テーブル（空の行の除き方と、行の見分け方）
 - 画面のエラーの表示（`global.js` が `invalid-feedback[data-item]` に入れる）
 
 ## D. 設計判断とトレードオフ
@@ -99,7 +99,7 @@ private const UPLOAD_FILES = [
   - 新規登録の画面に、必須マークとエラーの欄が出る
   - 組の中の欄（テスト用のコントローラー）：今のファイルを残した行と新しいファイルの行は通り、画像の無い行だけが行ごとにエラーになる。新規登録では、ファイル名だけを送っても断る
 - `tests/Feature/UploadFieldTest.php`：一覧用画像の定義が `required` を持つ。`'required'` に true・false 以外を書くと例外
-- ニュースを登録・更新する今までのテスト（`RepeatableGroupTest`）は、入力に一覧用画像を足して通るようにした
+- ニュースを登録・更新する今までのテスト（`ChildTablesTest`）は、入力に一覧用画像を足して通るようにした
 
 全体で 401件が通る。
 

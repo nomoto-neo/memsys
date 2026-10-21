@@ -3,6 +3,9 @@
 - 実装プロンプト：`docs/prompt/repeatable-group.md`
 - 実装完了日：2026-10-20
 
+> **名前の変更（2026-10-21 追記）**
+> PHP の側の名前を変えた。`REPEATABLE_GROUPS` → `CHILD_TABLES`、`RepeatableGroup` → `ChildTables`、`RepeatableGroupDefinitions` → `ChildTableDefinitions`、`repeatableGroupRules()` → `childTableRules()`、テストは `ChildTablesTest`。画面の部品（`_repeatable_group` など）の名前は変わらない。下の文中の古い名前は、この追記の前の名前を指す。詳しくは `docs/child-tables-rename-spec.md`。
+
 > **後続タスクによる変更（2026-10-21 追記）**
 > 複数の欄（`'attach.*'`）は、ファイルだけの組に作り直して、仕組みを1つにまとめた。`_ajax_upload_group`・`MaxUploadCountRule`・作り直しの保存は無くなり、ファイルをまとめて選ぶ動きは、ファイルの項目が1つだけの組が受け持つ。下の文中の「今の複数の欄」は、この追記の前の形を指す。詳しくは `docs/repeatable-group-attach-spec.md`。
 > その後、組に `'delete_insert' => true` を書くと、行の id を保たずに、保存のたびに行を消して画面の順に入れ直せるようにした（添付ファイルが見本）。詳しくは `docs/repeatable-group-delete-insert-spec.md`。

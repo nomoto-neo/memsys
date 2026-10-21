@@ -58,7 +58,7 @@ class UploadFieldTest extends TestCase
             'typeが無い' => [TestUploadNoType::class, "'type' => UploadType::Image"],
             '画像なのにwidthが無い' => [TestUploadImageWithoutWidth::class, "'width'に書いて"],
             '添付ファイルにwidth' => [TestUploadFileWithWidth::class, "'width'は書きません"],
-            '組を使わない「.*」' => [TestUploadRepeatableField::class, 'REPEATABLE_GROUPSに組を書き'],
+            '組を使わない「.*」' => [TestUploadRepeatableField::class, 'CHILD_TABLESに組を書き'],
             '1つだけの欄にmax' => [TestUploadSingleWithMax::class, '使えないキー（max）'],
             '使えないキー' => [TestUploadUnknownKey::class, '使えないキー（size）'],
             'requiredが真偽値でない' => [TestUploadRequiredNotBool::class, "'required'は、trueかfalse"],

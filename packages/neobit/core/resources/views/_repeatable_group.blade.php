@@ -1,16 +1,16 @@
 {{--
-    繰り返しの組（Neobit\Core\Crud\RepeatableGroup）の一式。枠の外側（行の入れ物・行を足すボタン・
+    子テーブル（Neobit\Core\Crud\ChildTables）の一式。枠の外側（行の入れ物・行を足すボタン・
     空の行のひな型・行の×）を受け持ち、行の中の項目の並べ方は、コーナーの部分ビューに任せる。
     $readonlyの値によって、次の2通りに切り替わる（考え方は_ajax_upload_blockと同じ）。
 
     - $readonlyが空（create/edit）：行を並べ、「行を足す」で行を増やせるようにする。
-      行の数の上限は、今の画面のコントローラーのREPEATABLE_GROUPSの'max'から読む。
+      行の数の上限は、今の画面のコントローラーのCHILD_TABLESの'max'から読む。
       行が1つも無いときも、最初から空の行を1つ出す
     - $readonlyが空でない（confirm/show）：行を、コーナーの部分ビューの読み取り専用で並べる。
       行が1つも無ければ「（なし）」とだけ出す
 
     呼び出し側が用意する変数:
-    - $group     組の名前（REPEATABLE_GROUPSのキー。例: "photos"）
+    - $group     組の名前（CHILD_TABLESのキー。例: "photos"）
     - $row       行の中身を書いた、コーナーの部分ビューの名前（例: "admin.news._photo_row"）。
                  $model・$input・$idx（何行目か）・$readonly・$uploadUrlを受け取る。ひな型では
                  $inputが空、$idxが0になる。name属性は「組の名前_項目[]」にする
@@ -22,18 +22,18 @@
     - $inline    (省略可)trueなら、行を横に並べる。並べ方と行の幅はglobal.cssの.repeatable_inlineにある
 
     行のidと、組が送られたことを示す印は、ここでhiddenに出す。コーナーの部分ビューには書かない。
-    行が1つも無いときも印が届くので、保存のときに「組を空にする」と分かる（RepeatableGroupのコメント参照）。
+    行が1つも無いときも印が届くので、保存のときに「組を空にする」と分かる（ChildTablesのコメント参照）。
     確認画面では、$inputにある同じ値を_confirm_hiddenが出す。
 --}}
 @php
     $uploadUrl ??= null;
     $inline ??= false;
 
-    $definition = \Neobit\Core\Crud\RepeatableGroupDefinitions::find(request()->route()?->getControllerClass() ?? '', $group)
-        ?? throw new \LogicException("繰り返しの組「{$group}」が、今の画面のコントローラーのREPEATABLE_GROUPSにありません。");
+    $definition = \Neobit\Core\Crud\ChildTableDefinitions::find(request()->route()?->getControllerClass() ?? '', $group)
+        ?? throw new \LogicException("子テーブル「{$group}」が、今の画面のコントローラーのCHILD_TABLESにありません。");
     $ids = is_array($input["{$group}_id"] ?? null) ? $input["{$group}_id"] : [];
     $count = count($ids);
-    $markerKey = \Neobit\Core\Crud\RepeatableGroupDefinitions::markerKey($group);
+    $markerKey = \Neobit\Core\Crud\ChildTableDefinitions::markerKey($group);
 @endphp
 @if ($readonly)
     @if ($count === 0)

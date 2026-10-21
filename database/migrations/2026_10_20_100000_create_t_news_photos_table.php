@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 /**
  * ニュース記事の写真。1記事に0〜複数の、画像とキャプションの組。
  *
- * 繰り返しの組（Neobit\Core\Crud\RepeatableGroup）の見本。行のidを保って更新するので、
+ * 子テーブル（Neobit\Core\Crud\ChildTables）の見本。行のidを保って更新するので、
  * 添付ファイル（t_news_attachments）と違い、行のidはほかから参照してもよい。
  * imageは保存したファイル名、image_originは表示名で、ファイルは記事の保存先（news/000/000012/）に置く。
  * seqは画面の並びの順の番号。
