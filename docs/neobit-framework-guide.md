@@ -88,6 +88,7 @@
 | 6 | `php artisan view:clear` | 毎回 |
 
 - **`config:cache` は必須です**。サーバーでは、PHP-FPM を apache で動かし、`.env` は apache から読めないようにしています。`config:cache` は `.env` の値を取り込んだ `bootstrap/cache/config.php` を作り、Laravel はそれだけを読むようになるので、apache が `.env` を読めなくても画面も cron も動きます。
+- **composer のコマンドの後は、`config:cache` をやり直します**。`composer install`・`composer dump-autoload`・`composer update` は、Laravel の決まり（`post-autoload-dump`）で `bootstrap/cache/config.php` を消します。やり直さないと、下の `config:clear` と同じく DB が SQLite になって止まります。
 - **`config:clear` は実行しません**。`bootstrap/cache/config.php` が消えて設定の出どころが無くなり、DB が既定の SQLite になって、画面も cron（19章）も動かなくなります。
 - `.env` を変えただけでは効きません。`config:cache` をやり直したときに効きます。
 - `bootstrap/cache/` は、apache が読めて書けない状態にしています。ディレクトリに setgid と既定の ACL（`default:user:apache:r-x`）を付けてあるので、中に作ったファイルは誰が作っても apache が読めます。作った後に権限を直す必要はありません。`ls -l` では 660 に見えますが、末尾の `+` が ACL の印で、中身は `getfacl` で確かめます。
