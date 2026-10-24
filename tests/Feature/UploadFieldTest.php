@@ -77,17 +77,17 @@ class UploadFieldTest extends TestCase
 
         $html = $this->actingAs($staff, 'admin')->get(route('admin.news.create'))->assertOk()->getContent();
 
-        // 添付ファイル（ファイルだけの組）は、行の数の上限を持ち、まとめて選べる
-        $this->assertStringContainsString('data-group="attach" data-max="5"', $html);
+        // 添付ファイル（ファイルだけの組。4枠の固定の枠）は、行の数の上限を持ち、まとめて選べる
+        $this->assertStringContainsString('data-group="attach" data-max="4"', $html);
         $this->assertMatchesRegularExpression('/data-field="attach_file".*?class="ajax_file_input d-none" accept=""\s+multiple/s', $html);
         // 一覧の画像（1つだけの欄）は、まとめて選べない
         $this->assertMatchesRegularExpression('/data-field="list_image".*?class="ajax_file_input d-none" accept="image\/\*" >/s', $html);
 
         // 'inline' => true を渡した添付ファイルの組は、行を並べる入れ物に横並びのクラスが付く
-        $this->assertMatchesRegularExpression('/data-group="attach" data-max="5"[^>]*>\s*<input[^>]*>\s*<div class="repeatable_rows repeatable_inline">/', $html);
+        $this->assertMatchesRegularExpression('/data-group="attach" data-max="4"[^>]*>\s*<input[^>]*>\s*<div class="repeatable_rows repeatable_inline">/', $html);
 
         // ファイルの項目だけの組（添付ファイル）にだけ、「ファイルを削除」で行ごと消す目印が付く
-        $this->assertStringContainsString('data-group="attach" data-max="5" data-files-only="1">', $html);
+        $this->assertStringContainsString('data-group="attach" data-max="4" data-files-only="1" data-fixed="1">', $html);
         $this->assertStringContainsString('data-group="photos" data-max="10">', $html);
     }
 }

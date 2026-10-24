@@ -526,6 +526,62 @@ class ChildTablesTest extends TestCase
         $this->assertSame([['a.pdf', '案内.pdf']], $news->attach()->get()->map(fn ($row) => [$row->file, $row->file_origin])->all());
     }
 
+    // ---- 固定の枠（添付ファイルは4枠） ----
+
+    /** 新規登録・編集の画面のHTMLのうち、添付ファイルの組の部分 */
+    private function attachGroupHtml(string $html): string
+    {
+        $start = strpos($html, 'data-group="attach"');
+        $end = strpos($html, 'data-group="photos"');
+
+        return substr($html, $start, $end - $start);
+    }
+
+    public function test_fixed_slots_are_always_shown_without_add_and_remove_buttons(): void
+    {
+        $html = $this->actingAs($this->staff, 'admin')->get(route('admin.news.create'))->assertOk()->getContent();
+        $attach = $this->attachGroupHtml($html);
+
+        // 4枠と、行のひな型の1つ。「ファイルを追加」と×は出さない
+        $this->assertStringContainsString('data-fixed="1"', $attach);
+        $this->assertSame(5, substr_count($attach, 'name="attach_id[]"'));
+        $this->assertStringNotContainsString('ファイルを追加', $attach);
+        $this->assertStringNotContainsString('repeatable_remove', $attach);
+
+        // 写真（固定の枠ではない）は、今までどおり「写真を追加」と×を出す
+        $this->assertStringContainsString('写真を追加', $html);
+        $this->assertStringContainsString('class="repeatable_remove"', $html);
+    }
+
+    public function test_edit_screen_fills_the_fixed_slots_and_shows_extra_rows(): void
+    {
+        // 1件なら、1件と空の3枠
+        $news = $this->news();
+        $news->attach()->create(['file' => 'a.pdf', 'file_origin' => 'a.pdf']);
+        $attach = $this->attachGroupHtml($this->actingAs($this->staff, 'admin')->get(route('admin.news.edit', $news))->getContent());
+        $this->assertSame(5, substr_count($attach, 'name="attach_id[]"'));
+
+        // 枠より多い5件は、5件とも出す。そのまま保存すると、4件までで断る
+        $many = $this->news();
+        foreach (range(1, 5) as $number) {
+            $many->attach()->create(['file' => "f{$number}.pdf", 'file_origin' => "f{$number}.pdf"]);
+        }
+        $attach = $this->attachGroupHtml($this->actingAs($this->staff, 'admin')->get(route('admin.news.edit', $many))->getContent());
+        $this->assertSame(6, substr_count($attach, 'name="attach_id[]"'));
+
+        $rows = $many->attach()->get();
+        $input = $this->newsInput([]) + [
+            'attach_group' => '1',
+            'attach_id' => $rows->pluck('id')->map(fn ($id) => (string) $id)->all(),
+            'attach_file' => $rows->pluck('file')->all(),
+            'attach_file_tmp' => array_fill(0, 5, ''),
+            'attach_file_origin' => $rows->pluck('file_origin')->all(),
+            'attach_file_del' => array_fill(0, 5, ''),
+        ];
+        $this->update($many, $input)->assertSessionHasErrors('attach_id');
+        $this->assertSame(5, $many->attach()->count());
+    }
+
     // ---- 1:多のテーブルだけ ----
 
     public function test_many_to_many_relation_is_rejected_without_touching_the_related_table(): void
@@ -559,11 +615,16 @@ class ChildTablesTest extends TestCase
         $this->assertSame('seq', $group['order']);
         $this->assertSame(10, $group['max']);
         $this->assertFalse($group['delete_insert']);
+        $this->assertNull($group['fixed']);
 
         // 添付ファイルは、保存のたびに行を入れ直す組。並び順の列は持たない
         $attach = ChildTableDefinitions::find(NewsController::class, 'attach');
         $this->assertTrue($attach['delete_insert']);
         $this->assertNull($attach['order']);
+
+        // 添付ファイルは4枠の固定の枠。上限も4
+        $this->assertSame(4, $attach['fixed']);
+        $this->assertSame(4, $attach['max']);
 
         $upload = UploadFieldDefinitions::find(NewsController::class, 'photos_image');
         $this->assertSame('group', $upload['kind']);
@@ -587,6 +648,8 @@ class ChildTablesTest extends TestCase
             '組に無いファイルの欄' => [TestGroupUnknownFileField::class, "'fields'にも書いて"],
             'AjaxFileUploadが無い' => [TestGroupWithoutUpload::class, 'AjaxFileUploadを使って'],
             'delete_insertが真偽値でない' => [TestGroupDeleteInsertNotBool::class, "'delete_insert'は、trueかfalse"],
+            'fixedとmaxを同時に' => [TestGroupFixedWithMax::class, "'fixed'と'max'を同時に書けません。'fixed'を書くと、行の数の上限もその数になります。"],
+            'fixedが1未満' => [TestGroupFixedZero::class, "固定の枠の数を'fixed'に1以上の数で"],
         ];
     }
 }
@@ -630,4 +693,14 @@ class TestChildTablesManyToManyController extends Controller
     {
         $this->saveChildTables($news, $validated);
     }
+}
+
+class TestGroupFixedWithMax
+{
+    private const CHILD_TABLES = ['photos' => ['relation' => 'photos', 'fields' => ['caption'], 'fixed' => 4, 'max' => 4]];
+}
+
+class TestGroupFixedZero
+{
+    private const CHILD_TABLES = ['photos' => ['relation' => 'photos', 'fields' => ['caption'], 'fixed' => 0]];
 }

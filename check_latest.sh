@@ -215,6 +215,10 @@ has   routes/web.php                                                    'newslet
 has   packages/neobit/core/src/Auth/LoginVerificationCode.php           '?string $purposeLabel = null'
 has   packages/neobit/core/src/Crud/ChildTables.php                 'trait ChildTables'
 has   packages/neobit/core/src/Crud/ChildTables.php                 'private function childTableRelation('
+has   packages/neobit/core/src/Crud/ChildTableDefinitions.php     "'fixed'と'max'を同時に書けません"
+has   packages/neobit/core/resources/views/_repeatable_group.blade.php  'data-fixed'
+has   packages/neobit/core/resources/js/repeatable_group.js             'group.dataset.fixed'
+has   app/Http/Controllers/Admin/NewsController.php                     "'fixed' => 4"
 has   packages/neobit/core/src/Crud/FormFlow.php                        'saveChildTables'
 has   packages/neobit/core/resources/js/repeatable_group.js             'repeatable_template'
 has   vite.config.js                                                    'repeatable_group.js'

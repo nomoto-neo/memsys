@@ -93,11 +93,12 @@ class NewsController extends Controller
     private const CHILD_TABLES = [
         // 添付ファイル。ファイルの項目が1つだけの組なので、画面でファイルをまとめて選べる。
         // ほかから行を参照しないので、保存のたびに行を消して画面の順に入れ直す。idの順が画面の順になるので、並び順の列は持たない
+        // 画面には、最初から4枠を並べる（固定の枠）。上限も4
         'attach' => [
             'relation' => 'attach',
             'fields' => ['file'],
             'delete_insert' => true,
-            'max' => 5,
+            'fixed' => 4,
         ],
         // 写真。行のidを保って保存し、画面の順は並び順の列に持つ
         'photos' => [
