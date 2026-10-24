@@ -223,7 +223,8 @@ import { postUploadFile } from '@neobit/upload_request.js';
             event.preventDefault();
             const block = findBlock(cancelLink);
 
-            const filesOnlyGroup = block.closest('.repeatable_group[data-files-only]');
+            // 固定の枠（data-fixed）は、枠の数を保つので行を消さない
+            const filesOnlyGroup = block.closest('.repeatable_group[data-files-only]:not([data-fixed])');
             if (filesOnlyGroup && rowsOf(filesOnlyGroup).length >= 2) {
                 block.dispatchEvent(new CustomEvent('repeatable:remove-row', { bubbles: true }));
                 return;

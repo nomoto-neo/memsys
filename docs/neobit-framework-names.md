@@ -93,7 +93,7 @@
 | `SearchableList` | `ORDER_OPTIONS` | 並び順の選択肢 | 同じ |
 | `SearchableList` | `FREE_WORD_COLUMNS` | フリーワード検索の対象の列 | 同じ |
 | `AjaxFileUpload` | `UPLOAD_FILES` | アップロードの欄。欄の名前 => `type`・`width`・`required`（書き方は `UploadFieldDefinitions`）。いくつでも足せる欄は、子テーブルの中の欄 `組.*.列` で書く | 同じ |
-| `ChildTables` | `CHILD_TABLES` | 子テーブル。組の名前 => `relation`・`fields`・`order`・`delete_insert`・`max`・`min`（書き方は `ChildTableDefinitions`） | 同じ |
+| `ChildTables` | `CHILD_TABLES` | 子テーブル。組の名前 => `relation`・`fields`・`order`・`delete_insert`・`max`・`fixed`・`min`（書き方は `ChildTableDefinitions`） | 同じ |
 | `AjaxFileUpload` | `WYSIWYG_IMAGE_FIELDS` | エディタの欄と、入れた画像を縮小する横幅 | 同じ |
 | `InputNormalizer` | `RAW_INPUT_FIELDS` | 全角と半角をそろえない項目 | |
 | `TwoFactorLogin` | `LOGIN_ACCOUNT` | ログインする人のモデル | |
@@ -260,7 +260,7 @@
 | ファイル | `global.js`・`global.css`・`ajax_upload.js`・`repeatable_group.js`・`upload_request.js`・`passkeys.js`・`code_editor.js`・`ip_block.js`・`wysiwyg_suneditor.js`・`wysiwyg_suneditor_content.css`・`wysiwyg_summernote.js` | |
 | 短い名前 | `@neobit`（`vite.config.js` の alias） | |
 | 動かすクラス名 | `ajax_submit`・`wysiwyg`・`ajax_upload_block`・`ajax_file_input`・`ajax_file_link`・`ajax_image_block`・`ajax_noimage_block`・`ajax_origin`・`ajax_tmp`・`ajax_del`・`ajax_cancel`・`repeatable_group`・`repeatable_rows`・`repeatable_row`・`repeatable_inline`・`repeatable_add`・`repeatable_remove`・`repeatable_template`・`ajax_submit_message`・`passkey_login`・`passkey_register`・`passkey_message`・`passkey_supported`・`passkey_unsupported`・`required-mark` | `required-mark` だけハイフン区切り |
-| `data-` 属性 | `data-confirm`・`data-item`・`data-field`・`data-group`・`data-files-only`・`data-is-image`・`data-upload-url`・`data-submit-url`・`data-options-url`・`data-remember`・`data-current`・`data-unsaved`・`data-switch-answer`・`data-remove-row` | |
+| `data-` 属性 | `data-confirm`・`data-item`・`data-field`・`data-group`・`data-files-only`・`data-fixed`・`data-is-image`・`data-upload-url`・`data-submit-url`・`data-options-url`・`data-remember`・`data-current`・`data-unsaved`・`data-switch-answer`・`data-remove-row` | |
 | イベント | `repeatable:add-row`・`repeatable:remove-row` | `ajax_upload.js` が出し、`repeatable_group.js` が受ける |
 
 ## 13. そのほか

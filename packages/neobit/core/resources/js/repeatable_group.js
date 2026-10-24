@@ -4,6 +4,7 @@
  * .repeatable_groupが1つの組で、その中の.repeatable_rowsに行（.repeatable_row）が並ぶ。
  * 「行を足す」で<template>のひな型を複製して末尾に足し、行の×で行ごと消す。
  * 行の数は組のdata-max（CHILD_TABLESの'max'）までで、上限まで行があれば「行を足す」を押せなくする。
+ * 固定の枠（data-fixed。CHILD_TABLESの'fixed'）では、行を足しも消しもしない。「行を足す」と×は画面に出ない。
  * 最後の1行の×は、行を消さずに、ひな型の空の行に置き換える。行の入れ物を残したまま、行のid・ファイルの欄の
  * hidden・文字の欄をまとめて空にするため。空の行は保存のときに除かれるので、今の行は削除になる。
  *
@@ -37,9 +38,9 @@
         return group.querySelector(':scope > .repeatable_template').content.firstElementChild.cloneNode(true);
     }
 
-    // ひな型を複製して、組の末尾に行を足し、足した行を返す。上限まで行があれば、足さずにnullを返す
+    // ひな型を複製して、組の末尾に行を足し、足した行を返す。固定の枠か、上限まで行があれば、足さずにnullを返す
     function addRow(group) {
-        if (rowsOf(group).length >= maxRows(group)) {
+        if (group.dataset.fixed || rowsOf(group).length >= maxRows(group)) {
             return null;
         }
 
@@ -50,8 +51,12 @@
         return row;
     }
 
-    // 行を消す。最後の1行は消さずに、ひな型の空の行に置き換える
+    // 行を消す。最後の1行は消さずに、ひな型の空の行に置き換える。固定の枠は、枠の数を保つので何もしない
     function removeRow(group, row) {
+        if (group.dataset.fixed) {
+            return;
+        }
+
         if (rowsOf(group).length >= 2) {
             row.remove();
         } else {

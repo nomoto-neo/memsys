@@ -5,7 +5,8 @@
 
     - $readonlyが空（create/edit）：行を並べ、「行を足す」で行を増やせるようにする。
       行の数の上限は、今の画面のコントローラーのCHILD_TABLESの'max'から読む。
-      行が1つも無いときも、最初から空の行を1つ出す
+      行が1つも無いときも、最初から空の行を1つ出す。
+      定義に'fixed'があれば、常にその数の枠を並べ（行がそれより多ければ全部）、「行を足す」と行の×は出さない
     - $readonlyが空でない（confirm/show）：行を、コーナーの部分ビューの読み取り専用で並べる。
       行が1つも無ければ「（なし）」とだけ出す
 
@@ -34,6 +35,9 @@
     $ids = is_array($input["{$group}_id"] ?? null) ? $input["{$group}_id"] : [];
     $count = count($ids);
     $markerKey = \Neobit\Core\Crud\ChildTableDefinitions::markerKey($group);
+    // 入力の画面に並べる枠の数。固定の枠なら、足りない分を空の枠で埋める
+    $fixed = $definition['fixed'];
+    $slots = $fixed !== null ? max($count, $fixed) : max($count, 1);
 @endphp
 @if ($readonly)
     @if ($count === 0)
@@ -48,14 +52,15 @@
         </div>
     @endif
 @else
-    {{-- data-files-onlyは、ファイルの項目だけの組の目印。ajax_upload.jsが、「ファイルを削除」で行ごと消すのに使う --}}
-    <div class="repeatable_group" data-group="{{ $group }}" data-max="{{ $definition['max'] }}"@if ($definition['texts'] === []) data-files-only="1"@endif>
+    {{-- data-files-onlyは、ファイルの項目だけの組の目印。ajax_upload.jsが、「ファイルを削除」で行ごと消すのに使う。
+         data-fixedは、固定の枠の目印。repeatable_group.jsとajax_upload.jsが、行を足さず消さないのに使う --}}
+    <div class="repeatable_group" data-group="{{ $group }}" data-max="{{ $definition['max'] }}"@if ($definition['texts'] === []) data-files-only="1"@endif{!! $fixed !== null ? ' data-fixed="1"' : '' !!}>
         <input type="hidden" name="{{ $markerKey }}" value="1">
 
         {{-- 行の入れ物。repeatable_group.jsは、足した行をこの末尾に入れる --}}
         <div class="repeatable_rows {{ $inline ? 'repeatable_inline' : '' }}">
-            @for ($i = 0; $i < max($count, 1); $i++)
-                {{-- 1行も無いときは$i=0の1回だけ回り、空の行が1つ出る --}}
+            @for ($i = 0; $i < $slots; $i++)
+                {{-- 行の無い分は空の枠になる。固定の枠でなければ、1行も無いときに空の行が1つ出る --}}
                 @include('neobit::_repeatable_group_row', [
                     'row' => $row,
                     'group' => $group,
@@ -63,11 +68,14 @@
                     'input' => $input,
                     'idx' => $i,
                     'uploadUrl' => $uploadUrl,
+                    'removable' => $fixed === null,
                 ])
             @endfor
         </div>
 
-        <button type="button" class="btn btn-sm btn-outline-secondary repeatable_add mt-1" @disabled($count >= $definition['max'])>{{ $addLabel }}</button>
+        @if ($fixed === null)
+            <button type="button" class="btn btn-sm btn-outline-secondary repeatable_add mt-1" @disabled($count >= $definition['max'])>{{ $addLabel }}</button>
+        @endif
 
         {{-- 「行を足す」で複製する、空の行のひな型。<template>の中身はブラウザに描画されず、
              フォームの送信にも入らない。$idxの0は「行の番号がある」ことを示すためのもので、何行目かという意味は持たない --}}
@@ -79,6 +87,7 @@
                 'input' => [],
                 'idx' => 0,
                 'uploadUrl' => $uploadUrl,
+                'removable' => $fixed === null,
             ])
         </template>
     </div>
