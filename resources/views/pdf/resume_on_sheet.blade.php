@@ -48,28 +48,28 @@
 @endif
 
 {{--
-    学歴・職歴。行は10mmずつで、年・月・内容の列の境目は37.6mmと52.6mm（2ページ目の免許・資格の欄と同じ）。
-    1ページ目の欄の位置（1行目の上端126.4mm・15行）は、様式例の一般的な寸法から見積もったもの。用紙で測り直したら直す
+    学歴・職歴。行は10mmずつ。1ページ目の欄は、1行目の上端126.4mm・15行で、年・月・内容の列の境目は34.7mmと49.9mm
 --}}
 @php
     $careers = $member->careers->values();
     $firstPageRows = 15;
 @endphp
 @foreach ($careers->take($firstPageRows) as $i => $career)
-    <div class="at" style="left: 12.4mm; top: {{ 129.4 + $i * 10 }}mm; width: 25.2mm; text-align: center;">{{ $career->year }}</div>
-    <div class="at" style="left: 37.6mm; top: {{ 129.4 + $i * 10 }}mm; width: 15mm; text-align: center;">{{ $career->month }}</div>
-    <div class="at" style="left: 55mm; top: {{ 129.4 + $i * 10 }}mm; width: 140mm;">{{ $career->content }}</div>
+    <div class="at" style="left: 12.4mm; top: {{ 129.4 + $i * 10 }}mm; width: 22.3mm; text-align: center;">{{ $career->year }}</div>
+    <div class="at" style="left: 34.7mm; top: {{ 129.4 + $i * 10 }}mm; width: 15.2mm; text-align: center;">{{ $career->month }}</div>
+    <div class="at" style="left: 52.3mm; top: {{ 129.4 + $i * 10 }}mm; width: 142mm;">{{ $career->content }}</div>
 @endforeach
 
 <pagebreak />
 
 {{-- ===== 2ページ目 ===== --}}
 
-{{-- 学歴・職歴の続き。2ページ目の欄（1行目の上端25.4mm・8行）の位置も、見積もったもの --}}
+{{-- 学歴・職歴の続き。2ページ目の欄は、25.4mmからの見出しの行の下（上端35.4mm）から、免許・資格の見出しまでの7行。
+     列の境目は37.6mmと52.6mm（免許・資格の欄と同じ） --}}
 @foreach ($careers->slice($firstPageRows)->values() as $i => $career)
-    <div class="at" style="left: 12.4mm; top: {{ 28.4 + $i * 10 }}mm; width: 25.2mm; text-align: center;">{{ $career->year }}</div>
-    <div class="at" style="left: 37.6mm; top: {{ 28.4 + $i * 10 }}mm; width: 15mm; text-align: center;">{{ $career->month }}</div>
-    <div class="at" style="left: 55mm; top: {{ 28.4 + $i * 10 }}mm; width: 140mm;">{{ $career->content }}</div>
+    <div class="at" style="left: 12.4mm; top: {{ 38.4 + $i * 10 }}mm; width: 25.2mm; text-align: center;">{{ $career->year }}</div>
+    <div class="at" style="left: 37.6mm; top: {{ 38.4 + $i * 10 }}mm; width: 15mm; text-align: center;">{{ $career->month }}</div>
+    <div class="at" style="left: 55mm; top: {{ 38.4 + $i * 10 }}mm; width: 140mm;">{{ $career->content }}</div>
 @endforeach
 
 {{-- 免許・資格（ダミーの文）。行は上下105.4〜115.4mmの見出しの下から、10mmずつ。年・月・内容の列の境目は37.6mmと52.6mm --}}
