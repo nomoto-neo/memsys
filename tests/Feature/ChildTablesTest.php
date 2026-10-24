@@ -616,6 +616,7 @@ class ChildTablesTest extends TestCase
         $this->assertSame(10, $group['max']);
         $this->assertFalse($group['delete_insert']);
         $this->assertNull($group['fixed']);
+        $this->assertSame(1, $group['initial']);
 
         // 添付ファイルは、保存のたびに行を入れ直す組。並び順の列は持たない
         $attach = ChildTableDefinitions::find(NewsController::class, 'attach');
@@ -625,6 +626,7 @@ class ChildTablesTest extends TestCase
         // 添付ファイルは4枠の固定の枠。上限も4
         $this->assertSame(4, $attach['fixed']);
         $this->assertSame(4, $attach['max']);
+        $this->assertSame(4, $attach['initial']);
 
         $upload = UploadFieldDefinitions::find(NewsController::class, 'photos_image');
         $this->assertSame('group', $upload['kind']);
@@ -650,6 +652,8 @@ class ChildTablesTest extends TestCase
             'delete_insertが真偽値でない' => [TestGroupDeleteInsertNotBool::class, "'delete_insert'は、trueかfalse"],
             'fixedとmaxを同時に' => [TestGroupFixedWithMax::class, "'fixed'と'max'を同時に書けません。'fixed'を書くと、行の数の上限もその数になります。"],
             'fixedが1未満' => [TestGroupFixedZero::class, "固定の枠の数を'fixed'に1以上の数で"],
+            'initialとfixedを同時に' => [TestGroupInitialWithFixed::class, "'initial'と'fixed'を同時に書けません"],
+            'initialがmaxより多い' => [TestGroupInitialOverMax::class, "'initial'は、1から'max'までの数で"],
         ];
     }
 }
@@ -703,4 +707,14 @@ class TestGroupFixedWithMax
 class TestGroupFixedZero
 {
     private const CHILD_TABLES = ['photos' => ['relation' => 'photos', 'fields' => ['caption'], 'fixed' => 0]];
+}
+
+class TestGroupInitialWithFixed
+{
+    private const CHILD_TABLES = ['photos' => ['relation' => 'photos', 'fields' => ['caption'], 'fixed' => 4, 'initial' => 2]];
+}
+
+class TestGroupInitialOverMax
+{
+    private const CHILD_TABLES = ['photos' => ['relation' => 'photos', 'fields' => ['caption'], 'initial' => 11, 'max' => 10]];
 }

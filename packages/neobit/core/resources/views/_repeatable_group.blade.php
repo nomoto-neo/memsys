@@ -5,7 +5,7 @@
 
     - $readonlyが空（create/edit）：行を並べ、「行を足す」で行を増やせるようにする。
       行の数の上限は、今の画面のコントローラーのCHILD_TABLESの'max'から読む。
-      行が1つも無いときも、最初から空の行を1つ出す。
+      行が1つも無いときも、最初から空の行を1つ出す。定義に'initial'があれば、最初からその数の枠を並べる。
       定義に'fixed'があれば、常にその数の枠を並べ（行がそれより多ければ全部）、「行を足す」と行の×は出さない
     - $readonlyが空でない（confirm/show）：行を、コーナーの部分ビューの読み取り専用で並べる。
       行が1つも無ければ「（なし）」とだけ出す
@@ -35,9 +35,9 @@
     $ids = is_array($input["{$group}_id"] ?? null) ? $input["{$group}_id"] : [];
     $count = count($ids);
     $markerKey = \Neobit\Core\Crud\ChildTableDefinitions::markerKey($group);
-    // 入力の画面に並べる枠の数。固定の枠なら、足りない分を空の枠で埋める
+    // 入力の画面に並べる枠の数。最初に並べる数（'initial'。固定の枠ならその数）に足りない分を、空の枠で埋める
     $fixed = $definition['fixed'];
-    $slots = $fixed !== null ? max($count, $fixed) : max($count, 1);
+    $slots = max($count, $definition['initial']);
 @endphp
 @if ($readonly)
     @if ($count === 0)
@@ -60,7 +60,7 @@
         {{-- 行の入れ物。repeatable_group.jsは、足した行をこの末尾に入れる --}}
         <div class="repeatable_rows {{ $inline ? 'repeatable_inline' : '' }}">
             @for ($i = 0; $i < $slots; $i++)
-                {{-- 行の無い分は空の枠になる。固定の枠でなければ、1行も無いときに空の行が1つ出る --}}
+                {{-- 行の無い分は空の枠になる --}}
                 @include('neobit::_repeatable_group_row', [
                     'row' => $row,
                     'group' => $group,

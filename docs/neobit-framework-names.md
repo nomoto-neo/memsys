@@ -93,7 +93,7 @@
 | `SearchableList` | `ORDER_OPTIONS` | 並び順の選択肢 | 同じ |
 | `SearchableList` | `FREE_WORD_COLUMNS` | フリーワード検索の対象の列 | 同じ |
 | `AjaxFileUpload` | `UPLOAD_FILES` | アップロードの欄。欄の名前 => `type`・`width`・`required`（書き方は `UploadFieldDefinitions`）。いくつでも足せる欄は、子テーブルの中の欄 `組.*.列` で書く | 同じ |
-| `ChildTables` | `CHILD_TABLES` | 子テーブル。組の名前 => `relation`・`fields`・`order`・`delete_insert`・`max`・`fixed`・`min`（書き方は `ChildTableDefinitions`） | 同じ |
+| `ChildTables` | `CHILD_TABLES` | 子テーブル。組の名前 => `relation`・`fields`・`order`・`delete_insert`・`max`・`fixed`・`initial`・`min`（書き方は `ChildTableDefinitions`） | 同じ |
 | `AjaxFileUpload` | `WYSIWYG_IMAGE_FIELDS` | エディタの欄と、入れた画像を縮小する横幅 | 同じ |
 | `InputNormalizer` | `RAW_INPUT_FIELDS` | 全角と半角をそろえない項目 | |
 | `TwoFactorLogin` | `LOGIN_ACCOUNT` | ログインする人のモデル | |

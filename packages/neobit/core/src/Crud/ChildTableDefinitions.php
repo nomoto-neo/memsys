@@ -30,6 +30,8 @@ use ReflectionClass;
  * - max       行の数の上限。画面で行を増やしたり消したりする。maxかfixedのどちらか1つを必ず書く
  * - fixed     固定の枠の数。画面に、最初からこの数の枠を並べ、行を増やしたり消したりしない。
  *             行の数の上限もこの数になる。maxと同時には書けない
+ * - initial   入力の画面に、最初から並べる枠の数。行がそれより少なければ、空の枠で埋める。
+ *             省略すると1。maxまでの数で、fixedと同時には書けない
  * - min       行の数の下限。省略すると0
  *
  * 書き方の誤りは、最初に読んだときに例外にする。どの組の何が誤りかを、文言に書く。
@@ -40,13 +42,13 @@ final class ChildTableDefinitions
     private const CONSTANT = 'CHILD_TABLES';
 
     /** 1つの組に書けるキー */
-    private const KEYS = ['relation', 'fields', 'order', 'delete_insert', 'max', 'fixed', 'min'];
+    private const KEYS = ['relation', 'fields', 'order', 'delete_insert', 'max', 'fixed', 'initial', 'min'];
 
     /** 組の名前と項目の名前に使える形。画面から送る名前とDBの列の名前になるので、英小文字・数字・「_」だけ */
     private const NAME_PATTERN = '/^[a-z][a-z0-9_]*$/';
 
     // コントローラーのクラスごとの、読み終えた定義
-    /** @var array<string, array<string, array{group: string, relation: string, texts: list<string>, files: list<string>, order: ?string, delete_insert: bool, fixed: ?int, max: int, min: int}>> */
+    /** @var array<string, array<string, array{group: string, relation: string, texts: list<string>, files: list<string>, order: ?string, delete_insert: bool, fixed: ?int, initial: int, max: int, min: int}>> */
     private static array $cache = [];
 
     /**
@@ -54,7 +56,7 @@ final class ChildTableDefinitions
      * textsはファイルではない項目、filesはファイルの項目（UPLOAD_FILESに書いたもの）。
      * CHILD_TABLESが無いコントローラーでは空の配列。
      *
-     * @return array<string, array{group: string, relation: string, texts: list<string>, files: list<string>, order: ?string, delete_insert: bool, fixed: ?int, max: int, min: int}>
+     * @return array<string, array{group: string, relation: string, texts: list<string>, files: list<string>, order: ?string, delete_insert: bool, fixed: ?int, initial: int, max: int, min: int}>
      */
     public static function of(string $controllerClass): array
     {
@@ -154,6 +156,15 @@ final class ChildTableDefinitions
             throw new LogicException("{$where}に、行の数の上限を'max'に1以上の数で書いてください。");
         }
 
+        // 最初に並べる枠の数。固定の枠は、枠の数が決まっているので書かない
+        $initial = $spec['initial'] ?? null;
+        if ($initial !== null && $fixed !== null) {
+            throw new LogicException("{$where}は、'initial'と'fixed'を同時に書けません。'fixed'を書くと、その数の枠を並べます。");
+        }
+        if ($initial !== null && (! is_int($initial) || $initial < 1 || $initial > $max)) {
+            throw new LogicException("{$where}の'initial'は、1から'max'までの数で書いてください。");
+        }
+
         $min = $spec['min'] ?? 0;
         if (! is_int($min) || $min < 0 || $min > $max) {
             throw new LogicException("{$where}の'min'は、0から'max'までの数で書いてください。");
@@ -182,6 +193,7 @@ final class ChildTableDefinitions
             'order' => $order,
             'delete_insert' => $deleteInsert,
             'fixed' => $fixed,
+            'initial' => $fixed ?? $initial ?? 1,
             'max' => $max,
             'min' => $min,
         ];
