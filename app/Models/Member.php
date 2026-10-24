@@ -6,6 +6,7 @@ use App\Enums\NoticeMail;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Collection;
@@ -150,6 +151,16 @@ class Member extends Authenticatable implements LoginAccount, OperationLogNamedM
     {
         return $this->belongsTo(Staff::class, 'staff_id')
             ->withTrashed();
+    }
+
+    /**
+     * この会員の経歴（学歴・職歴）。画面の並びの順。子テーブルの処理（Neobit\Core\Crud\ChildTables）は、
+     * 管理画面とマイページのCHILD_TABLESに書いたこのリレーションを通して、保存・削除を行う。
+     * 保存のたびに画面の順に入れ直す（delete_insert）ので、idの順が画面の順になる。
+     */
+    public function careers(): HasMany
+    {
+        return $this->hasMany(MemberCareer::class, 'member_id')->orderBy('id');
     }
 
     /**

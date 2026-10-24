@@ -1,9 +1,10 @@
 @extends('layouts.app')
 
-{{-- 顔写真のアップロード欄があるので、CSRFトークンの<meta>とajax_upload.jsを読み込む。 --}}
+{{-- 顔写真のアップロード欄があるので、CSRFトークンの<meta>とajax_upload.jsを読み込む。
+     経歴の行を足す・消すのに、repeatable_group.jsも読み込む。 --}}
 @push('head-extra')
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    @vite(['vendor/neobit/core/resources/js/ajax_upload.js'])
+    @vite(['vendor/neobit/core/resources/js/ajax_upload.js', 'vendor/neobit/core/resources/js/repeatable_group.js'])
 @endpush
 
 @section('content')
@@ -105,6 +106,20 @@
                             'readonly' => '',
                             'uploadUrl' => route('mypage.ajaxUpload'),
                         ])
+                    </div>
+
+                    {{-- 経歴（学歴・職歴）。最初から10枠を並べ、20枠まで足せる。履歴書のPDFの学歴・職歴の欄に出る --}}
+                    <div class="mb-3">
+                        <label class="form-label d-block">経歴（学歴・職歴）</label>
+                        @include('neobit::_repeatable_group', [
+                            'group' => 'careers',
+                            'row' => '_member_career_row',
+                            'model' => $member,
+                            'input' => $input,
+                            'readonly' => '',
+                            'addLabel' => '経歴を追加',
+                        ])
+                        <div class="invalid-feedback" data-item="careers_id">{{ $errors->first('careers_id') }}</div>
                     </div>
 
                     <div class="d-flex gap-2">

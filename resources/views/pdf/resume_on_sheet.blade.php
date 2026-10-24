@@ -5,7 +5,8 @@
 
     位置は、用紙の左上からのmm。用紙の罫線の位置を測って決めている。
     <pagebreak />の後ろは2ページ目で、用紙の2ページ目が下敷きになる。
-    会員の情報に無い項目（学歴・職歴、免許・資格、志望の動機など）は、書き方を見せるためのダミーの文を載せる。
+    学歴・職歴は、会員の経歴（Member::careers()）を載せる。1ページ目の欄に入りきらない分は、2ページ目の欄に続ける。
+    会員の情報に無い項目（免許・資格、志望の動機など）は、書き方を見せるためのダミーの文を載せる。
 --}}
 <style>
     /* 位置を決めて置く文字。用紙の欄に合わせて、1つずつleft・top・widthを書く */
@@ -46,9 +47,30 @@
     </div>
 @endif
 
+{{--
+    学歴・職歴。行は10mmずつで、年・月・内容の列の境目は37.6mmと52.6mm（2ページ目の免許・資格の欄と同じ）。
+    1ページ目の欄の位置（1行目の上端126.4mm・15行）は、様式例の一般的な寸法から見積もったもの。用紙で測り直したら直す
+--}}
+@php
+    $careers = $member->careers->values();
+    $firstPageRows = 15;
+@endphp
+@foreach ($careers->take($firstPageRows) as $i => $career)
+    <div class="at" style="left: 12.4mm; top: {{ 129.4 + $i * 10 }}mm; width: 25.2mm; text-align: center;">{{ $career->year }}</div>
+    <div class="at" style="left: 37.6mm; top: {{ 129.4 + $i * 10 }}mm; width: 15mm; text-align: center;">{{ $career->month }}</div>
+    <div class="at" style="left: 55mm; top: {{ 129.4 + $i * 10 }}mm; width: 140mm;">{{ $career->content }}</div>
+@endforeach
+
 <pagebreak />
 
 {{-- ===== 2ページ目 ===== --}}
+
+{{-- 学歴・職歴の続き。2ページ目の欄（1行目の上端25.4mm・8行）の位置も、見積もったもの --}}
+@foreach ($careers->slice($firstPageRows)->values() as $i => $career)
+    <div class="at" style="left: 12.4mm; top: {{ 28.4 + $i * 10 }}mm; width: 25.2mm; text-align: center;">{{ $career->year }}</div>
+    <div class="at" style="left: 37.6mm; top: {{ 28.4 + $i * 10 }}mm; width: 15mm; text-align: center;">{{ $career->month }}</div>
+    <div class="at" style="left: 55mm; top: {{ 28.4 + $i * 10 }}mm; width: 140mm;">{{ $career->content }}</div>
+@endforeach
 
 {{-- 免許・資格（ダミーの文）。行は上下105.4〜115.4mmの見出しの下から、10mmずつ。年・月・内容の列の境目は37.6mmと52.6mm --}}
 @foreach ([

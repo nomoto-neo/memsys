@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Member;
+use App\Models\MemberCareer;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -15,6 +16,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Neobit\Core\Auth\PasswordChange;
+use Neobit\Core\Crud\ChildTables;
 use Neobit\Core\Crud\FormFlow;
 use Neobit\Core\Crud\SearchableList;
 use Neobit\Core\Csv\CsvDownload;
@@ -59,6 +61,9 @@ class MemberController extends Controller
 
     // 履歴書のPDF。クラス側は入口でdownloadPdf()を呼ぶだけ。
     use PdfDownload;
+
+    // 経歴（学歴・職歴）の値の組み立て・保存・削除。クラス側は CHILD_TABLES を用意し、rules()に childTableRules() を足す。
+    use ChildTables;
 
     // ---- 一覧・検索（SearchableList）の設定 ----
 
@@ -110,6 +115,22 @@ class MemberController extends Controller
         'photo' => ['type' => UploadType::Image, 'width' => Member::PHOTO_WIDTH],
     ];
 
+    // ---- 子テーブル（ChildTables）の設定 ----
+
+    /**
+     * 経歴（学歴・職歴）。子テーブル（Member::careers()）に画面の並びの順で持つ。書き方はChildTableDefinitions。
+     * 最初から10枠を並べ、「経歴を追加」で20枠まで足せる。ほかから行を参照しないので、保存のたびに入れ直す
+     */
+    private const CHILD_TABLES = [
+        'careers' => [
+            'relation' => 'careers',
+            'fields' => ['year', 'month', 'content'],
+            'delete_insert' => true,
+            'initial' => 10,
+            'max' => 20,
+        ],
+    ];
+
     // ---- このコーナーの項目の定義 ----
 
     /**
@@ -142,7 +163,7 @@ class MemberController extends Controller
             // 管理メモ。会員には見せない、スタッフ用の欄
             'staff_memo' => ['nullable', 'string', 'max:'.self::STAFF_MEMO_MAX_LENGTH],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
-        ] + $this->ajaxUploadRules();
+        ] + MemberCareer::rules() + $this->ajaxUploadRules() + $this->childTableRules();
     }
 
     /** モデルの今の値から、_fields.blade.phpに渡す$inputを組み立てる（詳細・編集で使う）。 */

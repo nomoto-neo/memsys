@@ -1,6 +1,6 @@
 {{--
     会員情報（お名前・フリガナ・メールアドレス・電話番号・生年月日・
-    都道府県・お知らせメール・顔写真・管理メモ・パスワード）の入力欄一式。
+    都道府県・お知らせメール・顔写真・経歴・管理メモ・パスワード）の入力欄一式。
 
     admin/staff/_fields.blade.phpと同じ考え方で、edit（編集）・
     confirm（更新の確認画面）・show（詳細表示）の3画面すべてから、
@@ -119,6 +119,21 @@
         'readonly' => $readonly,
         'uploadUrl' => $uploadUrl,
     ])
+</div>
+
+{{-- 経歴（学歴・職歴）。最初から10枠を並べ、20枠まで足せる（子テーブル。Neobit\Core\Crud\ChildTables）。
+     行の中身は_member_career_rowに書く。履歴書のPDFの学歴・職歴の欄に出る --}}
+<div class="mb-3">
+    <label class="form-label d-block">経歴（学歴・職歴）</label>
+    @include('neobit::_repeatable_group', [
+        'group' => 'careers',
+        'row' => '_member_career_row',
+        'model' => $model,
+        'input' => $input,
+        'readonly' => $readonly,
+        'addLabel' => '経歴を追加',
+    ])
+    <div class="invalid-feedback" data-item="careers_id">{{ $errors->first('careers_id') }}</div>
 </div>
 
 {{-- 管理メモ。スタッフが対応の経緯などを書き残す欄で、会員には見せない --}}

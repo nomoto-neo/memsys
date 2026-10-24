@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Member;
+use App\Models\MemberCareer;
 use App\Services\MemberActivityLog;
 use App\Services\NewsletterSubscription;
 use Illuminate\Http\RedirectResponse;
@@ -20,6 +21,7 @@ use Neobit\Core\Auth\LoginProfileNotice;
 use Neobit\Core\Auth\LoginSession;
 use Neobit\Core\Auth\PasskeyManagement;
 use Neobit\Core\Auth\TwoFactorManagement;
+use Neobit\Core\Crud\ChildTables;
 use Neobit\Core\Crud\FormFlow;
 use Neobit\Core\Enums\OperationLogAction;
 use Neobit\Core\Mail\MailTemplateException;
@@ -55,6 +57,9 @@ class MypageController extends Controller
     // 履歴書のPDF。クラス側は入口でdownloadPdf()を呼ぶだけ。
     use PdfDownload;
 
+    // 経歴（学歴・職歴）の値の組み立て・保存。クラス側は CHILD_TABLES を用意し、rules()に childTableRules() を足す。
+    use ChildTables;
+
     // パスキーの一覧・登録・削除（passkeyIndex()など。Neobit\Core\Auth\PasskeyManagement参照）。
     // 使わないサイトでは、このuseとroutes/web.phpのmypage.passkeysのルートを消す。
     use PasskeyManagement;
@@ -75,6 +80,22 @@ class MypageController extends Controller
      */
     private const UPLOAD_FILES = [
         'photo' => ['type' => UploadType::Image, 'width' => Member::PHOTO_WIDTH],
+    ];
+
+    // ---- 子テーブル（ChildTables）の設定 ----
+
+    /**
+     * 経歴（学歴・職歴）。子テーブル（Member::careers()）に画面の並びの順で持つ。書き方はChildTableDefinitions。管理画面（Admin\MemberController）と同じ。
+     * 最初から10枠を並べ、「経歴を追加」で20枠まで足せる。ほかから行を参照しないので、保存のたびに入れ直す
+     */
+    private const CHILD_TABLES = [
+        'careers' => [
+            'relation' => 'careers',
+            'fields' => ['year', 'month', 'content'],
+            'delete_insert' => true,
+            'initial' => 10,
+            'max' => 20,
+        ],
     ];
 
     // ---- 2段階認証の管理（TwoFactorManagement）の設定 ----
@@ -150,7 +171,7 @@ class MypageController extends Controller
                 // コードテーブルとの一致を確認
                 Rule::in(code_keys('notice_mail')),
             ],
-        ] + $this->ajaxUploadRules();
+        ] + MemberCareer::rules() + $this->ajaxUploadRules() + $this->childTableRules();
     }
 
     /** モデルの今の値から、編集画面に渡す$inputを組み立てる。 */
@@ -308,6 +329,8 @@ class MypageController extends Controller
             // ログインのための記録（認証アプリの登録・バックアップコード・信頼済み端末・パスキー）
             $member->resetTwoFactor();
             $this->deleteSessionsOf($member);
+            // 経歴（子テーブル）の行
+            $this->deleteChildTables($member);
             // 顔写真のファイルは、トランザクションが確定した後に消える（AjaxFileUpload参照）
             $this->deleteAllUploads($member);
             $member->delete();

@@ -1,10 +1,10 @@
 @extends('layouts.admin')
 
 {{-- 顔写真のアップロード欄があるので、CSRFトークンの<meta>とajax_upload.jsを読み込む
-     （admin/news/create.blade.phpと同じ）。 --}}
+     （admin/news/create.blade.phpと同じ）。経歴の行を足す・消すのに、repeatable_group.jsも読み込む。 --}}
 @push('head-extra')
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    @vite(['vendor/neobit/core/resources/js/ajax_upload.js'])
+    @vite(['vendor/neobit/core/resources/js/ajax_upload.js', 'vendor/neobit/core/resources/js/repeatable_group.js'])
 @endpush
 
 @section('content')

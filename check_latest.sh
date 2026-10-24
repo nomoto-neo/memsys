@@ -219,6 +219,12 @@ has   packages/neobit/core/src/Crud/ChildTableDefinitions.php     "'fixed'と'ma
 has   packages/neobit/core/resources/views/_repeatable_group.blade.php  'data-fixed'
 has   packages/neobit/core/resources/js/repeatable_group.js             'group.dataset.fixed'
 has   app/Http/Controllers/Admin/NewsController.php                     "'fixed' => 4"
+has   packages/neobit/core/src/Crud/ChildTableDefinitions.php     "'initial'と'fixed'を同時に書けません"
+has   database/migrations/2026_10_25_000000_create_t_member_careers_table.php "Schema::create('t_member_careers'"
+has   app/Models/MemberCareer.php                                       'class MemberCareer'
+has   app/Http/Controllers/MypageController.php                         'deleteChildTables($member)'
+has   resources/views/_member_career_row.blade.php                      'careers_content[]'
+has   resources/views/pdf/resume_on_sheet.blade.php                     '$firstPageRows = 15'
 has   packages/neobit/core/src/Crud/FormFlow.php                        'saveChildTables'
 has   packages/neobit/core/resources/js/repeatable_group.js             'repeatable_template'
 has   vite.config.js                                                    'repeatable_group.js'

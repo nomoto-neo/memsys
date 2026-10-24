@@ -11,7 +11,8 @@
 
     mPDFが解釈できるCSSはブラウザより少ない（flex・gridは使えない）ので、
     枠と罫線は<table>で組んでいる。大きさはmmで指定する。
-    学歴・職歴、免許・資格は会員情報に項目が無いので、手書き用の空欄にしている。
+    学歴・職歴は、会員の経歴（Member::careers()）を上の行から入れ、残りは手書き用の空欄にする。
+    免許・資格は会員情報に項目が無いので、手書き用の空欄にしている。
 --}}
 <!DOCTYPE html>
 <html lang="ja">
@@ -162,11 +163,15 @@
         <th class="month">月</th>
         <th>学歴・職歴</th>
     </tr>
-    @for ($i = 0; $i < 14; $i++)
+    {{-- 14行。経歴が14行より多いときは、全部を出す --}}
+    @php
+        $careers = $member->careers->values();
+    @endphp
+    @for ($i = 0; $i < max(14, $careers->count()); $i++)
         <tr>
-            <td class="year"></td>
-            <td class="month"></td>
-            <td></td>
+            <td class="year">{{ $careers[$i]->year ?? '' }}</td>
+            <td class="month">{{ $careers[$i]->month ?? '' }}</td>
+            <td>{{ $careers[$i]->content ?? '' }}</td>
         </tr>
     @endfor
 </table>

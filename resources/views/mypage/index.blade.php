@@ -55,6 +55,15 @@
                     <dd class="col-sm-8">{{ code_label('notice_mail', $member->notice_mail) }}</dd>
 
                     {{-- 顔写真のURLは、本人とスタッフだけが開けるもの（Member::photo_url） --}}
+                    <dt class="col-sm-4">経歴</dt>
+                    <dd class="col-sm-8">
+                        @forelse ($member->careers as $career)
+                            <div>{{ $career->year }}年{{ $career->month }}月　{{ $career->content }}</div>
+                        @empty
+                            （未設定）
+                        @endforelse
+                    </dd>
+
                     <dt class="col-sm-4">顔写真</dt>
                     <dd class="col-sm-8">
                         @if ($member->photo_url)

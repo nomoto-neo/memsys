@@ -54,12 +54,12 @@
 | 訪問者向け固定ページ（`PageController`） | URL の名前（`/aboutus`・`/service/price` のように、`/` を含む名前も使える）が、そのままパスになるページ。WYSIWYG で書いた本文の表示 |
 | お問い合わせ（`ContactController`） | 訪問者向けの入力・確認・送信、添付ファイル、メール送信、二重送信防止、スパム対策 |
 | 会員の認証まわり（`AuthSessionController` ほか） | ログイン、確認コード、パスワード再設定・変更、会員登録、退会、パスキー |
-| マイページ（`MypageController`） | 確認画面なしの編集（FormFlow）、ログインした人だけが見られるアップロード（顔写真）、PDF（履歴書）、退会、パスキー |
+| マイページ（`MypageController`） | 確認画面なしの編集（FormFlow）、ログインした人だけが見られるアップロード（顔写真）、子テーブル（経歴）、PDF（履歴書）、退会、パスキー |
 | 企業会員（`app/Http/Controllers/Company/` の下） | 企業と担当者、企業ID・担当者ID でのログイン、登録と運営の承認、担当者の招待、既存のシステムから移したデータの初回のログイン（23章） |
 | 管理画面のログイン（`Admin\AuthSessionController` ほか） | TOTP・バックアップコード、信頼済み端末、パスキー |
 | 管理画面：ニュース（`Admin\NewsController`） | 一覧・検索、登録・編集・確認画面、削除、アップロード（単数・複数）、WYSIWYG、CSVダウンロード・取り込み（追加あり）、記事の状態で見せ方の変わるファイル（一般公開・会員限定・非表示） |
 | 管理画面：固定ページ（`Admin\PageController`） | 一覧・検索、登録・編集・確認画面、削除、WYSIWYG（SunEditor。ニュースは summernote）、本文に入れる画像のアップロード |
-| 管理画面：会員（`Admin\MemberController`） | 一覧・検索、詳細・編集・確認画面、区分表（都道府県）、CSVダウンロード・取り込み（更新だけ）、`@名前` の列、ログインした人だけが見られるアップロード（顔写真）、PDF（履歴書） |
+| 管理画面：会員（`Admin\MemberController`） | 一覧・検索、詳細・編集・確認画面、区分表（都道府県）、CSVダウンロード・取り込み（更新だけ）、`@名前` の列、ログインした人だけが見られるアップロード（顔写真）、子テーブル（経歴）、PDF（履歴書） |
 | 管理画面：企業会員（`Admin\CompanyController`・`Admin\CompanyUserController`） | 一覧・検索、詳細・編集・確認画面、CSVダウンロード、列挙型の状態をボタンで変える操作（承認・却下・停止・再開）と、その操作ログ、お知らせのメール、企業の詳細から入る担当者の確認・編集・削除（親の id を URL に持つコーナー） |
 | 管理画面：スタッフ（`Admin\StaffController`） | 一覧・検索、登録・編集、論理削除と取り消し、権限（Policy）、列挙型、パスワード |
 | 管理画面：カテゴリー（`Admin\CategoryController`） | 確認画面なしの登録・編集、並び替え、ページ分けしない一覧 |
@@ -678,7 +678,7 @@ private const RAW_INPUT_FIELDS = News::RAW_INPUT_FIELDS;
 
 ### 子テーブル（ChildTables）
 
-**ファイル**：`packages/neobit/core/src/Crud/ChildTables.php`・`ChildTableDefinitions.php`（書き方）・`packages/neobit/core/resources/views/_repeatable_group.blade.php`・`packages/neobit/core/resources/js/repeatable_group.js`　**実例**：ニュースの写真（`Admin\NewsController`、画面は `admin/news/_photo_row.blade.php`）・ニュースの添付ファイル（ファイルだけの組。画面は `admin/news/_attach_row.blade.php`）　**設計**：`docs/repeatable-group-spec.md`
+**ファイル**：`packages/neobit/core/src/Crud/ChildTables.php`・`ChildTableDefinitions.php`（書き方）・`packages/neobit/core/resources/views/_repeatable_group.blade.php`・`packages/neobit/core/resources/js/repeatable_group.js`　**実例**：ニュースの写真（`Admin\NewsController`、画面は `admin/news/_photo_row.blade.php`）・ニュースの添付ファイル（ファイルだけの組。画面は `admin/news/_attach_row.blade.php`）・会員の経歴（最初に10枠を並べる組。`Admin\MemberController`・`MypageController`、画面は `_member_career_row.blade.php`）　**設計**：`docs/repeatable-group-spec.md`
 
 1:多の子テーブルを、親と同じ画面で入力して、親と一緒に保存します。子テーブルの1行を「いくつかの項目（ファイルを含んでよい）の組」として、画面で行を増やしたり消したりしながら入力します。例：ニュースの写真（画像とキャプション）。コントローラーの側の名前は `CHILD_TABLES`・`ChildTables`、画面の部品の名前は `_repeatable_group`・`repeatable_group.js`（行を繰り返す部品）です。いくつでも足せるファイルの欄も、ファイルの項目だけの組として書きます（例：ニュースの添付ファイル）。
 
@@ -1907,7 +1907,7 @@ return $this->downloadPdfOnSheet(
     ```
 
 - **あふれ**：1ページ分の中身があふれて、mPDF が自動でページを足すと、足されたページには定型紙が敷かれません。文字は `position: absolute` で置くので、ふつうはあふれません。
-- **表の行**：学歴や資格のように行の高さが決まった欄は、`@foreach` の中で `top` を行の高さずつずらします。
+- **表の行**：学歴や資格のように行の高さが決まった欄は、`@foreach` の中で `top` を行の高さずつずらします。見本の履歴書では、会員の経歴を学歴・職歴の欄に載せ、1ページ目の欄に入りきらない分を2ページ目の欄に続けています。
 - **位置の決め方**：定型紙を印刷して測るか、罫線の位置を PDF から読み取って決めます。試しに出して、ずれを直します。
 - **読めない PDF**：定型紙を読むのは、mPDF に入っている FPDI（無料版）です。古い作り方の PDF などで読めないときは、例外になります。そのときは、PDF の形式を変えてから置きます（「PDF 1.4 として保存し直す」など）。見本の定型紙（PDF 1.7）は、そのまま読めました。
 - **使えない CSS**：flex や grid は使えません。枠の中で縦の真ん中にそろえる指定（`vertical-align`）も効かないので、`padding-top` で合わせます。
