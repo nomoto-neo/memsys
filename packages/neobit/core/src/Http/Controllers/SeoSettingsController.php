@@ -12,7 +12,7 @@ use Neobit\Core\Seo\SeoSettings;
 use Throwable;
 
 /**
- * SEO設定の画面。サイト全体の既定（タイトルの形・説明文・シェアの画像・Search Consoleの確認タグ）と、
+ * SEO設定の画面。サイト全体の既定（タイトルの形・説明文・シェアの画像・Search Consoleの確認タグ・運営者の名前とロゴ）と、
  * 記事を持たないページごとのタイトル・説明文・画像・検索に出さないを、運用する人が管理画面から変える。
  * 値の持ち方と使い方は、Neobit\Core\Seo\SeoSettingsにある。画面に出すページは、設定のseo.page_routesで決める。
  *
@@ -45,6 +45,8 @@ class SeoSettingsController
             'description' => ['nullable', 'string', 'max:300'],
             'image' => $image,
             'site_verification' => ['nullable', 'string', 'max:255'],
+            'organization_name' => ['nullable', 'string', 'max:100'],
+            'organization_logo' => $image,
             'pages' => ['nullable', 'array'],
             'pages.*.route' => ['required', 'string'],
             'pages.*.title' => ['nullable', 'string', 'max:60'],
@@ -92,9 +94,14 @@ class SeoSettingsController
             'description' => old('description', $settings['description']),
             'image' => old('image', $settings['image']),
             'siteVerification' => old('site_verification', $settings['site_verification']),
+            'organizationName' => old('organization_name', $settings['organization_name']),
+            'organizationLogo' => old('organization_logo', $settings['organization_logo']),
             'configTitleFormat' => (string) config('neobit.seo.title_format'),
             'configDescription' => (string) config('neobit.seo.description'),
             'configImage' => (string) config('neobit.seo.image'),
+            // 運営者の名前は、設定ファイルも空ならサイト名
+            'configOrganizationName' => (string) (config('neobit.seo.organization_name') ?: config('app.site_name')),
+            'configOrganizationLogo' => (string) config('neobit.seo.organization_logo'),
             'pages' => $pages,
             'routes' => $this->routeNames($request),
         ]);
@@ -119,13 +126,14 @@ class SeoSettingsController
             }
         }
 
-        SeoSettings::save(
-            $validated['title_format'] ?? null,
-            $validated['description'] ?? null,
-            $validated['image'] ?? null,
-            $siteVerification,
-            $pages,
-        );
+        SeoSettings::save([
+            'title_format' => $validated['title_format'] ?? null,
+            'description' => $validated['description'] ?? null,
+            'image' => $validated['image'] ?? null,
+            'site_verification' => $siteVerification,
+            'organization_name' => $validated['organization_name'] ?? null,
+            'organization_logo' => $validated['organization_logo'] ?? null,
+        ], $pages);
 
         return redirect()->route($this->routeNames($request)['index'])
             ->with('status', 'SEO設定を保存しました。');

@@ -165,6 +165,8 @@ return [
     | - description         記事の無いページの説明文。空なら説明文のタグを出さない
     | - description_length  記事の本文から作る説明文の文字数
     | - image               既定のシェアの画像。publicの下のパス（例：/images/ogp.png）か、URL。nullなら出さない
+    | - organization_name   構造化データで出す運営者の名前。空ならサイト名
+    | - organization_logo   構造化データで出す運営者のロゴ。publicの下のパスか、URL。nullなら出さない
     | - noindex_routes      検索に出さないルートの名前。*が使える（例：'contact.thanks'）
     | - sitemap_routes      サイトマップ（/sitemap.xml）に載せる、記事を持たないページのルートの名前
     | - sitemap_models      サイトマップに載せる記事のモデル（Neobit\Core\Seo\SitemapSourceを実装したもの）
@@ -172,7 +174,7 @@ return [
     | - page_routes         管理画面の「SEO設定」に出す、記事を持たないページ。ルート名 => 画面に出す名前。
     |                       引数の要らないルートだけ
     |
-    | title_format・description・imageは、管理画面の「SEO設定」で空欄のときの値。
+    | title_format・description・image・organization_name・organization_logoは、管理画面の「SEO設定」で空欄のときの値。
     | 配列のキーなので、アプリのconfig/neobit.phpでseoを書くときは、全部のキーを書く。
     */
 
@@ -181,6 +183,8 @@ return [
     //     'description' => '',
     //     'description_length' => 120,
     //     'image' => null,
+    //     'organization_name' => '',
+    //     'organization_logo' => null,
     //     'noindex_routes' => [],
     //     'sitemap_routes' => [],
     //     'sitemap_models' => [],

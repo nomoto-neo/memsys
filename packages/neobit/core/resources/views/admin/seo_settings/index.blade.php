@@ -44,11 +44,27 @@
                 <div class="form-text">記事に画像が無いときに使います。/ から始まるサイトの中のパスか、http(s):// から始まるURLです。</div>
             </div>
 
-            <div>
+            <div class="mb-3">
                 <label for="seo-site-verification" class="form-label">Google Search Console の確認タグ</label>
                 <input type="text" id="seo-site-verification" name="site_verification" value="{{ $siteVerification }}" class="form-control">
                 <div class="invalid-feedback" data-item="site_verification">{{ $errors->first('site_verification') }}</div>
                 <div class="form-text">Search Console が示す &lt;meta name="google-site-verification" …&gt; をそのまま貼り付けてもかまいません。content の値だけを保存します。</div>
+            </div>
+
+            <div class="mb-3">
+                <label for="seo-organization-name" class="form-label">運営者の名前</label>
+                <input type="text" id="seo-organization-name" name="organization_name" value="{{ $organizationName }}" class="form-control"
+                       placeholder="{{ $configOrganizationName }}">
+                <div class="invalid-feedback" data-item="organization_name">{{ $errors->first('organization_name') }}</div>
+                <div class="form-text">構造化データで、記事を書いた側とサイトの運営者として出します。空欄ならサイト名です。</div>
+            </div>
+
+            <div>
+                <label for="seo-organization-logo" class="form-label">運営者のロゴのURL</label>
+                <input type="text" id="seo-organization-logo" name="organization_logo" value="{{ $organizationLogo }}" class="form-control"
+                       placeholder="{{ $configOrganizationLogo !== '' ? $configOrganizationLogo : '例：/images/logo.png' }}">
+                <div class="invalid-feedback" data-item="organization_logo">{{ $errors->first('organization_logo') }}</div>
+                <div class="form-text">/ から始まるサイトの中のパスか、http(s):// から始まるURLです。</div>
             </div>
         </div>
     </div>

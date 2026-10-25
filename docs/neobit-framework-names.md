@@ -136,6 +136,7 @@
 | インターフェース | `UploadDirectoryRule` | 保存先の規則 | |
 | インターフェース | `SheetPagingRule` | 定型紙のページの使い方 | |
 | インターフェース | `SeoSubject` | SEO の値の元になる記事のモデル | |
+| インターフェース | `SeoArticle`（`seoPublishedAt()`・`seoModifiedAt()`） | 構造化データで記事として出すモデル。`SeoSubject` を継ぐ | |
 | インターフェース | `SitemapSource` | サイトマップに載せる記事のモデル | |
 | モデルのトレイト | `HasSeoMeta` | 記事ごとの SEO の欄（`seoMeta()`）を持つ | |
 | モデル | `IpBlock` | IPブロック管理の1行 | |
@@ -153,8 +154,8 @@
 | `UploadFilePath` | `directory()`・`isPrivate()`・`disk()`・`url()`・`path()`・`tmpUrl()`・`previewUrl()`、定数 `TMP_DIR`・`TMP_DISK`・`TMP_SESSION_KEY`・`TMP_SESSION_MAX`・`PUBLIC_DISK`・`PRIVATE_DISK`・`SAFE_FILENAME` | |
 | `OperationRecorder` | `record()`・`loggableFields()` | |
 | `CsvWriter` | `download()`・`fetch()` | CSV の共通の書き出し方 |
-| `Seo` | `for()`・`noindex()`・`value()`、定数 `KEYS`・`IMAGE_URL_PATTERN` | ふつうはコントローラーが `for()`・`noindex()` を呼び、画面は `seo()` で読む |
-| `SeoSettings` | `titleFormat()`・`description()`・`image()`・`siteVerification()`・`page()`・`pageRoutes()`・`settings()`・`save()`・`extractVerificationContent()` | 管理画面の「SEO設定」の値 |
+| `Seo` | `for()`・`noindex()`・`breadcrumb()`・`breadcrumbs()`・`jsonLd()`・`value()`、定数 `KEYS`・`IMAGE_URL_PATTERN` | ふつうはコントローラーが `for()`・`noindex()` を呼び、画面は `seo()` で読む |
+| `SeoSettings` | `titleFormat()`・`description()`・`image()`・`siteVerification()`・`organizationName()`・`organizationLogo()`・`page()`・`pageRoutes()`・`settings()`・`save()`・`extractVerificationContent()` | 管理画面の「SEO設定」の値 |
 | `SlugRule` | 定数 `PATTERN`・`NESTED_PATTERN` | ルートの `where()` に使う |
 | `NotReservedPathRule` | `isReserved()` | |
 | `OperationLog` | `actionOptions()`・`modelOptions()`・`modelNames()`・`operatorLabel()`・`relatedRecords()`・`operatorTypes()`・`relatedKey()`・`countSummary()`・`csvName()`・`detailText()` | |
@@ -213,7 +214,7 @@
 | `neobit` | `ip_block_auto`・`ip_block_watch_minutes`・`ip_block_watch_count`・`ip_block_hours` | |
 | `neobit` | `operation_report_to`・`operation_report_thresholds` | 操作ログの設定は `operation_log_〜`、報告は `operation_report_〜` |
 | `neobit` | `cron_enabled` | `.env` は `CRON_ENABLED` |
-| `neobit` | `seo`（`title_format`・`description`・`description_length`・`image`・`noindex_routes`・`sitemap_routes`・`sitemap_models`・`robots_disallow`・`page_routes`） | 配列なので、アプリで書くときは全部のキーを書く |
+| `neobit` | `seo`（`title_format`・`description`・`description_length`・`image`・`organization_name`・`organization_logo`・`noindex_routes`・`sitemap_routes`・`sitemap_models`・`robots_disallow`・`page_routes`） | 配列なので、アプリで書くときは全部のキーを書く |
 | `upload` | `image_types`・`attach_types`・`max_kb`・`max_image_pixels`・`csv_max_kb`・`directory_rule` | |
 | `cleanup` | `operation_log_days`・`failed_job_days`・`tasks` | |
 
@@ -226,7 +227,8 @@
 | `_ajax_upload_block` | `$model`・`$input`・`$field`・`$readonly`・`$uploadUrl`・`$idx` | 種類・横幅・まとめて選べるかは `upload_field()` で読む。組の中の欄は `$idx` を渡す |
 | `_repeatable_group` | `$group`・`$row`・`$model`・`$input`・`$readonly`・`$uploadUrl`・`$addLabel`・`$inline`（省略可） | 行の中身の部分ビュー（`$row`）は `$model`・`$input`・`$idx`・`$readonly`・`$uploadUrl` を受け取る |
 | `_confirm_hidden` | `$input`・`$exclude` | |
-| `_seo_head` | なし | 値は `seo()` で読む。訪問者の側のレイアウトの `<head>` に置く |
+| `_seo_head` | なし | 値は `seo()` で読む。訪問者の側のレイアウトの `<head>` に置く。構造化データも出す |
+| `_breadcrumbs` | なし | パンくずリスト。訪問者の側のレイアウトの本文の上に置く |
 | `_seo_fields` | `$input`・`$readonly` | 記事ごとの SEO の欄。送る名前は `seo_title`・`seo_description`・`seo_image`・`seo_noindex` |
 | `_spam_guard`・`_passkey_suggest` | なし | |
 | `_passkeys` | `$passkeys`・`$passkeyRoute`・`$identityConfirmed`・`$codeSent`・`$confirmBy`・`$twoFactorMissing` | |

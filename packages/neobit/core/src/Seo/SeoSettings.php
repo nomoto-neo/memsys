@@ -9,8 +9,8 @@ use Neobit\Core\Models\Setting;
 use Neobit\Core\Operations\OperationRecorder;
 
 /**
- * 管理画面の「SEO設定」の値。サイト全体の既定（タイトルの形・説明文・シェアの画像・Search Consoleの確認タグ）と、
- * 記事を持たないページごとのタイトル・説明文・画像・検索に出さない、を持つ。
+ * 管理画面の「SEO設定」の値。サイト全体の既定（タイトルの形・説明文・シェアの画像・Search Consoleの確認タグ・
+ * 運営者の名前とロゴ）と、記事を持たないページごとのタイトル・説明文・画像・検索に出さない、を持つ。
  * 画面はNeobit\Core\Http\Controllers\SeoSettingsController、値を使うのはNeobit\Core\Seo\Seo。
  *
  * 画面で空欄にした既定は、設定ファイル（config/neobit.phpのseo）の値を使う。画面に出すページは、
@@ -26,15 +26,17 @@ final class SeoSettings
     /** 画面の設定を置くキャッシュのキー */
     private const CACHE_KEY = 'neobit-seo-settings';
 
-    /** 画面の設定のキー（settingsテーブル） */
-    private const TITLE_FORMAT_KEY = 'seo.title_format';
+    /** サイト全体の既定の名前 => 画面の設定のキー（settingsテーブル） */
+    private const DEFAULT_KEYS = [
+        'title_format' => 'seo.title_format',
+        'description' => 'seo.description',
+        'image' => 'seo.image',
+        'site_verification' => 'seo.site_verification',
+        'organization_name' => 'seo.organization_name',
+        'organization_logo' => 'seo.organization_logo',
+    ];
 
-    private const DESCRIPTION_KEY = 'seo.description';
-
-    private const IMAGE_KEY = 'seo.image';
-
-    private const SITE_VERIFICATION_KEY = 'seo.site_verification';
-
+    /** ページごとの設定のキー（settingsテーブル） */
     private const PAGES_KEY = 'seo.pages';
 
     // ---- 操作ログ ----
@@ -45,6 +47,8 @@ final class SeoSettings
         'description' => '既定の説明文',
         'image' => '既定のシェアの画像',
         'site_verification' => 'Search Consoleの確認タグ',
+        'organization_name' => '運営者の名前',
+        'organization_logo' => '運営者のロゴ',
     ];
 
     // ---- 値 ----
@@ -73,6 +77,20 @@ final class SeoSettings
         return (string) self::settings()['site_verification'];
     }
 
+    /** 運営者の名前。構造化データで、記事を書いた側とサイトの運営者として出す。画面・設定ファイルとも空ならサイト名 */
+    public static function organizationName(): string
+    {
+        $name = self::settings()['organization_name'] ?? (string) config('neobit.seo.organization_name');
+
+        return $name !== '' ? $name : (string) config('app.site_name');
+    }
+
+    /** 運営者のロゴ。画面で空欄なら設定ファイルの値。どちらも無ければnull */
+    public static function organizationLogo(): ?string
+    {
+        return self::settings()['organization_logo'] ?? config('neobit.seo.organization_logo');
+    }
+
     /**
      * ページごとの設定。設定のseo.page_routesに無いルートや、画面で何も入れていないルートはnull。
      *
@@ -99,11 +117,11 @@ final class SeoSettings
      * 画面で入れた設定。空欄の既定はnull。ページは、何か入れたルートだけを持つ。
      * DBを毎回読まないよう、キャッシュに置く。
      *
-     * @return array{title_format: ?string, description: ?string, image: ?string, site_verification: ?string, pages: array<string, array{title: ?string, description: ?string, image: ?string, noindex: bool}>}
+     * @return array{title_format: ?string, description: ?string, image: ?string, site_verification: ?string, organization_name: ?string, organization_logo: ?string, pages: array<string, array{title: ?string, description: ?string, image: ?string, noindex: bool}>}
      */
     public static function settings(): array
     {
-        $defaults = ['title_format' => null, 'description' => null, 'image' => null, 'site_verification' => null, 'pages' => []];
+        $defaults = array_fill_keys(array_keys(self::DEFAULT_KEYS), null) + ['pages' => []];
 
         // キャッシュに前の版の形が残っていても動くよう、足りない項目は既定の値で補う
         $cached = Cache::get(self::CACHE_KEY);
@@ -114,18 +132,15 @@ final class SeoSettings
         // 設定のテーブルがまだ無いとき（マイグレーションの前）は、画面の設定が無いものとして動く。
         // キャッシュには置かず、テーブルができたら読めるようにする
         try {
-            $values = Setting::values([self::TITLE_FORMAT_KEY, self::DESCRIPTION_KEY, self::IMAGE_KEY, self::SITE_VERIFICATION_KEY, self::PAGES_KEY]);
+            $values = Setting::values([...array_values(self::DEFAULT_KEYS), self::PAGES_KEY]);
         } catch (QueryException) {
             return $defaults;
         }
 
-        $settings = [
-            'title_format' => $values[self::TITLE_FORMAT_KEY] ?? null,
-            'description' => $values[self::DESCRIPTION_KEY] ?? null,
-            'image' => $values[self::IMAGE_KEY] ?? null,
-            'site_verification' => $values[self::SITE_VERIFICATION_KEY] ?? null,
-            'pages' => (array) ($values[self::PAGES_KEY] ?? []),
-        ];
+        $settings = ['pages' => (array) ($values[self::PAGES_KEY] ?? [])];
+        foreach (self::DEFAULT_KEYS as $name => $key) {
+            $settings[$name] = $values[$key] ?? null;
+        }
 
         Cache::forever(self::CACHE_KEY, $settings);
 
@@ -136,19 +151,17 @@ final class SeoSettings
      * 画面の設定を保存して、操作ログに変えた項目の名前を残す。何も変わっていなければ、操作ログには残さない。
      * 空の値はnullにし、ページは何も入れていないルートを持たない。
      *
+     * @param  array<string, ?string>  $defaults  サイト全体の既定。DEFAULT_KEYSの名前 => 値
      * @param  array<string, array{title?: ?string, description?: ?string, image?: ?string, noindex?: mixed}>  $pages  ルート名 => 値
      */
-    public static function save(?string $titleFormat, ?string $description, ?string $image, ?string $siteVerification, array $pages): void
+    public static function save(array $defaults, array $pages): void
     {
         $before = self::settings();
 
-        $after = [
-            'title_format' => self::nullIfBlank($titleFormat),
-            'description' => self::nullIfBlank($description),
-            'image' => self::nullIfBlank($image),
-            'site_verification' => self::nullIfBlank($siteVerification),
-            'pages' => [],
-        ];
+        $after = ['pages' => []];
+        foreach (array_keys(self::DEFAULT_KEYS) as $name) {
+            $after[$name] = self::nullIfBlank($defaults[$name] ?? null);
+        }
 
         // ページは、何か入れたルートだけを持つ
         foreach ($pages as $routeName => $page) {
@@ -163,18 +176,17 @@ final class SeoSettings
             }
         }
 
-        Setting::put(self::TITLE_FORMAT_KEY, $after['title_format']);
-        Setting::put(self::DESCRIPTION_KEY, $after['description']);
-        Setting::put(self::IMAGE_KEY, $after['image']);
-        Setting::put(self::SITE_VERIFICATION_KEY, $after['site_verification']);
+        foreach (self::DEFAULT_KEYS as $name => $key) {
+            Setting::put($key, $after[$name]);
+        }
         Setting::put(self::PAGES_KEY, $after['pages']);
 
         Cache::forget(self::CACHE_KEY);
 
         // 変えた項目の名前を集める。説明文などの値は長いので残さない
         $changed = [];
-        foreach (self::DEFAULT_LABELS as $key => $label) {
-            if ($before[$key] !== $after[$key]) {
+        foreach (self::DEFAULT_LABELS as $name => $label) {
+            if ($before[$name] !== $after[$name]) {
                 $changed[] = $label;
             }
         }

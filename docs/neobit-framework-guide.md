@@ -274,10 +274,49 @@ Route::patch('/seo-settings', [SeoSettingsController::class, 'update'])->name('s
 - **値の優先**：記事の SEO の欄 > 記事の値 > 「SEO設定」のページごとの値 > 画面の `@section('title')` > 「SEO設定」の既定 > 設定ファイルの順です。「SEO設定」のページの値を `@section('title')` より先にするのは、運用する人が画面で入れた値だからです。記事のあるページでは記事の値が先に決まるので、ページごとの値は、記事を持たないページで効きます。
 - **空欄**：既定を空欄にすると、設定ファイルの値を使います。入力欄の見本に、その設定ファイルの値を出します。ページの欄を全部空にすると、そのページの設定を持ちません。
 - **タイトルの形**：`{title}` を必ず入れます。`{site}` は任意です。
+- **運営者**：運営者の名前（空欄なら設定ファイルの `organization_name`、それも空ならサイト名）とロゴの URL を、構造化データで出します。
 - **確認タグ**：Search Console が示す `<meta name="google-site-verification" content="…">` をそのまま貼っても、値だけを入れてもかまいません。content の値（英数字・`_`・`-`）だけを保存し、`_seo_head` が全部のページの `<head>` に出します。
 - **検索に出さない**：チェックしたページには noindex を付け、サイトマップからも外します。
 - **キャッシュ**：訪問者の全部のページで読むので、画面の設定をキャッシュに置き、保存のたびに作り直します。DB を直接書き換えたときは、キャッシュを消します。
 - **操作ログ**：保存すると「SEO設定の変更」に、変えた項目の名前だけを残します。説明文などの値は残しません。何も変わっていなければ残しません。確認画面は挟みません。
+
+#### パンくずリストと構造化データ（JSON-LD）
+
+**ファイル**：`packages/neobit/core/src/Seo/Seo.php`・`SeoArticle.php`、画面は `packages/neobit/core/resources/views/_breadcrumbs.blade.php`・`_seo_head.blade.php`　**実例**：ニュースの詳細（`NewsController::show()`）・固定ページ（`PageController::show()`）
+
+```blade
+{{-- layouts/app.blade.php の本文の上 --}}
+@include('neobit::_breadcrumbs')
+```
+
+```php
+// コントローラー。途中の段を、浅い段から順に足す
+Seo::for($news);
+Seo::breadcrumb('お知らせ', route('news.index'));
+
+// 段の数が決まっていないとき（親子のカテゴリーなど）は、親をたどって足す
+foreach ($category->ancestorsAndSelf() as $node) {
+    Seo::breadcrumb($node->name, route('products.category', $node));
+}
+```
+
+- **パンくずの段**：先頭の「トップ」と、末尾の今のページ名は自動で付きます。ページ名は `<title>` と同じ順（記事の SEO の欄 → 記事 → 「SEO設定」のページ → `@section('title')`）で決まる、タイトルの形に当てはめる前の名前です。トップページと、ページ名の無い画面には出しません。段を足していない画面は「トップ > ページ名」です。
+- **URL の無い段**：`Seo::breadcrumb('製品情報')` のように URL を省くと、リンクにせず文字だけを出します。
+- **固定ページの入れ子**：見本の `PageController::show()` は、slug（`company/history`）を「/」で区切り、公開している親のページを段にします。親は1回の問い合わせでまとめて探し、非公開や無いページの段は飛ばします。slug の持ち方はコーナーごとに違うので、部品にはしていません。
+- **構造化データ**：`_seo_head` が `<script type="application/ld+json">` を1つ出します。中身は今のページに当てはまるものだけです。
+    - パンくず（`BreadcrumbList`）：パンくずのある画面。今のページの段には URL を付けません
+    - 記事（`Article`）：`SeoArticle`（`seoPublishedAt()`・`seoModifiedAt()`）を実装したモデルの記事。題・画像・公開日・更新日・正規の URL と、書いた側・出した側（運営者）
+    - サイトと運営者（`WebSite`・`Organization`）：トップページだけ。運営者の名前とロゴは「SEO設定」
+- **出さないとき**：検索に出さないページでは、構造化データを出しません。パンくずの表示は出します。
+- **エスケープ**：JSON の `<`・`>`・`&` は `\u003C` などに置き換えるので、記事の題に `</script>` があっても抜け出せません。
+
+    ```php
+    class News extends Model implements SeoArticle, SitemapSource
+    {
+        public function seoPublishedAt(): ?DateTimeInterface { return $this->article_date; }
+        public function seoModifiedAt(): ?DateTimeInterface { return $this->updated_at; }
+    }
+    ```
 
 #### slug（URL の名前）の検証のルール
 

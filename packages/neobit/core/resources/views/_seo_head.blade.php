@@ -1,5 +1,5 @@
 {{--
-    訪問者の側のレイアウトの<head>に置く、SEOのタグ一式（タイトル・説明文・OGP・Xのカード）。
+    訪問者の側のレイアウトの<head>に置く、SEOのタグ一式（タイトル・説明文・OGP・Xのカード・構造化データ）。
     値はヘルパーのseo()が決める（Neobit\Core\Seo\Seo）。記事の詳細の画面ではコントローラーが渡した記事から、
     ほかの画面では管理画面の「SEO設定」のページごとの値、@section('title')、サイトの既定（「SEO設定」と
     config/neobit.phpのseo）から決まる。
@@ -8,6 +8,7 @@
 @php
     $seoDescription = seo('description');
     $seoImage = seo('image');
+    $seoJsonLd = app(\Neobit\Core\Seo\Seo::class)->jsonLd();
 @endphp
 <title>{{ seo('title') }}</title>
 {{-- Google Search Consoleの確認タグ。「SEO設定」で入れたときだけ --}}
@@ -34,3 +35,7 @@
 @endif
 {{-- 画像があれば大きな画像のカード、無ければ小さなカード --}}
 <meta name="twitter:card" content="{{ $seoImage !== '' ? 'summary_large_image' : 'summary' }}">
+{{-- 構造化データ（パンくず・記事・トップページのサイトと運営者）。<と>はエスケープ済みなので、そのまま出す --}}
+@if ($seoJsonLd !== '')
+    <script type="application/ld+json">{!! $seoJsonLd !!}</script>
+@endif

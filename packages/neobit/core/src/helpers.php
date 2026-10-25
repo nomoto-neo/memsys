@@ -223,10 +223,11 @@ if (! function_exists('upload_preview_url')) {
 
 if (! function_exists('seo')) {
     /**
-     * 今のページのSEOの値を1つ返す。$keyは'title'・'description'・'image'・'url'・'canonical'・'type'・'site_name'・'robots'。
+     * 今のページのSEOの値を1つ返す。$keyは'title'・'description'・'image'・'url'・'canonical'・'type'・'site_name'・'robots'・'site_verification'。
      * canonicalは、?の後ろを除いたURL（?page=だけは残す）。robotsは、検索に出さないページなら'noindex'、そうでなければ空。
      * 記事の詳細の画面でコントローラーがSeo::for($news)を呼んでいればその記事から、呼んでいなければ、
-     * 画面の@section('title')とサイトの既定（config/neobit.phpのseo）から決まる（Neobit\Core\Seo\Seo）。
+     * 管理画面の「SEO設定」のページごとの値、画面の@section('title')、サイトの既定（「SEO設定」とconfig/neobit.phpのseo）から決まる（Neobit\Core\Seo\Seo）。
+     * site_verificationは、「SEO設定」で入れたGoogle Search Consoleの確認タグのcontentの値。無ければ空。
      *
      *   <meta name="description" content="{{ seo('description') }}">
      *
