@@ -30,8 +30,7 @@ trait SeoFields
         return [
             'seo_title' => ['nullable', 'string', 'max:60'],
             'seo_description' => ['nullable', 'string', 'max:300'],
-            // サイトの中のパス（/から始まる）か、http(s)://から始まるURL
-            'seo_image' => ['nullable', 'string', 'max:255', 'regex:#^(/(?!/)|https?://)\S*$#'],
+            'seo_image' => ['nullable', 'string', 'max:255', 'regex:'.Seo::IMAGE_URL_PATTERN],
             'seo_noindex' => ['nullable', 'in:0,1'],
         ];
     }

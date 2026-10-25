@@ -192,7 +192,7 @@ TRUSTED_PROXIES=10.0.0.5,10.0.0.6
 
 **ファイル**：`packages/neobit/core/src/Seo/Seo.php`（冒頭のコメント）・`SeoSubject.php`、画面は `packages/neobit/core/resources/views/_seo_head.blade.php`　**実例**：ニュースの詳細（`NewsController::show()`）・固定ページ（`PageController::show()`）
 
-訪問者の側のページの `<head>` に、タイトル・説明文・OGP・X のカードを、サイト全体で揃った形で出します。何も入れなくても、記事の詳細では記事から、ほかの画面ではサイトの既定から値が決まります。
+訪問者の側のページの `<head>` に、タイトル・説明文・OGP・X のカードを、サイト全体で揃った形で出します。何も入れなくても、記事の詳細では記事から、ほかの画面ではサイトの既定から値が決まります。運用する人は、記事ごとの SEO の欄と、管理画面の「SEO設定」で値を変えられます。
 
 ```blade
 {{-- layouts/app.blade.php の <head> --}}
@@ -214,13 +214,13 @@ Seo::for($news);
 
 | 値 | 記事の詳細（`Seo::for()` を呼んだ画面） | ほかの画面 |
 |---|---|---|
-| タイトル | 記事のタイトルを、タイトルの形（`{title}｜{site}`）に当てはめる | 画面の `@section('title')` を当てはめる。無ければサイト名だけ |
-| 説明文 | 本文のタグを除き、先頭の120文字（長ければ「…」） | 既定の説明文。空なら説明文のタグを出さない |
-| シェアの画像 | 記事の画像。無ければ既定の画像 | 既定の画像。無ければ出さない |
+| タイトル | 記事の SEO の欄か記事のタイトルを、タイトルの形（`{title}｜{site}`）に当てはめる | 「SEO設定」のページのタイトルか、画面の `@section('title')` を当てはめる。無ければサイト名だけ |
+| 説明文 | 記事の SEO の欄か、本文のタグを除いた先頭の120文字（長ければ「…」） | 「SEO設定」のページの説明文か、既定の説明文。空なら説明文のタグを出さない |
+| シェアの画像 | 記事の SEO の欄か記事の画像。無ければ既定の画像 | 「SEO設定」のページの画像か、既定の画像。無ければ出さない |
 | `og:type` | article | website |
 
-- **サイトの既定**：`config/neobit.php` の `seo`（`title_format`・`description`・`description_length`・`image`）です。既定の画像は、`public` の下のパス（例：`/images/ogp.png`）か URL で書きます。
-- **Blade で値を使う**：ヘルパーの `seo()` で取り出せます。名前は `'title'`・`'description'`・`'image'`・`'url'`・`'type'`・`'site_name'` です。`_seo_head` も中でこれを使っているので、並べ方を変えたい案件は、部品を使わずにレイアウトで自分で書けます。
+- **サイトの既定**：管理画面の「SEO設定」の既定（タイトルの形・説明文・画像）で、空欄なら `config/neobit.php` の `seo`（`title_format`・`description`・`image`）です。本文から作る説明文の文字数は `description_length` です。既定の画像は、`public` の下のパス（例：`/images/ogp.png`）か URL で書きます。
+- **Blade で値を使う**：ヘルパーの `seo()` で取り出せます。名前は `'title'`・`'description'`・`'image'`・`'url'`・`'canonical'`・`'type'`・`'site_name'`・`'robots'`・`'site_verification'` です。`_seo_head` も中でこれを使っているので、並べ方を変えたい案件は、部品を使わずにレイアウトで自分で書けます。
 
     ```blade
     <meta name="description" content="{{ seo('description') }}">
@@ -238,8 +238,9 @@ Seo::for($news);
     - コントローラーで `Seo::noindex()` を呼んだ画面。一覧の絞り込みはセッションに持っていて URL からは見分けられないので、絞り込みのある一覧で呼びます（見本はニュースの一覧）
     - 設定の `seo.noindex_routes` に並べたルートの名前。`*` が使えます（見本はお問い合わせの完了 `contact.thanks`）
     - 記事の SEO の欄で、検索に出さないにしたもの
+    - 「SEO設定」のページごとの設定で、検索に出さないにしたもの
 - **canonical**：全部の画面に `<link rel="canonical">` を出します。今の URL から `?` の後ろを除いたもので、ページ送りの `?page=` だけは残します（2ページ目以降も別のページとして検索に出すため）。
-- **XML サイトマップ**（`/sitemap.xml`。フレームワークのルート `seo.sitemap`）：設定の `seo.sitemap_routes`（記事を持たないページのルートの名前）と、`seo.sitemap_models`（記事のモデル）から作ります。モデルは `SitemapSource` を実装し、訪問者に見せてよい記事のクエリ（`sitemapQuery()`）と記事の URL（`sitemapUrl()`）を返します。SEO の欄で検索に出さないにした記事は載せず、`updated_at` を更新日として出します。毎回その場で作るので、記事が数千件を超えるサイトでは、分割やキャッシュを考えます。
+- **XML サイトマップ**（`/sitemap.xml`。フレームワークのルート `seo.sitemap`）：設定の `seo.sitemap_routes`（記事を持たないページのルートの名前）と、`seo.sitemap_models`（記事のモデル）から作ります。モデルは `SitemapSource` を実装し、訪問者に見せてよい記事のクエリ（`sitemapQuery()`）と記事の URL（`sitemapUrl()`）を返します。SEO の欄で検索に出さないにした記事と、「SEO設定」で検索に出さないにしたページは載せず、`updated_at` を更新日として出します。毎回その場で作るので、記事が数千件を超えるサイトでは、分割やキャッシュを考えます。
 
     ```php
     class News extends Model implements SeoSubject, SitemapSource
@@ -250,6 +251,33 @@ Seo::for($news);
     ```
 - **robots.txt**（`/robots.txt`。フレームワークのルート `seo.robots`）：本番（`APP_ENV=production`）では、設定の `seo.robots_disallow` の場所を巡回させず、サイトマップの絶対の URL を伝えます。本番以外（開発サーバーなど）では、全部を巡回させません（`Disallow: /`）。`public/robots.txt` があると Apache がそちらを返すので、置きません。
 - **設定を書くとき**：`seo` は配列のキーなので、アプリの `config/neobit.php` で書くときは、全部のキーを書きます（見本のサイトの `config/neobit.php` を参照）。
+
+#### SEO 設定の画面（記事を持たないページとサイト全体の既定）
+
+**ファイル**：`packages/neobit/core/src/Seo/SeoSettings.php`（冒頭のコメント）・`src/Http/Controllers/SeoSettingsController.php`、画面は `packages/neobit/core/resources/views/admin/seo_settings/index.blade.php`　**実例**：管理画面の「運用」の「SEO設定」
+
+運用する人が管理画面から、サイト全体の既定（タイトルの形・説明文・シェアの画像・Google Search Console の確認タグ）と、記事を持たないページ（トップページ・一覧・お問い合わせなど）ごとのタイトル・説明文・画像・検索に出さないを変えられます。値は `settings` テーブルに持ちます。
+
+```php
+// routes/web.php。管理者だけが入れるグループの中に、「頭.index」「頭.update」の組で書く
+Route::get('/seo-settings', [SeoSettingsController::class, 'index'])->name('seo-settings.index');
+Route::patch('/seo-settings', [SeoSettingsController::class, 'update'])->name('seo-settings.update');
+
+// config/neobit.php の seo。画面に出すページ。ルート名 => 画面に出す名前
+'page_routes' => [
+    'top' => 'トップページ',
+    'news.index' => 'お知らせの一覧',
+],
+```
+
+- **画面に出すページ**：設定の `seo.page_routes` に並べたルートです。引数の要らないルートだけを書きます。引数の要るルートを書くと、画面に URL を出しません。
+- **値の優先**：記事の SEO の欄 > 記事の値 > 「SEO設定」のページごとの値 > 画面の `@section('title')` > 「SEO設定」の既定 > 設定ファイルの順です。「SEO設定」のページの値を `@section('title')` より先にするのは、運用する人が画面で入れた値だからです。記事のあるページでは記事の値が先に決まるので、ページごとの値は、記事を持たないページで効きます。
+- **空欄**：既定を空欄にすると、設定ファイルの値を使います。入力欄の見本に、その設定ファイルの値を出します。ページの欄を全部空にすると、そのページの設定を持ちません。
+- **タイトルの形**：`{title}` を必ず入れます。`{site}` は任意です。
+- **確認タグ**：Search Console が示す `<meta name="google-site-verification" content="…">` をそのまま貼っても、値だけを入れてもかまいません。content の値（英数字・`_`・`-`）だけを保存し、`_seo_head` が全部のページの `<head>` に出します。
+- **検索に出さない**：チェックしたページには noindex を付け、サイトマップからも外します。
+- **キャッシュ**：訪問者の全部のページで読むので、画面の設定をキャッシュに置き、保存のたびに作り直します。DB を直接書き換えたときは、キャッシュを消します。
+- **操作ログ**：保存すると「SEO設定の変更」に、変えた項目の名前だけを残します。説明文などの値は残しません。何も変わっていなければ残しません。確認画面は挟みません。
 
 #### slug（URL の名前）の検証のルール
 

@@ -1,7 +1,8 @@
 {{--
     訪問者の側のレイアウトの<head>に置く、SEOのタグ一式（タイトル・説明文・OGP・Xのカード）。
     値はヘルパーのseo()が決める（Neobit\Core\Seo\Seo）。記事の詳細の画面ではコントローラーが渡した記事から、
-    ほかの画面では@section('title')とサイトの既定（config/neobit.phpのseo）から決まる。
+    ほかの画面では管理画面の「SEO設定」のページごとの値、@section('title')、サイトの既定（「SEO設定」と
+    config/neobit.phpのseo）から決まる。
     値が空のタグは出さない。並べ方を変えたいときは、この部品を使わずに、レイアウトでseo()を使って書く。
 --}}
 @php
@@ -9,7 +10,11 @@
     $seoImage = seo('image');
 @endphp
 <title>{{ seo('title') }}</title>
-{{-- 検索に出さないページ。ログインが要る画面・Seo::noindex()を呼んだ画面・設定のseo.noindex_routes・記事のSEOの欄 --}}
+{{-- Google Search Consoleの確認タグ。「SEO設定」で入れたときだけ --}}
+@if (seo('site_verification') !== '')
+    <meta name="google-site-verification" content="{{ seo('site_verification') }}">
+@endif
+{{-- 検索に出さないページ。ログインが要る画面・Seo::noindex()を呼んだ画面・設定のseo.noindex_routes・記事のSEOの欄・「SEO設定」 --}}
 @if (seo('robots') !== '')
     <meta name="robots" content="{{ seo('robots') }}">
 @endif

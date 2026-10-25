@@ -31,7 +31,7 @@ Laravel やパッケージに脆弱性が出たときに、影響があるかを
 | 画面 | Blade・エラーの表示 | 全部の画面とメールのテンプレート | `resources/views/`・`core/../resources/views/` |
 | 暗号 | 暗号化（Crypt） | スパムの判定のフォームの時刻 | `core/Security/SpamGuard.php` |
 | 制限 | 回数の制限（RateLimiter） | ログインの失敗・登録や申し込みの回数・管理画面の回数の制限・IP の自動ブロック | `core/Auth/LoginThrottle.php`・`core/Security/IpBlocker.php`・`app/Providers/AppServiceProvider.php` |
-| キャッシュ | キャッシュ（DB に保存） | IP ブロックの一覧・アクセス制限・エラーの通知の間引き・定期実行の記録 | `core/Security/`・`core/Operations/` |
+| キャッシュ | キャッシュ（DB に保存） | IP ブロックの一覧・アクセス制限・SEO 設定・エラーの通知の間引き・定期実行の記録 | `core/Security/`・`core/Seo/`・`core/Operations/` |
 | キュー | キュー（DB に保存）・ジョブのバッチ | 一斉メールの送信 | `app/Jobs/SendBulkMail.php`・`app/Http/Controllers/Admin/BulkMailController.php` |
 | メール | Mail・Mailable | お知らせ・確認コード・一斉メール。テンプレートは `resources/mail-templates/` | `core/Mail/`・`app/Mail/` |
 | ファイル | ストレージ（`local` のディスク） | アップロードしたファイルと一時ファイル | `core/Upload/`・`core/Crud/ChildTables.php` |
