@@ -32,12 +32,12 @@ use App\Http\Controllers\NewsletterController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\TopController;
-use App\Models\Page;
 use Illuminate\Support\Facades\Route;
 use Neobit\Core\Http\Controllers\AccessRestrictionController;
 use Neobit\Core\Http\Controllers\CodeTableController;
 use Neobit\Core\Http\Controllers\IpBlockController;
 use Neobit\Core\Http\Controllers\OperationLogController;
+use Neobit\Core\Rules\SlugRule;
 
 // 静的なページを表示する場合
 //Route::view('/', 'welcome');
@@ -639,7 +639,8 @@ Route::prefix('admin')->name('admin.')->middleware('admin.ip')->group(function (
 // 名前には / を含められる（/service/price）。
 // 必ず、このファイルのいちばん最後に置く。上のどのルートにも当たらなかったURLだけを
 // ここで受けるため。上に置くと、/login や /news より先に当たってしまう。
-// ほかの画面のURLと同じ名前のページは、管理画面の検証で作れないようにしてある（Page::isReservedSlug()）。
+// ほかの画面のURLと同じ名前のページは、管理画面の検証で作れないようにしてある（NotReservedPathRule）。
+// 名前の形は、管理画面の検証と同じパターン（SlugRule）。食い違うと、登録できるのに開けないページができる
 Route::get('/{slug}', [PageController::class, 'show'])
-    ->where('slug', Page::SLUG_PATTERN)
+    ->where('slug', SlugRule::NESTED_PATTERN)
     ->name('pages.show');

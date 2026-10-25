@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Page;
-use Closure;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -12,6 +11,8 @@ use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Neobit\Core\Crud\FormFlow;
 use Neobit\Core\Crud\SearchableList;
+use Neobit\Core\Rules\NotReservedPathRule;
+use Neobit\Core\Rules\SlugRule;
 use Neobit\Core\Seo\SeoFields;
 use Neobit\Core\Upload\AjaxFileUpload;
 
@@ -96,16 +97,12 @@ class PageController extends Controller
             'title' => ['required', 'string', 'max:255'],
             'slug' => [
                 'required', 'string', 'max:100',
-                // 訪問者の側のルートが受け付ける文字だけにする。パターンに / が入るので、区切りは # にする
-                'regex:#^'.Page::SLUG_PATTERN.'$#',
+                // 訪問者の側のルートが受け付ける形だけにする。「/」で区切ってつなげられる
+                new SlugRule(nested: true),
                 // 自分を除いて、ほかの行と重ならないこと
                 Rule::unique(Page::class, 'slug')->ignore($page?->id),
-                // ほかの画面のURLと同じ語は、開けないページになるので断る
-                function (string $attribute, mixed $value, Closure $fail) {
-                    if (is_string($value) && Page::isReservedSlug($value)) {
-                        $fail('この名前は、ほかの画面のURLで使っているので使えません。');
-                    }
-                },
+                // URLの直下に置くので、ほかの画面のURLと同じ語は、開けないページになるので断る
+                new NotReservedPathRule(),
             ],
             'body' => ['nullable', 'string', 'max:'.self::BODY_MAX_LENGTH],
             'disp_flg' => ['required', 'boolean'],

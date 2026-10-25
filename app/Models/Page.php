@@ -5,7 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Route;
 use Neobit\Core\Seo\HasSeoMeta;
 use Neobit\Core\Seo\SeoSubject;
 
@@ -33,13 +32,6 @@ class Page extends Model implements SeoSubject
      */
     public const RAW_INPUT_FIELDS = ['body'];
 
-    /**
-     * URLの名前に使える文字。半角の英小文字・数字・ハイフン・アンダーバーで、先頭は英小文字か数字。
-     * / で区切って、いくつでもつなげられる。先頭と末尾の / と、// は通さない。
-     * 検証のルールと、訪問者の側のルートの両方で使う。食い違うと、登録できるのに開けないページができる
-     */
-    public const SLUG_PATTERN = '[a-z0-9][a-z0-9_-]*(?:/[a-z0-9][a-z0-9_-]*)*';
-
     protected $table = 't_pages';
 
     protected $fillable = [
@@ -59,30 +51,6 @@ class Page extends Model implements SeoSubject
     protected function visible(Builder $query): void
     {
         $query->where('disp_flg', true);
-    }
-
-    /**
-     * URLの名前として使えない名前かを返す。名前の最初の区切りが、ほかの画面のURLの最初の区切りと
-     * 同じなら、使えない。固定ページのルートは、ほかの全部のルートの後ろで受けるので、たとえば
-     * loginという名前のページを作っても、ログイン画面が先に当たって、開けないため。
-     * admin/helpのように下に続く名前も、その画面のURLと紛らわしく、後から同じURLの画面を足すと
-     * 開けなくなるので、同じく使えない。
-     * ルートの一覧から調べるので、画面を足しても、ここを直す必要は無い。
-     */
-    public static function isReservedSlug(string $slug): bool
-    {
-        $slugFirst = explode('/', $slug)[0];
-
-        foreach (Route::getRoutes() as $route) {
-            // 固定ページのルート自身（/{slug}）は、変数なので比べない
-            $first = explode('/', trim($route->uri(), '/'))[0];
-
-            if ($first === $slugFirst) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     // ---- SEO（Neobit\Core\Seo\SeoSubject） ----
