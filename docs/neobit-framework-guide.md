@@ -229,6 +229,28 @@ Seo::for($news);
 - **説明文の作り方**：本文の `<script>`・`<style>` は中身ごと除き、段落や改行のタグは空白にしてから、残りのタグを除きます。
 - 部品を置くのは、訪問者の側のレイアウトだけです。管理画面と企業会員の画面は、検索に出さない画面のためです。
 
+#### 検索に出さないページ・canonical・サイトマップ・robots.txt
+
+**ファイル**：`packages/neobit/core/src/Seo/Seo.php`・`SitemapSource.php`・`src/Http/Controllers/SitemapController.php`・`RobotsController.php`
+
+- **検索に出さない（noindex）**：次のどれかの画面には、`<meta name="robots" content="noindex">` が自動で付きます。
+    - ルートに `auth` のミドルウェアが付いた画面（マイページなど、ログインしないと開けない画面）
+    - コントローラーで `Seo::noindex()` を呼んだ画面。一覧の絞り込みはセッションに持っていて URL からは見分けられないので、絞り込みのある一覧で呼びます（見本はニュースの一覧）
+    - 設定の `seo.noindex_routes` に並べたルートの名前。`*` が使えます（見本はお問い合わせの完了 `contact.thanks`）
+    - 記事の SEO の欄で、検索に出さないにしたもの
+- **canonical**：全部の画面に `<link rel="canonical">` を出します。今の URL から `?` の後ろを除いたもので、ページ送りの `?page=` だけは残します（2ページ目以降も別のページとして検索に出すため）。
+- **XML サイトマップ**（`/sitemap.xml`。フレームワークのルート `seo.sitemap`）：設定の `seo.sitemap_routes`（記事を持たないページのルートの名前）と、`seo.sitemap_models`（記事のモデル）から作ります。モデルは `SitemapSource` を実装し、訪問者に見せてよい記事のクエリ（`sitemapQuery()`）と記事の URL（`sitemapUrl()`）を返します。SEO の欄で検索に出さないにした記事は載せず、`updated_at` を更新日として出します。毎回その場で作るので、記事が数千件を超えるサイトでは、分割やキャッシュを考えます。
+
+    ```php
+    class News extends Model implements SeoSubject, SitemapSource
+    {
+        public static function sitemapQuery(): Builder { return static::query()->visibleTo(null); }
+        public function sitemapUrl(): string { return route('news.show', $this); }
+    }
+    ```
+- **robots.txt**（`/robots.txt`。フレームワークのルート `seo.robots`）：本番（`APP_ENV=production`）では、設定の `seo.robots_disallow` の場所を巡回させず、サイトマップの絶対の URL を伝えます。本番以外（開発サーバーなど）では、全部を巡回させません（`Disallow: /`）。`public/robots.txt` があると Apache がそちらを返すので、置きません。
+- **設定を書くとき**：`seo` は配列のキーなので、アプリの `config/neobit.php` で書くときは、全部のキーを書きます（見本のサイトの `config/neobit.php` を参照）。
+
 #### slug（URL の名前）の検証のルール
 
 **ファイル**：`packages/neobit/core/src/Rules/SlugRule.php`・`NotReservedPathRule.php`　**実例**：固定ページ（`Admin\PageController`）

@@ -9,7 +9,7 @@
     $seoImage = seo('image');
 @endphp
 <title>{{ seo('title') }}</title>
-{{-- 記事のSEOの欄で「検索に出さない」にしたページ --}}
+{{-- 検索に出さないページ。ログインが要る画面・Seo::noindex()を呼んだ画面・設定のseo.noindex_routes・記事のSEOの欄 --}}
 @if (seo('robots') !== '')
     <meta name="robots" content="{{ seo('robots') }}">
 @endif
@@ -20,6 +20,7 @@
 @if ($seoDescription !== '')
     <meta property="og:description" content="{{ $seoDescription }}">
 @endif
+<link rel="canonical" href="{{ seo('canonical') }}">
 <meta property="og:url" content="{{ seo('url') }}">
 <meta property="og:type" content="{{ seo('type') }}">
 <meta property="og:site_name" content="{{ seo('site_name') }}">

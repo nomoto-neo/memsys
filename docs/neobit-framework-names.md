@@ -115,6 +115,7 @@
 | ログイン | `LOGIN_GUARD`・`LOGIN_ROUTE_PREFIX`・`LOGIN_ID_TYPE`（定数） | ガード・ルートの頭・ログインに使う値の種類。無ければ種類の名前 | |
 | ログイン | `TWO_FACTOR_METHOD`・`BACKUP_CODES`（定数） | 2段階認証の方式、バックアップコードを使うか | |
 | SEO | `seoTitle()`・`seoDescriptionSource()`・`seoImageUrl()`（`SeoSubject`） | タイトル・説明文の元・シェアの画像 | |
+| SEO | `sitemapQuery()`（静的）・`sitemapUrl()`（`SitemapSource`） | サイトマップに載せる記事のクエリと URL | |
 | ログイン | `displayName()`・`notificationEmail()`（`LoginAccount`） | 名前と、お知らせを送るアドレス | |
 | パスキー | `getPasskeyDisplayName()`・`getPasskeyUsername()` | 端末に出る名前 | laravel/passkeys の約束の名前 |
 | 招待 | `invitations()`・`invitedAccountClass()`（`TeamInvitationOwner`） | 招待のリレーションと、招待した人のモデル | |
@@ -135,6 +136,7 @@
 | インターフェース | `UploadDirectoryRule` | 保存先の規則 | |
 | インターフェース | `SheetPagingRule` | 定型紙のページの使い方 | |
 | インターフェース | `SeoSubject` | SEO の値の元になる記事のモデル | |
+| インターフェース | `SitemapSource` | サイトマップに載せる記事のモデル | |
 | モデルのトレイト | `HasSeoMeta` | 記事ごとの SEO の欄（`seoMeta()`）を持つ | |
 | モデル | `IpBlock` | IPブロック管理の1行 | |
 | モデル | `Setting` | 管理画面から変えられる設定の1行（キーと値） | |
@@ -151,7 +153,7 @@
 | `UploadFilePath` | `directory()`・`isPrivate()`・`disk()`・`url()`・`path()`・`tmpUrl()`・`previewUrl()`、定数 `TMP_DIR`・`TMP_DISK`・`TMP_SESSION_KEY`・`TMP_SESSION_MAX`・`PUBLIC_DISK`・`PRIVATE_DISK`・`SAFE_FILENAME` | |
 | `OperationRecorder` | `record()`・`loggableFields()` | |
 | `CsvWriter` | `download()`・`fetch()` | CSV の共通の書き出し方 |
-| `Seo` | `for()`・`value()`、定数 `KEYS` | ふつうはコントローラーが `for()` を呼び、画面は `seo()` で読む |
+| `Seo` | `for()`・`noindex()`・`value()`、定数 `KEYS` | ふつうはコントローラーが `for()`・`noindex()` を呼び、画面は `seo()` で読む |
 | `SlugRule` | 定数 `PATTERN`・`NESTED_PATTERN` | ルートの `where()` に使う |
 | `NotReservedPathRule` | `isReserved()` | |
 | `OperationLog` | `actionOptions()`・`modelOptions()`・`modelNames()`・`operatorLabel()`・`relatedRecords()`・`operatorTypes()`・`relatedKey()`・`countSummary()`・`csvName()`・`detailText()` | |
@@ -180,7 +182,7 @@
 | `CsvImportSettings`・`CsvImportResult`・`CsvImportRow`・`CsvColumnSet` | 取り込みの設定と結果 | |
 | 検証のルール | `KatakanaRule`・`HiraganaRule`・`PhoneNumberRule`・`SameCountAsRule`・`UploadRequiredRule`・`SlugRule`・`NotReservedPathRule` | |
 | ミドルウェア | `AjaxFormResponse`・`NormalizeInput`・`RejectBlockedIp`・`RestrictAdminAccess`・`RestrictSiteAccess`・`RunScheduleOnRequest`・`SecurityHeaders` | |
-| コントローラー | `CodeTableController`・`IpBlockController`・`AccessRestrictionController`・`OperationLogController`（どれもルートは案件が書く）・`UploadedFileController` | |
+| コントローラー | `CodeTableController`・`IpBlockController`・`AccessRestrictionController`・`OperationLogController`（どれもルートは案件が書く）・`UploadedFileController`・`SitemapController`・`RobotsController` | |
 
 ## 7. ヘルパー
 
@@ -195,7 +197,7 @@
 | `upload_input_value($input, $key, $idx)` | アップロードの欄の値 | |
 | `upload_preview_url($model, $input, $field, $idx)` | アップロードの欄に出す URL | |
 | `upload_field($field, $key)` | 今の画面のコントローラーの `UPLOAD_FILES` から、欄の `type`・`width`・`required`・`multiple` を1つ返す | |
-| `seo($key)` | 今のページの SEO の値（`title`・`description`・`image`・`url`・`type`・`site_name`・`robots`）を1つ返す | |
+| `seo($key)` | 今のページの SEO の値（`title`・`description`・`image`・`url`・`canonical`・`type`・`site_name`・`robots`）を1つ返す | |
 | `required_mark($area)` | 必須マーク | |
 | `required_fields($rules, $alsoRequired)` | 必須マークの配列 | |
 
@@ -210,7 +212,7 @@
 | `neobit` | `ip_block_auto`・`ip_block_watch_minutes`・`ip_block_watch_count`・`ip_block_hours` | |
 | `neobit` | `operation_report_to`・`operation_report_thresholds` | 操作ログの設定は `operation_log_〜`、報告は `operation_report_〜` |
 | `neobit` | `cron_enabled` | `.env` は `CRON_ENABLED` |
-| `neobit` | `seo`（`title_format`・`description`・`description_length`・`image`） | |
+| `neobit` | `seo`（`title_format`・`description`・`description_length`・`image`・`noindex_routes`・`sitemap_routes`・`sitemap_models`・`robots_disallow`） | 配列なので、アプリで書くときは全部のキーを書く |
 | `upload` | `image_types`・`attach_types`・`max_kb`・`max_image_pixels`・`csv_max_kb`・`directory_rule` | |
 | `cleanup` | `operation_log_days`・`failed_job_days`・`tasks` | |
 
@@ -247,6 +249,7 @@
 | 名前 | 中身 | メモ |
 |---|---|---|
 | `uploads.tmp`・`uploads.show` | フレームワークが登録する。一時ファイルと非公開のファイル | |
+| `seo.sitemap`・`seo.robots` | フレームワークが登録する。`/sitemap.xml` と `/robots.txt` | |
 | `{ログインの頭}.login`・`.login.verify`・`.login.verify.confirm`・`.login.verify.resend`・`.password.forgot` | 案件が書く。ログインの部品が、この名前で探す | |
 | 項目見出し一覧の「頭.index」「頭.update」 | 案件が書く | |
 | IPブロック管理の「頭.index」「頭.store」「頭.update」「頭.destroy」 | 案件が書く。update・destroy の URL に `{ipBlock}` | |

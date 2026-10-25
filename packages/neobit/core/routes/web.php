@@ -1,6 +1,8 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Neobit\Core\Http\Controllers\RobotsController;
+use Neobit\Core\Http\Controllers\SitemapController;
 use Neobit\Core\Http\Controllers\UploadedFileController;
 
 // ログインした人だけが見られるアップロードファイルと、アップロード直後の一時ファイル
@@ -13,3 +15,7 @@ Route::middleware('web')->group(function () {
         ->where('field', '[a-z0-9_]+')
         ->name('uploads.show');
 });
+
+// 検索エンジンへの案内。XMLのサイトマップと、巡回のしかた（robots.txt）。中身は設定のseoで決める
+Route::get('/sitemap.xml', SitemapController::class)->name('seo.sitemap');
+Route::get('/robots.txt', RobotsController::class)->name('seo.robots');

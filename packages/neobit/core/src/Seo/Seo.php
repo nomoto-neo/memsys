@@ -12,19 +12,34 @@ use LogicException;
  * （HasSeoMeta）の値があれば、そちらを優先する。呼ばなければ、画面の@section('title')とサイトの既定
  * （config/neobit.phpのseo）から決める。
  * 記事は今のリクエストの属性に持つ。リクエストが変われば、前の記事は引き継がない。
+ *
+ * 検索に出さない（robotsのnoindex）は、次のどれかなら自動で付く。
+ * - ルートにauthのミドルウェアが付いた画面（ログインしないと開けない画面）
+ * - コントローラーでSeo::noindex()を呼んだ画面（検索や絞り込みをした一覧など）
+ * - 設定のseo.noindex_routesに並べたルートの名前（*が使える。お礼の画面など）
+ * - 記事のSEOの欄で、検索に出さないにしたもの
  */
 final class Seo
 {
     /** ヘルパーのseo()で取り出せる値の名前 */
-    public const KEYS = ['title', 'description', 'image', 'url', 'type', 'site_name', 'robots'];
+    public const KEYS = ['title', 'description', 'image', 'url', 'canonical', 'type', 'site_name', 'robots'];
 
     /** 記事を持つ、リクエストの属性の名前 */
     private const ATTRIBUTE = 'neobit.seo.subject';
+
+    /** 検索に出さない印を持つ、リクエストの属性の名前 */
+    private const NOINDEX_ATTRIBUTE = 'neobit.seo.noindex';
 
     /** 今のページの記事を決める。コントローラーの詳細の画面で呼ぶ */
     public static function for(SeoSubject $subject): void
     {
         request()->attributes->set(self::ATTRIBUTE, $subject);
+    }
+
+    /** 今のページを検索に出さない。検索や絞り込みをした一覧のように、URLだけでは見分けられない画面で、コントローラーが呼ぶ */
+    public static function noindex(): void
+    {
+        request()->attributes->set(self::NOINDEX_ATTRIBUTE, true);
     }
 
     /** 今のページの記事。無ければnull */
@@ -49,11 +64,48 @@ final class Seo
             'description' => $this->description(),
             'image' => $this->image(),
             'url' => url()->current(),
+            'canonical' => $this->canonical(),
             'type' => $this->subject() !== null ? 'article' : 'website',
             'site_name' => (string) config('app.site_name'),
-            'robots' => $this->meta('noindex') ? 'noindex' : '',
+            'robots' => $this->isNoindex() ? 'noindex' : '',
             default => throw new LogicException("seo()の名前には、'".implode("'・'", self::KEYS)."'のどれかを渡してください：{$key}"),
         };
+    }
+
+    /**
+     * 正規のURL。今のURLから?の後ろを除く。ページ送りの?page=だけは残す。
+     * 一覧の2ページ目以降も、1ページ目とは別のページとして検索に出すため
+     */
+    private function canonical(): string
+    {
+        $page = request()->query('page');
+
+        return url()->current().(is_scalar($page) && (string) $page !== '' ? '?page='.urlencode((string) $page) : '');
+    }
+
+    /** 検索に出さないページか。決まりはクラスの説明のとおり */
+    private function isNoindex(): bool
+    {
+        if ($this->meta('noindex') || request()->attributes->get(self::NOINDEX_ATTRIBUTE)) {
+            return true;
+        }
+
+        $route = request()->route();
+        if ($route === null) {
+            return false;
+        }
+
+        // ログインしないと開けない画面
+        foreach ($route->gatherMiddleware() as $middleware) {
+            if (is_string($middleware) && ($middleware === 'auth' || str_starts_with($middleware, 'auth:'))) {
+                return true;
+            }
+        }
+
+        // 設定に並べたルートの名前
+        $patterns = (array) config('neobit.seo.noindex_routes');
+
+        return $patterns !== [] && $route->named(...$patterns);
     }
 
     /**
