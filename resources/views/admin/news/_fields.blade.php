@@ -219,3 +219,6 @@
     ])
     <div class="invalid-feedback" data-item="photos_id">{{ $errors->first('photos_id') }}</div>
 </div>
+
+{{-- 記事ごとのSEOの欄。空欄なら、タイトル・本文の先頭・記事の画像から自動で決まる（Neobit\Core\Seo\SeoFields） --}}
+@include('neobit::_seo_fields', ['input' => $input, 'readonly' => $readonly])

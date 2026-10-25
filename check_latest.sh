@@ -232,6 +232,11 @@ has   packages/neobit/core/src/Seo/Seo.php                              'final c
 has   packages/neobit/core/src/helpers.php                              "function_exists('seo')"
 has   packages/neobit/core/resources/views/_seo_head.blade.php          'twitter:card'
 has   resources/views/layouts/app.blade.php                             "@include('neobit::_seo_head')"
+has   packages/neobit/core/database/migrations/2026_10_25_000000_create_seo_metas_table.php "Schema::create('seo_metas'"
+has   packages/neobit/core/src/Seo/SeoFields.php                        'trait SeoFields'
+has   packages/neobit/core/src/Crud/FormFlow.php                        'saveSeoFields'
+has   packages/neobit/core/resources/views/_seo_fields.blade.php        'seo_noindex'
+has   app/Http/Controllers/Admin/NewsController.php                     '$this->seoRules()'
 has   packages/neobit/core/src/Crud/FormFlow.php                        'saveChildTables'
 has   packages/neobit/core/resources/js/repeatable_group.js             'repeatable_template'
 has   vite.config.js                                                    'repeatable_group.js'

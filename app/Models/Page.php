@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Route;
+use Neobit\Core\Seo\HasSeoMeta;
 use Neobit\Core\Seo\SeoSubject;
 
 /**
@@ -20,6 +21,9 @@ use Neobit\Core\Seo\SeoSubject;
  */
 class Page extends Model implements SeoSubject
 {
+    // 記事ごとのSEOの欄（共通のテーブルseo_metas）。管理画面の登録・編集の画面で入れる
+    use HasSeoMeta;
+
     /** 本文のエディタで挿入する画像の横幅(px)。これより大きい画像は、この横幅に縮めて保存する。 */
     public const BODY_IMAGE_WIDTH = 1000;
 

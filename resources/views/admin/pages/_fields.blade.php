@@ -75,3 +75,6 @@
         </div>
     @endif
 </div>
+
+{{-- 記事ごとのSEOの欄。空欄なら、タイトル・本文の先頭・記事の画像から自動で決まる（Neobit\Core\Seo\SeoFields） --}}
+@include('neobit::_seo_fields', ['input' => $input, 'readonly' => $readonly])

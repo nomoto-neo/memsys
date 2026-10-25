@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Neobit\Core\Seo\HasSeoMeta;
 use Neobit\Core\Seo\SeoSubject;
 use Neobit\Core\Upload\UploadFilePath;
 
@@ -16,6 +17,9 @@ use Neobit\Core\Upload\UploadFilePath;
  */
 class News extends Model implements SeoSubject
 {
+    // 記事ごとのSEOの欄（共通のテーブルseo_metas）。管理画面の登録・編集の画面で入れる
+    use HasSeoMeta;
+
     /**
      * 一覧用画像の横幅(px)。これより大きい画像は、この横幅に縮めて保存する。
      * どの画面から登録しても同じ、このデータ項目の仕様なので、モデルに持たせている。

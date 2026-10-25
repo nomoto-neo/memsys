@@ -12,6 +12,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Neobit\Core\Crud\FormFlow;
 use Neobit\Core\Crud\SearchableList;
+use Neobit\Core\Seo\SeoFields;
 use Neobit\Core\Upload\AjaxFileUpload;
 
 /**
@@ -32,6 +33,10 @@ class PageController extends Controller
 
     // 本文のエディタに挿入する画像のアップロード（入口のuploadAjaxFile()もトレイト側）。
     use AjaxFileUpload;
+
+    // 記事ごとのSEOの欄（タイトル・説明文・シェアの画像・検索に出さない）の値の組み立て・保存・削除。
+    // クラス側は rules() に seoRules() を足す。
+    use SeoFields;
 
     // ---- 一覧・検索（SearchableList）の設定 ----
 
@@ -104,7 +109,7 @@ class PageController extends Controller
             ],
             'body' => ['nullable', 'string', 'max:'.self::BODY_MAX_LENGTH],
             'disp_flg' => ['required', 'boolean'],
-        ] + $this->ajaxUploadRules();
+        ] + $this->ajaxUploadRules() + $this->seoRules();
     }
 
     /** モデルの今の値から、_fields.blade.phpに渡す$inputを組み立てる（詳細・編集で使う） */

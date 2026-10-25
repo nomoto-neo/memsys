@@ -10,14 +10,15 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
-use Neobit\Core\Crud\FormFlow;
 use Neobit\Core\Crud\ChildTables;
+use Neobit\Core\Crud\FormFlow;
 use Neobit\Core\Crud\SearchableList;
 use Neobit\Core\Csv\CsvDownload;
 use Neobit\Core\Csv\CsvImport;
 use Neobit\Core\Csv\CsvImportSettings;
 use Neobit\Core\Enums\CsvEncoding;
 use Neobit\Core\Enums\CsvImportMode;
+use Neobit\Core\Seo\SeoFields;
 use Neobit\Core\Upload\AjaxFileUpload;
 use Neobit\Core\Upload\UploadType;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -40,6 +41,10 @@ class NewsController extends Controller
     // 子テーブル（写真）の値の組み立て・保存・削除はChildTablesトレイトが提供する。
     // クラス側は CHILD_TABLES と、rules()の組の項目のルールを用意する。
     use ChildTables;
+
+    // 記事ごとのSEOの欄（タイトル・説明文・シェアの画像・検索に出さない）の値の組み立て・保存・削除。
+    // クラス側は rules() に seoRules() を足す。
+    use SeoFields;
 
     // CSVダウンロードの共通処理はCsvDownloadトレイトが提供する。
     // クラス側は csvColumns() を用意する。
@@ -140,7 +145,7 @@ class NewsController extends Controller
             'category_ids.*' => ['integer', Rule::exists('t_categories', 'id')],
             // 写真のキャプション。組の行ごとの値は、列ごとの配列の要素に書く
             'photos_caption.*' => ['nullable', 'string', 'max:200'],
-        ] + $this->ajaxUploadRules() + $this->childTableRules();
+        ] + $this->ajaxUploadRules() + $this->childTableRules() + $this->seoRules();
     }
 
     /**
