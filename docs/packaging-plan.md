@@ -52,7 +52,7 @@
 | 4-5 | 配る前に、案件が頼る名前を総点検する | 進行中 |
 | 4-6 | IPブロック管理（攻撃の IP を入口で止める）を足す | 済み |
 | 4-7 | 設定ファイルの分け方を見直す | 未着手 |
-| 4-8 | 繰り返しの組（子テーブルの行を、項目の組として増減しながら入力して保存する部品）を足す | 済み |
+| 4-8 | 子テーブル（1:多の子テーブルを、親と同じ画面で入力して保存する部品。`ChildTables`）を足す | 進行中（CSV の取り込みが残り） |
 | 5 | 配布の形を決める | 未着手 |
 | 6 | 文書を、切り離した後の形に合わせる | 未着手 |
 
@@ -266,16 +266,31 @@
 | 文書 | 利用ガイドのセキュリティの章・`docs/neobit-framework-names.md`・`check_latest.sh` |
 
 
-### 段階4-8　繰り返しの組
+### 段階4-8　子テーブル
 
-済み。2026-10-20 に足した段階。子テーブルの1行を「いくつかの項目（ファイルを含んでよい）の組」として、画面で行を増やしたり消したりしながら入力し、親と一緒に保存する部品（`Neobit\Core\Crud\RepeatableGroup`）。今までは、アップロードの複数の欄（`attach.*`）だけが繰り返しを受け持ち、1行＝ファイル1つに限られていた。ラベルや説明を一緒に持つ子テーブルは、コーナーごとに書くことになり、写すたびに食い違いが生まれていた。
+進行中。2026-10-20 に足した段階。1:多の子テーブルの1行を「いくつかの項目（ファイルを含んでよい）の組」として、親と同じ画面で入力し、親と一緒に保存する部品（`Neobit\Core\Crud\ChildTables`）。それまでは、アップロードの複数の欄（`attach.*`）だけが繰り返しを受け持ち、1行＝ファイル1つに限られていた。ラベルや説明を一緒に持つ子テーブルは、コーナーごとに書くことになり、写すたびに食い違いが生まれていた。
 
-- コントローラーの定義は `REPEATABLE_GROUPS`、組の中のファイルの欄は `UPLOAD_FILES` に `'photos.*.image'` と書く。配布の後に名前を変えると壊れるので、この段階で決めた
-- 子テーブルの行の id を保って保存する。行の id をほかから参照できる
-- 複数の欄（`attach.*`）は、2026-10-21 にファイルだけの組に作り直して、仕組みを1つにまとめた（`_ajax_upload_group`・`MaxUploadCountRule` は消した）。ファイルの項目が1つだけの組では、ファイルをまとめて選べる。設計は `docs/repeatable-group-attach-spec.md`
-- CSV の取り込みは、まだ受け持たない。添付ファイルの取り込みも、組の取り込みを足すまで止まっている
-- 2026-10-21 に、PHP の側の名前を、1:多の子テーブルを表す名前に変えた（`REPEATABLE_GROUPS` → `CHILD_TABLES`、`RepeatableGroup` → `ChildTables`、`RepeatableGroupDefinitions` → `ChildTableDefinitions`、`repeatableGroupRules()` → `childTableRules()`）。画面の部品（`_repeatable_group`・`repeatable_group.js`・`repeatable_*` のクラス名）は、行を繰り返す部品の名前なのでそのまま。設計は `docs/child-tables-rename-spec.md`
-- 設計は `docs/repeatable-group-spec.md`、使い方は利用ガイドの5章「繰り返しの組」
+済んだこと。
+
+| 日付 | 中身 | 設計 |
+|---|---|---|
+| 2026-10-20 | 部品を足した。行の id を保って保存し、組の中のファイルの欄も受け持つ。見本はニュースの写真 | `docs/repeatable-group-spec.md` |
+| 2026-10-21 | 複数の欄（`attach.*`）を、ファイルだけの組に作り直して、仕組みを1つにまとめた（`_ajax_upload_group`・`MaxUploadCountRule` は消した）。ファイルの項目が1つだけの組では、ファイルをまとめて選べる | `docs/repeatable-group-attach-spec.md` |
+| 2026-10-21 | 保存のたびに行を消して画面の順に入れ直す保存（`'delete_insert'`）を足した。見本はニュースの添付ファイル | `docs/repeatable-group-delete-insert-spec.md` |
+| 2026-10-21 | アップロードの欄の必須（`UPLOAD_FILES` の `'required'`）を足した。組の中の欄にも効く | `docs/upload-required-spec.md` |
+| 2026-10-21 | PHP の側の名前を、1:多の子テーブルを表す名前に変えた（`REPEATABLE_GROUPS` → `CHILD_TABLES`、`RepeatableGroup` → `ChildTables` など）。画面の部品（`_repeatable_group`・`repeatable_group.js`）は、行を繰り返す部品の名前なのでそのまま。1:多ではないリレーションは例外にする | `docs/child-tables-rename-spec.md` |
+| 2026-10-25 | 固定の枠（`'fixed'`）を足した。見本はニュースの添付ファイル（4枠） | `docs/child-tables-fixed-spec.md` |
+| 2026-10-25 | 最初に並べる枠の数（`'initial'`）を足した。見本は会員の経歴（10枠から20枠まで。履歴書の PDF にも出す） | `docs/member-careers-spec.md` |
+
+- コントローラーの定義は `CHILD_TABLES`、組の中のファイルの欄は `UPLOAD_FILES` に `'photos.*.image'` と書く。配布の後に名前を変えると壊れるので、この段階で決めた
+- 使い方は利用ガイドの5章「子テーブル」
+
+残っていること。
+
+- CSV の取り込み。今は書き出しだけで、取り込みでは子テーブルを保存しない。ニュースの CSV の添付ファイルの列も、取り込めていない
+- CSV の取り込みで、アップロードの欄の必須（`'required'`）が効かない
+- 会員の CSV に、経歴の列を足すか（取り込みの仕組みができてから決める）
+
 ### 段階4-7　設定ファイルの分け方
 
 未着手。2026-10-16 に、今の状態だけを書き留めた。後で整理する。
