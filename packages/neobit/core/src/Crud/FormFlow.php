@@ -124,8 +124,9 @@ trait FormFlow
     {
         $base = $record === null ? $this->defaultValues() : $this->formValues($record);
 
-        // 子テーブルは、入力し直していた値も行の並びを揃えた形に組み立て直すので、$sourceより先に置く
-        return $this->groupFormValues($record, $source) + $source + $base
+        // 子テーブルは、入力し直していた値も行の並びを揃えた形に組み立て直すので、$sourceより先に置く。
+        // SEOの欄は、モデルの列ではないので、記事のSEOの欄から組み立てる
+        return $this->groupFormValues($record, $source) + $this->seoFormValues($record, $source) + $source + $base
             + $this->uploadFormValues($record, $source) + $this->emptyFormValues($record);
     }
 
@@ -153,6 +154,12 @@ trait FormFlow
     private function uploadFormValues(?Model $record, array $source = []): array
     {
         return method_exists($this, 'ajaxUploadValues') ? $this->ajaxUploadValues($record, $source) : [];
+    }
+
+    /** SEOの欄の$input。SeoFieldsを使っていなければ空 */
+    private function seoFormValues(?Model $record, array $source = []): array
+    {
+        return method_exists($this, 'seoFieldValues') ? $this->seoFieldValues($record, $source) : [];
     }
 
     /** 子テーブルの項目の$input。ChildTablesを使っていなければ空 */
@@ -226,6 +233,11 @@ trait FormFlow
             $this->saveChildTables($record, $validated, $fromImport);
         }
 
+        // SEOの欄。親のidが要るので、本体の保存の後に行う
+        if (method_exists($this, 'saveSeoFields')) {
+            $this->saveSeoFields($record, $validated, $fromImport);
+        }
+
         // 新規登録では全部の列が対象なので、変わった列は持たない。更新では、保存のたびに変わる列などを除く
         $loggable = $created ? [] : OperationRecorder::loggableFields($record, array_keys($changed));
         $changed = array_intersect_key($changed, array_flip($loggable));
@@ -252,6 +264,11 @@ trait FormFlow
             // 子テーブルの行とファイル。子テーブルが親を参照しているので、親より先に消す
             if (method_exists($this, 'deleteChildTables')) {
                 $this->deleteChildTables($record);
+            }
+
+            // SEOの欄の行
+            if (method_exists($this, 'deleteSeoFields')) {
+                $this->deleteSeoFields($record);
             }
 
             if (method_exists($this, 'deleteAllUploads')) {

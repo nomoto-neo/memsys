@@ -9,6 +9,10 @@
     $seoImage = seo('image');
 @endphp
 <title>{{ seo('title') }}</title>
+{{-- 記事のSEOの欄で「検索に出さない」にしたページ --}}
+@if (seo('robots') !== '')
+    <meta name="robots" content="{{ seo('robots') }}">
+@endif
 @if ($seoDescription !== '')
     <meta name="description" content="{{ $seoDescription }}">
 @endif

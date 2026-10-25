@@ -229,6 +229,37 @@ Seo::for($news);
 - **説明文の作り方**：本文の `<script>`・`<style>` は中身ごと除き、段落や改行のタグは空白にしてから、残りのタグを除きます。
 - 部品を置くのは、訪問者の側のレイアウトだけです。管理画面と企業会員の画面は、検索に出さない画面のためです。
 
+#### 記事ごとの SEO の欄
+
+**ファイル**：`packages/neobit/core/src/Seo/SeoFields.php`（コントローラー）・`HasSeoMeta.php`（モデル）・`src/Models/SeoMeta.php`、画面は `packages/neobit/core/resources/views/_seo_fields.blade.php`　**実例**：ニュースと固定ページの登録・編集（`Admin\NewsController`・`Admin\PageController`）
+
+運用する人が、記事ごとに SEO のタイトル・説明文・シェアの画像の URL・検索に出さない（noindex）を、登録・編集の画面で決められます。値は共通のテーブル `seo_metas` に1記事1行で持つので、コーナーのテーブルに列を足す必要はありません。
+
+```php
+// モデル。SeoSubjectと一緒に使う。モデルの短い名前（enforceMorphMap()）にも登録しておく
+class News extends Model implements SeoSubject
+{
+    use HasSeoMeta;
+}
+
+// コントローラー
+use SeoFields;
+
+] + $this->ajaxUploadRules() + $this->seoRules();
+```
+
+```blade
+{{-- 入力欄（_fields.blade.php） --}}
+@include('neobit::_seo_fields', ['input' => $input, 'readonly' => $readonly])
+```
+
+- **空欄のとき**：入れていない項目は、記事から自動で補います（タイトル・本文の先頭・記事の画像かサイトの既定の画像）。全部空なら、`seo_metas` の行を持ちません。
+- **画像**：アップロードではなく URL を入れます。`/` から始まるサイトの中のパス（本文に挿入した画像の URL など）か、`http(s)://` から始まる URL です。その画像を後で消すと、シェアの画像は出なくなります。
+- **検索に出さない**：入れると `<meta name="robots" content="noindex">` を出します。ヘルパーでは `seo('robots')` が `noindex` を返します。
+- **画面**：入力の画面では、普段は閉じた「SEO の設定」の枠で、値かエラーがあれば開いた状態で出ます。確認・詳細の画面では、入れた値だけを並べ、全部空なら「（自動）」と出します。
+- **FormFlow が呼ぶ**：値の組み立て・保存・削除は FormFlow が呼ぶので、入口の書き方は変わりません。部品を置いていない画面からの保存では、SEO の欄には触りません。
+- CSV の書き出し・取り込みには含めません。SEO の欄の変更は、操作ログの「変わった列」には入りません。
+
 ### まだ無い機能（今後の予定）
 
 自動テストは、認証の流れ（個人会員とスタッフのログイン、パスワードの変更と再設定、会員登録。`tests/Feature/Auth/`）と、企業会員（登録・ログイン・マイページ・招待・初回のログインでの登録と、管理画面の企業会員と担当者。`tests/Feature/Company/`）にあります。パスキーと、ほかの管理画面のコーナーは、まだです。そろってきたら、章を足します。

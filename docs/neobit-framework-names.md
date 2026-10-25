@@ -57,6 +57,7 @@
 | `AjaxFileUpload` | `uploadAjaxFile($request)` | 入口。アップロードを受け取る | ほかは `ajaxUpload〜` の語順 |
 | `AjaxFileUpload` | `ajaxUploadRules()` | アップロードの欄の検証ルール | |
 | `ChildTables` | `childTableRules()` | 子テーブルの検証ルール | |
+| `SeoFields` | `seoRules()` | 記事ごとの SEO の欄の検証ルール | |
 | `AjaxFileUpload` | `ajaxUploadValues($model, $source)` | アップロードの欄の画面の値 | |
 | `AjaxFileUpload` | `commitUploads($model, $input, $fromImport)` | 一時ファイルを正式な保存先へ移す | |
 | `AjaxFileUpload` | `deleteAllUploads($model)` | 1件分のファイルを全部消す | |
@@ -134,10 +135,11 @@
 | インターフェース | `UploadDirectoryRule` | 保存先の規則 | |
 | インターフェース | `SheetPagingRule` | 定型紙のページの使い方 | |
 | インターフェース | `SeoSubject` | SEO の値の元になる記事のモデル | |
+| モデルのトレイト | `HasSeoMeta` | 記事ごとの SEO の欄（`seoMeta()`）を持つ | |
 | モデル | `IpBlock` | IPブロック管理の1行 | |
 | モデル | `Setting` | 管理画面から変えられる設定の1行（キーと値） | |
 | モデルのトレイト | `IsLoginAccount`・`HasTwoFactor`・`HasPasskeys`・`TeamInvitationRelation` | ログイン・2段階認証・パスキー・招待 | `TeamInvitationRelation` だけ `Has〜`・`Is〜` の形でない |
-| コントローラーのトレイト | `FormFlow`・`SearchableList`・`AjaxFileUpload`・`ChildTables`・`CsvDownload`・`CsvImport`・`CsvReader`・`PdfDownload`・`EmailChange`・`TwoFactorLogin`・`TwoFactorManagement`・`PasskeyLogin`・`PasskeyManagement` | | `CsvReader` だけ「〜er」 |
+| コントローラーのトレイト | `FormFlow`・`SearchableList`・`AjaxFileUpload`・`ChildTables`・`SeoFields`・`CsvDownload`・`CsvImport`・`CsvReader`・`PdfDownload`・`EmailChange`・`TwoFactorLogin`・`TwoFactorManagement`・`PasskeyLogin`・`PasskeyManagement` | | `CsvReader` だけ「〜er」 |
 | 列挙型 | `UploadType`（`Image`・`File`）・`SheetPaging`（`Once`・`Sequential`・`Cycle`）・`OperationLogAction`（`ip_block`・`ip_unblock`・`access_restriction_change` を含む）・`TwoFactorMethod`・`LoginIdType`・`CsvEncoding`・`CsvImportMode`・`SpamCheckResult` | | |
 
 ## 6. 案件が呼ぶクラスと、その公開のメソッド
@@ -191,7 +193,7 @@
 | `upload_input_value($input, $key, $idx)` | アップロードの欄の値 | |
 | `upload_preview_url($model, $input, $field, $idx)` | アップロードの欄に出す URL | |
 | `upload_field($field, $key)` | 今の画面のコントローラーの `UPLOAD_FILES` から、欄の `type`・`width`・`required`・`multiple` を1つ返す | |
-| `seo($key)` | 今のページの SEO の値（`title`・`description`・`image`・`url`・`type`・`site_name`）を1つ返す | |
+| `seo($key)` | 今のページの SEO の値（`title`・`description`・`image`・`url`・`type`・`site_name`・`robots`）を1つ返す | |
 | `required_mark($area)` | 必須マーク | |
 | `required_fields($rules, $alsoRequired)` | 必須マークの配列 | |
 
@@ -220,6 +222,7 @@
 | `_repeatable_group` | `$group`・`$row`・`$model`・`$input`・`$readonly`・`$uploadUrl`・`$addLabel`・`$inline`（省略可） | 行の中身の部分ビュー（`$row`）は `$model`・`$input`・`$idx`・`$readonly`・`$uploadUrl` を受け取る |
 | `_confirm_hidden` | `$input`・`$exclude` | |
 | `_seo_head` | なし | 値は `seo()` で読む。訪問者の側のレイアウトの `<head>` に置く |
+| `_seo_fields` | `$input`・`$readonly` | 記事ごとの SEO の欄。送る名前は `seo_title`・`seo_description`・`seo_image`・`seo_noindex` |
 | `_spam_guard`・`_passkey_suggest` | なし | |
 | `_passkeys` | `$passkeys`・`$passkeyRoute`・`$identityConfirmed`・`$codeSent`・`$confirmBy`・`$twoFactorMissing` | |
 | `_two_factor` | `$twoFactorState`・`$twoFactorRoutes`・`$twoFactorLoginId`・`$twoFactorQrCode`・`$twoFactorSecret`・`$twoFactorBackupCodes`・`$rememberLabel` | |

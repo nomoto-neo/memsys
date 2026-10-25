@@ -223,7 +223,8 @@ if (! function_exists('upload_preview_url')) {
 
 if (! function_exists('seo')) {
     /**
-     * 今のページのSEOの値を1つ返す。$keyは'title'・'description'・'image'・'url'・'type'・'site_name'。
+     * 今のページのSEOの値を1つ返す。$keyは'title'・'description'・'image'・'url'・'type'・'site_name'・'robots'。
+     * robotsは、記事のSEOの欄で検索に出さないにしていれば'noindex'、そうでなければ空。
      * 記事の詳細の画面でコントローラーがSeo::for($news)を呼んでいればその記事から、呼んでいなければ、
      * 画面の@section('title')とサイトの既定（config/neobit.phpのseo）から決まる（Neobit\Core\Seo\Seo）。
      *
