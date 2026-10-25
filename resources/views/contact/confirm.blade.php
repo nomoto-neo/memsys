@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('title', 'お問い合わせの確認')
+
 @push('head-extra')
     {{-- 「送信する」ボタンの二重クリック防止（resources/js/contact_form.jsの
          setupSubmitOnceGuard()）に使う。createの画面と違い、ここでは

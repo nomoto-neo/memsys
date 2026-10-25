@@ -441,4 +441,80 @@ class SeoTest extends TestCase
             ->get(route('admin.seo-settings.index'))
             ->assertRedirect(route('admin.staff.edit', $staff));
     }
+
+    // ---- パンくずリストと構造化データ ----
+
+    public function test_breadcrumbs_show_the_top_the_added_steps_and_the_page(): void
+    {
+        $news = $this->news();
+
+        // 記事の詳細は、コントローラーが「お知らせ」の段を足す
+        $this->get(route('news.show', $news))
+            ->assertSee('<li class="breadcrumb-item"><a href="https://example.com">トップ</a></li>', false)
+            ->assertSee('<li class="breadcrumb-item"><a href="https://example.com/news">お知らせ</a></li>', false)
+            ->assertSee('<li class="breadcrumb-item active" aria-current="page">秋のイベント</li>', false);
+
+        // 段を足していない画面は「トップ > ページ名」
+        $this->get(route('news.index'))
+            ->assertSee('<title>お知らせ｜デモサイト</title>', false)
+            ->assertSee('<li class="breadcrumb-item active" aria-current="page">お知らせ</li>', false);
+
+        // トップページには出さない
+        $this->get('/')->assertDontSee('aria-label="パンくずリスト"', false);
+    }
+
+    public function test_nested_page_shows_public_parents(): void
+    {
+        Page::create(['title' => '会社概要', 'slug' => 'company', 'body' => '<p>本文</p>', 'disp_flg' => true]);
+        Page::create(['title' => '沿革', 'slug' => 'company/history', 'body' => '<p>本文</p>', 'disp_flg' => false]);
+        Page::create(['title' => '2020年', 'slug' => 'company/history/2020', 'body' => '<p>本文</p>', 'disp_flg' => true]);
+
+        // 非公開の親（沿革）の段は飛ばす
+        $this->get(route('pages.show', 'company/history/2020'))
+            ->assertOk()
+            ->assertSee('<li class="breadcrumb-item"><a href="https://example.com/company">会社概要</a></li>', false)
+            ->assertDontSee('>沿革<', false)
+            ->assertSee('<li class="breadcrumb-item active" aria-current="page">2020年</li>', false);
+    }
+
+    public function test_article_page_has_breadcrumb_and_article_json_ld(): void
+    {
+        $news = $this->news(['title' => '</script><script>alert(1)</script>']);
+
+        $html = $this->get(route('news.show', $news))->assertSee('<script type="application/ld+json">', false)->getContent();
+
+        $this->assertStringContainsString('"@type":"BreadcrumbList"', $html);
+        $this->assertStringContainsString('{"@type":"ListItem","position":2,"name":"お知らせ","item":"https://example.com/news"}', $html);
+        $this->assertStringContainsString('"@type":"Article"', $html);
+        $this->assertStringContainsString('"datePublished":"2026-10-01T00:00:00', $html);
+        $this->assertStringContainsString('"mainEntityOfPage":"'.route('news.show', $news).'"', $html);
+        $this->assertStringContainsString('"author":{"@type":"Organization","name":"デモサイト","url":"https://example.com"}', $html);
+
+        // 記事の題で<script>から抜け出せない
+        $this->assertStringNotContainsString('<script>alert(1)</script>', $html);
+    }
+
+    public function test_top_page_has_site_and_organization_json_ld(): void
+    {
+        $this->actingAs($this->manager(), 'admin')->patch(route('admin.seo-settings.update'), $this->seoSettingsInput([
+            'organization_name' => 'デモ株式会社',
+            'organization_logo' => '/images/logo.png',
+        ]));
+
+        $html = $this->get('/')->getContent();
+
+        $this->assertStringContainsString('{"@type":"WebSite","name":"デモサイト","url":"https://example.com"}', $html);
+        $this->assertStringContainsString('{"@type":"Organization","name":"デモ株式会社","url":"https://example.com","logo":{"@type":"ImageObject","url":"https://example.com/images/logo.png"}}', $html);
+    }
+
+    public function test_noindex_page_has_no_json_ld(): void
+    {
+        $page = Page::create(['title' => '会社概要', 'slug' => 'aboutus', 'body' => '<p>本文</p>', 'disp_flg' => true]);
+        $page->seoMeta()->create(['noindex' => true]);
+
+        // パンくずは出すが、構造化データは出さない
+        $this->get(route('pages.show', 'aboutus'))
+            ->assertSee('aria-label="パンくずリスト"', false)
+            ->assertDontSee('application/ld+json', false);
+    }
 }

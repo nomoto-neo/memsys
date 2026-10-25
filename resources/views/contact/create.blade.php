@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('title', 'お問い合わせ')
+
 {{--
     お問い合わせフォーム。resources/views/auth/regist.blade.phpと同じ
     考え方（confirm()で保存せず検証と確認画面表示だけを行い、

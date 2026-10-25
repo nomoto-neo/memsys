@@ -148,8 +148,10 @@ class NewsController extends Controller
         // 添付ファイルと写真は、リレーション（News::attach()・photos()）に書いた画面の並びの順
         $news->load(['categories', 'attach', 'photos']);
 
-        // タイトル・説明文・OGPを、この記事から出す（レイアウトのneobit::_seo_head）
+        // タイトル・説明文・OGP・構造化データを、この記事から出す（レイアウトのneobit::_seo_head）。
+        // パンくずは「トップ > お知らせ > 記事の題」
         Seo::for($news);
+        Seo::breadcrumb('お知らせ', route('news.index'));
 
         return view('news.show', [
             'news' => $news,

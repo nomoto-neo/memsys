@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use DateTimeInterface;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -9,14 +10,14 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Neobit\Core\Seo\HasSeoMeta;
-use Neobit\Core\Seo\SeoSubject;
+use Neobit\Core\Seo\SeoArticle;
 use Neobit\Core\Seo\SitemapSource;
 use Neobit\Core\Upload\UploadFilePath;
 
 /**
  * ニュース記事。
  */
-class News extends Model implements SeoSubject, SitemapSource
+class News extends Model implements SeoArticle, SitemapSource
 {
     // 記事ごとのSEOの欄（共通のテーブルseo_metas）。管理画面の登録・編集の画面で入れる
     use HasSeoMeta;
@@ -168,7 +169,7 @@ class News extends Model implements SeoSubject, SitemapSource
         );
     }
 
-    // ---- SEO（Neobit\Core\Seo\SeoSubject） ----
+    // ---- SEO（Neobit\Core\Seo\SeoArticle） ----
 
     /** SEOのタイトル。記事のタイトル */
     public function seoTitle(): string
@@ -186,6 +187,18 @@ class News extends Model implements SeoSubject, SitemapSource
     public function seoImageUrl(): ?string
     {
         return $this->list_image_url;
+    }
+
+    /** 構造化データの公開日。記事の日付 */
+    public function seoPublishedAt(): ?DateTimeInterface
+    {
+        return $this->article_date;
+    }
+
+    /** 構造化データの更新日 */
+    public function seoModifiedAt(): ?DateTimeInterface
+    {
+        return $this->updated_at;
     }
 
     // ---- サイトマップ（Neobit\Core\Seo\SitemapSource） ----

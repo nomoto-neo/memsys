@@ -255,6 +255,14 @@ has   packages/neobit/core/src/Seo/Seo.php                              'IMAGE_U
 has   routes/web.php                                                    'SeoSettingsController'
 has   config/neobit.php                                                 "'page_routes'"
 has   resources/views/admin/_menu.blade.php                             'admin.seo-settings.index'
+has   packages/neobit/core/src/Seo/SeoArticle.php                       'interface SeoArticle'
+has   packages/neobit/core/src/Seo/Seo.php                              'public static function breadcrumb('
+has   packages/neobit/core/resources/views/_breadcrumbs.blade.php       'breadcrumb-item'
+has   packages/neobit/core/resources/views/_seo_head.blade.php          'application/ld+json'
+has   resources/views/layouts/app.blade.php                             "@include('neobit::_breadcrumbs')"
+has   app/Models/News.php                                               'implements SeoArticle'
+has   app/Http/Controllers/PageController.php                           '$parentSlugs'
+has   config/neobit.php                                                 "'organization_logo'"
 has   packages/neobit/core/src/Crud/FormFlow.php                        'saveChildTables'
 has   packages/neobit/core/resources/js/repeatable_group.js             'repeatable_template'
 has   vite.config.js                                                    'repeatable_group.js'

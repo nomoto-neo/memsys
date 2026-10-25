@@ -22,6 +22,22 @@ class PageController extends Controller
         // タイトル・説明文・OGPを、このページから出す（レイアウトのneobit::_seo_head）
         Seo::for($page);
 
+        // 入れ子のslug（company/history）なら、公開している親のページをパンくずの段にする。
+        // 親は1回でまとめて探し、非公開や無いページの段は飛ばす
+        $segments = explode('/', $slug);
+        $parentSlugs = [];
+        for ($depth = 1; $depth < count($segments); $depth++) {
+            $parentSlugs[] = implode('/', array_slice($segments, 0, $depth));
+        }
+        if ($parentSlugs !== []) {
+            $parents = Page::visible()->whereIn('slug', $parentSlugs)->get()->keyBy('slug');
+            foreach ($parentSlugs as $parentSlug) {
+                if ($parents->has($parentSlug)) {
+                    Seo::breadcrumb($parents[$parentSlug]->title, route('pages.show', $parentSlug));
+                }
+            }
+        }
+
         return view('pages.show', [
             'page' => $page,
         ]);

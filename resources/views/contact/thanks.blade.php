@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('title', 'お問い合わせの完了')
+
 @section('content')
 <div class="card">
     <div class="card-body text-center py-5">

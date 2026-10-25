@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    {{-- タイトル・説明文・OGP。記事の詳細ではコントローラーが渡した記事から、ほかの画面では@section('title')と
-         サイトの既定（config/neobit.phpのseo）から決まる --}}
+    {{-- タイトル・説明文・OGP・構造化データ。記事の詳細ではコントローラーが渡した記事から、ほかの画面では
+         管理画面の「SEO設定」・@section('title')・サイトの既定（config/neobit.phpのseo）から決まる --}}
     @include('neobit::_seo_head')
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     @vite(['vendor/neobit/core/resources/css/global.css', 'vendor/neobit/core/resources/js/global.js'])
@@ -48,6 +48,9 @@
     </div>
 </nav>
 <div class="container" style="max-width: 1000px;">
+    {{-- パンくずリスト。途中の段は、コントローラーがSeo::breadcrumb()で足す --}}
+    @include('neobit::_breadcrumbs')
+
     @if (session('status'))
         <div class="alert alert-success">{{ session('status') }}</div>
     @endif
