@@ -37,6 +37,7 @@ use Neobit\Core\Http\Controllers\AccessRestrictionController;
 use Neobit\Core\Http\Controllers\CodeTableController;
 use Neobit\Core\Http\Controllers\IpBlockController;
 use Neobit\Core\Http\Controllers\OperationLogController;
+use Neobit\Core\Http\Controllers\RedirectController;
 use Neobit\Core\Http\Controllers\SeoSettingsController;
 use Neobit\Core\Rules\SlugRule;
 
@@ -558,6 +559,19 @@ Route::prefix('admin')->name('admin.')->middleware('admin.ip')->group(function (
             // 名前は「頭.index」「頭.update」の組にする。コントローラーが組のもう一方の名前を作る
             Route::get('/seo-settings', [SeoSettingsController::class, 'index'])->name('seo-settings.index');
             Route::patch('/seo-settings', [SeoSettingsController::class, 'update'])->name('seo-settings.update');
+
+            // リダイレクト（古いURLから新しいURLへの移し方の一覧・追加・編集・削除と、CSV。フレームワークの画面）。
+            // 名前は「頭.index」「頭.store」「頭.update」「頭.destroy」「頭.csv」「頭.csv-import」
+            // 「頭.csv-import.confirm」「頭.csv-import.execute」の組にする。コントローラーが組のほかの名前を作る。
+            // csvとcsv-importは、{redirect}のURLより先に書く
+            Route::get('/redirects', [RedirectController::class, 'index'])->name('redirects.index');
+            Route::post('/redirects', [RedirectController::class, 'store'])->name('redirects.store');
+            Route::get('/redirects/csv', [RedirectController::class, 'csv'])->name('redirects.csv');
+            Route::get('/redirects/csv-import', [RedirectController::class, 'csvImport'])->name('redirects.csv-import');
+            Route::post('/redirects/csv-import/confirm', [RedirectController::class, 'csvImportConfirm'])->name('redirects.csv-import.confirm');
+            Route::post('/redirects/csv-import/execute', [RedirectController::class, 'csvImportExecute'])->name('redirects.csv-import.execute');
+            Route::patch('/redirects/{redirect}', [RedirectController::class, 'update'])->name('redirects.update');
+            Route::delete('/redirects/{redirect}', [RedirectController::class, 'destroy'])->name('redirects.destroy');
 
             // 一斉メールの文面の管理
             Route::get('/bulk-mail-templates', [AdminBulkMailTemplateController::class, 'index'])->name('bulk-mail-templates.index');

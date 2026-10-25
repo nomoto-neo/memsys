@@ -20,6 +20,7 @@ export default defineConfig({
                 `${NEOBIT}/js/wysiwyg_summernote.js`,
                 `${NEOBIT}/js/code_editor.js`,
                 `${NEOBIT}/js/ip_block.js`,
+                `${NEOBIT}/js/redirects.js`,
                 // このサイトのもの
                 'resources/js/sortable.js',
                 'resources/js/contact_form.js',

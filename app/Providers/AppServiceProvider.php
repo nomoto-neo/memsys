@@ -26,6 +26,7 @@ use Laravel\Passkeys\Passkeys;
 use Neobit\Core\Auth\LegacyPasswordUserProvider;
 use Neobit\Core\Enums\OperationLogAction;
 use Neobit\Core\Models\Passkey;
+use Neobit\Core\Models\Redirect;
 use Neobit\Core\Operations\OperationRecorder;
 use Neobit\Core\Security\AdminRequestLimit;
 
@@ -67,6 +68,8 @@ class AppServiceProvider extends ServiceProvider
             // 企業会員。企業と、ログインする担当者
             'company' => Company::class,
             'company_user' => CompanyUser::class,
+            // 管理画面の「リダイレクト」（フレームワークのモデル）
+            'redirect' => Redirect::class,
         ]);
 
         // ログインとログアウトを操作ログに残す。会員とスタッフの、パスワード・2段階目・パスキー・

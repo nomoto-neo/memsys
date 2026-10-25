@@ -53,7 +53,7 @@
 | 4-6 | IPブロック管理（攻撃の IP を入口で止める）を足す | 済み |
 | 4-7 | 設定ファイルの分け方を見直す | 未着手 |
 | 4-8 | 子テーブル（1:多の子テーブルを、親と同じ画面で入力して保存する部品。`ChildTables`）を足す | 済み |
-| 4-9 | SEO（ページごとのタイトル・説明文・OGP・noindex、サイトマップ、301 リダイレクト）を、どのコーナーでも同じ形で使える部品にする | 進行中（6まで済み） |
+| 4-9 | SEO（ページごとのタイトル・説明文・OGP・noindex、サイトマップ、301 リダイレクト）を、どのコーナーでも同じ形で使える部品にする | 済み（2026-10-26） |
 | 5 | 配布の形を決める | 未着手 |
 | 6 | 文書を、切り離した後の形に合わせる | 未着手 |
 
@@ -319,7 +319,7 @@
 | 4 | 自動の noindex・canonical と、XML サイトマップ（公開しているモデルを設定に並べると、表示と掲載期間の条件に合う記事を並べる）・robots.txt の見本。済み（2026-10-26。robots.txt はファイルではなくフレームワークのルートで返し、本番以外は全部を巡回させない。設計は `docs/seo-indexing-spec.md`） |
 | 5 | 記事を持たないページの「SEO 設定」の画面。済み（2026-10-26。`SeoSettings`・`SeoSettingsController`・`neobit::admin.seo_settings.index`・設定の `page_routes`。値は `settings` テーブル。画面のページの値は `@section('title')` より先。設計は `docs/seo-settings-spec.md`） |
 | 6 | 構造化データ（記事・パンくず・会社の情報）とパンくずリスト。済み（2026-10-26。`Seo::breadcrumb()`・`SeoArticle`・`neobit::_breadcrumbs`。JSON-LD は `_seo_head` が出す。運営者の名前とロゴは「SEO 設定」。固定ページの入れ子は公開している親を段にする。設計は `docs/seo-structured-data-spec.md`） |
-| 7 | 301 リダイレクトの管理（下に詳しく） |
+| 7 | 301 リダイレクトの管理（下に詳しく）。済み（2026-10-26。`Redirect`・`RedirectResolver`・`RedirectChecker`・`ApplyRedirects`・`RedirectController`。`*` のワイルドカード・末尾の「/」は別物・CSV の書き出しと取り込み・設定 `seo.redirects`。`.htaccess` の末尾の「/」を外す決まりはミドルウェアへ移した。設計は `docs/redirects-spec.md`） |
 
 **301 リダイレクトの管理**（この段階の最後の機能）
 

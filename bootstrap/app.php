@@ -9,6 +9,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Neobit\Core\Auth\LoginRedirect;
 use Neobit\Core\Http\Middleware\AjaxFormResponse;
+use Neobit\Core\Http\Middleware\ApplyRedirects;
 use Neobit\Core\Http\Middleware\NormalizeInput;
 use Neobit\Core\Http\Middleware\RejectBlockedIp;
 use Neobit\Core\Http\Middleware\RestrictAdminAccess;
@@ -74,6 +75,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin',
             'admin/*',
         ]);
+
+        // 管理画面の「リダイレクト」で登録した古いURLを、新しいURLへ移す（Neobit\Core\Http\Middleware\ApplyRedirects）。
+        // 当たらず末尾が/なら、/を外したURLへ移す。ルートの無い古いURLにも当てるので、全体のミドルウェアに足す。
+        // 末尾の/を外す働きはpublic/.htaccessから移したので、リダイレクトを使わないサイトでも外さない
+        $middleware->append(ApplyRedirects::class);
 
         // お知らせメールの配信停止は、CSRFトークンを確かめない。メールソフトの「登録解除」の
         // ボタンから、トークンの無いPOSTが届くため。本人のメールから来たことは、URLの署名で

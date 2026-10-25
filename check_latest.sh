@@ -263,6 +263,19 @@ has   resources/views/layouts/app.blade.php                             "@includ
 has   app/Models/News.php                                               'implements SeoArticle'
 has   app/Http/Controllers/PageController.php                           '$parentSlugs'
 has   config/neobit.php                                                 "'organization_logo'"
+has   packages/neobit/core/database/migrations/2026_10_27_000000_create_redirects_table.php "Schema::create('redirects'"
+has   packages/neobit/core/src/Seo/RedirectResolver.php                 'final class RedirectResolver'
+has   packages/neobit/core/src/Seo/RedirectChecker.php                  'final class RedirectChecker'
+has   packages/neobit/core/src/Http/Middleware/ApplyRedirects.php       'class ApplyRedirects'
+has   packages/neobit/core/src/Http/Controllers/RedirectController.php  'class RedirectController'
+has   packages/neobit/core/resources/js/redirects.js                    'data-redirect-row'
+has   vite.config.js                                                    'redirects.js'
+has   bootstrap/app.php                                                 'ApplyRedirects::class'
+has   routes/web.php                                                    'RedirectController'
+has   app/Providers/AppServiceProvider.php                              "'redirect' => Redirect::class"
+has   config/neobit.php                                                 "'redirects' => true"
+# 末尾の/を外す働きは、ミドルウェア（ApplyRedirects）へ移した。残っていると、末尾が/の古いURLに当たらない
+lacks public/.htaccess                                                  'Redirect Trailing Slashes'
 has   packages/neobit/core/src/Crud/FormFlow.php                        'saveChildTables'
 has   packages/neobit/core/resources/js/repeatable_group.js             'repeatable_template'
 has   vite.config.js                                                    'repeatable_group.js'

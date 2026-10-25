@@ -32,7 +32,7 @@
 | `config/contact.php`・`config/services.php` | お問い合わせの宛先、Turnstile の鍵（中身は `.env`） |
 | `bootstrap/app.php` | ログインしていないときの移動先のルート名、ミドルウェアの短い名前 |
 | `composer.json`・`package.json` | プロジェクトの名前 |
-| `config/neobit.php` の `seo` | サイトマップに載せるページとモデル、検索に出さないルート、robots.txt で巡回させない場所、管理画面の「SEO設定」に出すページ（`page_routes`）、既定の説明文と画像、構造化データの運営者の名前とロゴ |
+| `config/neobit.php` の `seo` | サイトマップに載せるページとモデル、検索に出さないルート、robots.txt で巡回させない場所、管理画面の「SEO設定」に出すページ（`page_routes`）、リダイレクトを使うか（`redirects`）、既定の説明文と画像、構造化データの運営者の名前とロゴ |
 | `docs/project-overview.md` | そのプロジェクトの概要（何のプロジェクトで、どんな構成か）。`CLAUDE.md` は、どのプロジェクトでも共通の決まりなので書き換えない |
 | `docs/` のそのほかの文書 | そのプロジェクトの設計や記録。`docs/laravel-rules.md`・`docs/neobit-framework-rules.md` は、フレームワークの決まりなのでそのまま使う |
 
@@ -62,6 +62,8 @@
 | `AppOperationLogModel` | 操作ログに残すモデルの種類と、操作した人になれる種類 |
 | `OperationLog::modelNames()` | 画面に出す名前の読み方（スタッフ・個人会員・企業・企業の担当者） |
 | `config/cleanup.php`（`tasks`） | プロジェクトの片付け（お問い合わせ） |
+
+`public/.htaccess` は、Laravel の決まりの「末尾の / を外す」決まり（Redirect Trailing Slashes）を消してあります。その働きはリダイレクトのミドルウェア（`ApplyRedirects`）が受け持つので、Laravel の新しい版の `.htaccess` に差し替えるときも、この決まりは戻しません。
 
 ### ルートやビューの名前を直接書いているもの
 
