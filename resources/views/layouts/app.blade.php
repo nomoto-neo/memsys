@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>@yield('title', config('app.site_name'))</title>
+    {{-- タイトル・説明文・OGP。記事の詳細ではコントローラーが渡した記事から、ほかの画面では@section('title')と
+         サイトの既定（config/neobit.phpのseo）から決まる --}}
+    @include('neobit::_seo_head')
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     @vite(['vendor/neobit/core/resources/css/global.css', 'vendor/neobit/core/resources/js/global.js'])
 {{-- jQuery。使うときはこのBladeコメントを外す（summernoteを使う場合は必須）。

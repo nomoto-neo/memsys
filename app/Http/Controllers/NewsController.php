@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Neobit\Core\Crud\SearchableList;
+use Neobit\Core\Seo\Seo;
 
 /**
  * 訪問者向けのニュース一覧・詳細。
@@ -141,6 +142,9 @@ class NewsController extends Controller
 
         // 添付ファイルと写真は、リレーション（News::attach()・photos()）に書いた画面の並びの順
         $news->load(['categories', 'attach', 'photos']);
+
+        // タイトル・説明文・OGPを、この記事から出す（レイアウトのneobit::_seo_head）
+        Seo::for($news);
 
         return view('news.show', [
             'news' => $news,

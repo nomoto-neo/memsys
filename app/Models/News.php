@@ -8,12 +8,13 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Neobit\Core\Seo\SeoSubject;
 use Neobit\Core\Upload\UploadFilePath;
 
 /**
  * ニュース記事。
  */
-class News extends Model
+class News extends Model implements SeoSubject
 {
     /**
      * 一覧用画像の横幅(px)。これより大きい画像は、この横幅に縮めて保存する。
@@ -160,5 +161,25 @@ class News extends Model
         return Attribute::make(
             get: fn () => UploadFilePath::url(self::class, $this->getKey(), 'list_image', $this->list_image),
         );
+    }
+
+    // ---- SEO（Neobit\Core\Seo\SeoSubject） ----
+
+    /** SEOのタイトル。記事のタイトル */
+    public function seoTitle(): string
+    {
+        return $this->title;
+    }
+
+    /** 説明文の元。本文（タグを除いた先頭がSEOの説明文になる） */
+    public function seoDescriptionSource(): ?string
+    {
+        return $this->body;
+    }
+
+    /** シェアの画像。一覧用画像。無ければnull（サイトの既定の画像になる） */
+    public function seoImageUrl(): ?string
+    {
+        return $this->list_image_url;
     }
 }

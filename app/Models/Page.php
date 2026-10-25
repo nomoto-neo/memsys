@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Route;
+use Neobit\Core\Seo\SeoSubject;
 
 /**
  * 固定ページ。会社概要のように、管理画面で本文を書いて、訪問者の側に決まったURLで出すページ。
@@ -17,7 +18,7 @@ use Illuminate\Support\Facades\Route;
  * 固定ページの本文をSunEditorで書くようにして、2つのエディタの動作の見本にしている。
  * 本文に入れた画像は、誰でも見られる公開の場所に置く。固定ページには会員限定の区別が無いため。
  */
-class Page extends Model
+class Page extends Model implements SeoSubject
 {
     /** 本文のエディタで挿入する画像の横幅(px)。これより大きい画像は、この横幅に縮めて保存する。 */
     public const BODY_IMAGE_WIDTH = 1000;
@@ -78,5 +79,25 @@ class Page extends Model
         }
 
         return false;
+    }
+
+    // ---- SEO（Neobit\Core\Seo\SeoSubject） ----
+
+    /** SEOのタイトル。記事のタイトル */
+    public function seoTitle(): string
+    {
+        return $this->title;
+    }
+
+    /** 説明文の元。本文（タグを除いた先頭がSEOの説明文になる） */
+    public function seoDescriptionSource(): ?string
+    {
+        return $this->body;
+    }
+
+    /** シェアの画像。固定ページには画像の欄が無いので、サイトの既定の画像になる */
+    public function seoImageUrl(): ?string
+    {
+        return null;
     }
 }

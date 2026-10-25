@@ -349,7 +349,7 @@ class TwoFactorMethodTest extends TestCase
         $this->actingAs($member, 'web')->get('/mypage')
             ->assertOk()->assertSee(route('mypage.twoFactor'))->assertSee('>バックアップコード</a>', false);
         $this->actingAs($member, 'web')->get('/mypage/two-factor')
-            ->assertOk()->assertSee('<title>バックアップコード</title>', false)
+            ->assertOk()->assertSee('<title>バックアップコード｜', false)
             ->assertSee('バックアップコードを発行する')->assertDontSee('2段階認証の登録を解除する');
         $this->actingAs($member, 'web')->delete('/mypage/two-factor', ['code' => '000000'])->assertNotFound();
         $this->actingAs($this->staff(), 'admin')->get(route('admin.members.show', $member))

@@ -170,4 +170,25 @@ return [
     // cronが動くならtrue。動かないサーバーだけ、.envにCRON_ENABLED=falseと書く
     // 'cron_enabled' => env('CRON_ENABLED', true),
 
+    /*
+    |--------------------------------------------------------------------------
+    | SEO（ページのタイトル・説明文・OGP）
+    |--------------------------------------------------------------------------
+    |
+    | 訪問者の側のレイアウトの<head>の部品（neobit::_seo_head）と、ヘルパーのseo()が使う、サイトの既定。
+    | 記事の詳細の画面では、記事（Neobit\Core\Seo\SeoSubject）の値が優先する。
+    | - title_format        タイトルの形。{title}はページのタイトル、{site}はサイト名（app.site_name）
+    | - description         記事の無いページの説明文。空なら説明文のタグを出さない
+    | - description_length  記事の本文から作る説明文の文字数
+    | - image               既定のシェアの画像。publicの下のパス（例：/images/ogp.png）か、URL。nullなら出さない
+    |
+    */
+
+    // 'seo' => [
+    //     'title_format' => '{title}｜{site}',
+    //     'description' => '',
+    //     'description_length' => 120,
+    //     'image' => null,
+    // ],
+
 ];

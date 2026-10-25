@@ -228,6 +228,10 @@ has   resources/views/pdf/resume_on_sheet.blade.php                     '$firstP
 has   packages/neobit/core/src/Csv/CsvColumnSet.php                     'private function readChildGroup('
 has   packages/neobit/core/src/Csv/CsvReader.php                        'private function checkCsvImportRequiredUploads('
 has   packages/neobit/core/src/Crud/ChildTables.php                     'private function childTableImportedFileValue('
+has   packages/neobit/core/src/Seo/Seo.php                              'final class Seo'
+has   packages/neobit/core/src/helpers.php                              "function_exists('seo')"
+has   packages/neobit/core/resources/views/_seo_head.blade.php          'twitter:card'
+has   resources/views/layouts/app.blade.php                             "@include('neobit::_seo_head')"
 has   packages/neobit/core/src/Crud/FormFlow.php                        'saveChildTables'
 has   packages/neobit/core/resources/js/repeatable_group.js             'repeatable_template'
 has   vite.config.js                                                    'repeatable_group.js'
