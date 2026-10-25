@@ -274,6 +274,11 @@ has   bootstrap/app.php                                                 'ApplyRe
 has   routes/web.php                                                    'RedirectController'
 has   app/Providers/AppServiceProvider.php                              "'redirect' => Redirect::class"
 has   config/neobit.php                                                 "'redirects' => true"
+has   packages/neobit/core/database/migrations/2026_10_28_000000_create_basic_auth_users_table.php "Schema::create('basic_auth_users'"
+has   packages/neobit/core/src/Security/BasicAuth.php                   'final class BasicAuth'
+has   packages/neobit/core/src/Http/Controllers/BasicAuthController.php 'class BasicAuthController'
+has   routes/web.php                                                    'BasicAuthController'
+has   resources/views/admin/_menu.blade.php                             'admin.basic-auth.index'
 # 末尾の/を外す働きは、ミドルウェア（ApplyRedirects）へ移した。残っていると、末尾が/の古いURLに当たらない
 lacks public/.htaccess                                                  'Redirect Trailing Slashes'
 has   packages/neobit/core/src/Crud/FormFlow.php                        'saveChildTables'

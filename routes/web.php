@@ -34,6 +34,7 @@ use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\TopController;
 use Illuminate\Support\Facades\Route;
 use Neobit\Core\Http\Controllers\AccessRestrictionController;
+use Neobit\Core\Http\Controllers\BasicAuthController;
 use Neobit\Core\Http\Controllers\CodeTableController;
 use Neobit\Core\Http\Controllers\IpBlockController;
 use Neobit\Core\Http\Controllers\OperationLogController;
@@ -554,6 +555,14 @@ Route::prefix('admin')->name('admin.')->middleware('admin.ip')->group(function (
             // 名前は「頭.index」「頭.update」の組にする。コントローラーが組のもう一方の名前を作る
             Route::get('/access-restriction', [AccessRestrictionController::class, 'index'])->name('access-restriction.index');
             Route::patch('/access-restriction', [AccessRestrictionController::class, 'update'])->name('access-restriction.update');
+
+            // ベーシック認証（訪問者画面と管理画面のそれぞれに、掛けるかとユーザー。フレームワークの画面）。
+            // 名前は「頭.index」「頭.update」「頭.store」「頭.destroy」の組にする。コントローラーが組のほかの名前を作る。
+            // {area}はsite（訪問者画面）かadmin（管理画面）
+            Route::get('/basic-auth', [BasicAuthController::class, 'index'])->name('basic-auth.index');
+            Route::patch('/basic-auth/{area}', [BasicAuthController::class, 'update'])->whereIn('area', ['site', 'admin'])->name('basic-auth.update');
+            Route::post('/basic-auth/{area}/users', [BasicAuthController::class, 'store'])->whereIn('area', ['site', 'admin'])->name('basic-auth.store');
+            Route::delete('/basic-auth/users/{basicAuthUser}', [BasicAuthController::class, 'destroy'])->name('basic-auth.destroy');
 
             // SEO設定（記事を持たないページのSEOと、サイト全体の既定。フレームワークの画面）。
             // 名前は「頭.index」「頭.update」の組にする。コントローラーが組のもう一方の名前を作る
