@@ -318,6 +318,51 @@ foreach ($category->ancestorsAndSelf() as $node) {
     }
     ```
 
+#### リダイレクト（301 リダイレクトの管理）
+
+**ファイル**：`packages/neobit/core/src/Seo/RedirectResolver.php`（当て方）・`RedirectChecker.php`（登録のときの確かめ）・`src/Http/Middleware/ApplyRedirects.php`・`src/Http/Controllers/RedirectController.php`・`src/Models/Redirect.php`、画面は `packages/neobit/core/resources/views/admin/redirects/`　**実例**：管理画面の「運用」の「リダイレクト」
+
+運用する人が管理画面から、古い URL を新しい URL へ移すリダイレクトを登録できます。`.htaccess` は書き換えず、全体のミドルウェアで当てます。登録のときに、`.htaccess` で起きやすい思った動きにならない登録を止めます。
+
+```php
+// bootstrap/app.php。ルートの無い古い URL にも当てるので、全体のミドルウェアに足す
+$middleware->append(ApplyRedirects::class);
+
+// routes/web.php。管理者だけが入れるグループの中に、組の名前で書く。csv・csv-import は {redirect} より先に書く
+Route::get('/redirects', [RedirectController::class, 'index'])->name('redirects.index');
+Route::post('/redirects', [RedirectController::class, 'store'])->name('redirects.store');
+Route::get('/redirects/csv', [RedirectController::class, 'csv'])->name('redirects.csv');
+Route::get('/redirects/csv-import', [RedirectController::class, 'csvImport'])->name('redirects.csv-import');
+Route::post('/redirects/csv-import/confirm', [RedirectController::class, 'csvImportConfirm'])->name('redirects.csv-import.confirm');
+Route::post('/redirects/csv-import/execute', [RedirectController::class, 'csvImportExecute'])->name('redirects.csv-import.execute');
+Route::patch('/redirects/{redirect}', [RedirectController::class, 'update'])->name('redirects.update');
+Route::delete('/redirects/{redirect}', [RedirectController::class, 'destroy'])->name('redirects.destroy');
+```
+
+- **使うかどうか**：設定の `seo.redirects` を `true` にします（フレームワークの既定は `false`）。`false` のときは登録を見ずに、末尾の「/」を外す働きだけをします。キャッシュの置き場所が DB なので、一覧を読むだけでも毎回 DB を引くためです。ミドルウェアは使わないときも置いたままにします。
+- **当たる順番**：完全に一致するもの → 末尾に `*` を書いたもののうち、`*` の前がいちばん長いもの、だけで決まります。登録の順番には頼らないので、並び替えはありません。
+- **`*`**：古い URL・新しい URL とも、末尾に1つだけ書けます。古い URL の `*` はその下の全部に当たり、新しい URL にも `*` を書いたときだけ、当たった残りを引き継ぎます（`/blog/*` → `/news/*` なら、`/blog/2020/abc` は `/news/2020/abc`）。
+- **末尾の「/」**：`/company/` と `/company` は別物です。Laravel の決まりでは `public/.htaccess` が末尾の「/」を外しますが、そこで外すと末尾が「/」の古い URL に当たらないので、`.htaccess` から消し、ミドルウェアが「登録に当たればそこへ、当たらず末尾が「/」なら外して 301」の順で受け持ちます。サイトの URL の形は変わりません。
+- **そのほかの決まり**：大文字と小文字は別物です。日本語の URL は、`%E3…` の形と日本語のままの形のどちらでも当たります。当てるのは GET と HEAD だけです。新しい URL に `?` が無ければ、来たリクエストの `?` の後ろを付け足します。
+- **登録のときの確かめ**（画面と CSV で共通）：形・二重の登録・自分へのリダイレクト・輪・つながり（直す相手を示す）・今ある引数の無い画面の URL との重なり（`*` なら巻き込む画面を示す）・新しい URL がサイトの中で開けるか。引数のある画面（`/{slug}` など）は、記事が本当にあるかまでは確かめません。
+- **一覧での編集**：一覧のいちばん上が追加の行です。ほかの行は「編集」を押すとその行だけが入力欄になり、「更新」「キャンセル」に変わります。編集中は、ほかの行の「編集」「削除」と、追加の行（入力欄と「追加」）は使えません。保存すると、見ていた一覧（ページ・検索・並び順）に戻ります。行の切り替えは `redirects.js` が行うので、`vite.config.js` の一覧に `vendor/neobit/core/resources/js/redirects.js` を足します。
+- **URL を試す**：一覧の上の欄に URL を入れると、どのリダイレクトに、なぜ当たり（完全一致かワイルドカードか）、どこへ移るかを出します。
+- **CSV**：書き出しと取り込みができます。列は「古いURL・新しいURL・種類・有効」です。取り込みは古い URL を鍵に、ある行は更新・無い行は追加し、登録済みの行と CSV の行を合わせて確かめます。1行でもエラーがあれば何も保存しません。
+- **HIT回数**：一覧に、当たった回数（HIT回数）と最後に当たった日（最終HIT日）を出します。並び順を「最終HIT日の古い順」にすると、使われなくなったリダイレクトが上に来ます。
+- **キャッシュ**：有効なリダイレクトの一覧をキャッシュに置き、`Redirect` の保存と削除のたびに作り直します。DB を直接書き換えたときは、キャッシュを消します。
+- **操作ログ**：追加・更新・削除は「登録・更新・削除」で残します。アプリは、モデルの短い名前（`enforceMorphMap()`）に `'redirect' => Redirect::class` を、操作ログの対象の種類（`AppOperationLogModel`）に `Redirect` を足します。
+
+`.htaccess` のリダイレクトから移すときの置き換え方です。
+
+| `.htaccess` | 登録する形 |
+|---|---|
+| `Redirect 301 /blog /news`（下も全部移したい） | `/blog` → `/news` と、`/blog/*` → `/news/*` の2行 |
+| `Redirect 301 /blog /news`（`/blog` だけを移したい） | `/blog` → `/news` の1行 |
+| `RedirectMatch 301 ^/blog/(.*)$ /news/$1` | `/blog/*` → `/news/*` |
+| `RewriteRule ^old\.html$ /new [R=301,L]` | `/old.html` → `/new` |
+
+Apache の `Redirect` は、書かなくても前方一致で当たり、残りを後ろに付け、書いた順に最初に当たったものを使います。ここでは、前方一致は `*` を書いたときだけにし、順番にも頼りません。正規表現は使えないので、`(.*)` のような書き方は `*` に置き換えます。
+
 #### slug（URL の名前）の検証のルール
 
 **ファイル**：`packages/neobit/core/src/Rules/SlugRule.php`・`NotReservedPathRule.php`　**実例**：固定ページ（`Admin\PageController`）

@@ -173,6 +173,8 @@ return [
     | - robots_disallow     robots.txtで巡回させない場所。本番（APP_ENV=production）だけ使い、本番以外は全部を巡回させない
     | - page_routes         管理画面の「SEO設定」に出す、記事を持たないページ。ルート名 => 画面に出す名前。
     |                       引数の要らないルートだけ
+    | - redirects           管理画面の「リダイレクト」で登録した移し方を当てるか。falseなら登録を見ずに、
+    |                       URLの末尾の/を外す301だけをする（Neobit\Core\Http\Middleware\ApplyRedirects）
     |
     | title_format・description・image・organization_name・organization_logoは、管理画面の「SEO設定」で空欄のときの値。
     | 配列のキーなので、アプリのconfig/neobit.phpでseoを書くときは、全部のキーを書く。
@@ -190,6 +192,7 @@ return [
     //     'sitemap_models' => [],
     //     'robots_disallow' => ['/admin'],
     //     'page_routes' => [],
+    //     'redirects' => false,
     // ],
 
 ];

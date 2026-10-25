@@ -155,6 +155,8 @@
 | `OperationRecorder` | `record()`・`loggableFields()` | |
 | `CsvWriter` | `download()`・`fetch()` | CSV の共通の書き出し方 |
 | `Seo` | `for()`・`noindex()`・`breadcrumb()`・`breadcrumbs()`・`jsonLd()`・`value()`、定数 `KEYS`・`IMAGE_URL_PATTERN` | ふつうはコントローラーが `for()`・`noindex()` を呼び、画面は `seo()` で読む |
+| `RedirectResolver` | `find()`・`hit()`・`forget()`・`normalize()`・`isWildcard()`・`prefix()`・`encodeLocation()`、定数 `WILDCARD` | リダイレクトの当て方 |
+| `RedirectChecker` | `errors()`・`opensPage()` | リダイレクトの登録のときの確かめ |
 | `SeoSettings` | `titleFormat()`・`description()`・`image()`・`siteVerification()`・`organizationName()`・`organizationLogo()`・`page()`・`pageRoutes()`・`settings()`・`save()`・`extractVerificationContent()` | 管理画面の「SEO設定」の値 |
 | `SlugRule` | 定数 `PATTERN`・`NESTED_PATTERN` | ルートの `where()` に使う |
 | `NotReservedPathRule` | `isReserved()` | |
@@ -183,8 +185,8 @@
 | `IpBlocker` | `isBlocked()`・`countMiss()`・`block()`・`changeUntil()`・`release()`・`deleteExpired()`・`normalizeRange()`・`rangeBounds()`・`coversProtected()` | |
 | `CsvImportSettings`・`CsvImportResult`・`CsvImportRow`・`CsvColumnSet` | 取り込みの設定と結果 | |
 | 検証のルール | `KatakanaRule`・`HiraganaRule`・`PhoneNumberRule`・`SameCountAsRule`・`UploadRequiredRule`・`SlugRule`・`NotReservedPathRule` | |
-| ミドルウェア | `AjaxFormResponse`・`NormalizeInput`・`RejectBlockedIp`・`RestrictAdminAccess`・`RestrictSiteAccess`・`RunScheduleOnRequest`・`SecurityHeaders` | |
-| コントローラー | `CodeTableController`・`IpBlockController`・`AccessRestrictionController`・`SeoSettingsController`・`OperationLogController`（どれもルートは案件が書く）・`UploadedFileController`・`SitemapController`・`RobotsController` | |
+| ミドルウェア | `AjaxFormResponse`・`ApplyRedirects`・`NormalizeInput`・`RejectBlockedIp`・`RestrictAdminAccess`・`RestrictSiteAccess`・`RunScheduleOnRequest`・`SecurityHeaders` | |
+| コントローラー | `CodeTableController`・`IpBlockController`・`AccessRestrictionController`・`SeoSettingsController`・`RedirectController`・`OperationLogController`（どれもルートは案件が書く）・`UploadedFileController`・`SitemapController`・`RobotsController` | |
 
 ## 7. ヘルパー
 
@@ -214,7 +216,7 @@
 | `neobit` | `ip_block_auto`・`ip_block_watch_minutes`・`ip_block_watch_count`・`ip_block_hours` | |
 | `neobit` | `operation_report_to`・`operation_report_thresholds` | 操作ログの設定は `operation_log_〜`、報告は `operation_report_〜` |
 | `neobit` | `cron_enabled` | `.env` は `CRON_ENABLED` |
-| `neobit` | `seo`（`title_format`・`description`・`description_length`・`image`・`organization_name`・`organization_logo`・`noindex_routes`・`sitemap_routes`・`sitemap_models`・`robots_disallow`・`page_routes`） | 配列なので、アプリで書くときは全部のキーを書く |
+| `neobit` | `seo`（`title_format`・`description`・`description_length`・`image`・`organization_name`・`organization_logo`・`noindex_routes`・`sitemap_routes`・`sitemap_models`・`robots_disallow`・`page_routes`・`redirects`） | 配列なので、アプリで書くときは全部のキーを書く |
 | `upload` | `image_types`・`attach_types`・`max_kb`・`max_image_pixels`・`csv_max_kb`・`directory_rule` | |
 | `cleanup` | `operation_log_days`・`failed_job_days`・`tasks` | |
 
@@ -237,7 +239,7 @@
 | `_two_factor_backup_codes` | `$codes`・`$twoFactorNextUrl`・`$nextLabel` | |
 | `_two_factor_manage` | `$twoFactorAccount`・`$twoFactorRoutes`・`$totpConfirmed`・`$usesBackupCodes`・`$backupCodesCodeSent`・`$confirmByEmail`・`$issueLabel`・`$resetAlso` | |
 | `_two_factor_reset` | `$twoFactorAccount`・`$twoFactorResetUrl` | |
-| `admin.code_tables.index`・`admin.ip_blocks.index`・`admin.access_restriction.index`・`admin.seo_settings.index`・`admin.operation_logs.index`・`admin.operation_logs._table`・`admin.csv_import.form`・`admin.csv_import.confirm`・`admin.too_many_requests` | フレームワークのコントローラーが渡す | |
+| `admin.code_tables.index`・`admin.ip_blocks.index`・`admin.access_restriction.index`・`admin.seo_settings.index`・`admin.redirects.index`・`admin.operation_logs.index`・`admin.operation_logs._table`・`admin.csv_import.form`・`admin.csv_import.confirm`・`admin.too_many_requests` | フレームワークのコントローラーが渡す | |
 | `layouts.plain`・`maintenance`・`mail._raw_html`・`mail._raw_text` | | |
 
 案件の画面がそろえる変数の名前（フレームワークの決まり）。
@@ -259,6 +261,7 @@
 | 操作ログの「頭.index」「頭.search」「頭.csv」「頭.day」 | 案件が書く | |
 | アクセス制限の「頭.index」「頭.update」 | 案件が書く | |
 | SEO設定の「頭.index」「頭.update」 | 案件が書く | |
+| リダイレクトの「頭.index」「頭.store」「頭.update」「頭.destroy」「頭.csv」「頭.csv-import」「頭.csv-import.confirm」「頭.csv-import.execute」 | 案件が書く。update・destroy の URL に `{redirect}` | |
 
 ## 11. メールのテンプレートと、中で使える変数
 
