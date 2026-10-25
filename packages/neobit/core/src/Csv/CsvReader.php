@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Unique;
 use InvalidArgumentException;
+use Neobit\Core\Crud\ChildTableDefinitions;
 use Neobit\Core\Crud\InputNormalizer;
 use Neobit\Core\Enums\CsvEncoding;
 use Neobit\Core\Enums\CsvImportMode;
@@ -147,14 +148,22 @@ trait CsvReader
         $model = $settings->query?->getModel();
         $keyName = $model?->getKeyName() ?? '';
 
-        // 追加と更新で取り込む、AjaxFileUploadのアップロードの欄。エディタの欄と、子テーブルの中の欄は除く。
-        // 子テーブルは、CSVでは取り込まない
+        // 追加と更新で取り込む、AjaxFileUploadの1つだけの欄。エディタの欄と、子テーブルの中の欄は除く。
+        // 項目名 => 必須か
         $uploadFields = [];
         if ($isSave && method_exists($this, 'uploadFieldDefinitions')) {
             foreach ($this->uploadFieldDefinitions() as $def) {
-                if (! in_array($def['kind'], ['wysiwyg', 'group'], true)) {
-                    $uploadFields[$def['field']] = $def['kind'];
+                if ($def['kind'] === 'single') {
+                    $uploadFields[$def['field']] = $def['required'];
                 }
+            }
+        }
+
+        // 追加と更新で取り込む子テーブル。関連の名前 => 定義。組の横展開の列があるものだけを、CSVの内容で入れ直す
+        $childTables = [];
+        if ($isSave && method_exists($this, 'childTableDefinitions')) {
+            foreach ($this->childTableDefinitions() as $def) {
+                $childTables[$def['relation']] = $def;
             }
         }
 
@@ -166,7 +175,7 @@ trait CsvReader
 
         $columns = new CsvColumnSet(
             $columnDefinitions,
-            $uploadFields,
+            childTables: $childTables,
             customImport: $customImport,
         );
 
@@ -229,6 +238,9 @@ trait CsvReader
         if ($result->errors !== []) {
             return $result;
         }
+
+        // 子テーブルの組の列があるか。無ければ、子テーブルの今の行を読まない
+        $importsChildren = $childTables !== [] && $columns->importsChildTables($mapping['map']);
 
         // 全角と半角をそろえない列。コントローラーがそろえないと決めた項目に取り込む列
         // （Neobit\Core\Crud\InputNormalizer）
@@ -346,7 +358,9 @@ trait CsvReader
                 $base = $this->defaultValues();
             }
             $uploadsNow = $isSave ? $this->csvImportCurrentUploads($row->record, $uploadFields) : [];
-            $current = $base + $uploadsNow;
+            // 子テーブルの今の行。組の列があるCSVだけ読む。追加の行では空
+            $childrenNow = $importsChildren ? $this->childTableValues($row->record) : [];
+            $current = $base + $uploadsNow + $childrenNow;
 
             // セルを読む
             $row->values = $columns->readRow($cells, $mapping['map'], $current, $row);
@@ -356,20 +370,15 @@ trait CsvReader
 
             if ($isSave) {
                 $this->checkCsvImportUploads($row, $uploadFields, $uploadsNow, $labels);
+                $this->checkCsvImportChildFiles($row, $childTables, $current, $columns);
+                $this->checkCsvImportRequiredUploads($row, $uploadFields, $childTables, $current, $labels, $columns);
                 if ($row->hasErrors()) {
                     continue;
                 }
             }
 
-            // 検証する入力。複数のアップロードの欄は、画面のフォームと同じ4本の配列の形にそろえる
+            // 検証する入力。子テーブルの組は、読んだときに画面のフォームと同じ列ごとの配列にしてある
             $input = $row->values + $base;
-            foreach ($uploadFields as $field => $kind) {
-                if ($kind === 'repeatable' && array_key_exists($field, $input)) {
-                    $count = count($input[$field]);
-                    $input["{$field}_tmp"] = array_fill(0, $count, null);
-                    $input["{$field}_del"] = array_fill(0, $count, null);
-                }
-            }
             $row->input = $input;
 
             // 行の検証ルールで検証する
@@ -393,7 +402,7 @@ trait CsvReader
                     $row->validated = $this->prepareInput($row->validated);
                 }
 
-                $this->csvImportChanges($row, $columns, $current, $uploadFields);
+                $this->csvImportChanges($row, $columns, $current, $childTables);
             }
 
             // ダウンロードした後に画面から変更された行
@@ -492,20 +501,14 @@ trait CsvReader
         return $cell === '' ? null : $cell;
     }
 
-    /** アップロードの欄の今の値。1つだけの欄は{field}と{field}_origin、複数の欄は同じ名前の配列。 */
+    /** 1つだけのアップロードの欄の今の値。{field}と{field}_origin */
     private function csvImportCurrentUploads(?Model $record, array $uploadFields): array
     {
         $current = [];
 
-        foreach ($uploadFields as $field => $kind) {
-            if ($kind === 'single') {
-                $current[$field] = $record?->{$field};
-                $current["{$field}_origin"] = $record?->{"{$field}_origin"};
-            } else {
-                $rows = $record ? $record->{$field}()->orderBy('id')->get(['filename', 'original_name']) : collect();
-                $current[$field] = $rows->pluck('filename')->all();
-                $current["{$field}_origin"] = $rows->pluck('original_name')->all();
-            }
+        foreach (array_keys($uploadFields) as $field) {
+            $current[$field] = $record?->{$field};
+            $current["{$field}_origin"] = $record?->{"{$field}_origin"};
         }
 
         return $current;
@@ -517,43 +520,99 @@ trait CsvReader
      */
     private function checkCsvImportUploads(CsvImportRow $row, array $uploadFields, array $uploadsNow, array $labels): void
     {
-        foreach ($uploadFields as $field => $kind) {
+        foreach (array_keys($uploadFields) as $field) {
             $label = $labels[$field] ?? $field;
 
             if (! array_key_exists($field, $row->values)) {
-                // 1つだけの欄で、ファイルが無いのに表示名の列だけがある
-                if ($kind === 'single' && ($row->values["{$field}_origin"] ?? null) !== null && $uploadsNow[$field] === null) {
+                // ファイルが無いのに表示名の列だけがある
+                if (($row->values["{$field}_origin"] ?? null) !== null && $uploadsNow[$field] === null) {
                     $row->addError('ファイルが無いので、表示名は入力できません。', $labels["{$field}_origin"] ?? $label);
                 }
 
                 continue;
             }
 
-            // 1つだけの欄で、ファイル名が空欄なのに表示名がある
-            if ($kind === 'single' && $row->values[$field] === null && ($row->values["{$field}_origin"] ?? null) !== null) {
+            // ファイル名が空欄なのに表示名がある
+            if ($row->values[$field] === null && ($row->values["{$field}_origin"] ?? null) !== null) {
                 $row->addError('ファイル名が空欄です。', $label);
 
                 continue;
             }
 
-            $filenames = $kind === 'single' ? array_filter([$row->values[$field]]) : $row->values[$field];
-            $now = (array) $uploadsNow[$field];
+            $this->checkCsvImportFilenames($row, $field, array_filter([$row->values[$field]]), (array) $uploadsNow[$field], $label);
+        }
+    }
 
-            foreach ($filenames as $filename) {
-                // 今のファイルのままなら確かめない
-                if (in_array($filename, $now, true)) {
-                    continue;
-                }
+    /**
+     * 子テーブルの組の、ファイルの項目のファイル名を確かめる。1つだけの欄と同じく、今の行のファイルのほかは、
+     * このレコードの保存先にあるものだけ使える。
+     */
+    private function checkCsvImportChildFiles(CsvImportRow $row, array $childTables, array $current, CsvColumnSet $columns): void
+    {
+        foreach ($childTables as $def) {
+            if (! array_key_exists(ChildTableDefinitions::markerKey($def['group']), $row->values)) {
+                continue;
+            }
 
-                // 追加の行はまだ保存先が無い
-                if ($row->record === null) {
-                    $row->addError("追加の行には、ファイル名（{$filename}）を指定できません。", $label);
+            foreach ($def['files'] as $field) {
+                $name = "{$def['group']}_{$field}";
+                $this->checkCsvImportFilenames($row, $name, array_filter($row->values[$name]), (array) ($current[$name] ?? []), $columns->fieldLabel($name));
+            }
+        }
+    }
 
-                    continue;
-                }
+    /** 取り込むファイル名を確かめる。今のファイルのままなら確かめず、違えばこのレコードの保存先にあるものだけ使える */
+    private function checkCsvImportFilenames(CsvImportRow $row, string $field, array $filenames, array $now, string $label): void
+    {
+        foreach ($filenames as $filename) {
+            // 今のファイルのままなら確かめない
+            if (in_array($filename, $now, true)) {
+                continue;
+            }
 
-                if ($message = $this->checkImportedUploadFilename($row->record, $field, $filename)) {
-                    $row->addError($message, $label);
+            // 追加の行はまだ保存先が無い
+            if ($row->record === null) {
+                $row->addError("追加の行には、ファイル名（{$filename}）を指定できません。", $label);
+
+                continue;
+            }
+
+            if ($message = $this->checkImportedUploadFilename($row->record, $field, $filename)) {
+                $row->addError($message, $label);
+            }
+        }
+    }
+
+    /**
+     * 必須のアップロードの欄（UPLOAD_FILESの'required' => true）を確かめる。画面の検証はレコードの今の値と照らすが、
+     * 取り込みではファイル名をcheckCsvImportUploads()で確かめてあるので、ファイル名があればよい。
+     * 1つだけの欄は、ファイル名の列があればその値、無ければ今のファイルが要る。追加の行にはファイル名を書けないので、
+     * 必須の欄があるコーナーでは、追加の行はいつもエラーになる。
+     * 子テーブルの組の中の欄は、取り込む組の、どの行にもファイルが要る（組の列が無ければ、子テーブルは変わらないので確かめない）。
+     */
+    private function checkCsvImportRequiredUploads(CsvImportRow $row, array $uploadFields, array $childTables, array $current, array $labels, CsvColumnSet $columns): void
+    {
+        $message = (string) __('validation.required');
+
+        foreach ($uploadFields as $field => $required) {
+            $filename = array_key_exists($field, $row->values) ? $row->values[$field] : ($current[$field] ?? null);
+            if ($required && $filename === null) {
+                $row->addError($message, $labels[$field] ?? $columns->fieldLabel($field));
+            }
+        }
+
+        if ($childTables === [] || ! method_exists($this, 'uploadFieldDefinitions')) {
+            return;
+        }
+
+        foreach ($this->uploadFieldDefinitions() as $def) {
+            if ($def['kind'] !== 'group' || ! $def['required'] || ! array_key_exists(ChildTableDefinitions::markerKey($def['group']), $row->values)) {
+                continue;
+            }
+
+            foreach ($row->values[$def['field']] as $filename) {
+                if ($filename === null) {
+                    $row->addError($message, $columns->fieldLabel($def['field']));
                 }
             }
         }
@@ -563,34 +622,32 @@ trait CsvReader
      * 変更の内容を求める。CSVから読んだ項目ごとに今の値と比べる。
      * 変更の無い更新の行は、実行しても保存しない'unchanged'にする。
      */
-    private function csvImportChanges(CsvImportRow $row, CsvColumnSet $columns, array $current, array $uploadFields): void
+    private function csvImportChanges(CsvImportRow $row, CsvColumnSet $columns, array $current, array $childTables): void
     {
+        // 子テーブルの組の項目は、組ごとにまとめて比べるので、1つずつは比べない
+        $childKeys = [];
+        foreach ($childTables as $def) {
+            $marker = ChildTableDefinitions::markerKey($def['group']);
+            if (array_key_exists($marker, $row->values)) {
+                $childKeys = [...$childKeys, $marker, ...ChildTableDefinitions::inputKeys($def)];
+
+                // 追加の行は、変更前を空欄にする
+                $new = $this->csvImportChildLines($def, $row->validated);
+                $old = $row->record !== null ? $this->csvImportChildLines($def, $current) : [];
+                if ($new !== $old) {
+                    $row->changes[] = [$columns->fieldLabel($marker), implode('、', $old), implode('、', $new)];
+                }
+            }
+        }
+
         foreach (array_keys($row->values) as $field) {
-            // 複数のアップロードの欄の表示名はファイル名と一緒に比べる
-            if (str_ends_with($field, '_origin') && ($uploadFields[substr($field, 0, -7)] ?? null) === 'repeatable') {
+            if (in_array($field, $childKeys, true)) {
                 continue;
             }
 
             // 追加の行は初期値と比べずに入れる値を全部見せるため、変更前を空欄にする
             $new = $row->validated[$field] ?? null;
             $old = $row->record !== null ? ($current[$field] ?? null) : null;
-
-            // 複数のアップロードの欄は、「ファイル名（表示名）」の並びで比べる
-            if (($uploadFields[$field] ?? null) === 'repeatable') {
-                $pair = fn (array $names, array $origins) => array_map(
-                    fn ($name, $i) => $name.(($origins[$i] ?? null) !== null ? "（{$origins[$i]}）" : ''),
-                    $names,
-                    array_keys($names),
-                );
-                $newList = $pair(array_values((array) $new), array_values((array) ($row->validated["{$field}_origin"] ?? [])));
-                $oldList = $pair(array_values((array) $old), array_values((array) ($row->record !== null ? ($current["{$field}_origin"] ?? []) : [])));
-
-                if ($newList !== $oldList) {
-                    $row->changes[] = [$columns->fieldLabel($field), implode('、', $oldList), implode('、', $newList)];
-                }
-
-                continue;
-            }
 
             if (CsvColumnSet::normalize($new) !== CsvColumnSet::normalize($old)) {
                 $row->changes[] = [$columns->fieldLabel($field), $columns->displayValue($field, $old), $columns->displayValue($field, $new)];
@@ -600,6 +657,31 @@ trait CsvReader
         if ($row->record !== null && $row->changes === []) {
             $row->action = 'unchanged';
         }
+    }
+
+    /**
+     * 子テーブルの組の行を、確認画面に出す文字列の並びにする。1行は項目の値を「／」でつなぎ、
+     * ファイルの項目は「ファイル名（表示名）」にする。例：a.pdf（案内.pdf）・2020／4／〇〇大学 入学
+     */
+    private function csvImportChildLines(array $def, array $values): array
+    {
+        $group = $def['group'];
+        $lines = [];
+
+        foreach (array_keys((array) ($values["{$group}_id"] ?? [])) as $i) {
+            $parts = [];
+            foreach ($def['texts'] as $field) {
+                $parts[] = (string) ($values["{$group}_{$field}"][$i] ?? '');
+            }
+            foreach ($def['files'] as $field) {
+                $name = "{$group}_{$field}";
+                $origin = $values["{$name}_origin"][$i] ?? null;
+                $parts[] = ($values[$name][$i] ?? '').($origin !== null && $origin !== '' ? "（{$origin}）" : '');
+            }
+            $lines[] = implode('／', $parts);
+        }
+
+        return $lines;
     }
 
     /**

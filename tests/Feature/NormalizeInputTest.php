@@ -187,15 +187,19 @@ class NormalizeInputTest extends TestCase
     public function test_csv_import_normalizes_the_other_columns_of_a_model_with_raw_fields(): void
     {
         Storage::fake(CsvImportSettings::TMP_DISK);
-        Category::create(['name' => 'イベント', 'seq' => 0]);
+        $category = Category::create(['name' => 'イベント', 'seq' => 0]);
+
+        // ニュースは一覧用画像が必須で、CSVでは追加できないので、今の記事を更新する
+        $news = News::create(['title' => '元の記事', 'article_date' => '2026-09-01', 'disp_flg' => true, 'members_only' => false, 'list_image' => 'list.jpg']);
+        $news->categories()->attach($category->id);
 
         // ニュースは、本文をそろえない（News::RAW_INPUT_FIELDS）。件名や日付の列は、そろえる
         $this->importCsv($this->manager(), '/admin/news/csv-import', $this->csvFile('news.csv', [
             '記事ID,タイトル,記事日付,状態,公開範囲,カテゴリー',
-            ',１０月のイベント,２０２６／１０／０１,表示,一般公開,イベント',
+            "{$news->id},１０月のイベント,２０２６／１０／０１,表示,一般公開,イベント",
         ]));
 
-        $news = News::sole();
+        $news->refresh();
         $this->assertSame('10月のイベント', $news->title);
         $this->assertSame('2026-10-01', $news->article_date->format('Y-m-d'));
     }

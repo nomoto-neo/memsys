@@ -55,7 +55,7 @@ class ChildTablesTest extends TestCase
         $this->category = Category::create(['name' => 'お知らせ', 'seq' => 0]);
     }
 
-    /** 保存済みのニュースを1件作る */
+    /** 保存済みのニュースを1件作る。一覧用画像は必須なので、画像も持たせる */
     private function news(): News
     {
         $news = News::create([
@@ -63,6 +63,7 @@ class ChildTablesTest extends TestCase
             'article_date' => '2026-10-20',
             'disp_flg' => true,
             'members_only' => false,
+            'list_image' => 'list.jpg',
         ]);
         $news->categories()->attach($this->category->id);
 
@@ -499,9 +500,32 @@ class ChildTablesTest extends TestCase
         $this->assertSame([$file, null], $news->attach()->pluck('file')->all());
     }
 
-    public function test_attachments_are_exported_to_csv_and_ignored_on_import(): void
+    /** ニュースのCSVを確認画面に通し、取り込みの結果（CsvImportResult）と確認のトークンを返す */
+    private function confirmNewsCsv(array $lines): array
     {
-        Storage::fake(CsvImportSettings::TMP_DISK);
+        $file = UploadedFile::fake()->createWithContent('news.csv', "\xEF\xBB\xBF".implode("\r\n", $lines)."\r\n");
+        $confirm = $this->actingAs($this->staff, 'admin')->post(route('admin.news.csv-import.confirm'), ['csv_file' => $file])->assertOk();
+
+        return [$confirm->viewData('result'), $confirm->viewData('token')];
+    }
+
+    /** 取り込みを実行する */
+    private function executeNewsCsv(?string $token): void
+    {
+        $this->assertNotNull($token, '取り込みにエラーがあります。');
+        $this->actingAs($this->staff, 'admin')
+            ->post(route('admin.news.csv-import.execute'), ['confirm_token' => $token])
+            ->assertSessionMissing('error');
+    }
+
+    /** 行のエラーのメッセージの一覧 */
+    private function rowErrors(object $result, int $index = 0): array
+    {
+        return array_map(fn ($error) => $error[1], $result->rows[$index]->errors);
+    }
+
+    public function test_attachments_are_exported_to_csv(): void
+    {
         $news = $this->news();
         $news->attach()->create(['file' => 'a.pdf', 'file_origin' => '案内.pdf']);
 
@@ -510,19 +534,114 @@ class ChildTablesTest extends TestCase
         $csv = mb_convert_encoding($csv, 'UTF-8', 'UTF-8, SJIS-win');
         $this->assertStringContainsString('添付ファイル:1', $csv);
         $this->assertStringContainsString('案内.pdf', $csv);
+    }
 
-        // 取り込みでは、添付ファイルの列を無視する（組の取り込みはまだ受け持たない）
-        $file = UploadedFile::fake()->createWithContent('news.csv', "\xEF\xBB\xBF".implode("\r\n", [
-            '記事ID,タイトル,記事日付,状態,公開範囲,カテゴリー,添付ファイル:1,保存ファイル名:1',
-            "{$news->id},書き換えた記事,2026/10/20,表示,一般公開,お知らせ,別の名前.pdf,b.pdf",
-        ])."\r\n");
-        $confirm = $this->actingAs($this->staff, 'admin')->post(route('admin.news.csv-import.confirm'), ['csv_file' => $file])->assertOk();
-        $this->assertNotNull($confirm->viewData('token'));
-        $this->actingAs($this->staff, 'admin')
-            ->post(route('admin.news.csv-import.execute'), ['confirm_token' => $confirm->viewData('token')])
-            ->assertSessionMissing('error');
+    public function test_csv_import_replaces_the_attachments_with_the_csv_group(): void
+    {
+        Storage::fake(CsvImportSettings::TMP_DISK);
+        $news = $this->news();
+        foreach (['a.pdf', 'b.pdf', 'c.pdf'] as $name) {
+            Storage::disk(UploadFilePath::PRIVATE_DISK)->put($this->storedPath($news, $name), 'x');
+        }
+        $news->attach()->create(['file' => 'a.pdf', 'file_origin' => '案内.pdf']);
+        $news->attach()->create(['file' => 'b.pdf', 'file_origin' => '申込書.pdf']);
+
+        // 表示名の列が無ければ、今のファイルの表示名を使う。保存先にあるc.pdfは、新しく付けられる
+        [$result, $token] = $this->confirmNewsCsv([
+            '記事ID,タイトル,記事日付,状態,公開範囲,カテゴリー,保存ファイル名:1,保存ファイル名:2',
+            "{$news->id},既存の記事,2026/10/20,表示,一般公開,お知らせ,c.pdf,a.pdf",
+        ]);
+
+        // 確認画面の変更の内容に、添付ファイルの組が「ファイル名（表示名）」の並びで出る
+        $this->assertSame([['添付', 'a.pdf（案内.pdf）、b.pdf（申込書.pdf）', 'c.pdf、a.pdf（案内.pdf）']], $result->rows[0]->changes);
+
+        $this->executeNewsCsv($token);
+
+        $this->assertSame([['c.pdf', null], ['a.pdf', '案内.pdf']], $news->attach()->get()->map(fn ($row) => [$row->file, $row->file_origin])->all());
+        // 使わなくなったb.pdfは消える
+        Storage::disk(UploadFilePath::PRIVATE_DISK)->assertMissing($this->storedPath($news, 'b.pdf'));
+        Storage::disk(UploadFilePath::PRIVATE_DISK)->assertExists($this->storedPath($news, 'c.pdf'));
+    }
+
+    public function test_csv_import_without_the_group_columns_keeps_the_attachments(): void
+    {
+        Storage::fake(CsvImportSettings::TMP_DISK);
+        $news = $this->news();
+        $news->attach()->create(['file' => 'a.pdf', 'file_origin' => '案内.pdf']);
+
+        // 組の列が無ければ子テーブルには触らない。一覧用画像の列も無いので、今の画像のまま通る
+        [, $token] = $this->confirmNewsCsv([
+            '記事ID,タイトル,記事日付,状態,公開範囲,カテゴリー',
+            "{$news->id},書き換えた記事,2026/10/20,表示,一般公開,お知らせ",
+        ]);
+        $this->executeNewsCsv($token);
 
         $this->assertSame('書き換えた記事', $news->fresh()->title);
+        $this->assertSame(['a.pdf'], $news->attach()->pluck('file')->all());
+    }
+
+    public function test_csv_import_rejects_wrong_attachment_files(): void
+    {
+        Storage::fake(CsvImportSettings::TMP_DISK);
+        $news = $this->news();
+        Storage::disk(UploadFilePath::PRIVATE_DISK)->put($this->storedPath($news, 'a.pdf'), 'x');
+
+        $heading = '記事ID,タイトル,記事日付,状態,公開範囲,カテゴリー,保存ファイル名:1,保存ファイル名:2,保存ファイル名:3,保存ファイル名:4,保存ファイル名:5';
+        // 保存先に無いファイル
+        [$result, $token] = $this->confirmNewsCsv([$heading, "{$news->id},記事,2026/10/20,表示,一般公開,お知らせ,missing.pdf,,,,"]);
+        $this->assertNull($token);
+        $this->assertContains('ファイル「missing.pdf」がサーバーにありません。', $this->rowErrors($result, 0));
+
+        // 同じファイル名が2回
+        [$result] = $this->confirmNewsCsv([$heading, "{$news->id},記事,2026/10/20,表示,一般公開,お知らせ,a.pdf,a.pdf,,,"]);
+        $this->assertContains('同じ保存ファイル名（a.pdf）が2回あります。', $this->rowErrors($result));
+
+        // 上限（4件）を超える
+        foreach (['b', 'c', 'd', 'e'] as $name) {
+            Storage::disk(UploadFilePath::PRIVATE_DISK)->put($this->storedPath($news, "{$name}.pdf"), 'x');
+        }
+        [$result] = $this->confirmNewsCsv([$heading, "{$news->id},記事,2026/10/20,表示,一般公開,お知らせ,a.pdf,b.pdf,c.pdf,d.pdf,e.pdf"]);
+        $this->assertNotSame([], $this->rowErrors($result));
+        $this->assertSame([], $news->attach()->pluck('file')->all());
+    }
+
+    public function test_csv_import_requires_the_list_image(): void
+    {
+        Storage::fake(CsvImportSettings::TMP_DISK);
+        $news = $this->news();
+
+        // 一覧用画像の列を空欄にした更新はエラー
+        [$result, $token] = $this->confirmNewsCsv([
+            '記事ID,タイトル,記事日付,状態,公開範囲,カテゴリー,一覧用画像',
+            "{$news->id},記事,2026/10/20,表示,一般公開,お知らせ,",
+        ]);
+        $this->assertNull($token);
+        $this->assertContains('この項目は必須です。', $this->rowErrors($result));
+
+        // 追加の行は、一覧用画像を指定できないのでエラー
+        [$result, $token] = $this->confirmNewsCsv([
+            '記事ID,タイトル,記事日付,状態,公開範囲,カテゴリー',
+            ',新しい記事,2026/10/20,表示,一般公開,お知らせ',
+        ]);
+        $this->assertNull($token);
+        $this->assertContains('この項目は必須です。', $this->rowErrors($result));
+        $this->assertSame(1, News::count());
+    }
+
+    public function test_csv_import_ignores_an_incomplete_group(): void
+    {
+        Storage::fake(CsvImportSettings::TMP_DISK);
+        $news = $this->news();
+        $news->attach()->create(['file' => 'a.pdf', 'file_origin' => '案内.pdf']);
+
+        // 保存ファイル名の列が無く、表示名の列だけでは、組を取り込まずに警告にする
+        [$result, $token] = $this->confirmNewsCsv([
+            '記事ID,タイトル,記事日付,状態,公開範囲,カテゴリー,添付ファイル:1',
+            "{$news->id},記事,2026/10/20,表示,一般公開,お知らせ,別の名前.pdf",
+        ]);
+        $this->assertContains('「添付ファイル:1」は取り込めない列なので、無視しました。', $result->warnings);
+        $this->executeNewsCsv($token);
+
         $this->assertSame([['a.pdf', '案内.pdf']], $news->attach()->get()->map(fn ($row) => [$row->file, $row->file_origin])->all());
     }
 

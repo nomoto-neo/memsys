@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 use LogicException;
+use Neobit\Core\Crud\ChildTableDefinitions;
 
 /**
  * コントローラーのcsvColumns()に書いたCSVの項目の定義を読み、書き出しのCsvDownloadと
@@ -53,8 +54,10 @@ use LogicException;
  * 決まらない列と、決まってもrules()に無い項目の列は取り込まずに無視する。
  * 1. 'import' => '項目名'と書いてあれば、その項目
  * 2. 値の場所がドットを含まないカラム名なら、そのカラム名
- * 3. 連番か組の横展開で、関連がUPLOAD_FILESの'attach.*'のような複数のアップロードの欄なら、
- *    filenameはattach、original_nameはattach_origin
+ * 3. 組の横展開で、関連がCHILD_TABLESの子テーブルなら、組の中の値の場所（子テーブルの列の名前）に当たる
+ *    子テーブルの項目。ファイルの項目は、列の名前がファイル名、「列の名前_origin」が表示名。
+ *    組の項目（fields）の列が全部そろっているときだけ取り込み、子テーブルをCSVの組の内容で入れ直す。
+ *    表示名の列は無くてもよく、無ければ今のファイルの表示名を使う
  */
 final class CsvColumnSet
 {
@@ -68,12 +71,12 @@ final class CsvColumnSet
      * - filters   書式の変換。[[名前, 引数], …]
      * - options   listとexpandの一覧
      * - target    value・list・expand・numberedの取り込み先の項目名。取り込めなければnull
-     * - upload    numberedの、複数のアップロードの欄への取り込み先。[項目名, 'filename'か'origin']
      * - targets   customの取り込み先の項目名の一覧
      * - key       customの、@の後ろの名前
      * - relation  numberedとgroupの関連の名前
      * - column    numberedの、関連の中の値の場所
-     * - group     groupの中身。[見出し => ['column', 'filters', 'upload']]
+     * - group     groupの中身。[見出し => ['column', 'filters', 'child']]。childは子テーブルへの取り込み先で、
+     *             [組の名前, 'text'・'file'・'origin'のどれか, 画面から送る名前]。取り込めなければnull
      */
     private array $specs = [];
 
@@ -81,13 +84,13 @@ final class CsvColumnSet
     private array $counts = [];
 
     /**
-     * $uploadFields  AjaxFileUploadの欄。項目名 => 'single'か'repeatable'。使っていなければ空
+     * $childTables   子テーブルの定義（ChildTableDefinitions::of()の値）。関連の名前 => 定義。取り込みで使い、使わなければ空
      * $customExport  @名前の列の書き出し。fn (string $key, Model $record): mixed
      * $customImport  @名前の列の取り込み。fn (string $key, ?string $value, CsvImportRow $row): array
      */
     public function __construct(
         array $definitions,
-        private array $uploadFields = [],
+        private array $childTables = [],
         private ?Closure $customExport = null,
         private ?Closure $customImport = null,
     ) {
@@ -205,7 +208,6 @@ final class CsvColumnSet
             'multiple' => false,
             'filters' => [],
             'target' => null,
-            'upload' => null,
             'targets' => [],
         ];
 
@@ -259,7 +261,7 @@ final class CsvColumnSet
                 $columns[(string) $subHeading] = [
                     'column' => $column,
                     'filters' => $filters,
-                    'upload' => $this->uploadTarget($path, $column),
+                    'child' => $this->childTarget($path, $column),
                 ];
             }
 
@@ -311,7 +313,6 @@ final class CsvColumnSet
                 'column' => $m[2],
                 'filters' => $filters,
                 'target' => $imports[0] ?? null,
-                'upload' => $imports === [] ? $this->uploadTarget($m[1], $m[2]) : null,
             ] + $spec;
         }
 
@@ -345,18 +346,39 @@ final class CsvColumnSet
         return [$path, $filters];
     }
 
-    /** 関連がAjaxFileUploadの複数の項目なら、取り込み先 [項目名, 'filename'|'origin'] を返す。 */
-    private function uploadTarget(string $relation, string $column): ?array
+    /**
+     * 組の中の値の場所が、子テーブルの項目に当たれば、取り込み先 [組の名前, 種類, 画面から送る名前] を返す。
+     * 種類はtext（ファイルではない項目）・file（ファイル名）・origin（ファイルの表示名）。表示名の画面から送る名前は、
+     * ファイルの項目の名前（attach_file）にしておき、読むときに「_origin」を付ける
+     */
+    private function childTarget(string $relation, string $column): ?array
     {
-        if (($this->uploadFields[$relation] ?? null) !== 'repeatable') {
+        $definition = $this->childTables[$relation] ?? null;
+
+        if ($definition === null) {
             return null;
         }
 
-        return match ($column) {
-            'filename' => [$relation, 'filename'],
-            'original_name' => [$relation, 'origin'],
+        $group = $definition['group'];
+
+        return match (true) {
+            in_array($column, $definition['texts'], true) => [$group, 'text', "{$group}_{$column}"],
+            in_array($column, $definition['files'], true) => [$group, 'file', "{$group}_{$column}"],
+            str_ends_with($column, '_origin') && in_array(substr($column, 0, -7), $definition['files'], true) => [$group, 'origin', "{$group}_".substr($column, 0, -7)],
             default => null,
         };
+    }
+
+    /** 関連の名前の子テーブルの定義。子テーブルでなければnull */
+    private function childDefinitionOf(string $group): ?array
+    {
+        foreach ($this->childTables as $definition) {
+            if ($definition['group'] === $group) {
+                return $definition;
+            }
+        }
+
+        return null;
     }
 
     /** 見出しが「:*」で終わる横展開の列があれば、例外にする。見出し無しのCSVでは使えないため。 */
@@ -602,18 +624,25 @@ final class CsvColumnSet
             $map[$column] = [$specIndex, $part];
         }
 
-        // 複数のアップロードの欄で、保存ファイル名の列が無く表示名の列だけあるときは、
-        // どのファイルの表示名か決められないので無視する
-        $slots = [];
+        // 子テーブルの組は、組の項目（ファイルの表示名のほか）の列が全部そろっているときだけ取り込む。
+        // 足りなければ、どの行に何を入れるか決められないので、その組の列を全部無視する
+        $present = [];
         foreach ($map as [$specIndex, $part]) {
-            if ($upload = $this->uploadOf($this->specs[$specIndex], $part)) {
-                $slots[$upload[0]][$upload[1]] = true;
+            $child = $this->childOf($this->specs[$specIndex], $part);
+            if ($child !== null && $child[1] !== 'origin') {
+                $present[$child[0]][$child[2]] = true;
             }
         }
         foreach ($map as $column => [$specIndex, $part]) {
-            $upload = $this->uploadOf($this->specs[$specIndex], $part);
-            if ($upload && ! isset($slots[$upload[0]]['filename'])) {
-                $warnings[] = "「{$headings[$column]}」は、保存ファイル名の列が無いので無視しました。";
+            $child = $this->childOf($this->specs[$specIndex], $part);
+            if ($child === null) {
+                continue;
+            }
+
+            $definition = $this->childDefinitionOf($child[0]);
+            $needed = array_map(fn ($field) => "{$child[0]}_{$field}", array_merge($definition['texts'], $definition['files']));
+            if (array_diff($needed, array_keys($present[$child[0]] ?? [])) !== []) {
+                $warnings[] = "「{$headings[$column]}」は取り込めない列なので、無視しました。";
                 unset($map[$column]);
             }
         }
@@ -740,9 +769,11 @@ final class CsvColumnSet
     /** 列を取り込めるか。取り込み先の項目が、全部rules()にあるときだけ取り込める。 */
     private function isImportable(array $spec, mixed $part, array $importable): bool
     {
-        // アップロードの欄は、ファイル名と表示名の両方
-        if ($upload = $this->uploadOf($spec, $part)) {
-            return in_array($upload[0], $importable, true) && in_array("{$upload[0]}_origin", $importable, true);
+        // 子テーブルの組の列は、子テーブルの検証ルール（childTableRules()）があること
+        if ($spec['type'] === 'group') {
+            $child = $this->childOf($spec, $part);
+
+            return $child !== null && in_array(ChildTableDefinitions::markerKey($child[0]), $importable, true);
         }
 
         // @名前の列は、'import'に書いた全部の項目とcsvCustomImport()がそろっていること
@@ -754,14 +785,22 @@ final class CsvColumnSet
         return $spec['target'] !== null && in_array($spec['target'], $importable, true);
     }
 
-    /** 複数のアップロードの欄への取り込み先。[項目名, 'filename'か'origin']で、そうでなければnull。 */
-    private function uploadOf(array $spec, mixed $part): ?array
+    /** mapHeadings()・mapByOrder()の'map'に、子テーブルの組の列があるか */
+    public function importsChildTables(array $map): bool
     {
-        return match ($spec['type']) {
-            'numbered' => $spec['upload'],
-            'group' => $spec['group'][$part[1]]['upload'] ?? null,
-            default => null,
-        };
+        foreach ($map as [$specIndex, $part]) {
+            if ($this->childOf($this->specs[$specIndex], $part) !== null) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /** 組の列の、子テーブルへの取り込み先。[組の名前, 種類, 画面から送る名前]で、そうでなければnull。 */
+    private function childOf(array $spec, mixed $part): ?array
+    {
+        return $spec['type'] === 'group' ? ($spec['group'][$part[1]]['child'] ?? null) : null;
     }
 
     /** キーの列のセルを、定義の変換を戻した値にする。例：'000012'は'12'。 */
@@ -778,14 +817,14 @@ final class CsvColumnSet
      * $cells    列の番号 => セルの値。前後の空白を除き、空欄はnull
      * $map      mapHeadings()かmapByOrder()の'map'
      * $current  項目名 => 今の値。一覧ありの横展開で一部の列が無いときと、
-     *           アップロードの欄の表示名の列が無いときに使う
+     *           子テーブルのファイルの表示名の列が無いときに使う
      */
     public function readRow(array $cells, array $map, array $current, CsvImportRow $row): array
     {
         $candidates = [];   // 項目名 => [[見出し, 値], …]
         $expands = [];      // 定義の番号 => ['present' => [...], 'selected' => [...]]
         $numbered = [];     // 定義の番号 => [番号 => 値]
-        $uploads = [];      // 項目名 => [番号 => ['filename' => [見出し, 値], 'origin' => [見出し, 値]]]
+        $children = [];     // 組の名前 => [番号 => [画面から送る名前 => [見出し, 値]]]。表示名は「名前_origin」
         $customs = [];      // 定義の番号 => 値
 
         // セルを1つずつ読み、種類ごとに集める。横展開と@名前の列は、全部の列を見た後でまとめる
@@ -811,18 +850,14 @@ final class CsvColumnSet
                         }
                         break;
                     case 'numbered':
-                        $value = $cell === null ? null : $this->importValue($cell, $spec['filters']);
-                        if ($spec['upload']) {
-                            $this->putUploadSlot($uploads, $spec['upload'], $part, $heading, $value, $row);
-                        } else {
-                            $numbered[$specIndex][$part] = $value;
-                        }
+                        $numbered[$specIndex][$part] = $cell === null ? null : $this->importValue($cell, $spec['filters']);
                         break;
                     case 'group':
                         [$number, $subHeading] = $part;
                         $member = $spec['group'][$subHeading];
                         $value = $cell === null ? null : $this->importValue($cell, $member['filters']);
-                        $this->putUploadSlot($uploads, $member['upload'], $number, $heading, $value, $row);
+                        [$group, $kind, $name] = $member['child'];
+                        $this->putChildSlot($children, $group, $number, $kind === 'origin' ? "{$name}_origin" : $name, $heading, $value, $row);
                         break;
                     case 'custom':
                         $customs[$specIndex] = $cell;
@@ -901,67 +936,95 @@ final class CsvColumnSet
             $values[$field] = $first;
         }
 
-        // 複数のアップロードの欄は番号の順に組を並べ、両方空欄の組を詰める
-        foreach ($uploads as $field => $slots) {
-            ksort($slots);
-
-            // 表示名の列が無ければ、今のファイルの表示名を使う
-            $currentOrigins = array_combine(
-                array_map('strval', (array) ($current[$field] ?? [])),
-                array_pad((array) ($current["{$field}_origin"] ?? []), count((array) ($current[$field] ?? [])), null),
-            );
-            $hasOrigin = false;
-            foreach ($map as [$specIndex, $part]) {
-                if ($this->uploadOf($this->specs[$specIndex], $part) === [$field, 'origin']) {
-                    $hasOrigin = true;
-                }
-            }
-
-            $filenames = [];
-            $origins = [];
-            foreach ($slots as $number => $slot) {
-                [$filenameHeading, $filename] = $slot['filename'] ?? [null, null];
-                [$originHeading, $origin] = $slot['origin'] ?? [null, null];
-
-                if ($filename === null && $origin === null) {
-                    continue;
-                }
-
-                if ($filename === null) {
-                    $row->addError('保存ファイル名が空欄です。', $originHeading);
-
-                    continue;
-                }
-
-                if (in_array($filename, $filenames, true)) {
-                    $row->addError("同じ保存ファイル名（{$filename}）が2回あります。", $filenameHeading);
-
-                    continue;
-                }
-
-                $filenames[] = $filename;
-                $origins[] = $hasOrigin ? $origin : ($currentOrigins[$filename] ?? null);
-            }
-
-            $values[$field] = $filenames;
-            $values["{$field}_origin"] = $origins;
+        // 子テーブルの組は、番号の順に並べて、全部空欄の組を詰め、画面から送るのと同じ列ごとの配列にする
+        foreach ($children as $group => $slots) {
+            $values += $this->readChildGroup($this->childDefinitionOf($group), $slots, $map, $current, $row);
         }
 
         return $values;
     }
 
-    /** アップロードの欄の値を、番号の組に入れる。同じ組の同じ値に違う内容が来たらエラー。 */
-    private function putUploadSlot(array &$uploads, array $upload, int $number, string $heading, ?string $value, CsvImportRow $row): void
+    /**
+     * 1つの組の列の値を、画面から送るのと同じ列ごとの配列にする。組の印・行のid（空）・一時ファイルと削除の印（空）も入れる。
+     * 全部空欄の組は詰める。保存ファイル名が空欄なのに表示名がある組と、同じ保存ファイル名が2回ある組はエラー。
+     * 表示名の列が無ければ、今のファイルの表示名を使う。
+     *
+     * @param  array<int, array<string, array{0: string, 1: ?string}>>  $slots  番号 => [画面から送る名前 => [見出し, 値]]
+     */
+    private function readChildGroup(array $definition, array $slots, array $map, array $current, CsvImportRow $row): array
     {
-        [$field, $slot] = $upload;
+        $group = $definition['group'];
+        ksort($slots);
 
-        if (isset($uploads[$field][$number][$slot]) && $uploads[$field][$number][$slot][1] !== $value) {
-            $row->addError("「{$uploads[$field][$number][$slot][0]}」と「{$heading}」の内容が食い違っています。", $heading);
+        // 表示名の列があるファイルの項目
+        $hasOrigin = [];
+        foreach ($map as [$specIndex, $part]) {
+            $child = $this->childOf($this->specs[$specIndex], $part);
+            if ($child !== null && $child[0] === $group && $child[1] === 'origin') {
+                $hasOrigin[$child[2]] = true;
+            }
+        }
+
+        $values = array_fill_keys(ChildTableDefinitions::inputKeys($definition), []);
+        $values[ChildTableDefinitions::markerKey($group)] = '1';
+
+        foreach ($slots as $slot) {
+            $cell = fn (string $name) => $slot[$name][1] ?? null;
+            if (array_filter(array_map(fn ($item) => $item[1], $slot), fn ($v) => $v !== null) === []) {
+                continue;
+            }
+
+            $valid = true;
+            foreach ($definition['files'] as $field) {
+                $name = "{$group}_{$field}";
+
+                if ($cell($name) === null && $cell("{$name}_origin") !== null) {
+                    $row->addError('保存ファイル名が空欄です。', $slot["{$name}_origin"][0]);
+                    $valid = false;
+                } elseif ($cell($name) !== null && in_array($cell($name), $values[$name], true)) {
+                    $row->addError("同じ保存ファイル名（{$cell($name)}）が2回あります。", $slot[$name][0]);
+                    $valid = false;
+                }
+            }
+            if (! $valid) {
+                continue;
+            }
+
+            $values["{$group}_id"][] = '';
+            foreach ($definition['texts'] as $field) {
+                $values["{$group}_{$field}"][] = $cell("{$group}_{$field}");
+            }
+            foreach ($definition['files'] as $field) {
+                $name = "{$group}_{$field}";
+                $filename = $cell($name);
+
+                // 表示名の列が無ければ、今のファイルの表示名
+                $currentOrigin = null;
+                $index = array_search($filename, (array) ($current[$name] ?? []), true);
+                if ($filename !== null && $index !== false) {
+                    $currentOrigin = $current["{$name}_origin"][$index] ?? null;
+                }
+
+                $values[$name][] = $filename;
+                $values["{$name}_tmp"][] = null;
+                $values["{$name}_origin"][] = isset($hasOrigin[$name]) ? $cell("{$name}_origin") : $currentOrigin;
+                $values["{$name}_del"][] = null;
+            }
+        }
+
+        return $values;
+    }
+
+    /** 子テーブルの組の値を、番号の組に入れる。同じ組の同じ値に違う内容が来たらエラー。 */
+    private function putChildSlot(array &$children, string $group, int $number, string $name, string $heading, ?string $value, CsvImportRow $row): void
+    {
+        if (isset($children[$group][$number][$name]) && $children[$group][$number][$name][1] !== $value) {
+            $row->addError("「{$children[$group][$number][$name][0]}」と「{$heading}」の内容が食い違っています。", $heading);
 
             return;
         }
 
-        $uploads[$field][$number][$slot] = [$heading, $value];
+        $children[$group][$number][$name] = [$heading, $value];
     }
 
     /** その列のCSVの見出し。横展開なら「見出し:表示名」や「見出し:1」の形。 */
@@ -1062,11 +1125,7 @@ final class CsvColumnSet
         foreach ($this->specs as $spec) {
             $targets = match ($spec['type']) {
                 'custom' => $spec['targets'],
-                'group' => array_merge(...array_map(
-                    fn ($c) => $c['upload'] ? [$c['upload'][0], "{$c['upload'][0]}_origin"] : [],
-                    array_values($spec['group']),
-                )),
-                'numbered' => $spec['upload'] ? [$spec['upload'][0], "{$spec['upload'][0]}_origin"] : [$spec['target']],
+                'group' => $this->childKeysOf($spec),
                 default => [$spec['target']],
             };
 
@@ -1076,6 +1135,20 @@ final class CsvColumnSet
         }
 
         return $field;
+    }
+
+    /** 組の列が取り込む、子テーブルの画面から送る名前の全部（組の印も入れる）。子テーブルでなければ空 */
+    private function childKeysOf(array $spec): array
+    {
+        foreach ($spec['group'] as $member) {
+            if ($member['child'] !== null) {
+                $definition = $this->childDefinitionOf($member['child'][0]);
+
+                return [...ChildTableDefinitions::inputKeys($definition), ChildTableDefinitions::markerKey($definition['group'])];
+            }
+        }
+
+        return [];
     }
 
     /** 値を表示用の文字列にする。一覧から取り込んだ項目は、値を一覧の表示名に戻す。 */

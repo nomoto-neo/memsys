@@ -3,7 +3,8 @@
 CSVダウンロード（`Neobit\Core\Csv\CsvDownload`）と同じ項目の定義（`csvColumns()`）を使って、CSVからデータを追加・更新する仕組みの設計メモ。野元さんとの検討で決めた内容をまとめたもの。
 
 > **後続タスクによる変更（2026-10-21 追記）**
-> ニュースの添付ファイルは、子テーブル（`docs/repeatable-group-spec.md`）のファイルだけの組に作り直した。子テーブルの列は `filename` → `file`、`original_name` → `file_origin` に変わり、複数の欄（`'attach.*'`）の書き方は無くなった。そのため、3-2 の「関連が `UPLOAD_FILES` の複数の項目なら取り込む」と、6章の複数の欄のファイル名の確かめは、今は働かない（組の取り込みは、次のタスクで足す）。書き出しの書き方（3-1・3-2）は、列の名前を読み替えればそのまま使える。詳しくは `docs/repeatable-group-attach-spec.md`。
+> ニュースの添付ファイルは、子テーブル（`docs/repeatable-group-spec.md`）のファイルだけの組に作り直した。子テーブルの列は `filename` → `file`、`original_name` → `file_origin` に変わり、複数の欄（`'attach.*'`）の書き方は無くなった。そのため、3-2 の「関連が `UPLOAD_FILES` の複数の項目なら取り込む」と、6章の複数の欄のファイル名の確かめは、無くなった。書き出しの書き方（3-1・3-2）は、列の名前を読み替えればそのまま使える。詳しくは `docs/repeatable-group-attach-spec.md`。
+> その後、組の横展開の列を、子テーブル（`CHILD_TABLES`）に取り込めるようにした。組の列がある行では、子テーブルを CSV の内容で入れ直す。あわせて、アップロードの欄の必須（`'required'`）を、取り込みでも確かめるようにした。詳しくは `docs/child-tables-csv-import-spec.md`。
 
 ## 1. 基本の考え方
 

@@ -47,7 +47,8 @@ use Neobit\Core\Upload\UploadFilePath;
  * idの順が画面の順になるので、並び順の列が要らない。ほかのテーブルから子の行を参照するときは使わない。
  * ファイルの項目は、今のファイル名が「その行の今の値」と一致するときだけ残す。hiddenを書き換えて、
  * ほかの欄のファイルを指させないため。使わなくなったファイルは、トランザクションが確定した後に消す。
- * CSV取り込みでは、組を保存しない（組の列を取り込む仕組みはまだ無い）。
+ * CSV取り込みでは、csvColumns()の組の横展開の列があれば、子テーブルをCSVの内容で入れ直す（行のidは保たない）。
+ * 列が無ければ、子テーブルには触らない。
  */
 trait ChildTables
 {
@@ -295,25 +296,22 @@ trait ChildTables
 
     /**
      * 組を保存する。FormFlowが本体の保存とアップロードの確定の後に、同じトランザクションの中で呼ぶ。
-     * 組の印が届いていない組と、CSV取り込みでは何もしない。
+     * 組の印が届いていない組では何もしない。CSV取り込みでは、組の横展開の列があった組にだけ印が付く
+     * （CsvColumnSet）。CSVには子テーブルの行のidが無いので、取り込んだ組は行を入れ直す。
      */
     private function saveChildTables(Model $model, array $validated, bool $fromImport = false): void
     {
-        if ($fromImport) {
-            return;
-        }
-
         foreach ($this->childTableDefinitions() as $group => $def) {
             if (($validated[ChildTableDefinitions::markerKey($group)] ?? null) !== '1') {
                 continue;
             }
 
-            $this->saveChildTable($model, $def, $validated);
+            $this->saveChildTable($model, $def, $validated, $fromImport);
         }
     }
 
     /** 1つの組の子テーブルを、送られた行に揃える。使わなくなったファイルは、確定の後に消す */
-    private function saveChildTable(Model $model, array $def, array $validated): void
+    private function saveChildTable(Model $model, array $def, array $validated, bool $fromImport = false): void
     {
         $group = $def['group'];
         $relation = $this->childTableRelation($model, $def);
@@ -343,7 +341,9 @@ trait ChildTables
             }
 
             foreach ($def['files'] as $field) {
-                [$values[$field], $values["{$field}_origin"]] = $this->childTableFileValue($model, $row, $def, $field, $validated, $i);
+                [$values[$field], $values["{$field}_origin"]] = $fromImport
+                    ? $this->childTableImportedFileValue($def, $field, $validated, $i)
+                    : $this->childTableFileValue($model, $row, $def, $field, $validated, $i);
             }
 
             // 並び順の列があれば、画面の並びの番号
@@ -369,6 +369,22 @@ trait ChildTables
         // 使わなくなったファイルを、トランザクションが確定した後に消す
         $filesAfter = $this->childTableFilenames($this->childTableRelation($model, $def)->get(), $def);
         $this->deleteChildTableFilesAfterCommit($model, array_diff_key($filesBefore, $filesAfter));
+    }
+
+    /**
+     * CSV取り込みの1行のファイルの項目の、保存する[ファイル名, 表示名]。ファイル名は、今の行のファイルか、
+     * このレコードの保存先にあるものだと、読むときに確かめてある（CsvReader）。空欄ならファイルは無し
+     */
+    private function childTableImportedFileValue(array $def, string $field, array $validated, int $i): array
+    {
+        $base = "{$def['group']}_{$field}";
+        $filename = $validated[$base][$i] ?? null;
+
+        if ($filename === null || $filename === '') {
+            return [null, null];
+        }
+
+        return [$filename, ($validated["{$base}_origin"][$i] ?? null) ?: null];
     }
 
     /**
