@@ -247,6 +247,14 @@ has   packages/neobit/core/src/Http/Controllers/SitemapController.php   'class S
 has   packages/neobit/core/src/Http/Controllers/RobotsController.php    'class RobotsController'
 has   packages/neobit/core/routes/web.php                               'seo.sitemap'
 has   config/neobit.php                                                 "'sitemap_models'"
+has   packages/neobit/core/src/Seo/SeoSettings.php                      'final class SeoSettings'
+has   packages/neobit/core/src/Http/Controllers/SeoSettingsController.php 'class SeoSettingsController'
+has   packages/neobit/core/resources/views/admin/seo_settings/index.blade.php 'site_verification'
+has   packages/neobit/core/resources/views/_seo_head.blade.php          'google-site-verification'
+has   packages/neobit/core/src/Seo/Seo.php                              'IMAGE_URL_PATTERN'
+has   routes/web.php                                                    'SeoSettingsController'
+has   config/neobit.php                                                 "'page_routes'"
+has   resources/views/admin/_menu.blade.php                             'admin.seo-settings.index'
 has   packages/neobit/core/src/Crud/FormFlow.php                        'saveChildTables'
 has   packages/neobit/core/resources/js/repeatable_group.js             'repeatable_template'
 has   vite.config.js                                                    'repeatable_group.js'

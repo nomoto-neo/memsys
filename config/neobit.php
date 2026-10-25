@@ -187,7 +187,10 @@ return [
     | - sitemap_routes      サイトマップ（/sitemap.xml）に載せる、記事を持たないページのルートの名前
     | - sitemap_models      サイトマップに載せる記事のモデル（Neobit\Core\Seo\SitemapSourceを実装したもの）
     | - robots_disallow     robots.txtで巡回させない場所。本番（APP_ENV=production）だけ使い、本番以外は全部を巡回させない
+    | - page_routes         管理画面の「SEO設定」に出す、記事を持たないページ。ルート名 => 画面に出す名前。
+    |                       引数の要らないルートだけ
     |
+    | title_format・description・imageは、管理画面の「SEO設定」で空欄のときの値。
     | 配列のキーなので、アプリのconfig/neobit.phpでseoを書くときは、全部のキーを書く。
     */
 
@@ -206,6 +209,14 @@ return [
         ],
         // 管理画面・企業会員の画面・マイページは巡回させない
         'robots_disallow' => ['/admin', '/company', '/mypage'],
+        // 管理画面の「SEO設定」で、タイトル・説明文などを入れられるページ
+        'page_routes' => [
+            'top' => 'トップページ',
+            'news.index' => 'お知らせの一覧',
+            'contact.create' => 'お問い合わせ',
+            'newsletter.create' => 'メルマガの登録',
+            'regist.create' => '会員登録',
+        ],
     ],
 
 ];

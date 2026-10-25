@@ -11,7 +11,10 @@ use App\Models\Staff;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use LogicException;
+use Neobit\Core\Enums\OperationLogAction;
+use Neobit\Core\Models\OperationLog;
 use Neobit\Core\Models\SeoMeta;
+use Neobit\Core\Models\Setting;
 use Tests\TestCase;
 
 /**
@@ -288,5 +291,154 @@ class SeoTest extends TestCase
         $this->expectException(LogicException::class);
 
         seo('keywords');
+    }
+
+    // ---- SEO設定の画面 ----
+
+    /**
+     * SEO設定の画面の入力。ページは設定のseo.page_routesの順に、番号で並べる。$pagesはルート名 => 値
+     *
+     * @param  array<string, array<string, string>>  $pages
+     */
+    private function seoSettingsInput(array $defaults = [], array $pages = []): array
+    {
+        $input = $defaults + ['title_format' => '', 'description' => '', 'image' => '', 'site_verification' => '', 'pages' => []];
+
+        foreach (array_keys((array) config('neobit.seo.page_routes')) as $routeName) {
+            $input['pages'][] = ($pages[$routeName] ?? []) + ['route' => $routeName, 'title' => '', 'description' => '', 'image' => '', 'noindex' => '0'];
+        }
+
+        return $input;
+    }
+
+    public function test_seo_settings_override_the_config(): void
+    {
+        $manager = $this->manager();
+
+        // 先に開いて、画面の設定（空）をキャッシュに置く。保存で作り直されることを確かめるため
+        $this->get('/')->assertSee('<title>デモサイト</title>', false);
+
+        // 空欄のときに使う設定ファイルの値を、入力欄の見本に出す
+        $this->actingAs($manager, 'admin')
+            ->get(route('admin.seo-settings.index'))
+            ->assertOk()
+            ->assertSee('placeholder="{title}｜{site}"', false)
+            ->assertSee('トップページ')
+            ->assertSee('https://example.com/news');
+
+        // 確認タグは、Search Consoleが示すタグを丸ごと貼ってもよい
+        $input = $this->seoSettingsInput([
+            'title_format' => '{title} - {site}',
+            'description' => 'サイトの説明',
+            'image' => '/images/site.png',
+            'site_verification' => '<meta name="google-site-verification" content="abc_DEF-123" />',
+        ], [
+            'top' => ['title' => 'トップの題', 'description' => 'トップの説明'],
+            'news.index' => ['description' => 'お知らせの説明'],
+        ]);
+        $this->actingAs($manager, 'admin')
+            ->patch(route('admin.seo-settings.update'), $input)
+            ->assertRedirect(route('admin.seo-settings.index'));
+
+        // 閉じたページの枠に、設定したページの目印を出す
+        $this->actingAs($manager, 'admin')->get(route('admin.seo-settings.index'))->assertSee('設定あり');
+
+        $this->get('/')
+            ->assertSee('<title>トップの題 - デモサイト</title>', false)
+            ->assertSee('<meta name="description" content="トップの説明">', false)
+            ->assertSee('<meta property="og:image" content="https://example.com/images/site.png">', false)
+            ->assertSee('<meta name="google-site-verification" content="abc_DEF-123">', false);
+
+        // ページの説明文が無いページは、既定の説明文
+        $this->get(route('news.index'))->assertSee('<meta name="description" content="お知らせの説明">', false);
+        $this->get(route('contact.create'))->assertSee('<meta name="description" content="サイトの説明">', false);
+
+        // 操作ログに1件。同じ値で保存し直したときは残さない
+        $this->actingAs($manager, 'admin')->patch(route('admin.seo-settings.update'), $input);
+        $logs = OperationLog::where('action', OperationLogAction::SeoSettingsChange->value)->get();
+        $this->assertCount(1, $logs);
+        $this->assertStringContainsString('タイトルの形', json_encode($logs->first()->detail, JSON_UNESCAPED_UNICODE));
+    }
+
+    public function test_page_settings_win_over_the_section_title_but_not_the_article(): void
+    {
+        config(['neobit.seo.page_routes' => ['newsletter.create' => 'メルマガの登録', 'news.show' => 'お知らせの詳細']]);
+        $manager = $this->manager();
+        $news = $this->news();
+
+        // 引数の要るルートは、URLを出さずに並べる
+        $this->actingAs($manager, 'admin')->get(route('admin.seo-settings.index'))->assertOk()->assertSee('お知らせの詳細');
+
+        $this->actingAs($manager, 'admin')->patch(route('admin.seo-settings.update'), $this->seoSettingsInput([], [
+            'newsletter.create' => ['title' => 'メルマガのご案内'],
+            'news.show' => ['title' => '詳細の題'],
+        ]));
+
+        // 画面の値は@section('title')より先。記事のあるページは記事の値
+        $this->get(route('newsletter.create'))->assertSee('<title>メルマガのご案内｜デモサイト</title>', false);
+        $this->get(route('news.show', $news))->assertSee('<title>秋のイベント｜デモサイト</title>', false);
+    }
+
+    public function test_emptied_settings_fall_back_to_the_config(): void
+    {
+        $manager = $this->manager();
+        $this->actingAs($manager, 'admin')->patch(route('admin.seo-settings.update'), $this->seoSettingsInput(
+            ['title_format' => '{title} - {site}', 'site_verification' => 'abc'],
+            ['top' => ['title' => 'トップの題']],
+        ));
+
+        // 全部空にすると、値はnullで、ページは持たない
+        $this->actingAs($manager, 'admin')->patch(route('admin.seo-settings.update'), $this->seoSettingsInput());
+
+        $this->assertNull(Setting::where('key', 'seo.title_format')->value('value'));
+        $this->assertSame([], Setting::where('key', 'seo.pages')->value('value'));
+        $this->get('/')
+            ->assertSee('<title>デモサイト</title>', false)
+            ->assertDontSee('google-site-verification', false);
+        $this->get(route('newsletter.create'))->assertSee('<title>メルマガの登録｜デモサイト</title>', false);
+    }
+
+    public function test_page_noindex_from_the_screen(): void
+    {
+        $this->actingAs($this->manager(), 'admin')->patch(route('admin.seo-settings.update'), $this->seoSettingsInput([], [
+            'top' => ['noindex' => '1'],
+        ]));
+
+        // 検索に出さず、サイトマップにも載せない
+        $this->get('/')->assertSee('<meta name="robots" content="noindex">', false);
+        $xml = $this->get('/sitemap.xml')->getContent();
+        $this->assertStringNotContainsString('<loc>https://example.com</loc>', $xml);
+        $this->assertStringContainsString('<loc>'.route('news.index').'</loc>', $xml);
+    }
+
+    public function test_wrong_settings_are_rejected(): void
+    {
+        $manager = $this->manager();
+
+        $this->actingAs($manager, 'admin')
+            ->patch(route('admin.seo-settings.update'), $this->seoSettingsInput(['title_format' => 'タイトル', 'image' => 'images/a.png'], [
+                'top' => ['image' => '//evil.example.com/a.png'],
+            ]))
+            ->assertSessionHasErrors(['title_format', 'image', 'pages.0.image']);
+
+        $this->actingAs($manager, 'admin')
+            ->patch(route('admin.seo-settings.update'), $this->seoSettingsInput(['site_verification' => '<script>alert(1)</script>']))
+            ->assertSessionHasErrors('site_verification');
+
+        // 設定のseo.page_routesに無いルートの値は、捨てる
+        $input = $this->seoSettingsInput();
+        $input['pages'][] = ['route' => 'login', 'title' => '外の題', 'description' => '', 'image' => '', 'noindex' => '0'];
+        $this->actingAs($manager, 'admin')->patch(route('admin.seo-settings.update'), $input)->assertSessionHasNoErrors();
+        $this->assertSame([], Setting::where('key', 'seo.pages')->value('value'));
+    }
+
+    public function test_staff_who_is_not_a_manager_is_sent_away(): void
+    {
+        $staff = $this->manager();
+        $staff->update(['acl' => StaffAcl::Staff]);
+
+        $this->actingAs($staff, 'admin')
+            ->get(route('admin.seo-settings.index'))
+            ->assertRedirect(route('admin.staff.edit', $staff));
     }
 }

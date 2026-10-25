@@ -37,6 +37,7 @@ use Neobit\Core\Http\Controllers\AccessRestrictionController;
 use Neobit\Core\Http\Controllers\CodeTableController;
 use Neobit\Core\Http\Controllers\IpBlockController;
 use Neobit\Core\Http\Controllers\OperationLogController;
+use Neobit\Core\Http\Controllers\SeoSettingsController;
 use Neobit\Core\Rules\SlugRule;
 
 // 静的なページを表示する場合
@@ -552,6 +553,11 @@ Route::prefix('admin')->name('admin.')->middleware('admin.ip')->group(function (
             // 名前は「頭.index」「頭.update」の組にする。コントローラーが組のもう一方の名前を作る
             Route::get('/access-restriction', [AccessRestrictionController::class, 'index'])->name('access-restriction.index');
             Route::patch('/access-restriction', [AccessRestrictionController::class, 'update'])->name('access-restriction.update');
+
+            // SEO設定（記事を持たないページのSEOと、サイト全体の既定。フレームワークの画面）。
+            // 名前は「頭.index」「頭.update」の組にする。コントローラーが組のもう一方の名前を作る
+            Route::get('/seo-settings', [SeoSettingsController::class, 'index'])->name('seo-settings.index');
+            Route::patch('/seo-settings', [SeoSettingsController::class, 'update'])->name('seo-settings.update');
 
             // 一斉メールの文面の管理
             Route::get('/bulk-mail-templates', [AdminBulkMailTemplateController::class, 'index'])->name('bulk-mail-templates.index');
