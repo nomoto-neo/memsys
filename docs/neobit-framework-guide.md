@@ -229,6 +229,27 @@ Seo::for($news);
 - **説明文の作り方**：本文の `<script>`・`<style>` は中身ごと除き、段落や改行のタグは空白にしてから、残りのタグを除きます。
 - 部品を置くのは、訪問者の側のレイアウトだけです。管理画面と企業会員の画面は、検索に出さない画面のためです。
 
+#### slug（URL の名前）の検証のルール
+
+**ファイル**：`packages/neobit/core/src/Rules/SlugRule.php`・`NotReservedPathRule.php`　**実例**：固定ページ（`Admin\PageController`）
+
+slug はコーナーのテーブルの列に持ち、検証のルールだけを共通の部品にしています。重なりの検証は Laravel の `Rule::unique`、URL から探すのは `where()` で足ります。
+
+```php
+'slug' => [
+    'required', 'string', 'max:100',
+    new SlugRule(nested: true),                           // 形。nested: true なら「/」で区切ってつなげられる
+    Rule::unique(Page::class, 'slug')->ignore($page?->id),
+    new NotReservedPathRule(),                            // URL の直下（/{slug}）に置くコーナーだけ
+],
+
+// routes/web.php。検証と同じパターンを使う
+Route::get('/{slug}', ...)->where('slug', SlugRule::NESTED_PATTERN);
+```
+
+- **形**：半角の英小文字・数字・ハイフン・アンダーバーで、先頭は英小文字か数字。`nested: true` なら「/」でつなげられ、先頭・末尾の「/」と「//」は通しません。エラーの文は、通常の `validation.regex` の文です。
+- **ほかの画面と重ならない**：名前の最初の区切りが、ほかのルートの URL の最初の区切りと同じなら断ります。`/news/{slug}` のように頭の付いた URL に置くコーナーでは要りません。
+
 #### 記事ごとの SEO の欄
 
 **ファイル**：`packages/neobit/core/src/Seo/SeoFields.php`（コントローラー）・`HasSeoMeta.php`（モデル）・`src/Models/SeoMeta.php`、画面は `packages/neobit/core/resources/views/_seo_fields.blade.php`　**実例**：ニュースと固定ページの登録・編集（`Admin\NewsController`・`Admin\PageController`）
@@ -1012,7 +1033,8 @@ SunEditor は npm のパッケージなので、`package.json` から外した�
 固定ページは、URL の名前（`t_pages.slug`）がそのままパスになります。`aboutus` なら `/aboutus` です。
 
 - **ルートは、`routes/web.php` のいちばん最後に置きます**。ほかの全部の画面を先に当てて、どれにも当たらなかった1区切りの URL だけを受けるためです。画面を足すときは、このルートより上に書きます。
-- **ほかの画面と同じ名前のページは作れません**。`login`・`news`・`admin` のような、ほかの画面の URL の最初の区切りと同じ名前は、検証で断ります（`Page::isReservedSlug()`）。ルートの一覧から調べるので、画面を足しても、直す所はありません。
+- **ほかの画面と同じ名前のページは作れません**。`login`・`news`・`admin` のような、ほかの画面の URL の最初の区切りと同じ名前は、検証で断ります（`NotReservedPathRule`）。ルートの一覧から調べるので、画面を足しても、直す所はありません。
+- **名前の形**は、検証もルートも `SlugRule` のパターン（`SlugRule::NESTED_PATTERN`）を使います。食い違うと、登録できるのに開けないページができるためです。
 - 後から足した画面の URL が、すでにあるページの名前と重なったときは、画面のほうが先に当たり、ページは開けなくなります。ページの名前を変えます。
 - 表示名（元のファイル名）が空のときは、リンクの文字を「添付ファイル1」のようにします（`_ajax_upload_block` と訪問者向けのニュース詳細で実装済み）。
 

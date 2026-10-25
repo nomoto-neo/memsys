@@ -152,6 +152,8 @@
 | `OperationRecorder` | `record()`・`loggableFields()` | |
 | `CsvWriter` | `download()`・`fetch()` | CSV の共通の書き出し方 |
 | `Seo` | `for()`・`value()`、定数 `KEYS` | ふつうはコントローラーが `for()` を呼び、画面は `seo()` で読む |
+| `SlugRule` | 定数 `PATTERN`・`NESTED_PATTERN` | ルートの `where()` に使う |
+| `NotReservedPathRule` | `isReserved()` | |
 | `OperationLog` | `actionOptions()`・`modelOptions()`・`modelNames()`・`operatorLabel()`・`relatedRecords()`・`operatorTypes()`・`relatedKey()`・`countSummary()`・`csvName()`・`detailText()` | |
 | `OperationLogStats` | `hourly()`・`daily()`・`topOperators()`・`countsBy()` | |
 | `OperationLogReport` | `for()` | |
@@ -176,7 +178,7 @@
 | `AccessRestriction` | `allowsSite()`・`allowsAdmin()`・`allowedIps()`・`siteIps()`・`adminIps()`・`envSiteIps()`・`envAdminIps()`・`settings()`・`save()`・`turnOff()`・`parseList()`・`lockoutMessage()` | |
 | `IpBlocker` | `isBlocked()`・`countMiss()`・`block()`・`changeUntil()`・`release()`・`deleteExpired()`・`normalizeRange()`・`rangeBounds()`・`coversProtected()` | |
 | `CsvImportSettings`・`CsvImportResult`・`CsvImportRow`・`CsvColumnSet` | 取り込みの設定と結果 | |
-| 検証のルール | `KatakanaRule`・`HiraganaRule`・`PhoneNumberRule`・`SameCountAsRule`・`UploadRequiredRule` | |
+| 検証のルール | `KatakanaRule`・`HiraganaRule`・`PhoneNumberRule`・`SameCountAsRule`・`UploadRequiredRule`・`SlugRule`・`NotReservedPathRule` | |
 | ミドルウェア | `AjaxFormResponse`・`NormalizeInput`・`RejectBlockedIp`・`RestrictAdminAccess`・`RestrictSiteAccess`・`RunScheduleOnRequest`・`SecurityHeaders` | |
 | コントローラー | `CodeTableController`・`IpBlockController`・`AccessRestrictionController`・`OperationLogController`（どれもルートは案件が書く）・`UploadedFileController` | |
 
