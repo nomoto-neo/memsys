@@ -143,7 +143,7 @@
 | モデル | `Setting` | 管理画面から変えられる設定の1行（キーと値） | |
 | モデルのトレイト | `IsLoginAccount`・`HasTwoFactor`・`HasPasskeys`・`TeamInvitationRelation` | ログイン・2段階認証・パスキー・招待 | `TeamInvitationRelation` だけ `Has〜`・`Is〜` の形でない |
 | コントローラーのトレイト | `FormFlow`・`SearchableList`・`AjaxFileUpload`・`ChildTables`・`SeoFields`・`CsvDownload`・`CsvImport`・`CsvReader`・`PdfDownload`・`EmailChange`・`TwoFactorLogin`・`TwoFactorManagement`・`PasskeyLogin`・`PasskeyManagement` | | `CsvReader` だけ「〜er」 |
-| 列挙型 | `UploadType`（`Image`・`File`）・`SheetPaging`（`Once`・`Sequential`・`Cycle`）・`OperationLogAction`（`ip_block`・`ip_unblock`・`access_restriction_change`・`seo_settings_change` を含む）・`TwoFactorMethod`・`LoginIdType`・`CsvEncoding`・`CsvImportMode`・`SpamCheckResult` | | |
+| 列挙型 | `UploadType`（`Image`・`File`）・`SheetPaging`（`Once`・`Sequential`・`Cycle`）・`OperationLogAction`（`ip_block`・`ip_unblock`・`access_restriction_change`・`seo_settings_change`・`basic_auth_change`・`basic_auth_user_add`・`basic_auth_user_delete` を含む）・`TwoFactorMethod`・`LoginIdType`・`CsvEncoding`・`CsvImportMode`・`SpamCheckResult` | | |
 
 ## 6. 案件が呼ぶクラスと、その公開のメソッド
 
@@ -181,12 +181,13 @@
 | `HtmlSanitizer` | `clean()` | |
 | `SpamGuard` | `startedToken()`・`check()`、定数 `HONEYPOT_FIELD`・`STARTED_FIELD`・`TURNSTILE_FIELD` | |
 | `AdminRequestLimit` | `limit()` | |
+| `BasicAuth` | `isOn()`・`save()`・`addUser()`・`deleteUser()`、定数 `AREAS`（`site`・`admin`）・`USERNAME_PATTERN` | 範囲ごとの目印のファイルと `.htpasswd` を作る |
 | `AccessRestriction` | `allowsSite()`・`allowsAdmin()`・`allowedIps()`・`siteIps()`・`adminIps()`・`envSiteIps()`・`envAdminIps()`・`settings()`・`save()`・`turnOff()`・`parseList()`・`lockoutMessage()` | |
 | `IpBlocker` | `isBlocked()`・`countMiss()`・`block()`・`changeUntil()`・`release()`・`deleteExpired()`・`normalizeRange()`・`rangeBounds()`・`coversProtected()` | |
 | `CsvImportSettings`・`CsvImportResult`・`CsvImportRow`・`CsvColumnSet` | 取り込みの設定と結果 | |
 | 検証のルール | `KatakanaRule`・`HiraganaRule`・`PhoneNumberRule`・`SameCountAsRule`・`UploadRequiredRule`・`SlugRule`・`NotReservedPathRule` | |
 | ミドルウェア | `AjaxFormResponse`・`ApplyRedirects`・`NormalizeInput`・`RejectBlockedIp`・`RestrictAdminAccess`・`RestrictSiteAccess`・`RunScheduleOnRequest`・`SecurityHeaders` | |
-| コントローラー | `CodeTableController`・`IpBlockController`・`AccessRestrictionController`・`SeoSettingsController`・`RedirectController`・`OperationLogController`（どれもルートは案件が書く）・`UploadedFileController`・`SitemapController`・`RobotsController` | |
+| コントローラー | `CodeTableController`・`IpBlockController`・`AccessRestrictionController`・`BasicAuthController`・`SeoSettingsController`・`RedirectController`・`OperationLogController`（どれもルートは案件が書く）・`UploadedFileController`・`SitemapController`・`RobotsController` | |
 
 ## 7. ヘルパー
 
@@ -239,7 +240,7 @@
 | `_two_factor_backup_codes` | `$codes`・`$twoFactorNextUrl`・`$nextLabel` | |
 | `_two_factor_manage` | `$twoFactorAccount`・`$twoFactorRoutes`・`$totpConfirmed`・`$usesBackupCodes`・`$backupCodesCodeSent`・`$confirmByEmail`・`$issueLabel`・`$resetAlso` | |
 | `_two_factor_reset` | `$twoFactorAccount`・`$twoFactorResetUrl` | |
-| `admin.code_tables.index`・`admin.ip_blocks.index`・`admin.access_restriction.index`・`admin.seo_settings.index`・`admin.redirects.index`・`admin.operation_logs.index`・`admin.operation_logs._table`・`admin.csv_import.form`・`admin.csv_import.confirm`・`admin.too_many_requests` | フレームワークのコントローラーが渡す | |
+| `admin.code_tables.index`・`admin.ip_blocks.index`・`admin.access_restriction.index`・`admin.basic_auth.index`・`admin.seo_settings.index`・`admin.redirects.index`・`admin.operation_logs.index`・`admin.operation_logs._table`・`admin.csv_import.form`・`admin.csv_import.confirm`・`admin.too_many_requests` | フレームワークのコントローラーが渡す | |
 | `layouts.plain`・`maintenance`・`mail._raw_html`・`mail._raw_text` | | |
 
 案件の画面がそろえる変数の名前（フレームワークの決まり）。
@@ -260,6 +261,7 @@
 | IPブロック管理の「頭.index」「頭.store」「頭.update」「頭.destroy」 | 案件が書く。update・destroy の URL に `{ipBlock}` | |
 | 操作ログの「頭.index」「頭.search」「頭.csv」「頭.day」 | 案件が書く | |
 | アクセス制限の「頭.index」「頭.update」 | 案件が書く | |
+| ベーシック認証の「頭.index」「頭.update」「頭.store」「頭.destroy」 | 案件が書く。update・store の URL に `{area}`（`site`・`admin`）、destroy の URL に `{basicAuthUser}` | |
 | SEO設定の「頭.index」「頭.update」 | 案件が書く | |
 | リダイレクトの「頭.index」「頭.store」「頭.update」「頭.destroy」「頭.csv」「頭.csv-import」「頭.csv-import.confirm」「頭.csv-import.execute」 | 案件が書く。update・destroy の URL に `{redirect}` | |
 

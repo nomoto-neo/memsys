@@ -168,6 +168,47 @@ TRUSTED_PROXIES=10.0.0.5,10.0.0.6
 - **コマンドは止まりません**。スケジューラー（19章）とキュー（21章）は、制限の間も動きます。メンテナンスの間に一斉メールを送りたくないときは、送信が終わってから止めます。
 - Laravel の `php artisan down` は使いません。サーバーでコマンドを打つ必要があり、画面の設定とは別の仕組みになるためです。
 
+### ベーシック認証
+
+**ファイル**：`packages/neobit/core/src/Security/BasicAuth.php`（冒頭のコメント）・`src/Http/Controllers/BasicAuthController.php`・`src/Models/BasicAuthUser.php`、画面は `packages/neobit/core/resources/views/admin/basic_auth/index.blade.php`　**実例**：管理画面の「セキュリティ」の「ベーシック認証」
+
+運用する人が管理画面から、訪問者画面と管理画面のそれぞれに、ベーシック認証を掛けるかと、そのユーザーを別々に変えられます。認証するのは Apache なので、Laravel を通らない `public` の下の HTML や画像にも掛かります。
+
+- **仕組み**：管理画面で切り替えると、目印のファイル `storage/app/basic-auth/site.on`（訪問者画面）・`admin.on`（管理画面）を作る・消します。ユーザーを追加・削除すると、その範囲の `storage/app/basic-auth/site.htpasswd`・`admin.htpasswd` を書き直します（パスワードは bcrypt の `$2y$`）。サーバーの VirtualHost に書いた決まりが、目印のファイルがあるときだけ認証を掛けます。`public/.htaccess` は変えません。
+- **サーバーの設定**（1回だけ。サーバーを管理する人）：VirtualHost に次の決まりを書き、Apache を読み直します。パスはそのサーバーのプロジェクトの場所に書き換えます。決まりを書いていないサーバーでは、画面で切り替えても掛かりません。
+
+    ```apache
+    <Directory "/var/www/memsys/public">
+        # 管理画面の「ベーシック認証」の訪問者画面。目印のファイルがあるときだけ掛ける。死活監視と配信停止のリンク・管理画面には掛けない
+        <If "-f '/var/www/memsys/storage/app/basic-auth/site.on' && %{REQUEST_URI} !~ m#^/(up|mail/unsubscribe|admin)#">
+            AuthType Basic
+            AuthName "Restricted"
+            AuthUserFile /var/www/memsys/storage/app/basic-auth/site.htpasswd
+            Require valid-user
+        </If>
+        # 管理画面の「ベーシック認証」の管理画面。AuthNameは訪問者画面と分ける
+        <If "-f '/var/www/memsys/storage/app/basic-auth/admin.on' && %{REQUEST_URI} =~ m#^/admin#">
+            AuthType Basic
+            AuthName "RestrictedAdmin"
+            AuthUserFile /var/www/memsys/storage/app/basic-auth/admin.htpasswd
+            Require valid-user
+        </If>
+    </Directory>
+    ```
+- **AuthName は範囲ごとに分けます**（訪問者画面は `Restricted`、管理画面は `RestrictedAdmin`）。ブラウザは入れた ID とパスワードを、ホスト名と AuthName の組ごとに覚えます。同じ AuthName にすると、訪問者画面で入れたものを管理画面にも黙って送り、同じユーザーが両方にあれば、管理画面の窓が出ずに通ってしまいます。
+- **サーバーでのオンオフ**：目印のファイルを作る・消すだけです。パスワードを忘れて管理画面に入れなくなったときは、`admin.on` を消します。
+
+    ```bash
+    touch storage/app/basic-auth/admin.on   # 管理画面に掛ける
+    rm storage/app/basic-auth/admin.on      # 外す
+    ```
+- **掛けない URL**：訪問者画面に掛けても、死活監視（`/up`）とメルマガの配信停止（`/mail/unsubscribe`）には掛けません。訪問者画面に掛けても管理画面には掛からず、管理画面に掛けても訪問者画面には掛かりません。
+- **ユーザー**：訪問者画面と管理画面で別々に持ちます。同じユーザー名を両方に作っても、別のユーザーです。追加と削除だけです。パスワードを変えるときは、削除して追加し直します。ユーザー名は半角の英数字と `-`・`_`・`.` で、`:` は使えません（ユーザー名とパスワードの区切りのため）。パスワードは8文字以上です。
+- **締め出さない**：範囲ごとに、ユーザーが0人のときは掛けられず、掛けている間は最後のユーザーを削除できません。
+- **操作ログ**：「ベーシック認証の変更」「ベーシック認証のユーザーの追加」「ベーシック認証のユーザーの削除」で残します。補足には範囲とユーザー名だけを残し、パスワードは残しません。
+- **パスワードの総当たりは止めません**：認証するのは Laravel より手前の Apache なので、失敗の回数を数えられません。要るときは、サーバーの fail2ban などで止めます。
+- **アクセス制限との関係**：別の仕組みで、互いに影響しません。アクセス制限で通している IP アドレスにも、ベーシック認証は掛かります。
+
 ### セキュリティのヘッダー（SecurityHeaders）
 
 **ファイル**：`packages/neobit/core/src/Http/Middleware/SecurityHeaders.php`（冒頭のコメント）

@@ -36,6 +36,9 @@ enum OperationLogAction: string implements OperationLogActionType
     case IpUnblock = 'ip_unblock';
     case AccessRestrictionChange = 'access_restriction_change';
     case SeoSettingsChange = 'seo_settings_change';
+    case BasicAuthChange = 'basic_auth_change';
+    case BasicAuthUserAdd = 'basic_auth_user_add';
+    case BasicAuthUserDelete = 'basic_auth_user_delete';
 
     /** 値ごとの名前 */
     private const LABELS = [
@@ -61,6 +64,9 @@ enum OperationLogAction: string implements OperationLogActionType
         self::IpUnblock->value => 'IPアドレスのブロックの解除',
         self::AccessRestrictionChange->value => 'アクセス制限の変更',
         self::SeoSettingsChange->value => 'SEO設定の変更',
+        self::BasicAuthChange->value => 'ベーシック認証の変更',
+        self::BasicAuthUserAdd->value => 'ベーシック認証のユーザーの追加',
+        self::BasicAuthUserDelete->value => 'ベーシック認証のユーザーの削除',
     ];
 
     public function label(): string
