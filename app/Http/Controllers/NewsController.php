@@ -66,6 +66,11 @@ class NewsController extends Controller
             return $result;
         }
 
+        // カテゴリーや年で絞り込んだ一覧は、検索に出さない（中身が絞り込む前の一覧と重なるため）
+        if (array_filter($result['filters'], fn ($value) => filled($value)) !== []) {
+            Seo::noindex();
+        }
+
         return view('news.index', [
             'records' => $result['records'],
             'filters' => $result['filters'],

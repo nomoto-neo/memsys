@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Neobit\Core\Seo\HasSeoMeta;
 use Neobit\Core\Seo\SeoSubject;
+use Neobit\Core\Seo\SitemapSource;
 
 /**
  * 固定ページ。会社概要のように、管理画面で本文を書いて、訪問者の側に決まったURLで出すページ。
@@ -18,7 +19,7 @@ use Neobit\Core\Seo\SeoSubject;
  * 固定ページの本文をSunEditorで書くようにして、2つのエディタの動作の見本にしている。
  * 本文に入れた画像は、誰でも見られる公開の場所に置く。固定ページには会員限定の区別が無いため。
  */
-class Page extends Model implements SeoSubject
+class Page extends Model implements SeoSubject, SitemapSource
 {
     // 記事ごとのSEOの欄（共通のテーブルseo_metas）。管理画面の登録・編集の画面で入れる
     use HasSeoMeta;
@@ -71,5 +72,19 @@ class Page extends Model implements SeoSubject
     public function seoImageUrl(): ?string
     {
         return null;
+    }
+
+    // ---- サイトマップ（Neobit\Core\Seo\SitemapSource） ----
+
+    /** サイトマップに載せる記事。表示にしているページ */
+    public static function sitemapQuery(): Builder
+    {
+        return static::query()->visible();
+    }
+
+    /** 記事の訪問者の側のURL */
+    public function sitemapUrl(): string
+    {
+        return route('pages.show', $this->slug);
     }
 }

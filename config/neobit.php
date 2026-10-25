@@ -8,6 +8,8 @@
 
 use App\Enums\AppOperationLogAction;
 use App\Enums\AppOperationLogModel;
+use App\Models\News;
+use App\Models\Page;
 use App\Models\Staff;
 use Neobit\Core\Enums\OperationLogAction;
 
@@ -181,14 +183,29 @@ return [
     | - description         記事の無いページの説明文。空なら説明文のタグを出さない
     | - description_length  記事の本文から作る説明文の文字数
     | - image               既定のシェアの画像。publicの下のパス（例：/images/ogp.png）か、URL。nullなら出さない
+    | - noindex_routes      検索に出さないルートの名前。*が使える（例：'contact.thanks'）
+    | - sitemap_routes      サイトマップ（/sitemap.xml）に載せる、記事を持たないページのルートの名前
+    | - sitemap_models      サイトマップに載せる記事のモデル（Neobit\Core\Seo\SitemapSourceを実装したもの）
+    | - robots_disallow     robots.txtで巡回させない場所。本番（APP_ENV=production）だけ使い、本番以外は全部を巡回させない
     |
+    | 配列のキーなので、アプリのconfig/neobit.phpでseoを書くときは、全部のキーを書く。
     */
 
-    // 'seo' => [
-    //     'title_format' => '{title}｜{site}',
-    //     'description' => '',
-    //     'description_length' => 120,
-    //     'image' => null,
-    // ],
+    'seo' => [
+        'title_format' => '{title}｜{site}',
+        'description' => '',
+        'description_length' => 120,
+        'image' => null,
+        // お問い合わせの完了の画面は、検索に出さない
+        'noindex_routes' => ['contact.thanks'],
+        // トップ・お知らせの一覧・お問い合わせ
+        'sitemap_routes' => ['top', 'news.index', 'contact.create'],
+        'sitemap_models' => [
+            News::class,
+            Page::class,
+        ],
+        // 管理画面・企業会員の画面・マイページは巡回させない
+        'robots_disallow' => ['/admin', '/company', '/mypage'],
+    ],
 
 ];

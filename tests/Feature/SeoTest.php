@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\StaffAcl;
 use App\Models\Category;
+use App\Models\Member;
 use App\Models\News;
 use App\Models\Page;
 use App\Models\Staff;
@@ -209,6 +210,77 @@ class SeoTest extends TestCase
         $this->actingAs($this->manager(), 'admin')->delete(route('admin.news.destroy', $news))->assertRedirect();
 
         $this->assertSame(0, SeoMeta::count());
+    }
+
+    // ---- 自動のnoindex・canonical・サイトマップ・robots.txt ----
+
+    public function test_pages_needing_login_and_listed_routes_are_noindex(): void
+    {
+        // ログインしないと開けない画面（authのミドルウェア）
+        $member = Member::factory()->create();
+        $this->actingAs($member, 'web')->get(route('mypage'))->assertSee('<meta name="robots" content="noindex">', false);
+
+        // 設定に並べたルート（見本ではお問い合わせの完了）
+        $this->get(route('contact.thanks'))->assertSee('<meta name="robots" content="noindex">', false);
+
+        // 普通の画面には付けない
+        $this->get(route('news.index'))->assertDontSee('name="robots"', false);
+    }
+
+    public function test_filtered_list_is_noindex(): void
+    {
+        $category = Category::create(['name' => 'イベント', 'seq' => 0]);
+
+        // 絞り込みをした一覧は、コントローラーがSeo::noindex()を呼ぶ
+        $this->post(route('news.search'), ['category_id' => (string) $category->id]);
+        $this->get(route('news.index', ['page' => 1]))->assertSee('<meta name="robots" content="noindex">', false);
+    }
+
+    public function test_canonical_drops_the_query_except_the_page(): void
+    {
+        $this->get(route('news.index', ['page' => 2, 'utm_source' => 'mail']))
+            ->assertSee('<link rel="canonical" href="https://example.com/news?page=2">', false);
+
+        $news = $this->news();
+        $this->get(route('news.show', $news).'?from=top')
+            ->assertSee('<link rel="canonical" href="'.route('news.show', $news).'">', false);
+    }
+
+    public function test_sitemap_lists_public_pages_and_articles(): void
+    {
+        $visible = $this->news(['title' => '公開の記事']);
+        $membersOnly = $this->news(['title' => '会員限定の記事', 'members_only' => true]);
+        $hidden = $this->news(['title' => '非表示の記事', 'disp_flg' => false]);
+        $noindex = $this->news(['title' => '検索に出さない記事']);
+        $noindex->seoMeta()->create(['noindex' => true]);
+        Page::create(['title' => '会社概要', 'slug' => 'aboutus', 'body' => '<p>本文</p>', 'disp_flg' => true]);
+
+        $response = $this->get('/sitemap.xml')->assertOk();
+        $this->assertStringStartsWith('application/xml', $response->headers->get('Content-Type'));
+        $xml = $response->getContent();
+
+        // 記事を持たないページ（設定のルート）と、公開の記事・固定ページ
+        foreach (['https://example.com', route('news.index'), route('contact.create'), route('news.show', $visible), route('pages.show', 'aboutus')] as $url) {
+            $this->assertStringContainsString("<loc>{$url}</loc>", $xml);
+        }
+        $this->assertStringContainsString('<lastmod>'.$visible->updated_at->toAtomString().'</lastmod>', $xml);
+
+        // 会員限定・非表示・SEOの欄で検索に出さないにした記事は載せない
+        foreach ([$membersOnly, $hidden, $noindex] as $news) {
+            $this->assertStringNotContainsString('<loc>'.route('news.show', $news).'</loc>', $xml);
+        }
+    }
+
+    public function test_robots_txt_depends_on_the_environment(): void
+    {
+        // 本番以外は、全部を巡回させない
+        $this->get('/robots.txt')->assertOk()->assertSee("User-agent: *\nDisallow: /\n", false);
+
+        // 本番は、設定の場所を巡回させず、サイトマップの場所を伝える
+        app()['env'] = 'production';
+        $this->get('/robots.txt')
+            ->assertOk()
+            ->assertSee("Disallow: /admin\nDisallow: /company\nDisallow: /mypage\n\nSitemap: https://example.com/sitemap.xml", false);
     }
 
     public function test_unknown_name_is_rejected(): void

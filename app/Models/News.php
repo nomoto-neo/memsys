@@ -10,12 +10,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Neobit\Core\Seo\HasSeoMeta;
 use Neobit\Core\Seo\SeoSubject;
+use Neobit\Core\Seo\SitemapSource;
 use Neobit\Core\Upload\UploadFilePath;
 
 /**
  * ニュース記事。
  */
-class News extends Model implements SeoSubject
+class News extends Model implements SeoSubject, SitemapSource
 {
     // 記事ごとのSEOの欄（共通のテーブルseo_metas）。管理画面の登録・編集の画面で入れる
     use HasSeoMeta;
@@ -185,5 +186,19 @@ class News extends Model implements SeoSubject
     public function seoImageUrl(): ?string
     {
         return $this->list_image_url;
+    }
+
+    // ---- サイトマップ（Neobit\Core\Seo\SitemapSource） ----
+
+    /** サイトマップに載せる記事。訪問者に見せてよい記事（表示・一般公開・掲載期間の中）。会員限定の記事は入れない */
+    public static function sitemapQuery(): Builder
+    {
+        return static::query()->visibleTo(null);
+    }
+
+    /** 記事の訪問者の側のURL */
+    public function sitemapUrl(): string
+    {
+        return route('news.show', $this);
     }
 }

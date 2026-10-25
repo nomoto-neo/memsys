@@ -144,6 +144,8 @@ gone packages/neobit/core/src/Rules/MaxUploadCountRule.php
 gone packages/neobit/core/resources/views/_ajax_upload_group.blade.php
 gone packages/neobit/core/src/Crud/RepeatableGroup.php
 gone packages/neobit/core/src/Crud/RepeatableGroupDefinitions.php
+# robots.txtはフレームワークのルートで返すので、ファイルがあるとApacheがそちらを返してしまう
+gone public/robots.txt
 
 # フレームワークへ移した操作ログの画面と、名前を変えた列挙型
 gone app/Http/Controllers/Admin/OperationLogController.php
@@ -241,6 +243,10 @@ has   packages/neobit/core/src/Rules/SlugRule.php                       'class S
 has   packages/neobit/core/src/Rules/NotReservedPathRule.php            'class NotReservedPathRule'
 has   routes/web.php                                                    'SlugRule::NESTED_PATTERN'
 lacks app/Models/Page.php                                               'isReservedSlug'
+has   packages/neobit/core/src/Http/Controllers/SitemapController.php   'class SitemapController'
+has   packages/neobit/core/src/Http/Controllers/RobotsController.php    'class RobotsController'
+has   packages/neobit/core/routes/web.php                               'seo.sitemap'
+has   config/neobit.php                                                 "'sitemap_models'"
 has   packages/neobit/core/src/Crud/FormFlow.php                        'saveChildTables'
 has   packages/neobit/core/resources/js/repeatable_group.js             'repeatable_template'
 has   vite.config.js                                                    'repeatable_group.js'
