@@ -8,6 +8,7 @@
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\HtmlString;
 use Neobit\Core\Code\CodeTable;
+use Neobit\Core\Seo\Seo;
 use Neobit\Core\Upload\HtmlSanitizer;
 use Neobit\Core\Upload\UploadFieldDefinitions;
 use Neobit\Core\Upload\UploadFilePath;
@@ -217,6 +218,23 @@ if (! function_exists('upload_preview_url')) {
             upload_input_value($input, "{$field}_tmp", $idx),
             upload_input_value($input, "{$field}_del", $idx) === '1',
         );
+    }
+}
+
+if (! function_exists('seo')) {
+    /**
+     * 今のページのSEOの値を1つ返す。$keyは'title'・'description'・'image'・'url'・'type'・'site_name'。
+     * 記事の詳細の画面でコントローラーがSeo::for($news)を呼んでいればその記事から、呼んでいなければ、
+     * 画面の@section('title')とサイトの既定（config/neobit.phpのseo）から決まる（Neobit\Core\Seo\Seo）。
+     *
+     *   <meta name="description" content="{{ seo('description') }}">
+     *
+     * レイアウトの<head>には、普段はneobit::_seo_headを置く。並べ方を変えたいときは、このヘルパーで自分で書く。
+     * 知らない名前を渡したときは、書き間違いなので例外にする。
+     */
+    function seo(string $key): string
+    {
+        return app(Seo::class)->value($key);
     }
 }
 

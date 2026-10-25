@@ -188,6 +188,47 @@ TRUSTED_PROXIES=10.0.0.5,10.0.0.6
 - **Apache が直接返すファイルには付きません**。`public/build/` の中と、公開のアップロードファイル（`public/storage/`）は、Laravel を通らないためです。そちらにも付けるときは、Apache の設定に書きます。
 - 読み込んでよい場所を決める `Content-Security-Policy` は、まだ付けていません。
 
+### SEO（ページのタイトル・説明文・OGP）
+
+**ファイル**：`packages/neobit/core/src/Seo/Seo.php`（冒頭のコメント）・`SeoSubject.php`、画面は `packages/neobit/core/resources/views/_seo_head.blade.php`　**実例**：ニュースの詳細（`NewsController::show()`）・固定ページ（`PageController::show()`）
+
+訪問者の側のページの `<head>` に、タイトル・説明文・OGP・X のカードを、サイト全体で揃った形で出します。何も入れなくても、記事の詳細では記事から、ほかの画面ではサイトの既定から値が決まります。
+
+```blade
+{{-- layouts/app.blade.php の <head> --}}
+@include('neobit::_seo_head')
+```
+
+```php
+// モデル。SEOの元になる値を返す
+class News extends Model implements SeoSubject
+{
+    public function seoTitle(): string { return $this->title; }
+    public function seoDescriptionSource(): ?string { return $this->body; }
+    public function seoImageUrl(): ?string { return $this->list_image_url; }
+}
+
+// コントローラーの詳細の画面
+Seo::for($news);
+```
+
+| 値 | 記事の詳細（`Seo::for()` を呼んだ画面） | ほかの画面 |
+|---|---|---|
+| タイトル | 記事のタイトルを、タイトルの形（`{title}｜{site}`）に当てはめる | 画面の `@section('title')` を当てはめる。無ければサイト名だけ |
+| 説明文 | 本文のタグを除き、先頭の120文字（長ければ「…」） | 既定の説明文。空なら説明文のタグを出さない |
+| シェアの画像 | 記事の画像。無ければ既定の画像 | 既定の画像。無ければ出さない |
+| `og:type` | article | website |
+
+- **サイトの既定**：`config/neobit.php` の `seo`（`title_format`・`description`・`description_length`・`image`）です。既定の画像は、`public` の下のパス（例：`/images/ogp.png`）か URL で書きます。
+- **Blade で値を使う**：ヘルパーの `seo()` で取り出せます。名前は `'title'`・`'description'`・`'image'`・`'url'`・`'type'`・`'site_name'` です。`_seo_head` も中でこれを使っているので、並べ方を変えたい案件は、部品を使わずにレイアウトで自分で書けます。
+
+    ```blade
+    <meta name="description" content="{{ seo('description') }}">
+    ```
+- **URL**：画像と `og:url` は `https://` から始まる絶対の URL で出します。`og:url` は `?` の後ろを除いた今の URL です。
+- **説明文の作り方**：本文の `<script>`・`<style>` は中身ごと除き、段落や改行のタグは空白にしてから、残りのタグを除きます。
+- 部品を置くのは、訪問者の側のレイアウトだけです。管理画面と企業会員の画面は、検索に出さない画面のためです。
+
 ### まだ無い機能（今後の予定）
 
 自動テストは、認証の流れ（個人会員とスタッフのログイン、パスワードの変更と再設定、会員登録。`tests/Feature/Auth/`）と、企業会員（登録・ログイン・マイページ・招待・初回のログインでの登録と、管理画面の企業会員と担当者。`tests/Feature/Company/`）にあります。パスキーと、ほかの管理画面のコーナーは、まだです。そろってきたら、章を足します。

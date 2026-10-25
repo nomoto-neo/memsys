@@ -113,6 +113,7 @@
 | 操作ログ | `operationLogSummary()`・`operationLogDetails()`・`operationLogUrl()`（`OperationLogRelatedRecord`） | 件数を1行にまとめた文字、内訳の窓の項目、詳しい画面の URL | |
 | ログイン | `LOGIN_GUARD`・`LOGIN_ROUTE_PREFIX`・`LOGIN_ID_TYPE`（定数） | ガード・ルートの頭・ログインに使う値の種類。無ければ種類の名前 | |
 | ログイン | `TWO_FACTOR_METHOD`・`BACKUP_CODES`（定数） | 2段階認証の方式、バックアップコードを使うか | |
+| SEO | `seoTitle()`・`seoDescriptionSource()`・`seoImageUrl()`（`SeoSubject`） | タイトル・説明文の元・シェアの画像 | |
 | ログイン | `displayName()`・`notificationEmail()`（`LoginAccount`） | 名前と、お知らせを送るアドレス | |
 | パスキー | `getPasskeyDisplayName()`・`getPasskeyUsername()` | 端末に出る名前 | laravel/passkeys の約束の名前 |
 | 招待 | `invitations()`・`invitedAccountClass()`（`TeamInvitationOwner`） | 招待のリレーションと、招待した人のモデル | |
@@ -132,6 +133,7 @@
 | インターフェース | `TeamInvitationOwner` | 招待を持つモデル | |
 | インターフェース | `UploadDirectoryRule` | 保存先の規則 | |
 | インターフェース | `SheetPagingRule` | 定型紙のページの使い方 | |
+| インターフェース | `SeoSubject` | SEO の値の元になる記事のモデル | |
 | モデル | `IpBlock` | IPブロック管理の1行 | |
 | モデル | `Setting` | 管理画面から変えられる設定の1行（キーと値） | |
 | モデルのトレイト | `IsLoginAccount`・`HasTwoFactor`・`HasPasskeys`・`TeamInvitationRelation` | ログイン・2段階認証・パスキー・招待 | `TeamInvitationRelation` だけ `Has〜`・`Is〜` の形でない |
@@ -147,6 +149,7 @@
 | `UploadFilePath` | `directory()`・`isPrivate()`・`disk()`・`url()`・`path()`・`tmpUrl()`・`previewUrl()`、定数 `TMP_DIR`・`TMP_DISK`・`TMP_SESSION_KEY`・`TMP_SESSION_MAX`・`PUBLIC_DISK`・`PRIVATE_DISK`・`SAFE_FILENAME` | |
 | `OperationRecorder` | `record()`・`loggableFields()` | |
 | `CsvWriter` | `download()`・`fetch()` | CSV の共通の書き出し方 |
+| `Seo` | `for()`・`value()`、定数 `KEYS` | ふつうはコントローラーが `for()` を呼び、画面は `seo()` で読む |
 | `OperationLog` | `actionOptions()`・`modelOptions()`・`modelNames()`・`operatorLabel()`・`relatedRecords()`・`operatorTypes()`・`relatedKey()`・`countSummary()`・`csvName()`・`detailText()` | |
 | `OperationLogStats` | `hourly()`・`daily()`・`topOperators()`・`countsBy()` | |
 | `OperationLogReport` | `for()` | |
@@ -188,6 +191,7 @@
 | `upload_input_value($input, $key, $idx)` | アップロードの欄の値 | |
 | `upload_preview_url($model, $input, $field, $idx)` | アップロードの欄に出す URL | |
 | `upload_field($field, $key)` | 今の画面のコントローラーの `UPLOAD_FILES` から、欄の `type`・`width`・`required`・`multiple` を1つ返す | |
+| `seo($key)` | 今のページの SEO の値（`title`・`description`・`image`・`url`・`type`・`site_name`）を1つ返す | |
 | `required_mark($area)` | 必須マーク | |
 | `required_fields($rules, $alsoRequired)` | 必須マークの配列 | |
 
@@ -202,6 +206,7 @@
 | `neobit` | `ip_block_auto`・`ip_block_watch_minutes`・`ip_block_watch_count`・`ip_block_hours` | |
 | `neobit` | `operation_report_to`・`operation_report_thresholds` | 操作ログの設定は `operation_log_〜`、報告は `operation_report_〜` |
 | `neobit` | `cron_enabled` | `.env` は `CRON_ENABLED` |
+| `neobit` | `seo`（`title_format`・`description`・`description_length`・`image`） | |
 | `upload` | `image_types`・`attach_types`・`max_kb`・`max_image_pixels`・`csv_max_kb`・`directory_rule` | |
 | `cleanup` | `operation_log_days`・`failed_job_days`・`tasks` | |
 
@@ -214,6 +219,7 @@
 | `_ajax_upload_block` | `$model`・`$input`・`$field`・`$readonly`・`$uploadUrl`・`$idx` | 種類・横幅・まとめて選べるかは `upload_field()` で読む。組の中の欄は `$idx` を渡す |
 | `_repeatable_group` | `$group`・`$row`・`$model`・`$input`・`$readonly`・`$uploadUrl`・`$addLabel`・`$inline`（省略可） | 行の中身の部分ビュー（`$row`）は `$model`・`$input`・`$idx`・`$readonly`・`$uploadUrl` を受け取る |
 | `_confirm_hidden` | `$input`・`$exclude` | |
+| `_seo_head` | なし | 値は `seo()` で読む。訪問者の側のレイアウトの `<head>` に置く |
 | `_spam_guard`・`_passkey_suggest` | なし | |
 | `_passkeys` | `$passkeys`・`$passkeyRoute`・`$identityConfirmed`・`$codeSent`・`$confirmBy`・`$twoFactorMissing` | |
 | `_two_factor` | `$twoFactorState`・`$twoFactorRoutes`・`$twoFactorLoginId`・`$twoFactorQrCode`・`$twoFactorSecret`・`$twoFactorBackupCodes`・`$rememberLabel` | |
