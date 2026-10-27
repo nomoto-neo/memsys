@@ -40,7 +40,7 @@ curl -sS -o /dev/null -D - http://dev.neobit.jp/ | head -8
 ### 2. 認証なしで開けるものが無いか（ベーシック認証を掛けているサイトだけ）
 
 ```bash
-for p in / /up /admin/login /mail/unsubscribe /build/manifest.json /storage/ /robots.txt /favicon.ico; do
+for p in / /up /app/admin/login /mail/unsubscribe /build/manifest.json /storage/ /robots.txt /favicon.ico; do
   printf "%-28s %s\n" "$p" "$(curl -sS -o /dev/null -w '%{http_code}' $B$p)"
 done
 ```
@@ -107,6 +107,19 @@ done
 - **見るところ**：`200` が1つも無いこと。`404` か `403` なら見えていません。`301` は、末尾の `/` を除いた URL への転送なので、転送先も `404` か `403` であること。
 - **だめなとき**：`/.env` や `/composer.json` が `200` なら、公開のディレクトリがプロジェクトの直下になっています。Apache の `DocumentRoot` を `public/` にします。`/build/` や `/storage/` が `200` で一覧が出るなら、Apache の `Options -Indexes` が効いていません。
 - **サイズの見方**：`404` のサイズがどれも同じなら、Laravel の 404 の画面です。違うサイズのものは、中身を開いて確かめます。
+
+Laravel 本体を公開ディレクトリの `app/system/` に置いたサイト（利用ガイドの付録「Laravel を公開ディレクトリの外に置けないサーバー」の B）は、本体の場所も確かめます。
+
+```bash
+for p in /app/system/ /app/system/.env /app/system/composer.json /app/system/artisan \
+         /app/system/storage/logs/laravel.log /app/system/vendor/composer/installed.json \
+         /app/system/config/app.php /app/system/bootstrap/cache/config.php /app/; do
+  printf "%-46s %s\n" "$p" "$(curl -sS -o /dev/null -w '%{http_code}' -u $A $B$p)"
+done
+```
+
+- **見るところ**：全部が `404` であること（`/app/` は `403` でもよい）。
+- **だめなとき**：`403` なら、公開ディレクトリの `.htaccess` の 404 を返す1行が効いていません（`app/system/.htaccess` の拒否だけが効いている）。`200` なら、本体が丸見えです。すぐに `.htaccess` を直します。
 
 ### 6. 開発用の入口が開いていないか
 

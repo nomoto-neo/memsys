@@ -125,6 +125,17 @@ MAIL_FROM_NAME="${SITE_NAME}"
 - **`.env` に書くのは、サーバーごとに違う値と、秘密の値だけです**。接続先・宛先・鍵などです。残す日数や回数のように、どのサーバーでも同じ値（サイトの決まりごと）は、`config/` のファイルに書きます。Git に記録されるので、いつ変えたかを追えて、サーバーごとに値がずれません。Laravel の標準の項目のうち、このサイトの `.env` に書いていないものは、控えとして `.env.unused` にあります。Laravel は、このファイルを読みません。
 - **`.env` を変えたら `php artisan config:cache` をやり直します**。`APP_NAME` を変えると Cookie の名前が変わるので、ログイン中の人は、ログインし直しになります。
 
+### 管理画面の URL（admin_path）
+
+管理画面の頭の URL は、`config/neobit.php` の `admin_path` で決めます。既定は `app/admin`（`/app/admin/login` など）です。`/admin` は URL を順に叩く攻撃で真っ先に狙われるので、既定でも `/admin` には置きません。
+
+- `routes/web.php` は、管理画面のグループを `Route::prefix(config('neobit.admin_path'))` で書きます。ルートの名前（`admin.*`）は URL に関係なく同じなので、画面とコントローラーは直しません。
+- サイトのアクセス制限（24章）は、`admin_path` の下をいつも制限の外にします。`bootstrap/app.php` に書く必要はありません。
+- **robots.txt には書きません**。robots.txt は誰でも読めるので、隠した URL を教えることになるためです。管理画面のルートのグループには `NoIndexHeader` を付け、全部の応答に `X-Robots-Tag: noindex, nofollow` を付けて、検索に出ないようにします。
+- **前の `/admin` は 404 にします**。新しい URL へ移すと、移した先を教えることになるためです。
+- **変えたら合わせて直すもの**：ベーシック認証の VirtualHost の決まり（25章）の `m#^/app/admin#`。
+- Laravel を公開ディレクトリの外に置けないサーバー（付録）では、`app/system/` に本体を置くので、`admin_path` の最初の区切りを `app` 以外にしても、本体の場所とは重なりません。
+
 ### サーバーの前にプロキシを置くとき（TRUSTED_PROXIES）
 
 ロードバランサーや CDN をサーバーの前に置くと、サーバーに直接つないでくるのはそのプロキシになります。訪問者の IP アドレスは、プロキシが付ける `X-Forwarded-For` というヘッダーで届きます。
@@ -2281,9 +2292,9 @@ OperationRecorder::record(OperationLogAction::Update, $company, ['status'], ['st
 
 ### 画面
 
-- **一覧と検索**（`/admin/operation-logs`）：日付の範囲・操作・操作した人・対象・IP アドレス・補足で絞れます。補足は、中の語を部分一致で探します。空白で区切ると、全部の語を含む行に絞ります。CSV でも出せます。見るだけの画面で、登録・編集・削除はありません。
+- **一覧と検索**（`/app/admin/operation-logs`）：日付の範囲・操作・操作した人・対象・IP アドレス・補足で絞れます。補足は、中の語を部分一致で探します。空白で区切ると、全部の語を含む行に絞ります。CSV でも出せます。見るだけの画面で、登録・編集・削除はありません。
 - **どちらの画面も、管理者だけが開けます**：記録を取っていることを、スタッフの全員に見せる必要は無いためです。管理画面のトップのリンクも、管理者にだけ出ます。
-- **会員ごとの操作ログ**（`/admin/members/{id}/operation-logs`。会員の詳細画面の「操作ログ」のボタン）：その会員を対象にした操作と、その会員が行った操作だけを出します。本人が変えたのか、スタッフが変えたのか、誰が詳細を開いたのかが、時刻の順に並びます。問い合わせに答えるのに使います。こちらも管理者だけが開け、ボタンも管理者にだけ出ます。
+- **会員ごとの操作ログ**（`/app/admin/members/{id}/operation-logs`。会員の詳細画面の「操作ログ」のボタン）：その会員を対象にした操作と、その会員が行った操作だけを出します。本人が変えたのか、スタッフが変えたのか、誰が詳細を開いたのかが、時刻の順に並びます。問い合わせに答えるのに使います。こちらも管理者だけが開け、ボタンも管理者にだけ出ます。
 - **一覧の画面はフレームワークにあります**（`OperationLogController`・`neobit::admin.operation_logs.index`）。ルートは案件が書きます。管理者だけのグループの中に、「頭.index」（GET）・「頭.search」（POST）・「頭.csv」（GET）・「頭.day」（POST）の組で名前を付けます。日々の報告のメールに画面の URL を載せるなら、`config/neobit.php` の `operation_log_route` に「頭.index」を書きます。会員ごとの操作ログの画面は案件の画面で、表は同じ部分ビュー（`neobit::admin.operation_logs._table`）を使います。
 
     ```php
@@ -2602,7 +2613,7 @@ Route::prefix('company')->name('company.')->group(function () {
 - **プロキシを前に置くときは、`TRUSTED_PROXIES` を先に書きます**。書かないと、全員がプロキシの IP アドレスに見えるので、全員が通るか、全員が止まります。
 - **メンテナンス中の画面**は、レイアウトを継承しない1枚の HTML です。DB もセッションも使わないので、DB を止めている間も出せます。文言は、アプリの `resources/views/vendor/neobit/maintenance.blade.php` に同じ名前で置いて上書きします。デモの運用のときも、この画面が出ます。
 - **503 で返す**のは、一時的に止めていることを検索エンジンに伝えて、登録を消されないようにするためです。
-- **制限の間も通すパス**は、`bootstrap/app.php` の `RestrictSiteAccess::except()` に書きます。今は、死活監視（`/up`）と、お知らせメールの配信停止（`/mail/unsubscribe`）と、管理画面です。止めている間に届いたメールからも、停止できるようにするためです。
+- **制限の間も通すパス**は、`bootstrap/app.php` の `RestrictSiteAccess::except()` に書きます。今は、死活監視（`/up`）と、お知らせメールの配信停止（`/mail/unsubscribe`）です。止めている間に届いたメールからも、停止できるようにするためです。管理画面（設定の `admin_path` の下）は、書かなくてもいつも通します。
 - **管理画面を 404 にする**のは、そこに管理画面があることを知らせないためです。止めたアクセスは、操作ログに残しません。
 - **Apache が直接返すファイルは止まりません**。`public/build/` の中と、公開のアップロードファイル（`public/storage/`）は、Laravel を通らないためです。そこまで止めるときは、Apache の設定で絞ります。
 - **コマンドは止まりません**。スケジューラー（19章）とキュー（21章）は、制限の間も動きます。メンテナンスの間に一斉メールを送りたくないときは、送信が終わってから止めます。
@@ -2622,14 +2633,14 @@ Route::prefix('company')->name('company.')->group(function () {
     ```apache
     <Directory "/var/www/memsys/public">
         # 管理画面の「ベーシック認証」の訪問者画面。目印のファイルがあるときだけ掛ける。死活監視と配信停止のリンク・管理画面には掛けない
-        <If "-f '/var/www/memsys/storage/app/basic-auth/site.on' && %{REQUEST_URI} !~ m#^/(up|mail/unsubscribe|admin)#">
+        <If "-f '/var/www/memsys/storage/app/basic-auth/site.on' && %{REQUEST_URI} !~ m#^/(up|mail/unsubscribe|app/admin)#">
             AuthType Basic
             AuthName "Restricted"
             AuthUserFile /var/www/memsys/storage/app/basic-auth/site.htpasswd
             Require valid-user
         </If>
         # 管理画面の「ベーシック認証」の管理画面。AuthNameは訪問者画面と分ける
-        <If "-f '/var/www/memsys/storage/app/basic-auth/admin.on' && %{REQUEST_URI} =~ m#^/admin#">
+        <If "-f '/var/www/memsys/storage/app/basic-auth/admin.on' && %{REQUEST_URI} =~ m#^/app/admin#">
             AuthType Basic
             AuthName "RestrictedAdmin"
             AuthUserFile /var/www/memsys/storage/app/basic-auth/admin.htpasswd
@@ -2799,7 +2810,7 @@ Route::patch('/seo-settings', [SeoSettingsController::class, 'update'])->name('s
         public function sitemapUrl(): string { return route('news.show', $this); }
     }
     ```
-- **robots.txt**（`/robots.txt`。フレームワークのルート `seo.robots`）：本番（`APP_ENV=production`）では、設定の `seo.robots_disallow` の場所を巡回させず、サイトマップの絶対の URL を伝えます。本番以外（開発サーバーなど）では、全部を巡回させません（`Disallow: /`）。`public/robots.txt` があると Apache がそちらを返すので、置きません。
+- **robots.txt**（`/robots.txt`。フレームワークのルート `seo.robots`）：本番（`APP_ENV=production`）では、設定の `seo.robots_disallow` の場所を巡回させず、サイトマップの絶対の URL を伝えます。本番以外（開発サーバーなど）では、全部を巡回させません（`Disallow: /`）。`public/robots.txt` があると Apache がそちらを返すので、置きません。管理画面は、隠した URL を教えないよう `robots_disallow` に書かず、`X-Robots-Tag` のヘッダーで検索に出さないようにします（0章「管理画面の URL」）。
 - **設定を書くとき**：`seo` は配列のキーなので、アプリの `config/neobit.php` で書くときは、全部のキーを書きます（見本のサイトの `config/neobit.php` を参照）。
 
 ### パンくずリストと構造化データ（JSON-LD）
@@ -2912,7 +2923,7 @@ Apache の `Redirect` は、書かなくても前方一致で当たり、残り�
 
 <p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
 
-フレームワークのプログラムだけでは守れず、サイトごとに、サーバー・DNS・運用の側で決めておくことをまとめます。サイトを公開する前に、4つとも確かめます。
+フレームワークのプログラムだけでは守れず、サイトごとに、サーバー・DNS・運用の側で決めておくことをまとめます。サイトを公開する前に、どれも確かめます。
 
 | 対策 | 決める場所 | 放っておくと |
 |---|---|---|
@@ -2962,6 +2973,42 @@ Apache の `Redirect` は、書かなくても前方一致で当たり、残り�
 - **残す世代**：何日分を残すかを決めます。壊れたことに気付くのが遅れても、壊れる前まで戻れる長さにします。
 - **戻す手順**：手順を書いて、一度は実際に戻してみます。戻した先で、ログインできること、アップロードしたファイルが開けることまで確かめます。
 - **個人情報の扱い**：バックアップにも個人情報が入っています。置き場所に入れる人を絞り、残す期間を過ぎたものは消します。
+
+### Laravel を公開ディレクトリの外に置けないサーバー
+
+Laravel は、公開ディレクトリ（Apache の `DocumentRoot`）を `public/` にし、本体（`app`・`config`・`vendor`・`storage`・`.env` など）を公開ディレクトリの外に置く前提で作られています。レンタルサーバーで公開ディレクトリを選べないときは、次の順に考えます。
+
+**A. 公開ディレクトリの外に置く（おすすめ）**
+
+- 多くのレンタルサーバーは、公開ディレクトリ（`public_html` など）の外にもファイルを置けます。「置けない」と思われているサーバーでも置けることが多いので、まずそれを確かめます。
+- Laravel 一式を `~/memsys/` に置き、`public_html` を `~/memsys/public` へのシンボリックリンクにします。リンクを作れなければ、`public` の中身を `public_html` に置き、`index.php` の中の Laravel 本体へのパスを `~/memsys/…` に書き換えます。
+
+**B. 公開ディレクトリの中に置くしかないとき**
+
+公開ディレクトリを Laravel の `public` そのものにし、本体だけを公開ディレクトリの `app/system/` に置きます。公開ディレクトリの直下に増えるシステムのディレクトリを `app/` の1つにし、デザイナーが Laravel の外のファイル（HTML・画像など）を公開ディレクトリに自由に置けるようにするためです。Laravel の `.htaccess` は、実際にあるファイルはそのまま返し、無いものだけを Laravel に送るので、外のファイルの邪魔をしません。管理画面の既定の URL（`/app/admin`）も、同じ `app/` の下にまとまります。
+
+```
+public_html/              ← 公開ディレクトリ。Laravel の public の中身を直接置く
+├─ index.php              ← 本体を app/system/ から読むように書き換える
+├─ .htaccess              ← Laravel の public/.htaccess ＋ 本体を閉じる1行
+├─ build/                 ← npm run build の出力
+├─ storage/               ← アップロードの公開分（storage:link）
+├─ （デザイナーが置くファイル）
+└─ app/
+    └─ system/            ← Laravel 本体。外からは閉じる
+```
+
+- **`index.php`**：`vendor/autoload.php` と `bootstrap/app.php` の読み込み先を `__DIR__.'/app/system/…'` にし、`$app->usePublicPath(__DIR__);` を足します。`asset()`・アップロードの URL・`public_path()`・`storage:link` の場所を、公開ディレクトリにするためです。
+- **`vite.config.js`**：`npm run build` の出力先（`laravel()` の `publicDirectory`）を公開ディレクトリにします。
+- **本体を閉じる（守りを2枚にする）**：公開ディレクトリの `.htaccess` の `RewriteEngine On` の次に、`/app/system/` の下は 404 を返す1行を足します。403 だと、そこに何かあることを教えるためです。加えて `app/system/.htaccess` に `Require all denied` を置き、`.htaccess` の書き損じでも本体が見えないようにします。
+
+    ```apache
+    RewriteRule ^app/system(/|$) - [R=404,L]
+    ```
+- **`app/` には `.htaccess` を置きません**。置くと、`/app/admin` が Laravel に届かなくなります。
+- **置いた後に、外から確かめます**：`/app/system/.env`・`/app/system/storage/logs/laravel.log`・`/app/system/vendor/composer/installed.json` などが、どれも 404 になること（`docs/security-external-check.md` の5）。
+- **自衛の機能への影響**：共用のサーバーは、Web とファイルの更新が同じ利用者で動くことが多いので、改ざん監視の「基準を Web の側から書き換えられない」守りが効きません。外から監視するサービスと組み合わせます。VirtualHost に書けないサーバーでは、ベーシック認証の決まり（25章）を公開ディレクトリの `.htaccess` に書きます。
+- 見本のサイトのリポジトリの形（`public/`）は変えません。この置き方は、サーバーに置くときだけのものです。
 
 ### 外部へ送っている情報の表示
 

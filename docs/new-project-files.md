@@ -77,6 +77,10 @@
 | `CsvImport` | ビュー `neobit::admin.csv_import.form`・`confirm` |
 | `UploadFilePath` | `uploads.show`・`uploads.tmp` |
 
+管理画面の URL は、`config/neobit.php` の `admin_path` で決めます（既定は `app/admin`）。変えたら、ベーシック認証の VirtualHost の決まりも合わせて直します（利用ガイドの0章「管理画面の URL」）。
+
+Laravel を公開ディレクトリの外に置けないレンタルサーバーでは、本体を公開ディレクトリの `app/system/` に置き、`index.php` と `vite.config.js` を書き換えます。手順と、置いた後に外から確かめることは、利用ガイドの付録「Laravel を公開ディレクトリの外に置けないサーバー」にあります。
+
 ## サーバーへ送らないもの
 
 プロジェクトのファイルのうち、サーバーへ送ってはいけないものです。サーバーごとに作るためです。
