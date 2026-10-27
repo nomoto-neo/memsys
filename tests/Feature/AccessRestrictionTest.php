@@ -52,7 +52,7 @@ class AccessRestrictionTest extends TestCase
         config(['app.site_allowed_ips' => [self::OFFICE_IP], 'app.admin_allowed_ips' => [self::ADMIN_IP]]);
 
         $this->fromIp(self::OTHER_IP)->get('/')->assertOk()->assertDontSee('メンテナンス中');
-        $this->fromIp(self::OTHER_IP)->get('/admin/login')->assertOk();
+        $this->fromIp(self::OTHER_IP)->get('/app/admin/login')->assertOk();
     }
 
     public function test_site_shows_the_maintenance_page_to_other_addresses(): void
@@ -75,7 +75,7 @@ class AccessRestrictionTest extends TestCase
         AccessRestriction::save(true, [self::OFFICE_IP], false, []);
 
         // サイトのIPアドレスに無くても、管理画面は開ける
-        $this->fromIp(self::OTHER_IP)->get('/admin/login')->assertOk();
+        $this->fromIp(self::OTHER_IP)->get('/app/admin/login')->assertOk();
     }
 
     public function test_site_lets_in_env_addresses_and_ranges(): void
@@ -86,7 +86,7 @@ class AccessRestrictionTest extends TestCase
         $this->fromIp(self::OFFICE_IP)->get('/')->assertOk();
         // 管理画面のIPアドレスでも、サイトのIPアドレスに無ければ、サイトは開けない
         $this->fromIp(self::ADMIN_IP)->get('/')->assertStatus(503);
-        $this->fromIp(self::ADMIN_IP)->get('/admin/login')->assertOk();
+        $this->fromIp(self::ADMIN_IP)->get('/app/admin/login')->assertOk();
     }
 
     public function test_health_check_and_unsubscribe_stay_open(): void
@@ -106,17 +106,17 @@ class AccessRestrictionTest extends TestCase
         AccessRestriction::save(false, [], true, []);
 
         // ログイン画面も、ログインの要る画面も、404にする。ログイン画面へは回さない
-        $this->fromIp(self::OTHER_IP)->get('/admin/login')->assertNotFound();
-        $this->fromIp(self::OTHER_IP)->get('/admin')->assertNotFound();
-        $this->fromIp(self::OTHER_IP)->post('/admin/login', ['login_id' => 'x', 'password' => 'y'])->assertNotFound();
+        $this->fromIp(self::OTHER_IP)->get('/app/admin/login')->assertNotFound();
+        $this->fromIp(self::OTHER_IP)->get('/app/admin')->assertNotFound();
+        $this->fromIp(self::OTHER_IP)->post('/app/admin/login', ['login_id' => 'x', 'password' => 'y'])->assertNotFound();
 
         // サイトは、どこからでも開ける
         $this->fromIp(self::OTHER_IP)->get('/')->assertOk();
         $this->fromIp(self::OTHER_IP)->get('/login')->assertOk();
 
         // .envのIPアドレスは、画面の一覧に書かなくても開ける
-        $this->fromIp(self::OFFICE_IP)->get('/admin/login')->assertOk();
-        $this->fromIp(self::OFFICE_IP)->get('/admin')->assertRedirect(route('admin.login'));
+        $this->fromIp(self::OFFICE_IP)->get('/app/admin/login')->assertOk();
+        $this->fromIp(self::OFFICE_IP)->get('/app/admin')->assertRedirect(route('admin.login'));
     }
 
     // ---- 画面 ----
@@ -191,6 +191,6 @@ class AccessRestrictionTest extends TestCase
         $this->assertSame([self::ADMIN_IP], $settings['admin_ips']);
 
         $this->fromIp(self::OTHER_IP)->get('/')->assertOk();
-        $this->fromIp(self::OTHER_IP)->get('/admin/login')->assertOk();
+        $this->fromIp(self::OTHER_IP)->get('/app/admin/login')->assertOk();
     }
 }

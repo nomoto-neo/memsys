@@ -374,7 +374,7 @@ class CompanyController extends Controller
     // ---- 承認・却下・停止・再開 ----
 
     /**
-     * 申請中の企業を承認する（PATCH /admin/companies/{company}/approve）。
+     * 申請中の企業を承認する（PATCH /app/admin/companies/{company}/approve）。
      * 担当者がログインできるようになる。承認したことと企業IDを、担当者へメールで知らせる
      */
     public function approve(Company $company): RedirectResponse
@@ -398,7 +398,7 @@ class CompanyController extends Controller
     }
 
     /**
-     * 申請中の企業を却下する（DELETE /admin/companies/{company}/reject）。
+     * 申請中の企業を却下する（DELETE /app/admin/companies/{company}/reject）。
      * 理由を担当者へメールで知らせ、企業と担当者の行を消す。申請中の企業は一度もログイン
      * していないので、残しておくデータが無い。同じ内容で申し込み直せるようにもなる。
      */
@@ -430,7 +430,7 @@ class CompanyController extends Controller
     }
 
     /**
-     * 承認済みの企業を止める（PATCH /admin/companies/{company}/suspend）。担当者はログインできなくなり、
+     * 承認済みの企業を止める（PATCH /app/admin/companies/{company}/suspend）。担当者はログインできなくなり、
      * ログイン中の担当者も次の操作から使えなくなる（App\Http\Middleware\EnsureCompanyIsApproved）
      */
     public function suspend(Company $company): RedirectResponse
@@ -443,7 +443,7 @@ class CompanyController extends Controller
             ->with('status', '企業の利用を停止しました。');
     }
 
-    /** 止めた企業を、承認済みに戻す（PATCH /admin/companies/{company}/resume） */
+    /** 止めた企業を、承認済みに戻す（PATCH /app/admin/companies/{company}/resume） */
     public function resume(Company $company): RedirectResponse
     {
         if (! $this->changeStatus($company, from: CompanyStatus::Suspended, to: CompanyStatus::Approved)) {
@@ -455,7 +455,7 @@ class CompanyController extends Controller
     }
 
     /**
-     * 止めた企業を削除する（DELETE /admin/companies/{company}/delete）。
+     * 止めた企業を削除する（DELETE /app/admin/companies/{company}/delete）。
      * 企業から退会の連絡を受けたときに使う。企業と担当者の行を消すので、元に戻せない。
      * 削除できるのは、停止の企業だけ。承認済みの企業を、押し間違いで消さないようにするため。
      * まず停止して担当者をログインできなくしてから、削除する。担当者へのお知らせは送らない。
@@ -475,7 +475,7 @@ class CompanyController extends Controller
     // ---- 担当者の招待 ----
 
     /**
-     * 招待のメールを送る（POST /admin/companies/{company}/invitations）。
+     * 招待のメールを送る（POST /app/admin/companies/{company}/invitations）。
      * 申請中の企業には送れない。担当者を足せるのは、承認した後
      */
     public function storeInvitation(Request $request, Company $company): RedirectResponse

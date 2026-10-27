@@ -65,15 +65,13 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // サイト（訪問者画面）を、管理画面の「アクセス制限」で決めたIPアドレスからだけ開けるようにする
         // （Neobit\Core\Http\Middleware\RestrictSiteAccess）。メンテナンス中の画面にもヘッダーが付くよう、
-        // SecurityHeadersの後ろに足す。制限の間も通すのは、死活監視と、お知らせメールの配信停止と、管理画面。
-        // 止めている間に届いたメールからも、停止できるようにするため。管理画面には、管理画面の制限
-        // （RestrictAdminAccess）だけを掛け、サイトの制限とは互いに影響しないようにするため
+        // SecurityHeadersの後ろに足す。制限の間も通すのは、死活監視と、お知らせメールの配信停止。
+        // 止めている間に届いたメールからも、停止できるようにするため。管理画面（設定のneobit.admin_path）は、
+        // RestrictSiteAccessがいつも通す。管理画面の制限（RestrictAdminAccess）だけを掛け、互いに影響しないようにするため
         $middleware->append(RestrictSiteAccess::class);
         RestrictSiteAccess::except([
             'up',
             'mail/unsubscribe',
-            'admin',
-            'admin/*',
         ]);
 
         // 管理画面の「リダイレクト」で登録した古いURLを、新しいURLへ移す（Neobit\Core\Http\Middleware\ApplyRedirects）。

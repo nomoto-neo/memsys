@@ -53,7 +53,7 @@ class AjaxFormResponseTest extends TestCase
         $staff = $this->staff();
 
         $this->actingAs($staff, 'admin')
-            ->delete('/admin/2fa', ['code' => '000000'], $this->ajaxHeaders())
+            ->delete('/app/admin/2fa', ['code' => '000000'], $this->ajaxHeaders())
             ->assertStatus(422)
             ->assertExactJson(['errors' => ['code' => '確認コードが正しくありません。']]);
 
@@ -66,7 +66,7 @@ class AjaxFormResponseTest extends TestCase
     {
         // 入力が空のときは、validate()が止める。項目の名前は、同じ形で届く
         $this->actingAs($this->staff(), 'admin')
-            ->delete('/admin/2fa', [], $this->ajaxHeaders())
+            ->delete('/app/admin/2fa', [], $this->ajaxHeaders())
             ->assertStatus(422)
             ->assertJsonValidationErrors('code');
     }
@@ -76,7 +76,7 @@ class AjaxFormResponseTest extends TestCase
         $staff = $this->staff();
 
         $this->actingAs($staff, 'admin')
-            ->delete('/admin/2fa', ['code' => (new Google2FA())->getCurrentOtp($this->secret)], $this->ajaxHeaders())
+            ->delete('/app/admin/2fa', ['code' => (new Google2FA())->getCurrentOtp($this->secret)], $this->ajaxHeaders())
             ->assertOk()
             ->assertExactJson(['redirect' => route('admin.staff.show', $staff)]);
 
@@ -93,7 +93,7 @@ class AjaxFormResponseTest extends TestCase
 
         // ヘッダーが無ければ、今までどおりリダイレクトとセッションのエラーになる
         $this->actingAs($staff, 'admin')
-            ->delete('/admin/2fa', ['code' => '000000'])
+            ->delete('/app/admin/2fa', ['code' => '000000'])
             ->assertRedirect(route('admin.staff.show', $staff))
             ->assertSessionHasErrors('code', errorBag: 'selfResetTwoFactor');
     }

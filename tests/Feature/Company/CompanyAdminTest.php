@@ -76,12 +76,12 @@ class CompanyAdminTest extends TestCase
         $this->company(CompanyStatus::Approved, 'approved-co');
         $staff = $this->staff();
 
-        $this->actingAs($staff, 'admin')->get('/admin/companies')->assertOk()
+        $this->actingAs($staff, 'admin')->get('/app/admin/companies')->assertOk()
             ->assertSee('株式会社pending-co')->assertSee('株式会社approved-co');
 
         // 状態で絞ると、検索条件がセッションに残り、一覧に効く
-        $this->actingAs($staff, 'admin')->post('/admin/companies', ['status' => 'pending'])->assertRedirect();
-        $this->actingAs($staff, 'admin')->get('/admin/companies?page=1')->assertOk()
+        $this->actingAs($staff, 'admin')->post('/app/admin/companies', ['status' => 'pending'])->assertRedirect();
+        $this->actingAs($staff, 'admin')->get('/app/admin/companies?page=1')->assertOk()
             ->assertSee('株式会社pending-co')->assertDontSee('株式会社approved-co');
     }
 
@@ -91,7 +91,7 @@ class CompanyAdminTest extends TestCase
         $this->user($company);
         $staff = $this->staff();
 
-        $this->actingAs($staff, 'admin')->get("/admin/companies/{$company->id}")->assertOk()
+        $this->actingAs($staff, 'admin')->get("/app/admin/companies/{$company->id}")->assertOk()
             ->assertSee('株式会社acme')->assertSee('yamada@example.com');
 
         // 担当者の個人情報を出す画面なので、開いたことを操作ログに残す
@@ -105,12 +105,12 @@ class CompanyAdminTest extends TestCase
         $staff = $this->staff();
         $input = $this->companyInput(['name' => '株式会社新社名']);
 
-        $this->actingAs($staff, 'admin')->get("/admin/companies/{$company->id}/edit")->assertOk();
-        $this->actingAs($staff, 'admin')->patch("/admin/companies/{$company->id}/confirm", $input)->assertOk()->assertSee('株式会社新社名');
+        $this->actingAs($staff, 'admin')->get("/app/admin/companies/{$company->id}/edit")->assertOk();
+        $this->actingAs($staff, 'admin')->patch("/app/admin/companies/{$company->id}/confirm", $input)->assertOk()->assertSee('株式会社新社名');
 
         // 企業IDと状態を一緒に送っても、保存しない
         $this->actingAs($staff, 'admin')
-            ->patch("/admin/companies/{$company->id}/update", $input + ['code' => 'other', 'status' => 'suspended'])
+            ->patch("/app/admin/companies/{$company->id}/update", $input + ['code' => 'other', 'status' => 'suspended'])
             ->assertRedirect(route('admin.companies.index', ['back']).'#id'.$company->id);
 
         $company->refresh();
@@ -128,10 +128,10 @@ class CompanyAdminTest extends TestCase
         $staff = $this->staff();
 
         // 申請中の企業の詳細には、承認と却下のボタンが出る
-        $this->actingAs($staff, 'admin')->get("/admin/companies/{$company->id}")->assertOk()
+        $this->actingAs($staff, 'admin')->get("/app/admin/companies/{$company->id}")->assertOk()
             ->assertSee('承認する')->assertSee('却下する');
 
-        $this->actingAs($staff, 'admin')->patch("/admin/companies/{$company->id}/approve")
+        $this->actingAs($staff, 'admin')->patch("/app/admin/companies/{$company->id}/approve")
             ->assertRedirect(route('admin.companies.show', $company));
 
         $this->assertSame(CompanyStatus::Approved, $company->fresh()->status);
@@ -160,14 +160,14 @@ class CompanyAdminTest extends TestCase
         $staff = $this->staff();
 
         // 理由が無ければ、却下しない
-        $this->actingAs($staff, 'admin')->from("/admin/companies/{$company->id}")
-            ->delete("/admin/companies/{$company->id}/reject", ['reason' => ''])
-            ->assertRedirect("/admin/companies/{$company->id}")
+        $this->actingAs($staff, 'admin')->from("/app/admin/companies/{$company->id}")
+            ->delete("/app/admin/companies/{$company->id}/reject", ['reason' => ''])
+            ->assertRedirect("/app/admin/companies/{$company->id}")
             ->assertSessionHasErrorsIn('reject', ['reason']);
         $this->assertSame(1, Company::count());
 
         $this->actingAs($staff, 'admin')
-            ->delete("/admin/companies/{$company->id}/reject", ['reason' => '法人番号を確認できませんでした。'])
+            ->delete("/app/admin/companies/{$company->id}/reject", ['reason' => '法人番号を確認できませんでした。'])
             ->assertRedirect(route('admin.companies.index', ['back']));
 
         // 企業と担当者の行を消す
@@ -190,7 +190,7 @@ class CompanyAdminTest extends TestCase
         $user = $this->user($company);
         $staff = $this->staff();
 
-        $this->actingAs($staff, 'admin')->patch("/admin/companies/{$company->id}/suspend")
+        $this->actingAs($staff, 'admin')->patch("/app/admin/companies/{$company->id}/suspend")
             ->assertRedirect(route('admin.companies.show', $company));
         $this->assertSame(CompanyStatus::Suspended, $company->fresh()->status);
 
@@ -198,7 +198,7 @@ class CompanyAdminTest extends TestCase
         $this->actingAs($user->fresh(), 'company')->get('/company/mypage')->assertRedirect(route('company.login'));
         $this->assertCount(0, $this->sentMails());
 
-        $this->actingAs($staff, 'admin')->patch("/admin/companies/{$company->id}/resume")
+        $this->actingAs($staff, 'admin')->patch("/app/admin/companies/{$company->id}/resume")
             ->assertRedirect(route('admin.companies.show', $company));
         $this->assertSame(CompanyStatus::Approved, $company->fresh()->status);
     }
@@ -213,13 +213,13 @@ class CompanyAdminTest extends TestCase
         $staff = $this->staff();
 
         // 承認済みのままでは、削除できない
-        $this->actingAs($staff, 'admin')->delete("/admin/companies/{$company->id}/delete")->assertSessionHas('error');
+        $this->actingAs($staff, 'admin')->delete("/app/admin/companies/{$company->id}/delete")->assertSessionHas('error');
         $this->assertSame(2, Company::count());
 
         // 停止してから削除する。詳細に、削除のボタンが出る
-        $this->actingAs($staff, 'admin')->patch("/admin/companies/{$company->id}/suspend");
-        $this->actingAs($staff, 'admin')->get("/admin/companies/{$company->id}")->assertOk()->assertSee('この企業を削除する');
-        $this->actingAs($staff, 'admin')->delete("/admin/companies/{$company->id}/delete")
+        $this->actingAs($staff, 'admin')->patch("/app/admin/companies/{$company->id}/suspend");
+        $this->actingAs($staff, 'admin')->get("/app/admin/companies/{$company->id}")->assertOk()->assertSee('この企業を削除する');
+        $this->actingAs($staff, 'admin')->delete("/app/admin/companies/{$company->id}/delete")
             ->assertRedirect(route('admin.companies.index', ['back']));
 
         // 企業と、担当者・招待・信頼済みの端末を消す。ほかの企業は残る
@@ -239,9 +239,9 @@ class CompanyAdminTest extends TestCase
         $staff = $this->staff();
 
         // 承認済みの企業は、承認も却下もできない。行も消えない
-        $this->actingAs($staff, 'admin')->patch("/admin/companies/{$approved->id}/approve")->assertSessionHas('error');
-        $this->actingAs($staff, 'admin')->delete("/admin/companies/{$approved->id}/reject", ['reason' => '理由'])->assertSessionHas('error');
-        $this->actingAs($staff, 'admin')->patch("/admin/companies/{$approved->id}/resume")->assertSessionHas('error');
+        $this->actingAs($staff, 'admin')->patch("/app/admin/companies/{$approved->id}/approve")->assertSessionHas('error');
+        $this->actingAs($staff, 'admin')->delete("/app/admin/companies/{$approved->id}/reject", ['reason' => '理由'])->assertSessionHas('error');
+        $this->actingAs($staff, 'admin')->patch("/app/admin/companies/{$approved->id}/resume")->assertSessionHas('error');
 
         $this->assertSame(CompanyStatus::Approved, $approved->fresh()->status);
         $this->assertSame(1, CompanyUser::count());
@@ -253,15 +253,15 @@ class CompanyAdminTest extends TestCase
         $staff = $this->staff();
         $input = $this->companyInput(['name' => '株式会社運営登録', 'invite_email' => 'first@example.com']);
 
-        $this->actingAs($staff, 'admin')->get('/admin/companies/create')->assertOk();
-        $this->actingAs($staff, 'admin')->post('/admin/companies/confirm', $input)->assertOk()->assertSee('first@example.com');
+        $this->actingAs($staff, 'admin')->get('/app/admin/companies/create')->assertOk();
+        $this->actingAs($staff, 'admin')->post('/app/admin/companies/confirm', $input)->assertOk()->assertSee('first@example.com');
 
         // 招待の宛先が無ければ、登録しない
-        $this->actingAs($staff, 'admin')->post('/admin/companies/store', ['invite_email' => ''] + $input)
+        $this->actingAs($staff, 'admin')->post('/app/admin/companies/store', ['invite_email' => ''] + $input)
             ->assertSessionHasErrors('invite_email');
         $this->assertSame(0, Company::count());
 
-        $this->actingAs($staff, 'admin')->post('/admin/companies/store', $input);
+        $this->actingAs($staff, 'admin')->post('/app/admin/companies/store', $input);
 
         // 運営が登録した企業は、初めから承認済み。企業IDは、idと同じ番号
         $company = Company::sole();
@@ -278,7 +278,7 @@ class CompanyAdminTest extends TestCase
         $this->assertStringNotContainsString($staff->name, $this->lastMail()->getTextBody());
 
         // 詳細の招待中の一覧に出る
-        $this->actingAs($staff, 'admin')->get("/admin/companies/{$company->id}")->assertOk()->assertSee('first@example.com');
+        $this->actingAs($staff, 'admin')->get("/app/admin/companies/{$company->id}")->assertOk()->assertSee('first@example.com');
     }
 
     public function test_staff_can_invite_resend_and_cancel(): void
@@ -287,17 +287,17 @@ class CompanyAdminTest extends TestCase
         $other = $this->company(CompanyStatus::Approved, 'other');
         $staff = $this->staff();
 
-        $this->actingAs($staff, 'admin')->post("/admin/companies/{$company->id}/invitations", ['email' => 'not-an-address'])
+        $this->actingAs($staff, 'admin')->post("/app/admin/companies/{$company->id}/invitations", ['email' => 'not-an-address'])
             ->assertSessionHasErrorsIn('invitation', ['email']);
 
-        $this->actingAs($staff, 'admin')->post("/admin/companies/{$company->id}/invitations", ['email' => 'new@example.com'])
+        $this->actingAs($staff, 'admin')->post("/app/admin/companies/{$company->id}/invitations", ['email' => 'new@example.com'])
             ->assertRedirect(route('admin.companies.show', $company));
         $invitation = TeamInvitation::sole();
         $this->assertSame([$company->id, 'new@example.com'], [$invitation->team_id, $invitation->email]);
 
         // 招待した人として、送ったスタッフが行に残る。詳細の招待中の一覧には、スタッフの氏名も出る
         $this->assertSame(['staff', $staff->id], [$invitation->inviter_type, $invitation->inviter_id]);
-        $this->actingAs($staff, 'admin')->get("/admin/companies/{$company->id}")
+        $this->actingAs($staff, 'admin')->get("/app/admin/companies/{$company->id}")
             ->assertOk()->assertSee('スタッフID:'.$staff->id)->assertSee('管理 花子');
 
         // 操作ログには、送ったスタッフと、企業と、招待の番号が残る
@@ -315,19 +315,19 @@ class CompanyAdminTest extends TestCase
             'password' => $staff->password,
             'acl' => StaffAcl::Staff,
         ]);
-        $this->actingAs($otherStaff, 'admin')->post("/admin/companies/{$company->id}/invitations/{$invitation->id}/resend")->assertNotFound();
-        $this->actingAs($otherStaff, 'admin')->get("/admin/companies/{$company->id}")
+        $this->actingAs($otherStaff, 'admin')->post("/app/admin/companies/{$company->id}/invitations/{$invitation->id}/resend")->assertNotFound();
+        $this->actingAs($otherStaff, 'admin')->get("/app/admin/companies/{$company->id}")
             ->assertOk()->assertDontSee("/invitations/{$invitation->id}/resend", false);
         $this->assertCount(1, $this->sentMails());
 
         // URLの企業と、招待の企業が違えば、扱えない
-        $this->actingAs($staff, 'admin')->delete("/admin/companies/{$other->id}/invitations/{$invitation->id}")->assertNotFound();
+        $this->actingAs($staff, 'admin')->delete("/app/admin/companies/{$other->id}/invitations/{$invitation->id}")->assertNotFound();
 
-        $this->actingAs($staff, 'admin')->post("/admin/companies/{$company->id}/invitations/{$invitation->id}/resend")
+        $this->actingAs($staff, 'admin')->post("/app/admin/companies/{$company->id}/invitations/{$invitation->id}/resend")
             ->assertRedirect(route('admin.companies.show', $company));
         $this->assertCount(2, $this->sentMails());
 
-        $this->actingAs($staff, 'admin')->delete("/admin/companies/{$company->id}/invitations/{$invitation->id}")
+        $this->actingAs($staff, 'admin')->delete("/app/admin/companies/{$company->id}/invitations/{$invitation->id}")
             ->assertRedirect(route('admin.companies.show', $company));
         $this->assertSame(0, TeamInvitation::count());
     }
@@ -336,7 +336,7 @@ class CompanyAdminTest extends TestCase
     {
         $company = $this->company(CompanyStatus::Pending);
 
-        $this->actingAs($this->staff(), 'admin')->post("/admin/companies/{$company->id}/invitations", ['email' => 'new@example.com'])
+        $this->actingAs($this->staff(), 'admin')->post("/app/admin/companies/{$company->id}/invitations", ['email' => 'new@example.com'])
             ->assertSessionHas('error');
 
         $this->assertSame(0, TeamInvitation::count());
@@ -348,7 +348,7 @@ class CompanyAdminTest extends TestCase
         $this->company(CompanyStatus::Pending);
         $staff = $this->staff();
 
-        $csv = $this->actingAs($staff, 'admin')->get('/admin/companies/csv')->assertOk()->streamedContent();
+        $csv = $this->actingAs($staff, 'admin')->get('/app/admin/companies/csv')->assertOk()->streamedContent();
 
         $this->assertStringContainsString('株式会社acme', $csv);
         $this->assertStringContainsString('申請中', $csv);
@@ -358,9 +358,9 @@ class CompanyAdminTest extends TestCase
     {
         $company = $this->company(CompanyStatus::Pending);
 
-        $this->get('/admin/companies')->assertRedirect(route('admin.login'));
-        $this->get("/admin/companies/{$company->id}")->assertRedirect(route('admin.login'));
-        $this->patch("/admin/companies/{$company->id}/approve")->assertRedirect(route('admin.login'));
+        $this->get('/app/admin/companies')->assertRedirect(route('admin.login'));
+        $this->get("/app/admin/companies/{$company->id}")->assertRedirect(route('admin.login'));
+        $this->patch("/app/admin/companies/{$company->id}/approve")->assertRedirect(route('admin.login'));
 
         $this->assertSame(CompanyStatus::Pending, $company->fresh()->status);
     }
@@ -370,7 +370,7 @@ class CompanyAdminTest extends TestCase
         $company = $this->company(CompanyStatus::Approved);
         $this->user($company);
 
-        $this->actingAs($this->staff(), 'admin')->post("/admin/companies/{$company->id}/invitations", ['email' => 'yamada@example.com'])
+        $this->actingAs($this->staff(), 'admin')->post("/app/admin/companies/{$company->id}/invitations", ['email' => 'yamada@example.com'])
             ->assertSessionHasErrorsIn('invitation', ['email' => 'この項目は既に使用されています。']);
         $this->assertSame(0, TeamInvitation::count());
     }

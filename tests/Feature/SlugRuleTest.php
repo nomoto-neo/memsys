@@ -52,7 +52,7 @@ class SlugRuleTest extends TestCase
     public function test_reserved_path_rule_rejects_names_used_by_other_screens(): void
     {
         // ほかの画面のURLの最初の区切りと同じ名前と、その下に続く名前は断る
-        foreach (['login', 'news', 'admin', 'admin/help', 'news/archive'] as $slug) {
+        foreach (['login', 'news', 'app', 'app/admin', 'news/archive'] as $slug) {
             $this->assertFalse($this->passes($slug, [new NotReservedPathRule()]), $slug);
         }
 

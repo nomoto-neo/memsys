@@ -80,7 +80,7 @@ class TwoFactorMethodTest extends TestCase
         $this->useTwoFactorMethod(Staff::class, TwoFactorMethod::None);
         $staff = $this->staff();
 
-        $this->post('/admin/login', ['login_id' => 'hanako', 'password' => self::PASSWORD])
+        $this->post('/app/admin/login', ['login_id' => 'hanako', 'password' => self::PASSWORD])
             ->assertRedirect(route('admin.dashboard'));
 
         $this->assertAuthenticatedAs($staff, 'admin');
@@ -105,15 +105,15 @@ class TwoFactorMethodTest extends TestCase
         $staff = $this->staff();
 
         // パスワードが合っても、まだログインにはならない。確認コードがスタッフへ届く
-        $this->post('/admin/login', ['login_id' => 'hanako', 'password' => self::PASSWORD])
+        $this->post('/app/admin/login', ['login_id' => 'hanako', 'password' => self::PASSWORD])
             ->assertRedirect(route('admin.login.verify'));
         $this->assertGuest('admin');
         $this->assertSame(['hanako@example.com'], $this->recipientsOf($this->lastMail()));
 
         // 2段階目の画面は、認証アプリではなく確認コードの入力になる
-        $this->get('/admin/login/verify')->assertOk()->assertSee('確認コードを再送する')->assertDontSee('QR');
+        $this->get('/app/admin/login/verify')->assertOk()->assertSee('確認コードを再送する')->assertDontSee('QR');
 
-        $this->post('/admin/login/verify', ['code' => $this->lastVerificationCode()])
+        $this->post('/app/admin/login/verify', ['code' => $this->lastVerificationCode()])
             ->assertRedirect(route('admin.dashboard'));
         $this->assertAuthenticatedAs($staff, 'admin');
     }
@@ -123,10 +123,10 @@ class TwoFactorMethodTest extends TestCase
         $this->useTwoFactorMethod(Staff::class, TwoFactorMethod::Email);
         $this->staff();
 
-        $this->post('/admin/login', ['login_id' => 'hanako', 'password' => self::PASSWORD]);
+        $this->post('/app/admin/login', ['login_id' => 'hanako', 'password' => self::PASSWORD]);
         $wrong = $this->lastVerificationCode() === '000000' ? '111111' : '000000';
 
-        $this->post('/admin/login/verify', ['code' => $wrong])
+        $this->post('/app/admin/login/verify', ['code' => $wrong])
             ->assertRedirect(route('admin.login.verify'))
             ->assertSessionHasErrors('code');
         $this->assertGuest('admin');
@@ -296,27 +296,27 @@ class TwoFactorMethodTest extends TestCase
         $backupCodes = (new BackupCodeGenerator())->generateFor($staff);
 
         // バックアップコードでログインする
-        $this->post('/admin/login', ['login_id' => 'hanako', 'password' => self::PASSWORD]);
-        $this->post('/admin/login/verify', ['backup_code' => $backupCodes[0]])
+        $this->post('/app/admin/login', ['login_id' => 'hanako', 'password' => self::PASSWORD]);
+        $this->post('/app/admin/login/verify', ['backup_code' => $backupCodes[0]])
             ->assertRedirect(route('admin.dashboard'));
         $this->assertAuthenticatedAs($staff, 'admin');
 
         // 使ったコードは、もう使えない
-        $this->delete('/admin/2fa', ['backup_code' => $backupCodes[0]])
+        $this->delete('/app/admin/2fa', ['backup_code' => $backupCodes[0]])
             ->assertSessionHasErrors('backup_code', errorBag: 'selfResetTwoFactor');
 
         // 別のバックアップコードで、自分の認証アプリの登録を解除する
-        $this->delete('/admin/2fa', ['backup_code' => $backupCodes[1]])
+        $this->delete('/app/admin/2fa', ['backup_code' => $backupCodes[1]])
             ->assertRedirect(route('admin.staff.show', $staff));
         $this->assertFalse($staff->refresh()->hasTwoFactorConfirmed());
         $this->assertSame(1, OperationLog::where('action', OperationLogAction::TwoFactorReset)
             ->where('operator_type', 'staff')->where('operator_id', $staff->id)->count());
 
         // 次のログインで、QRコードの登録を求められる
-        $this->post('/admin/logout');
-        $this->post('/admin/login', ['login_id' => 'hanako', 'password' => self::PASSWORD])
+        $this->post('/app/admin/logout');
+        $this->post('/app/admin/login', ['login_id' => 'hanako', 'password' => self::PASSWORD])
             ->assertRedirect(route('admin.login.verify'));
-        $this->get('/admin/login/verify')->assertOk()->assertSee('QR');
+        $this->get('/app/admin/login/verify')->assertOk()->assertSee('QR');
     }
 
     public function test_staff_can_reset_the_authenticator_of_a_member(): void
@@ -415,17 +415,17 @@ class TwoFactorMethodTest extends TestCase
         $backupCodes = (new BackupCodeGenerator())->generateFor($staff);
 
         // ログインの2段階目に入力欄が出ず、送っても通らない
-        $this->post('/admin/login', ['login_id' => 'hanako', 'password' => self::PASSWORD]);
-        $this->get('/admin/login/verify')->assertOk()->assertDontSee('バックアップコード');
-        $this->post('/admin/login/verify', ['backup_code' => $backupCodes[0]])->assertSessionHasErrors('code');
+        $this->post('/app/admin/login', ['login_id' => 'hanako', 'password' => self::PASSWORD]);
+        $this->get('/app/admin/login/verify')->assertOk()->assertDontSee('バックアップコード');
+        $this->post('/app/admin/login/verify', ['backup_code' => $backupCodes[0]])->assertSessionHasErrors('code');
         $this->assertGuest('admin');
 
         // 自分の画面にも、発行のボタンと入力欄が出ない。解除は、認証アプリのコードだけで確かめる
-        $this->post('/admin/login/verify', ['code' => (new Google2FA())->getCurrentOtp($secret)]);
+        $this->post('/app/admin/login/verify', ['code' => (new Google2FA())->getCurrentOtp($secret)]);
         $this->get(route('admin.staff.show', $staff))
             ->assertOk()->assertDontSee('バックアップコード')->assertSee('2段階認証の登録を解除する');
-        $this->post('/admin/2fa/backup-codes/regenerate', ['code' => (new Google2FA())->getCurrentOtp($secret)])->assertNotFound();
-        $this->delete('/admin/2fa', ['backup_code' => $backupCodes[1]])
+        $this->post('/app/admin/2fa/backup-codes/regenerate', ['code' => (new Google2FA())->getCurrentOtp($secret)])->assertNotFound();
+        $this->delete('/app/admin/2fa', ['backup_code' => $backupCodes[1]])
             ->assertSessionHasErrors('code', errorBag: 'selfResetTwoFactor');
         $this->assertTrue($staff->refresh()->hasTwoFactorConfirmed());
     }
@@ -456,12 +456,12 @@ class TwoFactorMethodTest extends TestCase
         $this->useTwoFactorMethod(Staff::class, TwoFactorMethod::Email);
         $staff = $this->staff();
 
-        $this->actingAs($staff, 'admin')->post('/admin/passkeys/code')->assertSessionHasNoErrors();
+        $this->actingAs($staff, 'admin')->post('/app/admin/passkeys/code')->assertSessionHasNoErrors();
         $this->assertSame(['hanako@example.com'], $this->recipientsOf($this->lastMail()));
 
-        $this->actingAs($staff, 'admin')->post('/admin/passkeys/confirm', ['code' => $this->lastVerificationCode()])
+        $this->actingAs($staff, 'admin')->post('/app/admin/passkeys/confirm', ['code' => $this->lastVerificationCode()])
             ->assertSessionHasNoErrors();
-        $this->actingAs($staff, 'admin')->getJson('/admin/passkeys/options')->assertOk();
+        $this->actingAs($staff, 'admin')->getJson('/app/admin/passkeys/options')->assertOk();
     }
 
     public function test_passkey_registration_asks_the_authenticator_code_from_member_with_totp_method(): void

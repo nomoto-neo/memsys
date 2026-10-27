@@ -386,7 +386,7 @@ class CompanyInvitationTest extends TestCase
             'acl' => StaffAcl::Manager,
         ]);
 
-        $this->actingAs($staff, 'admin')->post("/admin/companies/{$company->id}/invitations", ['email' => 'sato@example.com']);
+        $this->actingAs($staff, 'admin')->post("/app/admin/companies/{$company->id}/invitations", ['email' => 'sato@example.com']);
         $invitation = TeamInvitation::sole();
         $this->assertSame(['staff', $staff->id], [$invitation->inviter_type, $invitation->inviter_id]);
 

@@ -40,6 +40,7 @@ use Neobit\Core\Http\Controllers\IpBlockController;
 use Neobit\Core\Http\Controllers\OperationLogController;
 use Neobit\Core\Http\Controllers\RedirectController;
 use Neobit\Core\Http\Controllers\SeoSettingsController;
+use Neobit\Core\Http\Middleware\NoIndexHeader;
 use Neobit\Core\Rules\SlugRule;
 
 // 静的なページを表示する場合
@@ -368,7 +369,7 @@ Route::prefix('company')->name('company.')->group(function () {
 // admin.ipは、接続元のIPアドレスの制限（Neobit\Core\Http\Middleware\RestrictAdminAccess）。
 // 管理画面を開けるIPアドレス（管理画面の「アクセス制限」と.envのADMIN_ALLOWED_IPS）を決めていれば、
 // それに無いIPアドレスには、ログイン画面も含めて404を返す。
-Route::prefix('admin')->name('admin.')->middleware('admin.ip')->group(function () {
+Route::prefix(config('neobit.admin_path'))->name('admin.')->middleware(['admin.ip', NoIndexHeader::class])->group(function () {
     Route::middleware('guest:admin')->group(function () {
         // 未ログイン状態はログイン画面（ログイン試行のthrottle制御はコントローラー側で行う）
         Route::get('/login', [AdminSessionController::class, 'create'])->name('login');

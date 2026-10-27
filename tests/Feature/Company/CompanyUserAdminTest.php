@@ -55,7 +55,7 @@ class CompanyUserAdminTest extends TestCase
 
     private function url(CompanyUser $user, string $path = ''): string
     {
-        return "/admin/companies/{$user->company_id}/users/{$user->id}{$path}";
+        return "/app/admin/companies/{$user->company_id}/users/{$user->id}{$path}";
     }
 
     public function test_detail_is_recorded(): void
@@ -141,7 +141,7 @@ class CompanyUserAdminTest extends TestCase
         $this->assertSame(['staff', $staff->id, 'company_user', $user->id], [$log->operator_type, $log->operator_id, $log->target_type, $log->target_id]);
 
         // 担当者がいなくなった企業の詳細も開ける
-        $this->actingAs($staff, 'admin')->get("/admin/companies/{$company->id}")->assertOk()->assertSee('担当者がいません。');
+        $this->actingAs($staff, 'admin')->get("/app/admin/companies/{$company->id}")->assertOk()->assertSee('担当者がいません。');
     }
 
     public function test_user_of_another_company_is_not_found(): void
@@ -151,8 +151,8 @@ class CompanyUserAdminTest extends TestCase
         $staff = $this->staff();
 
         // URLの企業と、担当者の企業が違えば、開けない
-        $this->actingAs($staff, 'admin')->get("/admin/companies/{$other->id}/users/{$user->id}")->assertNotFound();
-        $this->actingAs($staff, 'admin')->delete("/admin/companies/{$other->id}/users/{$user->id}/delete")->assertNotFound();
+        $this->actingAs($staff, 'admin')->get("/app/admin/companies/{$other->id}/users/{$user->id}")->assertNotFound();
+        $this->actingAs($staff, 'admin')->delete("/app/admin/companies/{$other->id}/users/{$user->id}/delete")->assertNotFound();
 
         $this->assertSame(1, CompanyUser::count());
     }

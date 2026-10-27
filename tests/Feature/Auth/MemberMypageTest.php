@@ -197,7 +197,7 @@ class MemberMypageTest extends TestCase
         ]);
 
         $this->actingAs($staff, 'admin')
-            ->patch('/admin/members/'.$member->id.'/update', $this->profileOf($member, [
+            ->patch('/app/admin/members/'.$member->id.'/update', $this->profileOf($member, [
                 'password' => 'new-password',
                 'password_confirmation' => 'new-password',
             ]))

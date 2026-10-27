@@ -358,7 +358,7 @@ class StaffController extends Controller
     }
 
     /**
-     * 削除の取り消し（PATCH /admin/staff/{staff}/restore）
+     * 削除の取り消し（PATCH /app/admin/staff/{staff}/restore）
      * 論理削除したスタッフのdeleted_atを空に戻す。ログインID・パスワード・2段階認証の設定は
      * 削除前のまま戻るので、すぐにログインできる（信頼済み端末だけは削除のときに消している）。
      */
@@ -373,7 +373,7 @@ class StaffController extends Controller
     }
 
     /**
-     * 2段階認証（TOTP）の登録解除（DELETE /admin/staff/{staff}/two-factor）。
+     * 2段階認証（TOTP）の登録解除（DELETE /app/admin/staff/{staff}/two-factor）。
      * スマートフォンの紛失・機種変更などで本人がログインできなくなった際に、
      * 管理者が代わりに実行する。次回そのスタッフがログインすると、QRコードの登録から
      * やり直しになる（バックアップコード・信頼済み端末・パスキーも合わせて失効させる。

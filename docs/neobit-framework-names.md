@@ -186,7 +186,7 @@
 | `IpBlocker` | `isBlocked()`・`countMiss()`・`block()`・`changeUntil()`・`release()`・`deleteExpired()`・`normalizeRange()`・`rangeBounds()`・`coversProtected()` | |
 | `CsvImportSettings`・`CsvImportResult`・`CsvImportRow`・`CsvColumnSet` | 取り込みの設定と結果 | |
 | 検証のルール | `KatakanaRule`・`HiraganaRule`・`PhoneNumberRule`・`SameCountAsRule`・`UploadRequiredRule`・`SlugRule`・`NotReservedPathRule` | |
-| ミドルウェア | `AjaxFormResponse`・`ApplyRedirects`・`NormalizeInput`・`RejectBlockedIp`・`RestrictAdminAccess`・`RestrictSiteAccess`・`RunScheduleOnRequest`・`SecurityHeaders` | |
+| ミドルウェア | `AjaxFormResponse`・`ApplyRedirects`・`NoIndexHeader`・`NormalizeInput`・`RejectBlockedIp`・`RestrictAdminAccess`・`RestrictSiteAccess`・`RunScheduleOnRequest`・`SecurityHeaders` | |
 | コントローラー | `CodeTableController`・`IpBlockController`・`AccessRestrictionController`・`BasicAuthController`・`SeoSettingsController`・`RedirectController`・`OperationLogController`（どれもルートは案件が書く）・`UploadedFileController`・`SitemapController`・`RobotsController` | |
 
 ## 7. ヘルパー
@@ -211,6 +211,7 @@
 | ファイル | キー | メモ |
 |---|---|---|
 | `neobit` | `layouts` | |
+| `neobit` | `admin_path` | 管理画面の頭の URL。既定は `app/admin` |
 | `neobit` | `code_table_db`・`code_table_method`・`code_table_enum_namespaces` | |
 | `neobit` | `operation_log_actions`・`operation_log_models`・`operation_log_route` | |
 | `neobit` | `admin_requests_per_minute`・`admin_requests_exceeded_message` | |

@@ -157,7 +157,7 @@ class PageTest extends TestCase
         $this->page(['slug' => 'taken']);
 
         // ほかの画面で使っている名前、使えない文字、ほかのページと同じ名前は断る
-        foreach (['login', 'admin', 'news', 'About', 'about us', '-about', '_about', 'a/_b', 'taken', '/about', 'about/', 'a//b', 'a/-b', 'admin/help', 'news/archive'] as $slug) {
+        foreach (['login', 'app', 'news', 'About', 'about us', '-about', '_about', 'a/_b', 'taken', '/about', 'about/', 'a//b', 'a/-b', 'app/help', 'news/archive'] as $slug) {
             $this->actingAs($staff, 'admin')
                 ->post(route('admin.pages.store'), ['slug' => $slug] + self::INPUT)
                 ->assertSessionHasErrors('slug');

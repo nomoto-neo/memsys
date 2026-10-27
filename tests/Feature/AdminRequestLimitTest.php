@@ -76,7 +76,7 @@ class AdminRequestLimitTest extends TestCase
     {
         config(['neobit.admin_requests_per_minute' => null]);
 
-        $limit = AdminRequestLimit::limit(Request::create('/admin'));
+        $limit = AdminRequestLimit::limit(Request::create('/app/admin'));
 
         $this->assertSame(120, $limit->maxAttempts);
     }

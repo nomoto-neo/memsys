@@ -119,13 +119,13 @@ class PasskeySuggestionTest extends TestCase
             'acl' => StaffAcl::Manager,
         ]);
 
-        $this->post('/admin/login', ['login_id' => 'hanako', 'password' => self::PASSWORD]);
-        $this->get('/admin/login/verify');
-        $this->post('/admin/login/verify', ['code' => (new Google2FA())->getCurrentOtp(session('staff.login.pending_secret'))])
+        $this->post('/app/admin/login', ['login_id' => 'hanako', 'password' => self::PASSWORD]);
+        $this->get('/app/admin/login/verify');
+        $this->post('/app/admin/login/verify', ['code' => (new Google2FA())->getCurrentOtp(session('staff.login.pending_secret'))])
             ->assertRedirect(route('admin.dashboard'));
 
         // 登録が済んで最初に開く画面で出る
-        $this->get('/admin')->assertOk()->assertSee(self::HEADLINE)->assertSee(route('admin.passkeys'));
-        $this->get('/admin')->assertOk()->assertDontSee(self::HEADLINE);
+        $this->get('/app/admin')->assertOk()->assertSee(self::HEADLINE)->assertSee(route('admin.passkeys'));
+        $this->get('/app/admin')->assertOk()->assertDontSee(self::HEADLINE);
     }
 }

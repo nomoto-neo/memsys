@@ -68,7 +68,7 @@ class CategoryController extends Controller
     }
 
     /**
-     * 並び替えの保存（PATCH /admin/categories/reorder）。
+     * 並び替えの保存（PATCH /app/admin/categories/reorder）。
      *
      * 一覧でドラッグした後の順番に、カテゴリーのidが並んだ配列が送られてくるので、
      * その順番をそのまま表示順にする。入力フォームの送信ではないので、検証のルールは

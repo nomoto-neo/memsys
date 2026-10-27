@@ -56,8 +56,8 @@ class SharedBrowserTest extends TestCase
 
     private function loginAsStaff(): void
     {
-        $this->post('/admin/login', ['login_id' => 'hanako', 'password' => self::PASSWORD]);
-        $this->post('/admin/login/verify', ['code' => (new Google2FA())->getCurrentOtp($this->secret)]);
+        $this->post('/app/admin/login', ['login_id' => 'hanako', 'password' => self::PASSWORD]);
+        $this->post('/app/admin/login/verify', ['code' => (new Google2FA())->getCurrentOtp($this->secret)]);
     }
 
     /**
@@ -81,7 +81,7 @@ class SharedBrowserTest extends TestCase
 
         // 会員はログアウトされ、管理画面はログインしたまま
         $this->get('/mypage')->assertRedirect(route('login'));
-        $this->get('/admin')->assertOk();
+        $this->get('/app/admin')->assertOk();
     }
 
     public function test_staff_logout_keeps_the_member_login(): void
@@ -91,10 +91,10 @@ class SharedBrowserTest extends TestCase
         $this->loginAsMember();
         $this->loginAsStaff();
 
-        $this->post('/admin/logout')->assertRedirect(route('admin.login'));
+        $this->post('/app/admin/logout')->assertRedirect(route('admin.login'));
         $this->forgetLoadedUsers();
 
-        $this->get('/admin')->assertRedirect(route('admin.login'));
+        $this->get('/app/admin')->assertRedirect(route('admin.login'));
         $this->get('/mypage')->assertOk();
     }
 
@@ -104,10 +104,10 @@ class SharedBrowserTest extends TestCase
         $this->loginAsStaff();
 
         // 管理画面で検索すると、検索条件がセッションに残る
-        $this->post('/admin/members', ['q' => '検索した言葉']);
+        $this->post('/app/admin/members', ['q' => '検索した言葉']);
         $this->assertNotNull(session('search_session'));
 
-        $this->post('/admin/logout');
+        $this->post('/app/admin/logout');
 
         // ログアウトで消える。同じブラウザを次に使う人に、見えないようにするため
         $this->assertNull(session('search_session'));
@@ -136,7 +136,7 @@ class SharedBrowserTest extends TestCase
         $this->staff();
 
         // ログインせずに管理画面を開こうとして、ログイン画面へ回された
-        $this->get('/admin/members')->assertRedirect(route('admin.login'));
+        $this->get('/app/admin/members')->assertRedirect(route('admin.login'));
 
         // 会員としてログインしても、管理画面のURLへは飛ばない
         $this->post('/login', ['email' => 'taro@example.com', 'password' => self::PASSWORD]);
@@ -144,8 +144,8 @@ class SharedBrowserTest extends TestCase
             ->assertRedirect(route('mypage'));
 
         // 記録は残っているので、スタッフとしてログインすると、開こうとしていた画面へ戻る
-        $this->post('/admin/login', ['login_id' => 'hanako', 'password' => self::PASSWORD]);
-        $this->post('/admin/login/verify', ['code' => (new Google2FA())->getCurrentOtp($this->secret)])
+        $this->post('/app/admin/login', ['login_id' => 'hanako', 'password' => self::PASSWORD]);
+        $this->post('/app/admin/login/verify', ['code' => (new Google2FA())->getCurrentOtp($this->secret)])
             ->assertRedirect(route('admin.members.index'));
     }
 
@@ -155,13 +155,13 @@ class SharedBrowserTest extends TestCase
         $this->staff();
 
         // ログインせずに、管理画面と会員の画面を続けて開こうとした
-        $this->get('/admin/members?page=2')->assertRedirect(route('admin.login'));
+        $this->get('/app/admin/members?page=2')->assertRedirect(route('admin.login'));
         $this->get('/mypage/edit')->assertRedirect(route('login'));
 
         // 後から会員の画面を開こうとしていても、スタッフのログインの後は、管理画面の元の画面へ戻る
-        $this->post('/admin/login', ['login_id' => 'hanako', 'password' => self::PASSWORD]);
-        $this->post('/admin/login/verify', ['code' => (new Google2FA())->getCurrentOtp($this->secret)])
-            ->assertRedirect('/admin/members?page=2');
+        $this->post('/app/admin/login', ['login_id' => 'hanako', 'password' => self::PASSWORD]);
+        $this->post('/app/admin/login/verify', ['code' => (new Google2FA())->getCurrentOtp($this->secret)])
+            ->assertRedirect('/app/admin/members?page=2');
 
         // 会員のログインの後は、会員の元の画面へ戻る
         $this->post('/login', ['email' => 'taro@example.com', 'password' => self::PASSWORD]);
@@ -198,6 +198,6 @@ class SharedBrowserTest extends TestCase
         $this->forgetLoadedUsers();
 
         $this->assertSame(0, Member::count());
-        $this->get('/admin')->assertOk();
+        $this->get('/app/admin')->assertOk();
     }
 }

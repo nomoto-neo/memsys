@@ -149,7 +149,7 @@ class BasicAuthTest extends TestCase
         $this->assertSame(3, BasicAuthUser::count());
 
         // 知らない範囲は、ルートに当たらず断る
-        $this->actingAs($manager, 'admin')->patch('/admin/basic-auth/other', ['on' => '1'])->assertClientError();
+        $this->actingAs($manager, 'admin')->patch('/app/admin/basic-auth/other', ['on' => '1'])->assertClientError();
         $this->assertFileDoesNotExist($this->file('other.on'));
     }
 

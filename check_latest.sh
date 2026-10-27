@@ -279,6 +279,11 @@ has   packages/neobit/core/src/Security/BasicAuth.php                   'final c
 has   packages/neobit/core/src/Http/Controllers/BasicAuthController.php 'class BasicAuthController'
 has   routes/web.php                                                    'BasicAuthController'
 has   resources/views/admin/_menu.blade.php                             'admin.basic-auth.index'
+has   packages/neobit/core/src/Http/Middleware/NoIndexHeader.php        'class NoIndexHeader'
+has   packages/neobit/core/src/Http/Middleware/RestrictSiteAccess.php   "config('neobit.admin_path')"
+has   routes/web.php                                                    "prefix(config('neobit.admin_path'))"
+lacks bootstrap/app.php                                                 "'admin/*'"
+lacks config/neobit.php                                                 "'robots_disallow' => ['/admin'"
 # 末尾の/を外す働きは、ミドルウェア（ApplyRedirects）へ移した。残っていると、末尾が/の古いURLに当たらない
 lacks public/.htaccess                                                  'Redirect Trailing Slashes'
 has   packages/neobit/core/src/Crud/FormFlow.php                        'saveChildTables'

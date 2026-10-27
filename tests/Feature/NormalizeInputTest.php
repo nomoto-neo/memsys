@@ -147,7 +147,7 @@ class NormalizeInputTest extends TestCase
     public function test_fields_listed_in_the_model_are_kept_as_written(): void
     {
         // 一斉メールの文面は、件名と本文をそろえない（BulkMailTemplate::RAW_INPUT_FIELDS）。管理用の名前はそろえる
-        $this->actingAs($this->manager(), 'admin')->post('/admin/bulk-mail-templates', [
+        $this->actingAs($this->manager(), 'admin')->post('/app/admin/bulk-mail-templates', [
             'title' => '１０月のご案内',
             'subject' => '【重要】１０月のご案内',
             'body' => "{{\$name}} 様\nＡＢＣ：１２３",
@@ -165,7 +165,7 @@ class NormalizeInputTest extends TestCase
         $member = Member::factory()->create(['phone' => null, 'kana' => null]);
 
         // 全角の電話番号と半角カナのフリガナが、検証でエラーにならず、そろえて保存される
-        $this->importCsv($this->manager(), '/admin/members/csv-import', $this->csvFile('members.csv', [
+        $this->importCsv($this->manager(), '/app/admin/members/csv-import', $this->csvFile('members.csv', [
             '会員ID,電話番号,フリガナ',
             "{$member->id},０９０－１２３４－５６７８,ﾔﾏﾀﾞ ﾀﾛｳ",
         ]));
@@ -194,7 +194,7 @@ class NormalizeInputTest extends TestCase
         $news->categories()->attach($category->id);
 
         // ニュースは、本文をそろえない（News::RAW_INPUT_FIELDS）。件名や日付の列は、そろえる
-        $this->importCsv($this->manager(), '/admin/news/csv-import', $this->csvFile('news.csv', [
+        $this->importCsv($this->manager(), '/app/admin/news/csv-import', $this->csvFile('news.csv', [
             '記事ID,タイトル,記事日付,状態,公開範囲,カテゴリー',
             "{$news->id},１０月のイベント,２０２６／１０／０１,表示,一般公開,イベント",
         ]));

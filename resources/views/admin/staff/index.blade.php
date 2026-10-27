@@ -22,9 +22,9 @@
       そのまま並べているだけなので、選択肢を増減させてもここは直さなくてよい。
       他の検索条件と同じくsearch_session経由で保存・復元される。
     action先がroute('admin.staff.search')になっている点に注意。会員の検索は
-    route('admin.members.search')＝/admin/membersそのものだが、スタッフは
-    /admin/staffが新規登録(store)に使われているため、検索条件の保存だけ
-    /admin/staff/searchという別パスに分けている。
+    route('admin.members.search')＝/app/admin/membersそのものだが、スタッフは
+    /app/admin/staffが新規登録(store)に使われているため、検索条件の保存だけ
+    /app/admin/staff/searchという別パスに分けている。
 --}}
 <form method="POST" action="{{ route('admin.staff.search') }}" class="row g-2 mb-4">
     @csrf

@@ -283,7 +283,9 @@ class SeoTest extends TestCase
         app()['env'] = 'production';
         $this->get('/robots.txt')
             ->assertOk()
-            ->assertSee("Disallow: /admin\nDisallow: /company\nDisallow: /mypage\n\nSitemap: https://example.com/sitemap.xml", false);
+            ->assertSee("Disallow: /company\nDisallow: /mypage\n\nSitemap: https://example.com/sitemap.xml", false)
+            // 管理画面のURLは、robots.txtに書かない
+            ->assertDontSee('admin', false);
     }
 
     public function test_unknown_name_is_rejected(): void
