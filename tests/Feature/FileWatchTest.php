@@ -57,7 +57,7 @@ class FileWatchTest extends TestCase
         return new FileWatcher(
             $this->base,
             $this->base.'/public',
-            $this->base.'/storage/app',
+            $this->base.'/storage/app/public',
             fn (string $path) => $this->ctimes[str_replace('\\', '/', $path)] ?? $this->start - 86400,
         );
     }
@@ -187,16 +187,14 @@ class FileWatchTest extends TestCase
         $this->write('storage/app/public/campaign/index.html', '<script></script>', 3);
         $this->write('storage/app/public/campaign/logo.svg', '<svg onload="alert(1)"/>', 3);
 
-        // 公開でない場所：PHPとして動くものだけを知らせる。フレームワークの作業のファイルは知らせない
+        // 非公開の置き場所は見ない（Webから開けず、監視の利用者には読めない権限で作られるため）
         $this->write('storage/app/private/notes.js', 'js', 3);
-        $this->write('storage/app/basic-auth/.htpasswd', 'staff:$2y$', 3);
-        $this->write('storage/app/csv_import/abc.json', '{}', 3);
         $this->write('storage/app/private/backdoor.phtml', '<?php', 3);
+        $this->write('storage/app/basic-auth/.htpasswd', 'staff:$2y$', 3);
 
         $result = $this->checkAt(5);
         $this->assertSame(
             [
-                'storage/app/private/backdoor.phtml',
                 'storage/app/public/.htaccess',
                 'storage/app/public/campaign/index.html',
                 'storage/app/public/campaign/logo.svg',
@@ -233,5 +231,44 @@ class FileWatchTest extends TestCase
         if (! is_file(base_path('bootstrap/cache/file-watch.json'))) {
             $this->artisan('app:watch-files')->expectsOutputToContain('app:watch-files --init')->assertFailed();
         }
+    }
+
+    public function test_runs_do_not_overlap(): void
+    {
+        // 前の回がロックを押さえている間は、次の回は押さえられない
+        $first = $this->watcher();
+        $second = $this->watcher();
+
+        $this->assertTrue($first->lock());
+        $this->assertFalse($second->lock());
+
+        $first->unlock();
+        $this->assertTrue($second->lock());
+        $second->unlock();
+    }
+
+    public function test_unreadable_directories_are_reported_without_stopping(): void
+    {
+        if (PHP_OS_FAMILY === 'Windows' || (function_exists('posix_geteuid') && posix_geteuid() === 0)) {
+            $this->markTestSkipped('ディレクトリの権限で開けなくするのは、root以外のLinuxでだけ試せる');
+        }
+
+        $this->write('storage/app/public/hidden/shell.php', '<?php', 3);
+        $this->write('app/Secret/Thing.php', '<?php', -1440);
+        $this->watcher()->init();
+        chmod($this->base.'/storage/app/public/hidden', 0000);
+        chmod($this->base.'/app/Secret', 0000);
+
+        try {
+            $result = $this->checkAt(5);
+        } finally {
+            chmod($this->base.'/storage/app/public/hidden', 0755);
+            chmod($this->base.'/app/Secret', 0755);
+        }
+
+        // 止まらずに、開けなかったディレクトリを知らせる。その下のファイルは、消えたものにしない
+        $this->assertSame(['app/Secret', 'storage/app/public/hidden'], $result['unreadable']);
+        $this->assertSame([], $result['alerts']);
+        $this->assertTrue($result['notify']);
     }
 }

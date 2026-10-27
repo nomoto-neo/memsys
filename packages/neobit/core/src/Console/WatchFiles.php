@@ -47,10 +47,30 @@ class WatchFiles extends Command
 
         $watcher = new FileWatcher();
 
+        // 前の回が動いている間は、何もせずに終わる（5分ごとの回と--fullの回が重なったとき）
+        if (! $watcher->lock()) {
+            $this->info('前の回が動いているので、何もせずに終わります。');
+
+            return self::SUCCESS;
+        }
+
+        try {
+            return $this->watch($watcher);
+        } finally {
+            $watcher->unlock();
+        }
+    }
+
+    /** ロックを押さえた後の1回分。基準を作るか、確かめて知らせる */
+    private function watch(FileWatcher $watcher): int
+    {
         // 基準を作る
         if ($this->option('init')) {
             $count = $watcher->init();
             $this->info(number_format($count).'件のファイルを、改ざん監視の基準にしました。');
+            foreach ($watcher->unreadable() as $directory) {
+                $this->warn('開けないので、基準に入れられなかったディレクトリ：'.$directory);
+            }
 
             return self::SUCCESS;
         }
@@ -65,14 +85,14 @@ class WatchFiles extends Command
             return self::FAILURE;
         }
 
-        $this->info(sprintf('通常の更新 %d件・判断待ち %d件・改ざんの疑い %d件・アップロードの置き場所の受け付けていないファイル %d件',
-            $result['accepted'], $result['pending'], count($result['alerts']), count($result['dangers'])));
+        $this->info(sprintf('通常の更新 %d件・判断待ち %d件・改ざんの疑い %d件・アップロードの置き場所の受け付けていないファイル %d件・確かめられなかったディレクトリ %d件',
+            $result['accepted'], $result['pending'], count($result['alerts']), count($result['dangers']), count($result['unreadable'])));
 
         if (! $result['notify']) {
             return self::SUCCESS;
         }
 
-        return $this->notify($result['alerts'], $result['dangers']);
+        return $this->notify($result['alerts'], $result['dangers'], $result['unreadable']);
     }
 
     /**
@@ -80,8 +100,9 @@ class WatchFiles extends Command
      *
      * @param  list<array{label: string, kind: string, time: int}>  $alerts
      * @param  list<array{label: string, time: int}>  $dangers
+     * @param  list<string>  $unreadable
      */
-    private function notify(array $alerts, array $dangers): int
+    private function notify(array $alerts, array $dangers, array $unreadable): int
     {
         $to = (string) (config('neobit.file_watch.to') ?: config('logging.channels.error_notify.with.to'));
         $recipients = array_filter(array_map('trim', explode(',', $to)));
@@ -110,6 +131,7 @@ class WatchFiles extends Command
                 'app_name' => config('app.site_name'),
                 'counts' => implode('・', $counts),
                 'dangers' => $this->lines($dangers),
+                'unreadable' => $unreadable !== [] ? '  '.implode("\n  ", $unreadable) : '  （なし）',
                 'changed' => $lists['changed'],
                 'added' => $lists['added'],
                 'deleted' => $lists['deleted'],

@@ -4,9 +4,6 @@ namespace Neobit\Core\Security;
 
 use Carbon\CarbonInterface;
 use Closure;
-use FilesystemIterator;
-use RecursiveDirectoryIterator;
-use RecursiveIteratorIterator;
 use RuntimeException;
 
 /**
@@ -31,14 +28,23 @@ use RuntimeException;
  * たっても期間に入らなければ、改ざんとして知らせる。知らせたファイルは基準に取り込まず、直るまで知らせ続ける。
  *
  * ■ アップロードの置き場所
- * アップロードのたびにファイルが増えるので、基準とは比べない。代わりに毎回、次のファイルが無いかを確かめ、
- * 見つけたら待たずに知らせる。
- * - storage/appの全部：PHPとして動く拡張子と、.htaccess・.user.ini（置かれるとPHPを動かす設定にされるもの）
- * - 公開の置き場所（storage/app/public。/storage/のURLで外から開ける）：アップロードの設定（upload.image_types・
- *   attach_types）と、設定のfile_watch.public_upload_extraに無い拡張子のもの。JavaScript・HTML・SVGなどを、
- *   一覧に書かずに全部拾うため。画面からのアップロードでは置かれ得ないので、あれば改ざんの疑いが強い
- * storage/appの全部を公開の置き場所と同じにしないのは、非公開のファイルと、フレームワークが作る作業のファイル
- * （CSV取り込みの途中のファイル、ベーシック認証の.htpasswdなど）があるため。
+ * アップロードのたびにファイルが増えるので、基準とは比べない。代わりに毎回、公開の置き場所（storage/app/public。
+ * /storage/のURLで外から開ける）に、次のファイルが無いかを確かめ、見つけたら待たずに知らせる。
+ * - PHPとして動く拡張子と、.htaccess・.user.ini（置かれるとPHPを動かす設定にされるもの）
+ * - アップロードの設定（upload.image_types・attach_types）と、設定のfile_watch.public_upload_extraに無い拡張子のもの。
+ *   JavaScript・HTML・SVGなどを、一覧に書かずに全部拾うため。画面からのアップロードでは置かれ得ないので、あれば
+ *   改ざんの疑いが強い
+ * 非公開の置き場所（storage/app/private）は見ない。Webから直接開けないので、置かれても動かせないうえ、
+ * Laravelが作った本人（apache）しか読めない権限（0700・0600）で作られ、この監視の利用者には開けないため。
+ *
+ * ■ 開けないディレクトリ
+ * 監視する場所の中に開けないディレクトリがあっても、止まらずに飛ばす。改ざんを隠す場所になり得るので、
+ * 黙っては飛ばさず、知らせる一覧に「確かめられなかったディレクトリ」として載せる。その下のファイルは、
+ * 消えたものとしては扱わない。
+ *
+ * ■ 同時に動かない
+ * 5分ごとの回と--fullの回が重なると、記録の書き込みで片方の結果が消える。記録の隣のロックのファイルを押さえ、
+ * 前の回が動いている間は、次の回は何もせずに終わる（lock()）。
  *
  * ■ 限界
  * サーバーそのもの（root）を乗っ取られたら、同じサーバーの上の監視は信用できない。外から監視するサービスと組み合わせる。
@@ -49,6 +55,9 @@ final class FileWatcher
 
     /** 基準などの記録のファイル（basePathの下） */
     private const STATE_FILE = 'bootstrap/cache/file-watch.json';
+
+    /** 同時に動かないよう押さえる、ロックのファイル（basePathの下） */
+    private const LOCK_FILE = 'bootstrap/cache/file-watch.lock';
 
     // ---- 通常の更新の見分け方（秒） ----
 
@@ -108,9 +117,6 @@ final class FileWatcher
     /** アップロードの置き場所で見つけたら、すぐ知らせるファイルの名前。置かれるとPHPを動かす設定にされるもの */
     private const DANGER_NAMES = ['.htaccess', '.user.ini'];
 
-    /** 公開の置き場所（アップロードの置き場所の下）の、ディレクトリの名前 */
-    private const PUBLIC_UPLOAD_DIR = 'public';
-
     /** 公開の置き場所で、受け付けていない拡張子でも知らせないファイルの名前。Laravelが最初から置くもの */
     private const PUBLIC_UPLOAD_IGNORE = ['.gitignore'];
 
@@ -118,9 +124,15 @@ final class FileWatcher
 
     private readonly string $publicPath;
 
-    private readonly string $uploadPath;
+    private readonly string $publicUploadPath;
 
     private readonly Closure $ctime;
+
+    /** 押さえているロックのファイル。押さえていなければnull */
+    private mixed $lockHandle = null;
+
+    /** この回で開けなかったディレクトリの名前 */
+    private array $unreadable = [];
 
     /**
      * 場所とctimeの読み方は、テストで差し替える。手元のWindowsでは、ctimeがファイルを作った日時になるため。
@@ -129,20 +141,62 @@ final class FileWatcher
     public function __construct(
         ?string $basePath = null,
         ?string $publicPath = null,
-        ?string $uploadPath = null,
+        ?string $publicUploadPath = null,
         ?Closure $ctime = null,
     ) {
         $this->basePath = rtrim($basePath ?? base_path(), '/\\');
         $this->publicPath = rtrim($publicPath ?? public_path(), '/\\');
-        $this->uploadPath = rtrim($uploadPath ?? storage_path('app'), '/\\');
+        $this->publicUploadPath = rtrim($publicUploadPath ?? storage_path('app/public'), '/\\');
         $this->ctime = $ctime ?? fn (string $path): int => (int) filectime($path);
     }
 
     // ---- 入口 ----
 
+    /** 同時に動かないよう、ロックのファイルを押さえる。前の回が押さえていればfalse */
+    public function lock(): bool
+    {
+        $path = $this->basePath.'/'.self::LOCK_FILE;
+        if (! is_dir(dirname($path))) {
+            mkdir(dirname($path), 0755, true);
+        }
+
+        $handle = fopen($path, 'c');
+        if ($handle === false || ! flock($handle, LOCK_EX | LOCK_NB)) {
+            if ($handle !== false) {
+                fclose($handle);
+            }
+
+            return false;
+        }
+        $this->lockHandle = $handle;
+
+        return true;
+    }
+
+    /** 押さえたロックのファイルを離す */
+    public function unlock(): void
+    {
+        if ($this->lockHandle !== null) {
+            flock($this->lockHandle, LOCK_UN);
+            fclose($this->lockHandle);
+            $this->lockHandle = null;
+        }
+    }
+
+    /**
+     * 直前のinit()かcheck()で、開けなかったディレクトリの名前
+     *
+     * @return list<string>
+     */
+    public function unreadable(): array
+    {
+        return $this->unreadable;
+    }
+
     /** 今の状態を基準にする。サーバーで最初に1回、webappで実行する。基準にしたファイルの数を返す */
     public function init(): int
     {
+        $this->unreadable = [];
         $files = [];
         foreach ($this->scan(true) as $label => $info) {
             $files[$label] = $info + ['hash' => hash_file('sha256', $info['path'])];
@@ -165,10 +219,11 @@ final class FileWatcher
      * 1回分を確かめる。--fullなら全部のハッシュ値を比べ直し、vendor/も見る。
      * notifyがtrueなら、呼んだ側が通知のメールを送る（同じ顔ぶれは1時間に1回に間引く）。
      *
-     * @return array{alerts: list<array{label: string, kind: string, time: int}>, dangers: list<array{label: string, time: int}>, accepted: int, pending: int, notify: bool}
+     * @return array{alerts: list<array{label: string, kind: string, time: int}>, dangers: list<array{label: string, time: int}>, unreadable: list<string>, accepted: int, pending: int, notify: bool}
      */
     public function check(bool $full = false): array
     {
+        $this->unreadable = [];
         $state = $this->load();
         if ($state === null) {
             throw new RuntimeException('改ざん監視の基準がありません。先に php artisan app:watch-files --init を実行してください。');
@@ -209,9 +264,10 @@ final class FileWatcher
             $candidates[$label] = ['kind' => 'changed', 'time' => $info['ctime'], 'info' => $info + ['hash' => $hash]];
         }
 
-        // 消えたファイル。消えた時刻は分からないので、最初に気付いた時刻を使う。vendor/は--fullのときだけ見る
+        // 消えたファイル。消えた時刻は分からないので、最初に気付いた時刻を使う。vendor/は--fullのときだけ見る。
+        // 開けなかったディレクトリの下は、消えたのか見えないだけか分からないので、消えたものにしない
         foreach ($state['files'] as $label => $base) {
-            if (isset($current[$label]) || (! $full && $this->isFullOnly($label))) {
+            if (isset($current[$label]) || (! $full && $this->isFullOnly($label)) || $this->isExcluded($label, $this->unreadable)) {
                 continue;
             }
             $state['deleted_seen'][$label] ??= $now;
@@ -240,11 +296,19 @@ final class FileWatcher
         $state['accepted'] = array_values(array_filter($state['accepted'], fn (array $entry) => $entry['to'] >= $now - self::KEEP_ACCEPTED));
 
         $dangers = $this->dangers();
-        $notify = $this->shouldNotify($state, $alerts, $dangers, $now);
+        sort($this->unreadable);
+        $notify = $this->shouldNotify($state, $alerts, $dangers, $this->unreadable, $now);
 
         $this->save($state);
 
-        return ['alerts' => $alerts, 'dangers' => $dangers, 'accepted' => $accepted, 'pending' => $pending, 'notify' => $notify];
+        return [
+            'alerts' => $alerts,
+            'dangers' => $dangers,
+            'unreadable' => $this->unreadable,
+            'accepted' => $accepted,
+            'pending' => $pending,
+            'notify' => $notify,
+        ];
     }
 
     /**
@@ -331,10 +395,11 @@ final class FileWatcher
      *
      * @param  list<array{label: string, kind: string, time: int}>  $alerts
      * @param  list<array{label: string, time: int}>  $dangers
+     * @param  list<string>  $unreadable
      */
-    private function shouldNotify(array &$state, array $alerts, array $dangers, int $now): bool
+    private function shouldNotify(array &$state, array $alerts, array $dangers, array $unreadable, int $now): bool
     {
-        if ($alerts === [] && $dangers === []) {
+        if ($alerts === [] && $dangers === [] && $unreadable === []) {
             $state['last_alert'] = null;
 
             return false;
@@ -343,6 +408,7 @@ final class FileWatcher
         $signature = hash('sha256', json_encode([
             array_map(fn (array $alert) => $alert['kind'].':'.$alert['label'], $alerts),
             array_column($dangers, 'label'),
+            $unreadable,
         ]));
         $last = $state['last_alert'];
         if ($last !== null && $last['signature'] === $signature && $now - $last['at'] < self::ALERT_INTERVAL) {
@@ -394,14 +460,42 @@ final class FileWatcher
             return;
         }
 
-        $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($path, FilesystemIterator::SKIP_DOTS));
-        foreach ($iterator as $file) {
-            $child = $label.'/'.str_replace('\\', '/', substr($file->getPathname(), strlen($path) + 1));
-            if ($file->isLink() || ! $file->isFile() || $this->isExcluded($child, $exclude)) {
+        foreach ($this->walk($path, $label, $exclude) as $child => $file) {
+            $files[$child] = ['path' => $file, 'ctime' => ($this->ctime)($file), 'size' => (int) filesize($file)];
+        }
+    }
+
+    /**
+     * ディレクトリの下のファイルを、たどって集める。名前 => パス。シンボリックリンクはたどらず、$excludeの名前とその下は飛ばす。
+     * 開けないディレクトリは、止まらずに飛ばし、名前を$this->unreadableに残す
+     *
+     * @return array<string, string>
+     */
+    private function walk(string $directory, string $label, array $exclude = []): array
+    {
+        $entries = @scandir($directory);
+        if ($entries === false) {
+            $this->unreadable[] = $label;
+
+            return [];
+        }
+
+        $files = [];
+        foreach ($entries as $entry) {
+            $path = $directory.'/'.$entry;
+            $child = $label.'/'.$entry;
+            if ($entry === '.' || $entry === '..' || is_link($path) || $this->isExcluded($child, $exclude)) {
                 continue;
             }
-            $files[$child] = ['path' => $file->getPathname(), 'ctime' => ($this->ctime)($file->getPathname()), 'size' => (int) $file->getSize()];
+
+            if (is_dir($path)) {
+                $files += $this->walk($path, $child, $exclude);
+            } elseif (is_file($path)) {
+                $files[$child] = $path;
+            }
         }
+
+        return $files;
     }
 
     /** 名前が、監視しない場所か、その下か */
@@ -429,7 +523,7 @@ final class FileWatcher
      */
     private function dangers(): array
     {
-        if (! is_dir($this->uploadPath)) {
+        if (! is_dir($this->publicUploadPath)) {
             return [];
         }
 
@@ -441,28 +535,18 @@ final class FileWatcher
         ]);
 
         $dangers = [];
-        $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($this->uploadPath, FilesystemIterator::SKIP_DOTS));
-        foreach ($iterator as $file) {
-            if (! $file->isFile()) {
-                continue;
-            }
-            $name = $file->getFilename();
-            $extension = strtolower($file->getExtension());
-            $relative = str_replace('\\', '/', substr($file->getPathname(), strlen($this->uploadPath) + 1));
+        foreach ($this->walk($this->publicUploadPath, 'storage/app/public') as $label => $file) {
+            $name = basename($file);
+            $extension = strtolower(pathinfo($name, PATHINFO_EXTENSION));
 
-            // PHPとして動くものは、どこにあっても知らせる。公開の置き場所では、受け付けていない拡張子も知らせる
+            // PHPとして動くものと、受け付けていない拡張子のもの
             $runnable = in_array($extension, self::DANGER_EXTENSIONS, true) || in_array($name, self::DANGER_NAMES, true);
-            $unexpected = str_starts_with($relative, self::PUBLIC_UPLOAD_DIR.'/')
-                && ! in_array($name, self::PUBLIC_UPLOAD_IGNORE, true)
-                && ! in_array($extension, $allowed, true);
+            $unexpected = ! in_array($name, self::PUBLIC_UPLOAD_IGNORE, true) && ! in_array($extension, $allowed, true);
             if (! $runnable && ! $unexpected) {
                 continue;
             }
 
-            $dangers[] = [
-                'label' => 'storage/app/'.$relative,
-                'time' => ($this->ctime)($file->getPathname()),
-            ];
+            $dangers[] = ['label' => $label, 'time' => ($this->ctime)($file)];
         }
         usort($dangers, fn (array $a, array $b) => strcmp($a['label'], $b['label']));
 

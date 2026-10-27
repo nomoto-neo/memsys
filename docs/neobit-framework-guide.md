@@ -2933,16 +2933,20 @@ Apache の `Redirect` は、書かなくても前方一致で当たり、残り�
 
 コードを更新する利用者（開発サーバーでは devapp、本番では webapp）の crontab に、2行を書きます。Laravel のスケジューラー（apache の cron）には入れません。記録（`bootstrap/cache/file-watch.json`）をその利用者だけが書けるようにし、Web の側から侵入した攻撃者（apache の権限）が書き換えられないようにするためです。
 
+`/etc/cron.d/` に置く例です（root しか書き換えられないので、apache の権限で侵入されても監視を止められません）。`--full` は、5分ごとの回と重ならないよう、5の倍数でない分にします。
+
 ```
-*/5 * * * * cd /var/www/memsys && php artisan app:watch-files > /dev/null 2>&1
-30 4 * * *  cd /var/www/memsys && php artisan app:watch-files --full > /dev/null 2>&1
+*/5 * * * * devapp cd /var/www/memsys_dev && /usr/bin/php artisan app:watch-files > /dev/null 2>&1
+32  7 * * * devapp cd /var/www/memsys_dev && /usr/bin/php artisan app:watch-files --full > /dev/null 2>&1
 ```
 
 書いたら、同じ利用者で1回だけ基準を作ります。
 
 ```bash
-php artisan app:watch-files --init
+sudo -u devapp /usr/bin/php artisan app:watch-files --init
 ```
+
+5分ほど待ってから同じ利用者で `app:watch-files` を手で1回動かし、「改ざんの疑い 0件」と出れば動いています。
 
 **鍵のファイル**（サイトを更新するたび）
 
@@ -2961,9 +2965,12 @@ php artisan app:watch-files --init
 **知らせるもの**
 
 - 監視する場所の、変わった・増えた・消えたファイル。監視する場所は `app/`・`packages/`・`config/`・`routes/`・`bootstrap/`（`cache` を除く）・`database/`・`resources/`・`lang/`・`code/`・公開ディレクトリ（`public_path()`。`storage` を除く）と、直下の `artisan`・`composer.json`・`composer.lock` です。`vendor/` は1日1回の `--full` のときだけ見ます。
-- アップロードの置き場所の、受け付けていないファイル。アップロードのたびにファイルが増えるので、基準とは比べずに、毎回次のものを探し、待たずにすぐ知らせます。
-    - 公開の置き場所（`storage/app/public`。`/storage/` の URL で外から開ける）：アップロードの設定（`upload.image_types`・`attach_types`）と、`file_watch.public_upload_extra` に無い拡張子のもの。JavaScript・CSS・HTML・SVG などを、一覧に書かずに全部拾います。画面からのアップロードでは置かれ得ないので、あれば改ざんの疑いが強いためです。
-    - `storage/app` の全部：PHP として動く拡張子のファイル（`.php`・`.phtml`・`.phar` など）と `.htaccess`・`.user.ini`。非公開のファイルや、フレームワークが作る作業のファイル（CSV 取り込みの途中のファイル、ベーシック認証の `.htpasswd` など）があるので、公開の置き場所と同じ決まりにはしません。
+- 公開のアップロードの置き場所（`storage/app/public`。`/storage/` の URL で外から開ける）の、受け付けていないファイル。アップロードのたびにファイルが増えるので、基準とは比べずに、毎回次のものを探し、待たずにすぐ知らせます。
+    - PHP として動く拡張子のファイル（`.php`・`.phtml`・`.phar` など）と `.htaccess`・`.user.ini`
+    - アップロードの設定（`upload.image_types`・`attach_types`）と、`file_watch.public_upload_extra` に無い拡張子のもの。JavaScript・CSS・HTML・SVG などを、一覧に書かずに全部拾います。画面からのアップロードでは置かれ得ないので、あれば改ざんの疑いが強いためです。
+- 非公開の置き場所（`storage/app/private`）は見ません。Web から直接開けないので置かれても動かせないうえ、Laravel が作った本人（apache）しか読めない権限（0700・0600）で作られ、監視の利用者には開けないためです。
+- 監視する場所の中に、監視の利用者が開けないディレクトリがあれば、止まらずに飛ばし、「確かめられなかったディレクトリ」として知らせます。改ざんを隠す場所になり得るためです。その下のファイルは、消えたものとしては扱いません。
+- 5分ごとの回と `--full` の回が重ならないよう、記録の隣のロックのファイル（`bootstrap/cache/file-watch.lock`）を押さえます。前の回が動いている間は、次の回は何もせずに終わります。
 - 知らせたファイルは基準に取り込まず、直るまで（元の中身に戻るか、通常の更新の期間に入るまで）知らせ続けます。同じ顔ぶれは1時間に1回に間引き、新しい変化が加わったらすぐに送ります。
 - 宛先は `file_watch.to`、無ければエラーの通知と同じ `ERROR_NOTIFY_TO` です。件名は `【緊急：サイト名】ファイルの改ざんを検知しました（変更 1件・追加 0件・削除 0件）` の形です。
 
