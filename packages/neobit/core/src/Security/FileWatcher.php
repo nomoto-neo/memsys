@@ -27,6 +27,15 @@ use RuntimeException;
  * 期間に入らない変化は、そのctimeから15分たつまで待つ。送る順番で、鍵が後から届くことがあるため。
  * たっても期間に入らなければ、改ざんとして知らせる。知らせたファイルは基準に取り込まず、直るまで知らせ続ける。
  *
+ * ■ 監視する場所
+ * - DEFAULT_PATHSの場所（app・packages・config・routesなど）と、公開ディレクトリ（public_path()）の全部のファイル
+ * - プロジェクトの直下の全部のファイル（.env・artisan・composer.jsonなど）。中身まで見る。.envはapacheからは
+ *   読めないが、この監視の利用者は読める。記録に残すのはハッシュ値だけ
+ * - プロジェクトの直下のディレクトリは、名前が増えた・消えたことだけを見る
+ * - bootstrap/cacheの設定などのキャッシュ（config.phpなど）。サーバーのLaravelが実際に読むのは.envではなく
+ *   ここなので、書き換えられるとすぐに効くため。デプロイの外でconfig:cacheをやり直したときは、鍵のファイルも更新する
+ * 外すのは、この監視の記録とロックのファイル、鍵のファイル、テストでできるファイル。
+ *
  * ■ アップロードの置き場所
  * アップロードのたびにファイルが増えるので、基準とは比べない。代わりに毎回、公開の置き場所（storage/app/public。
  * /storage/のURLで外から開ける）に、次のファイルが無いかを確かめ、見つけたら待たずに知らせる。
@@ -97,13 +106,17 @@ final class FileWatcher
         'resources',
         'lang',
         'code',
-        'artisan',
-        'composer.json',
-        'composer.lock',
     ];
 
-    /** 監視しない場所（basePathの下）。運用中に正しく変わるもの */
-    private const EXCLUDE = ['bootstrap/cache'];
+    /** 監視しないもの（basePathの下）。この監視の記録とロックのファイル */
+    private const EXCLUDE = [
+        'bootstrap/cache/file-watch.json',
+        'bootstrap/cache/file-watch.json.tmp',
+        'bootstrap/cache/file-watch.lock',
+    ];
+
+    /** プロジェクトの直下で、監視しないもの。サーバーでテストを動かしたときにできる */
+    private const ROOT_IGNORE = ['.phpunit.cache', '.phpunit.result.cache'];
 
     /** 公開ディレクトリの中で、監視しないもの。アップロードの置き場所へのリンクと、開発のときの目印 */
     private const PUBLIC_EXCLUDE = ['storage', 'hot'];
@@ -206,6 +219,7 @@ final class FileWatcher
         $key = $this->keyCtime();
         $this->save([
             'files' => $files,
+            'root_dirs' => $this->rootDirectories(),
             'keys' => $key !== null ? [$key] : [],
             'deleted_seen' => [],
             'accepted' => [],
@@ -272,6 +286,18 @@ final class FileWatcher
             }
             $state['deleted_seen'][$label] ??= $now;
             $candidates[$label] = ['kind' => 'deleted', 'time' => $state['deleted_seen'][$label], 'info' => null];
+        }
+
+        // 直下のディレクトリは、名前が増えた・消えたことだけを見る。名前は末尾に/を付けて、ファイルと分ける。
+        // 前の版の基準で直下の一覧が無ければ、今の一覧を知らせずに基準にする
+        $rootDirectories = $this->rootDirectories();
+        $state['root_dirs'] ??= $rootDirectories;
+        foreach (array_diff($rootDirectories, $state['root_dirs']) as $name) {
+            $candidates[$name.'/'] = ['kind' => 'added', 'time' => ($this->ctime)($this->basePath.'/'.$name), 'info' => null, 'directory' => $name];
+        }
+        foreach (array_diff($state['root_dirs'], $rootDirectories) as $name) {
+            $state['deleted_seen'][$name.'/'] ??= $now;
+            $candidates[$name.'/'] = ['kind' => 'deleted', 'time' => $state['deleted_seen'][$name.'/'], 'info' => null, 'directory' => $name];
         }
         $state['deleted_seen'] = array_intersect_key($state['deleted_seen'], array_filter($candidates, fn (array $c) => $c['kind'] === 'deleted'));
 
@@ -367,7 +393,13 @@ final class FileWatcher
     /** 通常の更新を、基準に取り込み、期間の記録に足す */
     private function accept(array &$state, string $label, array $candidate, array $period): void
     {
-        if ($candidate['kind'] === 'deleted') {
+        if (isset($candidate['directory'])) {
+            // 直下のディレクトリは、名前の一覧を直す
+            $state['root_dirs'] = $candidate['kind'] === 'deleted'
+                ? array_values(array_diff($state['root_dirs'], [$candidate['directory']]))
+                : [...$state['root_dirs'], $candidate['directory']];
+            unset($state['deleted_seen'][$label]);
+        } elseif ($candidate['kind'] === 'deleted') {
             unset($state['files'][$label], $state['deleted_seen'][$label]);
         } else {
             $info = $candidate['info'];
@@ -440,6 +472,13 @@ final class FileWatcher
             $this->collect($this->basePath.'/'.$path, $path, self::EXCLUDE, $files);
         }
         $this->collect($this->publicPath, 'public', array_map(fn (string $name) => 'public/'.$name, self::PUBLIC_EXCLUDE), $files);
+
+        // 直下のファイル。中身まで見る
+        foreach ($this->rootEntries() as $name => $isDirectory) {
+            if (! $isDirectory) {
+                $this->collect($this->basePath.'/'.$name, $name, [], $files);
+            }
+        }
         ksort($files);
 
         return $files;
@@ -496,6 +535,47 @@ final class FileWatcher
         }
 
         return $files;
+    }
+
+    /**
+     * プロジェクトの直下の名前 => ディレクトリか。シンボリックリンク・鍵のファイル・テストでできるものは外す。
+     * 直下を開けなければ、空にして$this->unreadableに残す
+     *
+     * @return array<string, bool>
+     */
+    private function rootEntries(): array
+    {
+        $entries = @scandir($this->basePath);
+        if ($entries === false) {
+            $this->unreadable[] = '.';
+
+            return [];
+        }
+
+        $ignore = [...self::ROOT_IGNORE, (string) config('neobit.file_watch.release_file')];
+        $result = [];
+        foreach ($entries as $entry) {
+            $path = $this->basePath.'/'.$entry;
+            if ($entry === '.' || $entry === '..' || in_array($entry, $ignore, true) || is_link($path)) {
+                continue;
+            }
+            $result[$entry] = is_dir($path);
+        }
+
+        return $result;
+    }
+
+    /**
+     * プロジェクトの直下のディレクトリの名前
+     *
+     * @return list<string>
+     */
+    private function rootDirectories(): array
+    {
+        $directories = array_keys(array_filter($this->rootEntries()));
+        sort($directories);
+
+        return $directories;
     }
 
     /** 名前が、監視しない場所か、その下か */

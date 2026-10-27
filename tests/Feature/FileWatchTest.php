@@ -212,12 +212,75 @@ class FileWatchTest extends TestCase
 
     public function test_vendor_and_cache_are_watched_only_where_they_should_be(): void
     {
-        // bootstrap/cacheは監視しない。vendor/は--fullのときだけ
+        // bootstrap/cacheの設定のキャッシュは見る（サーバーのLaravelが実際に読むため）。vendor/は--fullのときだけ
         $this->write('bootstrap/cache/config.php', '<?php return [2];', 2);
         $this->write('vendor/laravel/framework/Foo.php', '<?php // 書き換え', 2);
 
+        $this->assertSame(['bootstrap/cache/config.php'], array_column($this->checkAt(20)['alerts'], 'label'));
+        $this->assertSame(
+            ['bootstrap/cache/config.php', 'vendor/laravel/framework/Foo.php'],
+            array_column($this->checkAt(21, full: true)['alerts'], 'label'),
+        );
+
+        // この監視の記録とロックのファイルは見ない
+        $this->assertFileExists($this->base.'/bootstrap/cache/file-watch.json');
+        $this->assertNotContains('bootstrap/cache/file-watch.json', array_column($this->checkAt(25)['alerts'], 'label'));
+    }
+
+    public function test_root_files_are_watched_with_their_contents(): void
+    {
+        $this->write('.env', 'APP_KEY=base64:original', -1440);
+        $this->write('composer.json', '{}', -1440);
+        $this->watcher()->init();
+
+        // 直下のファイルの書き換えと、知らないファイル
+        $this->write('.env', 'APP_KEY=base64:changed', 2);
+        $this->write('shell.php', '<?php', 2);
+
+        $result = $this->checkAt(20);
+        $this->assertSame(
+            [['label' => '.env', 'kind' => 'changed'], ['label' => 'shell.php', 'kind' => 'added']],
+            array_map(fn (array $alert) => ['label' => $alert['label'], 'kind' => $alert['kind']], $result['alerts']),
+        );
+
+        // 記録に残すのはハッシュ値だけで、中身は残さない
+        $this->assertStringNotContainsString('base64:', (string) file_get_contents($this->base.'/bootstrap/cache/file-watch.json'));
+    }
+
+    public function test_root_directories_are_watched_by_name(): void
+    {
+        // 鍵が無く増えた直下のディレクトリは知らせる。名前の末尾に/を付ける
+        File::ensureDirectoryExists($this->base.'/backdoor');
+        $this->ctimes[$this->base.'/backdoor'] = $this->start + 120;
+        $this->assertSame(
+            [['label' => 'backdoor/', 'kind' => 'added', 'time' => $this->start + 120]],
+            $this->checkAt(20)['alerts'],
+        );
+
+        // 鍵の前後に増えたものは、通常の更新として一覧に取り込む
+        File::ensureDirectoryExists($this->base.'/node_modules');
+        $this->ctimes[$this->base.'/node_modules'] = $this->start + 1500;
+        $this->write('.version', 'deploy', 26);
+        $result = $this->checkAt(30);
+        $this->assertSame(1, $result['accepted']);
+        $this->assertNotContains('node_modules/', array_column($result['alerts'], 'label'));
+
+        // 鍵のファイルそのものと、テストでできるものは見ない
+        $this->write('.phpunit.result.cache', '{}', 40);
+        File::ensureDirectoryExists($this->base.'/.phpunit.cache');
+        $this->assertSame(['backdoor/'], array_column($this->checkAt(60)['alerts'], 'label'));
+    }
+
+    public function test_old_baseline_without_the_root_list_is_completed_quietly(): void
+    {
+        // 前の版の基準には直下のディレクトリの一覧が無い。最初の回で、知らせずに今の一覧を基準にする
+        $path = $this->base.'/bootstrap/cache/file-watch.json';
+        $state = json_decode((string) file_get_contents($path), true);
+        unset($state['root_dirs']);
+        file_put_contents($path, json_encode($state));
+
         $this->assertSame([], $this->checkAt(20)['alerts']);
-        $this->assertSame('vendor/laravel/framework/Foo.php', $this->checkAt(21, full: true)['alerts'][0]['label']);
+        $this->assertArrayHasKey('root_dirs', json_decode((string) file_get_contents($path), true));
     }
 
     public function test_command_needs_the_key_setting_and_the_baseline(): void

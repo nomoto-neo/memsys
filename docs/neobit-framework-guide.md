@@ -2936,9 +2936,13 @@ Apache の `Redirect` は、書かなくても前方一致で当たり、残り�
 `/etc/cron.d/` に置く例です（root しか書き換えられないので、apache の権限で侵入されても監視を止められません）。`--full` は、5分ごとの回と重ならないよう、5の倍数でない分にします。
 
 ```
-*/5 * * * * devapp cd /var/www/memsys_dev && /usr/bin/php artisan app:watch-files > /dev/null 2>&1
-32  7 * * * devapp cd /var/www/memsys_dev && /usr/bin/php artisan app:watch-files --full > /dev/null 2>&1
+MAILTO=dev@example.com
+*/5 * * * * devapp cd /var/www/memsys_dev && /usr/bin/php artisan app:watch-files > /dev/null
+32  7 * * * devapp cd /var/www/memsys_dev && /usr/bin/php artisan app:watch-files --full > /dev/null
 ```
+
+- **エラーの出力は捨てず、`MAILTO` を書きます**。改ざん監視も Laravel の上で動くので、Laravel が動かなくなる改ざんをされると、監視も止まり、メールも送れません。エラーの出力（`2>&1` の分）を捨てずにおけば、コマンドが例外で止まったときに、cron がその出力を `MAILTO` へメールで送ります。Laravel の外（cron とサーバーのメールの送信）で届くので、Laravel が動かなくても知らせが来ます。サーバーからメールを送れる設定が要ります。
+- PHP や cron そのものを止められたら、これも届きません。そこは外部の監視サービスの役目です（付録「サイトの改ざんを見つける仕組みの重ね方」）。
 
 書いたら、同じ利用者で1回だけ基準を作ります。
 
@@ -2964,7 +2968,12 @@ sudo -u devapp /usr/bin/php artisan app:watch-files --init
 
 **知らせるもの**
 
-- 監視する場所の、変わった・増えた・消えたファイル。監視する場所は `app/`・`packages/`・`config/`・`routes/`・`bootstrap/`（`cache` を除く）・`database/`・`resources/`・`lang/`・`code/`・公開ディレクトリ（`public_path()`。`storage` を除く）と、直下の `artisan`・`composer.json`・`composer.lock` です。`vendor/` は1日1回の `--full` のときだけ見ます。
+- 監視する場所の、変わった・増えた・消えたファイル。監視する場所は次のとおりです。`vendor/` は1日1回の `--full` のときだけ見ます。
+    - `app/`・`packages/`・`config/`・`routes/`・`bootstrap/`・`database/`・`resources/`・`lang/`・`code/` と、公開ディレクトリ（`public_path()`。`storage` を除く）の全部のファイル
+    - プロジェクトの直下の全部のファイル（`.env`・`artisan`・`composer.json` など）。中身まで見ます。`.env` は apache からは読めませんが、監視の利用者は読めます。記録に残すのはハッシュ値だけです
+    - プロジェクトの直下のディレクトリ。名前が増えた・消えたことだけを見ます（例：知らない `backdoor/` ができた）
+    - `bootstrap/cache` の設定などのキャッシュ（`config.php` など）。サーバーの Laravel が実際に読むのは `.env` ではなくここなので、書き換えられるとすぐに効くためです。**デプロイの外で `config:cache` をやり直したとき（`.env` を変えたときなど）は、`.version` も一緒に更新します**
+    - 外すのは、この監視の記録とロックのファイル、鍵のファイル、サーバーでテストを動かしたときにできる `.phpunit.cache`・`.phpunit.result.cache` です
 - 公開のアップロードの置き場所（`storage/app/public`。`/storage/` の URL で外から開ける）の、受け付けていないファイル。アップロードのたびにファイルが増えるので、基準とは比べずに、毎回次のものを探し、待たずにすぐ知らせます。
     - PHP として動く拡張子のファイル（`.php`・`.phtml`・`.phar` など）と `.htaccess`・`.user.ini`
     - アップロードの設定（`upload.image_types`・`attach_types`）と、`file_watch.public_upload_extra` に無い拡張子のもの。JavaScript・CSS・HTML・SVG などを、一覧に書かずに全部拾います。画面からのアップロードでは置かれ得ないので、あれば改ざんの疑いが強いためです。
