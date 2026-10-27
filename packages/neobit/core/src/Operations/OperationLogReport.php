@@ -6,6 +6,7 @@ use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Neobit\Core\Enums\OperationLogAction;
 use Neobit\Core\Models\OperationLog;
+use Neobit\Core\Security\FileWatcher;
 
 /**
  * 操作ログの、1日ぶんの報告。app:report-operation-logsコマンドが、前の日の分をメールで送る。
@@ -22,6 +23,8 @@ use Neobit\Core\Models\OperationLog;
  *
  * ■ 載せるもの
  * 気になる点、操作の種類ごとの件数、操作の多い人（OperationLogStats::topOperators()）。
+ * 改ざん監視（FileWatcher）が通常の更新とみなしたファイルの一覧も、更新の期間ごとに載せる。鍵のファイルを
+ * 悪用されても、運営者の目に入るようにするため。一覧のある日は、気になる点が無くても送る。
  * 操作ログと同じく、氏名のほかの個人情報と、変更の前後の値は載せない。
  */
 final class OperationLogReport
@@ -30,7 +33,7 @@ final class OperationLogReport
      * $dateの1日ぶんの報告を作る。メールのテンプレート（operation_log_report）に渡す値のうち、
      * 宛先などを除いた中身を返す。notableが空の文字なら、気になる点は無い。
      *
-     * @return array{date: string, notable: string, counts: string, operators: string}
+     * @return array{date: string, notable: string, counts: string, operators: string, file_updates: string}
      */
     public static function for(CarbonInterface $date): array
     {
@@ -143,7 +146,30 @@ final class OperationLogReport
             'notable' => implode("\n", $notable),
             'counts' => implode("\n", $countLines),
             'operators' => $operatorLines !== [] ? implode("\n", $operatorLines) : '操作はありません。',
+            'file_updates' => self::fileUpdates($date),
         ];
+    }
+
+    /** ファイルの、1つの更新の期間に並べる数の上限。多いときは「ほか○件」にする */
+    private const FILE_UPDATE_LINES = 10;
+
+    /** 改ざん監視が通常の更新とみなしたファイルの、更新の期間ごとの一覧。無ければ空の文字 */
+    private static function fileUpdates(CarbonInterface $date): string
+    {
+        $blocks = [];
+        foreach ((new FileWatcher())->acceptedOn($date) as $entry) {
+            $files = array_values(array_unique($entry['files']));
+            $lines = [date('Y-m-d H:i', $entry['from']).'〜'.date('H:i', $entry['to']).' の更新（'.count($files).'件）'];
+            foreach (array_slice($files, 0, self::FILE_UPDATE_LINES) as $file) {
+                $lines[] = '  '.$file;
+            }
+            if (count($files) > self::FILE_UPDATE_LINES) {
+                $lines[] = '  ほか'.(count($files) - self::FILE_UPDATE_LINES).'件';
+            }
+            $blocks[] = implode("\n", $lines);
+        }
+
+        return implode("\n\n", $blocks);
     }
 
     /** 気になる点の、目安の数。設定に無ければ0で、その項目は見ない */

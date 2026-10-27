@@ -181,6 +181,7 @@
 | `HtmlSanitizer` | `clean()` | |
 | `SpamGuard` | `startedToken()`・`check()`、定数 `HONEYPOT_FIELD`・`STARTED_FIELD`・`TURNSTILE_FIELD` | |
 | `AdminRequestLimit` | `limit()` | |
+| `FileWatcher` | `init()`・`check()`・`acceptedOn()`、定数 `DEFAULT_PATHS` | 改ざん監視 |
 | `BasicAuth` | `isOn()`・`save()`・`addUser()`・`deleteUser()`、定数 `AREAS`（`site`・`admin`）・`USERNAME_PATTERN` | 範囲ごとの目印のファイルと `.htpasswd` を作る |
 | `AccessRestriction` | `allowsSite()`・`allowsAdmin()`・`allowedIps()`・`siteIps()`・`adminIps()`・`envSiteIps()`・`envAdminIps()`・`settings()`・`save()`・`turnOff()`・`parseList()`・`lockoutMessage()` | |
 | `IpBlocker` | `isBlocked()`・`countMiss()`・`block()`・`changeUntil()`・`release()`・`deleteExpired()`・`normalizeRange()`・`rangeBounds()`・`coversProtected()` | |
@@ -212,6 +213,7 @@
 |---|---|---|
 | `neobit` | `layouts` | |
 | `neobit` | `admin_path` | 管理画面の頭の URL。既定は `app/admin` |
+| `neobit` | `file_watch`（`release_file`・`to`） | 配列なので、アプリで書くときは全部のキーを書く |
 | `neobit` | `code_table_db`・`code_table_method`・`code_table_enum_namespaces` | |
 | `neobit` | `operation_log_actions`・`operation_log_models`・`operation_log_route` | |
 | `neobit` | `admin_requests_per_minute`・`admin_requests_exceeded_message` | |

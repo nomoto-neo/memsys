@@ -35,8 +35,8 @@ class ReportOperationLogs extends Command
 
         $report = OperationLogReport::for($date);
 
-        // 気になる点が無ければ送らない
-        if ($report['notable'] === '' && ! $this->option('always')) {
+        // 気になる点も、改ざん監視が通常の更新とみなしたファイルも無ければ送らない
+        if ($report['notable'] === '' && $report['file_updates'] === '' && ! $this->option('always')) {
             $this->info($report['date'].'の操作ログに、気になる点はありませんでした。メールは送りません。');
 
             return self::SUCCESS;
