@@ -27,6 +27,21 @@ return [
 
     /*
     |--------------------------------------------------------------------
+    | 管理画面のURL
+    |--------------------------------------------------------------------
+    |
+    | 管理画面の頭のURL（先頭と末尾の/は付けない）。/adminはURLを順に叩く攻撃で真っ先に狙われるので、
+    | 既定もapp/adminにしている。アプリのroutes/web.phpが管理画面のグループのprefix()に使い、
+    | サイトのアクセス制限（RestrictSiteAccess）は、ここの下を制限の外にする。
+    | 変えたら、ベーシック認証のVirtualHostの決まり（利用ガイドの25章）も合わせて直す。
+    | robots.txtには書かない。誰でも読めるので、隠したURLを教えることになるため。
+    |
+    */
+
+    // 'admin_path' => 'app/admin',
+
+    /*
+    |--------------------------------------------------------------------
     | コード表
     |--------------------------------------------------------------------
     |
@@ -170,7 +185,8 @@ return [
     | - noindex_routes      検索に出さないルートの名前。*が使える（例：'contact.thanks'）
     | - sitemap_routes      サイトマップ（/sitemap.xml）に載せる、記事を持たないページのルートの名前
     | - sitemap_models      サイトマップに載せる記事のモデル（Neobit\Core\Seo\SitemapSourceを実装したもの）
-    | - robots_disallow     robots.txtで巡回させない場所。本番（APP_ENV=production）だけ使い、本番以外は全部を巡回させない
+    | - robots_disallow     robots.txtで巡回させない場所。本番（APP_ENV=production）だけ使い、本番以外は全部を巡回させない。
+    |                       管理画面は書かない（URLを教えることになるため。管理画面はX-Robots-Tagで検索に出さない）
     | - page_routes         管理画面の「SEO設定」に出す、記事を持たないページ。ルート名 => 画面に出す名前。
     |                       引数の要らないルートだけ
     | - redirects           管理画面の「リダイレクト」で登録した移し方を当てるか。falseなら登録を見ずに、
@@ -190,7 +206,7 @@ return [
     //     'noindex_routes' => [],
     //     'sitemap_routes' => [],
     //     'sitemap_models' => [],
-    //     'robots_disallow' => ['/admin'],
+    //     'robots_disallow' => [],
     //     'page_routes' => [],
     //     'redirects' => false,
     // ],

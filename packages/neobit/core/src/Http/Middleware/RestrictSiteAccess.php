@@ -18,7 +18,8 @@ use Symfony\Component\HttpFoundation\Response;
  * 画面はDBもセッションも使わない1枚のHTMLなので、DBを止めている間も出せる。
  * ルートが無いURLでも同じ画面を出すので、bootstrap/app.phpで、全体のミドルウェアに足している。
  *
- * 制限の間も通すパスは、bootstrap/app.phpがexcept()で渡す。
+ * 制限の間も通すパスは、bootstrap/app.phpがexcept()で渡す。管理画面（設定のneobit.admin_pathの下）は、
+ * 管理画面の制限（RestrictAdminAccess）だけを掛けるので、渡さなくてもいつも通す。
  * Apacheが直接返すファイル（public/build/・public/storage/）は、ここを通らないので止まらない。
  * コマンドも通らないので、スケジューラーとキューは、制限の間も動く。
  */
@@ -27,7 +28,7 @@ class RestrictSiteAccess
     /** メンテナンス中の画面のビュー */
     private const VIEW = 'neobit::maintenance';
 
-    // 制限の間も、IPアドレスに関係なく通すパス。「mail/unsubscribe」「admin/*」の形
+    // 制限の間も、IPアドレスに関係なく通すパス。「mail/unsubscribe」「up」の形
     /** @var string[] */
     private static array $except = [];
 
@@ -43,7 +44,11 @@ class RestrictSiteAccess
 
     public function handle(Request $request, Closure $next): Response
     {
-        if ($request->is(self::$except) || AccessRestriction::allowsSite($request)) {
+        // 管理画面は、設定の頭のURLから外す
+        $admin = trim((string) config('neobit.admin_path'), '/');
+        $except = [...self::$except, $admin, $admin.'/*'];
+
+        if ($request->is($except) || AccessRestriction::allowsSite($request)) {
             return $next($request);
         }
 
