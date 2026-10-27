@@ -280,6 +280,10 @@ has   packages/neobit/core/src/Http/Controllers/BasicAuthController.php 'class B
 has   routes/web.php                                                    'BasicAuthController'
 has   resources/views/admin/_menu.blade.php                             'admin.basic-auth.index'
 has   packages/neobit/core/src/Http/Middleware/NoIndexHeader.php        'class NoIndexHeader'
+has   packages/neobit/core/src/Security/FileWatcher.php                 'final class FileWatcher'
+has   packages/neobit/core/src/Console/WatchFiles.php                   'app:watch-files'
+has   packages/neobit/core/resources/mail-templates/file_watch_alert.blade.php 'ファイルの改ざんを検知しました'
+has   packages/neobit/core/src/Operations/OperationLogReport.php       'fileUpdates'
 has   packages/neobit/core/src/Http/Middleware/RestrictSiteAccess.php   "config('neobit.admin_path')"
 has   routes/web.php                                                    "prefix(config('neobit.admin_path'))"
 lacks bootstrap/app.php                                                 "'admin/*'"

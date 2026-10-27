@@ -81,6 +81,8 @@
 
 Laravel を公開ディレクトリの外に置けないレンタルサーバーでは、本体を公開ディレクトリの `app/system/` に置き、`index.php` と `vite.config.js` を書き換えます。手順と、置いた後に外から確かめることは、利用ガイドの付録「Laravel を公開ディレクトリの外に置けないサーバー」にあります。
 
+改ざん監視を使うサーバーでは、コードを更新する利用者の crontab に `app:watch-files` を2行書き、`php artisan app:watch-files --init` で基準を作ります（利用ガイドの29章）。鍵のファイルの名前は `config/neobit.php` の `file_watch.release_file`（既定は `.version`）で、案件ごとに変えられます。
+
 ## サーバーへ送らないもの
 
 プロジェクトのファイルのうち、サーバーへ送ってはいけないものです。サーバーごとに作るためです。
