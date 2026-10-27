@@ -26,6 +26,11 @@
 - [21. キュー（一斉メール）](#21.%20キュー（一斉メール）)
 - [22. 操作ログ（OperationRecorder）](#22.%20操作ログ（OperationRecorder）)
 - [23. 個人会員と企業会員（LoginAccount）](#23.%20個人会員と企業会員（LoginAccount）)
+- [24. アクセス制限（接続元の IP アドレスの制限）](#24.%20アクセス制限（接続元の%20IP%20アドレスの制限）)
+- [25. ベーシック認証](#25.%20ベーシック認証)
+- [26. IPブロック管理（IpBlocker）](#26.%20IPブロック管理（IpBlocker）)
+- [27. SEO（ページのタイトル・説明文・OGP）](#27.%20SEO（ページのタイトル・説明文・OGP）)
+- [28. リダイレクト（301 リダイレクトの管理）](#28.%20リダイレクト（301%20リダイレクトの管理）)
 - [付録. フレームワーク外で考慮すべきセキュリティ対策](#付録.%20フレームワーク外で考慮すべきセキュリティ対策)
 
 ## 版の履歴
@@ -37,6 +42,7 @@
 | 第3版 | 2026-10-07 | 企業会員の概念の追加とセキュリティ面の強化 |
 | 第4版 | 2026-10-08 | WYSIWYG エディタ SunEditor に対応 |
 | 第5版 | 2026-10-13 | ログイン周り機能の汎用化 |
+| 第6版 | 2026-10-27 | アクセス制限・ベーシック認証・IPブロック管理・SEO・リダイレクトを章に分ける |
 
 ## 0. このガイドについて
 
@@ -133,81 +139,6 @@ TRUSTED_PROXIES=10.0.0.5,10.0.0.6
 - **プロキシの IP アドレスだけを、正確に書きます**。ここに書いた IP アドレスから接続した人は、IP アドレスを偽れるようになります。このヘッダーは送る側が自由に書けるためです。偽れると、試行制限を逃れたり、接続元の IP アドレスの制限をすり抜けたりできます。広い範囲や、プロキシではない機器の IP アドレスは書きません。プロキシを置いていなければ、空のままにします。
 - 訪問者の側がプロキシや VPN を通してきたときは、そのプロキシの IP アドレスが残ります。本当の IP アドレスは、こちらからは分かりません。
 - `.env` を変えたら `php artisan config:cache` をやり直します。
-### 接続元の IP アドレスの制限（アクセス制限）
-
-**ファイル**：`packages/neobit/core/src/Security/AccessRestriction.php`（冒頭のコメント）・`src/Http/Middleware/RestrictSiteAccess.php`・`RestrictAdminAccess.php`・`src/Http/Controllers/AccessRestrictionController.php`、画面は `packages/neobit/core/resources/views/maintenance.blade.php`
-
-サイト（訪問者画面）と管理画面を開ける IP アドレスを、管理画面の「アクセス制限」で、それぞれ絞れます。運用する人が、サーバーに入らずに変えられます。2つの制限は、互いに影響しません。
-
-| 項目 | チェックを入れたとき | 使うとき |
-|---|---|---|
-| サイト（訪問者画面） | サイトの IP アドレスのほかに、メンテナンス中の画面を 503 で返す。管理画面には掛からない | 公開前のデモの運用、メンテナンスの間 |
-| 管理画面 | 管理画面の IP アドレスのほかに、ログイン画面も含めて 404 を返す。サイトには掛からない | 事務所などの決まった場所からしか管理画面を使わないサイト |
-
-- **入力**：1行に1つか、カンマ区切りです。`192.168.0.0/24` のようなまとまりと、IPv6 も書けます。
-- **チェックを入れたときだけ掛かる**：IP アドレスを書いただけでは、制限は掛かりません。
-- **設定ファイルの分**：`.env` の `SITE_ALLOWED_IPS`・`ADMIN_ALLOWED_IPS` に書いた IP アドレスは、それぞれの一覧に足し合わせます。画面からは外せず、画面にはそれぞれの欄の上に「次のIPアドレスは、設定ファイルで常に許可されています。」と出ます。サーバーを管理する人の事務所などを書いておくと、画面でどう設定しても締め出されません。`.env` を変えたら `php artisan config:cache` をやり直します。
-- **締め出さない**：管理画面の制限を掛けて保存するとき、今の自分の IP アドレスが管理画面の一覧に無ければ、保存させません。サイトの制限は管理画面に影響しないので、確かめません。それでも回線が変わるなどで締め出されたときは、サーバーで `php artisan app:access-denied-off` を実行します。両方の制限を外します。IP アドレスの一覧は残ります。
-- **ルート**：案件が書きます。機能を使うかどうかを、案件ごとに決めるためです。管理者だけのグループの中に、「頭.index」（GET）と「頭.update」（PATCH）の組で名前を付けます。
-
-    ```php
-    // routes/web.php（管理者だけのグループの中）
-    Route::get('/access-restriction', [AccessRestrictionController::class, 'index'])->name('access-restriction.index');
-    Route::patch('/access-restriction', [AccessRestrictionController::class, 'update'])->name('access-restriction.update');
-    ```
-
-- **サイトの制限から管理画面を外す**：`bootstrap/app.php` の `RestrictSiteAccess::except()` に、管理画面の URL（見本のサイトでは `admin`・`admin/*`）を書きます。管理画面の URL の頭は案件が決めるので、案件の側で書きます。
-- **設定の置き場所**：DB の `settings` テーブルです。毎回のアクセスで読むので、キャッシュに置き、保存のたびに作り直します。変えた内容は、操作ログに「アクセス制限の変更」として残ります。
-- **IPブロック管理との関係**：2つの一覧にある IP アドレスは、IPブロック管理で止めません（22章）。
-- **プロキシを前に置くときは、`TRUSTED_PROXIES` を先に書きます**。書かないと、全員がプロキシの IP アドレスに見えるので、全員が通るか、全員が止まります。
-- **メンテナンス中の画面**は、レイアウトを継承しない1枚の HTML です。DB もセッションも使わないので、DB を止めている間も出せます。文言は、アプリの `resources/views/vendor/neobit/maintenance.blade.php` に同じ名前で置いて上書きします。デモの運用のときも、この画面が出ます。
-- **503 で返す**のは、一時的に止めていることを検索エンジンに伝えて、登録を消されないようにするためです。
-- **制限の間も通すパス**は、`bootstrap/app.php` の `RestrictSiteAccess::except()` に書きます。今は、死活監視（`/up`）と、お知らせメールの配信停止（`/mail/unsubscribe`）と、管理画面です。止めている間に届いたメールからも、停止できるようにするためです。
-- **管理画面を 404 にする**のは、そこに管理画面があることを知らせないためです。止めたアクセスは、操作ログに残しません。
-- **Apache が直接返すファイルは止まりません**。`public/build/` の中と、公開のアップロードファイル（`public/storage/`）は、Laravel を通らないためです。そこまで止めるときは、Apache の設定で絞ります。
-- **コマンドは止まりません**。スケジューラー（19章）とキュー（21章）は、制限の間も動きます。メンテナンスの間に一斉メールを送りたくないときは、送信が終わってから止めます。
-- Laravel の `php artisan down` は使いません。サーバーでコマンドを打つ必要があり、画面の設定とは別の仕組みになるためです。
-
-### ベーシック認証
-
-**ファイル**：`packages/neobit/core/src/Security/BasicAuth.php`（冒頭のコメント）・`src/Http/Controllers/BasicAuthController.php`・`src/Models/BasicAuthUser.php`、画面は `packages/neobit/core/resources/views/admin/basic_auth/index.blade.php`　**実例**：管理画面の「セキュリティ」の「ベーシック認証」
-
-運用する人が管理画面から、訪問者画面と管理画面のそれぞれに、ベーシック認証を掛けるかと、そのユーザーを別々に変えられます。認証するのは Apache なので、Laravel を通らない `public` の下の HTML や画像にも掛かります。
-
-- **仕組み**：管理画面で切り替えると、目印のファイル `storage/app/basic-auth/site.on`（訪問者画面）・`admin.on`（管理画面）を作る・消します。ユーザーを追加・削除すると、その範囲の `storage/app/basic-auth/site.htpasswd`・`admin.htpasswd` を書き直します（パスワードは bcrypt の `$2y$`）。サーバーの VirtualHost に書いた決まりが、目印のファイルがあるときだけ認証を掛けます。`public/.htaccess` は変えません。
-- **サーバーの設定**（1回だけ。サーバーを管理する人）：VirtualHost に次の決まりを書き、Apache を読み直します。パスはそのサーバーのプロジェクトの場所に書き換えます。決まりを書いていないサーバーでは、画面で切り替えても掛かりません。
-
-    ```apache
-    <Directory "/var/www/memsys/public">
-        # 管理画面の「ベーシック認証」の訪問者画面。目印のファイルがあるときだけ掛ける。死活監視と配信停止のリンク・管理画面には掛けない
-        <If "-f '/var/www/memsys/storage/app/basic-auth/site.on' && %{REQUEST_URI} !~ m#^/(up|mail/unsubscribe|admin)#">
-            AuthType Basic
-            AuthName "Restricted"
-            AuthUserFile /var/www/memsys/storage/app/basic-auth/site.htpasswd
-            Require valid-user
-        </If>
-        # 管理画面の「ベーシック認証」の管理画面。AuthNameは訪問者画面と分ける
-        <If "-f '/var/www/memsys/storage/app/basic-auth/admin.on' && %{REQUEST_URI} =~ m#^/admin#">
-            AuthType Basic
-            AuthName "RestrictedAdmin"
-            AuthUserFile /var/www/memsys/storage/app/basic-auth/admin.htpasswd
-            Require valid-user
-        </If>
-    </Directory>
-    ```
-- **AuthName は範囲ごとに分けます**（訪問者画面は `Restricted`、管理画面は `RestrictedAdmin`）。ブラウザは入れた ID とパスワードを、ホスト名と AuthName の組ごとに覚えます。同じ AuthName にすると、訪問者画面で入れたものを管理画面にも黙って送り、同じユーザーが両方にあれば、管理画面の窓が出ずに通ってしまいます。
-- **サーバーでのオンオフ**：目印のファイルを作る・消すだけです。パスワードを忘れて管理画面に入れなくなったときは、`admin.on` を消します。
-
-    ```bash
-    touch storage/app/basic-auth/admin.on   # 管理画面に掛ける
-    rm storage/app/basic-auth/admin.on      # 外す
-    ```
-- **掛けない URL**：訪問者画面に掛けても、死活監視（`/up`）とメルマガの配信停止（`/mail/unsubscribe`）には掛けません。訪問者画面に掛けても管理画面には掛からず、管理画面に掛けても訪問者画面には掛かりません。
-- **ユーザー**：訪問者画面と管理画面で別々に持ちます。同じユーザー名を両方に作っても、別のユーザーです。追加と削除だけです。パスワードを変えるときは、削除して追加し直します。ユーザー名は半角の英数字と `-`・`_`・`.` で、`:` は使えません（ユーザー名とパスワードの区切りのため）。パスワードは8文字以上です。
-- **締め出さない**：範囲ごとに、ユーザーが0人のときは掛けられず、掛けている間は最後のユーザーを削除できません。
-- **操作ログ**：「ベーシック認証の変更」「ベーシック認証のユーザーの追加」「ベーシック認証のユーザーの削除」で残します。補足には範囲とユーザー名だけを残し、パスワードは残しません。
-- **パスワードの総当たりは止めません**：認証するのは Laravel より手前の Apache なので、失敗の回数を数えられません。要るときは、サーバーの fail2ban などで止めます。
-- **アクセス制限との関係**：別の仕組みで、互いに影響しません。アクセス制限で通している IP アドレスにも、ベーシック認証は掛かります。
 
 ### セキュリティのヘッダー（SecurityHeaders）
 
@@ -228,233 +159,6 @@ TRUSTED_PROXIES=10.0.0.5,10.0.0.6
 - プロキシを前に置くときは、`TRUSTED_PROXIES` を書きます。書かないと、HTTPS で届いたことが分からず、`Strict-Transport-Security` が付きません。
 - **Apache が直接返すファイルには付きません**。`public/build/` の中と、公開のアップロードファイル（`public/storage/`）は、Laravel を通らないためです。そちらにも付けるときは、Apache の設定に書きます。
 - 読み込んでよい場所を決める `Content-Security-Policy` は、まだ付けていません。
-
-### SEO（ページのタイトル・説明文・OGP）
-
-**ファイル**：`packages/neobit/core/src/Seo/Seo.php`（冒頭のコメント）・`SeoSubject.php`、画面は `packages/neobit/core/resources/views/_seo_head.blade.php`　**実例**：ニュースの詳細（`NewsController::show()`）・固定ページ（`PageController::show()`）
-
-訪問者の側のページの `<head>` に、タイトル・説明文・OGP・X のカードを、サイト全体で揃った形で出します。何も入れなくても、記事の詳細では記事から、ほかの画面ではサイトの既定から値が決まります。運用する人は、記事ごとの SEO の欄と、管理画面の「SEO設定」で値を変えられます。
-
-```blade
-{{-- layouts/app.blade.php の <head> --}}
-@include('neobit::_seo_head')
-```
-
-```php
-// モデル。SEOの元になる値を返す
-class News extends Model implements SeoSubject
-{
-    public function seoTitle(): string { return $this->title; }
-    public function seoDescriptionSource(): ?string { return $this->body; }
-    public function seoImageUrl(): ?string { return $this->list_image_url; }
-}
-
-// コントローラーの詳細の画面
-Seo::for($news);
-```
-
-| 値 | 記事の詳細（`Seo::for()` を呼んだ画面） | ほかの画面 |
-|---|---|---|
-| タイトル | 記事の SEO の欄か記事のタイトルを、タイトルの形（`{title}｜{site}`）に当てはめる | 「SEO設定」のページのタイトルか、画面の `@section('title')` を当てはめる。無ければサイト名だけ |
-| 説明文 | 記事の SEO の欄か、本文のタグを除いた先頭の120文字（長ければ「…」） | 「SEO設定」のページの説明文か、既定の説明文。空なら説明文のタグを出さない |
-| シェアの画像 | 記事の SEO の欄か記事の画像。無ければ既定の画像 | 「SEO設定」のページの画像か、既定の画像。無ければ出さない |
-| `og:type` | article | website |
-
-- **サイトの既定**：管理画面の「SEO設定」の既定（タイトルの形・説明文・画像）で、空欄なら `config/neobit.php` の `seo`（`title_format`・`description`・`image`）です。本文から作る説明文の文字数は `description_length` です。既定の画像は、`public` の下のパス（例：`/images/ogp.png`）か URL で書きます。
-- **Blade で値を使う**：ヘルパーの `seo()` で取り出せます。名前は `'title'`・`'description'`・`'image'`・`'url'`・`'canonical'`・`'type'`・`'site_name'`・`'robots'`・`'site_verification'` です。`_seo_head` も中でこれを使っているので、並べ方を変えたい案件は、部品を使わずにレイアウトで自分で書けます。
-
-    ```blade
-    <meta name="description" content="{{ seo('description') }}">
-    ```
-- **URL**：画像と `og:url` は `https://` から始まる絶対の URL で出します。`og:url` は `?` の後ろを除いた今の URL です。
-- **説明文の作り方**：本文の `<script>`・`<style>` は中身ごと除き、段落や改行のタグは空白にしてから、残りのタグを除きます。
-- 部品を置くのは、訪問者の側のレイアウトだけです。管理画面と企業会員の画面は、検索に出さない画面のためです。
-
-#### 検索に出さないページ・canonical・サイトマップ・robots.txt
-
-**ファイル**：`packages/neobit/core/src/Seo/Seo.php`・`SitemapSource.php`・`src/Http/Controllers/SitemapController.php`・`RobotsController.php`
-
-- **検索に出さない（noindex）**：次のどれかの画面には、`<meta name="robots" content="noindex">` が自動で付きます。
-    - ルートに `auth` のミドルウェアが付いた画面（マイページなど、ログインしないと開けない画面）
-    - コントローラーで `Seo::noindex()` を呼んだ画面。一覧の絞り込みはセッションに持っていて URL からは見分けられないので、絞り込みのある一覧で呼びます（見本はニュースの一覧）
-    - 設定の `seo.noindex_routes` に並べたルートの名前。`*` が使えます（見本はお問い合わせの完了 `contact.thanks`）
-    - 記事の SEO の欄で、検索に出さないにしたもの
-    - 「SEO設定」のページごとの設定で、検索に出さないにしたもの
-- **canonical**：全部の画面に `<link rel="canonical">` を出します。今の URL から `?` の後ろを除いたもので、ページ送りの `?page=` だけは残します（2ページ目以降も別のページとして検索に出すため）。
-- **XML サイトマップ**（`/sitemap.xml`。フレームワークのルート `seo.sitemap`）：設定の `seo.sitemap_routes`（記事を持たないページのルートの名前）と、`seo.sitemap_models`（記事のモデル）から作ります。モデルは `SitemapSource` を実装し、訪問者に見せてよい記事のクエリ（`sitemapQuery()`）と記事の URL（`sitemapUrl()`）を返します。SEO の欄で検索に出さないにした記事と、「SEO設定」で検索に出さないにしたページは載せず、`updated_at` を更新日として出します。毎回その場で作るので、記事が数千件を超えるサイトでは、分割やキャッシュを考えます。
-
-    ```php
-    class News extends Model implements SeoSubject, SitemapSource
-    {
-        public static function sitemapQuery(): Builder { return static::query()->visibleTo(null); }
-        public function sitemapUrl(): string { return route('news.show', $this); }
-    }
-    ```
-- **robots.txt**（`/robots.txt`。フレームワークのルート `seo.robots`）：本番（`APP_ENV=production`）では、設定の `seo.robots_disallow` の場所を巡回させず、サイトマップの絶対の URL を伝えます。本番以外（開発サーバーなど）では、全部を巡回させません（`Disallow: /`）。`public/robots.txt` があると Apache がそちらを返すので、置きません。
-- **設定を書くとき**：`seo` は配列のキーなので、アプリの `config/neobit.php` で書くときは、全部のキーを書きます（見本のサイトの `config/neobit.php` を参照）。
-
-#### SEO 設定の画面（記事を持たないページとサイト全体の既定）
-
-**ファイル**：`packages/neobit/core/src/Seo/SeoSettings.php`（冒頭のコメント）・`src/Http/Controllers/SeoSettingsController.php`、画面は `packages/neobit/core/resources/views/admin/seo_settings/index.blade.php`　**実例**：管理画面の「運用」の「SEO設定」
-
-運用する人が管理画面から、サイト全体の既定（タイトルの形・説明文・シェアの画像・Google Search Console の確認タグ）と、記事を持たないページ（トップページ・一覧・お問い合わせなど）ごとのタイトル・説明文・画像・検索に出さないを変えられます。値は `settings` テーブルに持ちます。
-
-```php
-// routes/web.php。管理者だけが入れるグループの中に、「頭.index」「頭.update」の組で書く
-Route::get('/seo-settings', [SeoSettingsController::class, 'index'])->name('seo-settings.index');
-Route::patch('/seo-settings', [SeoSettingsController::class, 'update'])->name('seo-settings.update');
-
-// config/neobit.php の seo。画面に出すページ。ルート名 => 画面に出す名前
-'page_routes' => [
-    'top' => 'トップページ',
-    'news.index' => 'お知らせの一覧',
-],
-```
-
-- **画面に出すページ**：設定の `seo.page_routes` に並べたルートです。引数の要らないルートだけを書きます。引数の要るルートを書くと、画面に URL を出しません。
-- **値の優先**：記事の SEO の欄 > 記事の値 > 「SEO設定」のページごとの値 > 画面の `@section('title')` > 「SEO設定」の既定 > 設定ファイルの順です。「SEO設定」のページの値を `@section('title')` より先にするのは、運用する人が画面で入れた値だからです。記事のあるページでは記事の値が先に決まるので、ページごとの値は、記事を持たないページで効きます。
-- **空欄**：既定を空欄にすると、設定ファイルの値を使います。入力欄の見本に、その設定ファイルの値を出します。ページの欄を全部空にすると、そのページの設定を持ちません。
-- **タイトルの形**：`{title}` を必ず入れます。`{site}` は任意です。
-- **運営者**：運営者の名前（空欄なら設定ファイルの `organization_name`、それも空ならサイト名）とロゴの URL を、構造化データで出します。
-- **確認タグ**：Search Console が示す `<meta name="google-site-verification" content="…">` をそのまま貼っても、値だけを入れてもかまいません。content の値（英数字・`_`・`-`）だけを保存し、`_seo_head` が全部のページの `<head>` に出します。
-- **検索に出さない**：チェックしたページには noindex を付け、サイトマップからも外します。
-- **キャッシュ**：訪問者の全部のページで読むので、画面の設定をキャッシュに置き、保存のたびに作り直します。DB を直接書き換えたときは、キャッシュを消します。
-- **操作ログ**：保存すると「SEO設定の変更」に、変えた項目の名前だけを残します。説明文などの値は残しません。何も変わっていなければ残しません。確認画面は挟みません。
-
-#### パンくずリストと構造化データ（JSON-LD）
-
-**ファイル**：`packages/neobit/core/src/Seo/Seo.php`・`SeoArticle.php`、画面は `packages/neobit/core/resources/views/_breadcrumbs.blade.php`・`_seo_head.blade.php`　**実例**：ニュースの詳細（`NewsController::show()`）・固定ページ（`PageController::show()`）
-
-```blade
-{{-- layouts/app.blade.php の本文の上 --}}
-@include('neobit::_breadcrumbs')
-```
-
-```php
-// コントローラー。途中の段を、浅い段から順に足す
-Seo::for($news);
-Seo::breadcrumb('お知らせ', route('news.index'));
-
-// 段の数が決まっていないとき（親子のカテゴリーなど）は、親をたどって足す
-foreach ($category->ancestorsAndSelf() as $node) {
-    Seo::breadcrumb($node->name, route('products.category', $node));
-}
-```
-
-- **パンくずの段**：先頭の「トップ」と、末尾の今のページ名は自動で付きます。ページ名は `<title>` と同じ順（記事の SEO の欄 → 記事 → 「SEO設定」のページ → `@section('title')`）で決まる、タイトルの形に当てはめる前の名前です。トップページと、ページ名の無い画面には出しません。段を足していない画面は「トップ > ページ名」です。
-- **URL の無い段**：`Seo::breadcrumb('製品情報')` のように URL を省くと、リンクにせず文字だけを出します。
-- **固定ページの入れ子**：見本の `PageController::show()` は、slug（`company/history`）を「/」で区切り、公開している親のページを段にします。親は1回の問い合わせでまとめて探し、非公開や無いページの段は飛ばします。slug の持ち方はコーナーごとに違うので、部品にはしていません。
-- **構造化データ**：`_seo_head` が `<script type="application/ld+json">` を1つ出します。中身は今のページに当てはまるものだけです。
-    - パンくず（`BreadcrumbList`）：パンくずのある画面。今のページの段には URL を付けません
-    - 記事（`Article`）：`SeoArticle`（`seoPublishedAt()`・`seoModifiedAt()`）を実装したモデルの記事。題・画像・公開日・更新日・正規の URL と、書いた側・出した側（運営者）
-    - サイトと運営者（`WebSite`・`Organization`）：トップページだけ。運営者の名前とロゴは「SEO設定」
-- **出さないとき**：検索に出さないページでは、構造化データを出しません。パンくずの表示は出します。
-- **エスケープ**：JSON の `<`・`>`・`&` は `\u003C` などに置き換えるので、記事の題に `</script>` があっても抜け出せません。
-
-    ```php
-    class News extends Model implements SeoArticle, SitemapSource
-    {
-        public function seoPublishedAt(): ?DateTimeInterface { return $this->article_date; }
-        public function seoModifiedAt(): ?DateTimeInterface { return $this->updated_at; }
-    }
-    ```
-
-#### リダイレクト（301 リダイレクトの管理）
-
-**ファイル**：`packages/neobit/core/src/Seo/RedirectResolver.php`（当て方）・`RedirectChecker.php`（登録のときの確かめ）・`src/Http/Middleware/ApplyRedirects.php`・`src/Http/Controllers/RedirectController.php`・`src/Models/Redirect.php`、画面は `packages/neobit/core/resources/views/admin/redirects/`　**実例**：管理画面の「運用」の「リダイレクト」
-
-運用する人が管理画面から、古い URL を新しい URL へ移すリダイレクトを登録できます。`.htaccess` は書き換えず、全体のミドルウェアで当てます。登録のときに、`.htaccess` で起きやすい思った動きにならない登録を止めます。
-
-```php
-// bootstrap/app.php。ルートの無い古い URL にも当てるので、全体のミドルウェアに足す
-$middleware->append(ApplyRedirects::class);
-
-// routes/web.php。管理者だけが入れるグループの中に、組の名前で書く。csv・csv-import は {redirect} より先に書く
-Route::get('/redirects', [RedirectController::class, 'index'])->name('redirects.index');
-Route::post('/redirects', [RedirectController::class, 'store'])->name('redirects.store');
-Route::get('/redirects/csv', [RedirectController::class, 'csv'])->name('redirects.csv');
-Route::get('/redirects/csv-import', [RedirectController::class, 'csvImport'])->name('redirects.csv-import');
-Route::post('/redirects/csv-import/confirm', [RedirectController::class, 'csvImportConfirm'])->name('redirects.csv-import.confirm');
-Route::post('/redirects/csv-import/execute', [RedirectController::class, 'csvImportExecute'])->name('redirects.csv-import.execute');
-Route::patch('/redirects/{redirect}', [RedirectController::class, 'update'])->name('redirects.update');
-Route::delete('/redirects/{redirect}', [RedirectController::class, 'destroy'])->name('redirects.destroy');
-```
-
-- **使うかどうか**：設定の `seo.redirects` を `true` にします（フレームワークの既定は `false`）。`false` のときは登録を見ずに、末尾の「/」を外す働きだけをします。キャッシュの置き場所が DB なので、一覧を読むだけでも毎回 DB を引くためです。ミドルウェアは使わないときも置いたままにします。
-- **当たる順番**：完全に一致するもの → 末尾に `*` を書いたもののうち、`*` の前がいちばん長いもの、だけで決まります。登録の順番には頼らないので、並び替えはありません。
-- **`*`**：古い URL・新しい URL とも、末尾に1つだけ書けます。古い URL の `*` はその下の全部に当たり、新しい URL にも `*` を書いたときだけ、当たった残りを引き継ぎます（`/blog/*` → `/news/*` なら、`/blog/2020/abc` は `/news/2020/abc`）。
-- **末尾の「/」**：`/company/` と `/company` は別物です。Laravel の決まりでは `public/.htaccess` が末尾の「/」を外しますが、そこで外すと末尾が「/」の古い URL に当たらないので、`.htaccess` から消し、ミドルウェアが「登録に当たればそこへ、当たらず末尾が「/」なら外して 301」の順で受け持ちます。サイトの URL の形は変わりません。
-- **そのほかの決まり**：大文字と小文字は別物です。日本語の URL は、`%E3…` の形と日本語のままの形のどちらでも当たります。当てるのは GET と HEAD だけです。新しい URL に `?` が無ければ、来たリクエストの `?` の後ろを付け足します。
-- **登録のときの確かめ**（画面と CSV で共通）：形・二重の登録・自分へのリダイレクト・輪・つながり（直す相手を示す）・今ある引数の無い画面の URL との重なり（`*` なら巻き込む画面を示す）・新しい URL がサイトの中で開けるか。引数のある画面（`/{slug}` など）は、記事が本当にあるかまでは確かめません。
-- **一覧での編集**：一覧のいちばん上が追加の行です。ほかの行は「編集」を押すとその行だけが入力欄になり、「更新」「キャンセル」に変わります。編集中は、ほかの行の「編集」「削除」と、追加の行（入力欄と「追加」）は使えません。保存すると、見ていた一覧（ページ・検索・並び順）に戻ります。行の切り替えは `redirects.js` が行うので、`vite.config.js` の一覧に `vendor/neobit/core/resources/js/redirects.js` を足します。
-- **URL を試す**：一覧の上の欄に URL を入れると、どのリダイレクトに、なぜ当たり（完全一致かワイルドカードか）、どこへ移るかを出します。
-- **CSV**：書き出しと取り込みができます。列は「古いURL・新しいURL・種類・有効」です。取り込みは古い URL を鍵に、ある行は更新・無い行は追加し、登録済みの行と CSV の行を合わせて確かめます。1行でもエラーがあれば何も保存しません。
-- **HIT回数**：一覧に、当たった回数（HIT回数）と最後に当たった日（最終HIT日）を出します。並び順を「最終HIT日の古い順」にすると、使われなくなったリダイレクトが上に来ます。
-- **キャッシュ**：有効なリダイレクトの一覧をキャッシュに置き、`Redirect` の保存と削除のたびに作り直します。DB を直接書き換えたときは、キャッシュを消します。
-- **操作ログ**：追加・更新・削除は「登録・更新・削除」で残します。アプリは、モデルの短い名前（`enforceMorphMap()`）に `'redirect' => Redirect::class` を、操作ログの対象の種類（`AppOperationLogModel`）に `Redirect` を足します。
-
-`.htaccess` のリダイレクトから移すときの置き換え方です。
-
-| `.htaccess` | 登録する形 |
-|---|---|
-| `Redirect 301 /blog /news`（下も全部移したい） | `/blog` → `/news` と、`/blog/*` → `/news/*` の2行 |
-| `Redirect 301 /blog /news`（`/blog` だけを移したい） | `/blog` → `/news` の1行 |
-| `RedirectMatch 301 ^/blog/(.*)$ /news/$1` | `/blog/*` → `/news/*` |
-| `RewriteRule ^old\.html$ /new [R=301,L]` | `/old.html` → `/new` |
-
-Apache の `Redirect` は、書かなくても前方一致で当たり、残りを後ろに付け、書いた順に最初に当たったものを使います。ここでは、前方一致は `*` を書いたときだけにし、順番にも頼りません。正規表現は使えないので、`(.*)` のような書き方は `*` に置き換えます。
-
-#### slug（URL の名前）の検証のルール
-
-**ファイル**：`packages/neobit/core/src/Rules/SlugRule.php`・`NotReservedPathRule.php`　**実例**：固定ページ（`Admin\PageController`）
-
-slug はコーナーのテーブルの列に持ち、検証のルールだけを共通の部品にしています。重なりの検証は Laravel の `Rule::unique`、URL から探すのは `where()` で足ります。
-
-```php
-'slug' => [
-    'required', 'string', 'max:100',
-    new SlugRule(nested: true),                           // 形。nested: true なら「/」で区切ってつなげられる
-    Rule::unique(Page::class, 'slug')->ignore($page?->id),
-    new NotReservedPathRule(),                            // URL の直下（/{slug}）に置くコーナーだけ
-],
-
-// routes/web.php。検証と同じパターンを使う
-Route::get('/{slug}', ...)->where('slug', SlugRule::NESTED_PATTERN);
-```
-
-- **形**：半角の英小文字・数字・ハイフン・アンダーバーで、先頭は英小文字か数字。`nested: true` なら「/」でつなげられ、先頭・末尾の「/」と「//」は通しません。エラーの文は、通常の `validation.regex` の文です。
-- **ほかの画面と重ならない**：名前の最初の区切りが、ほかのルートの URL の最初の区切りと同じなら断ります。`/news/{slug}` のように頭の付いた URL に置くコーナーでは要りません。
-
-#### 記事ごとの SEO の欄
-
-**ファイル**：`packages/neobit/core/src/Seo/SeoFields.php`（コントローラー）・`HasSeoMeta.php`（モデル）・`src/Models/SeoMeta.php`、画面は `packages/neobit/core/resources/views/_seo_fields.blade.php`　**実例**：ニュースと固定ページの登録・編集（`Admin\NewsController`・`Admin\PageController`）
-
-運用する人が、記事ごとに SEO のタイトル・説明文・シェアの画像の URL・検索に出さない（noindex）を、登録・編集の画面で決められます。値は共通のテーブル `seo_metas` に1記事1行で持つので、コーナーのテーブルに列を足す必要はありません。
-
-```php
-// モデル。SeoSubjectと一緒に使う。モデルの短い名前（enforceMorphMap()）にも登録しておく
-class News extends Model implements SeoSubject
-{
-    use HasSeoMeta;
-}
-
-// コントローラー
-use SeoFields;
-
-] + $this->ajaxUploadRules() + $this->seoRules();
-```
-
-```blade
-{{-- 入力欄（_fields.blade.php） --}}
-@include('neobit::_seo_fields', ['input' => $input, 'readonly' => $readonly])
-```
-
-- **空欄のとき**：入れていない項目は、記事から自動で補います（タイトル・本文の先頭・記事の画像かサイトの既定の画像）。全部空なら、`seo_metas` の行を持ちません。
-- **画像**：アップロードではなく URL を入れます。`/` から始まるサイトの中のパス（本文に挿入した画像の URL など）か、`http(s)://` から始まる URL です。その画像を後で消すと、シェアの画像は出なくなります。
-- **検索に出さない**：入れると `<meta name="robots" content="noindex">` を出します。ヘルパーでは `seo('robots')` が `noindex` を返します。
-- **画面**：入力の画面では、普段は閉じた「SEO の設定」の枠で、値かエラーがあれば開いた状態で出ます。確認・詳細の画面では、入れた値だけを並べ、全部空なら「（自動）」と出します。
-- **FormFlow が呼ぶ**：値の組み立て・保存・削除は FormFlow が呼ぶので、入口の書き方は変わりません。部品を置いていない画面からの保存では、SEO の欄には触りません。
-- CSV の書き出し・取り込みには含めません。SEO の欄の変更は、操作ログの「変わった列」には入りません。
 
 ### まだ無い機能（今後の予定）
 
@@ -2575,30 +2279,6 @@ OperationRecorder::record(OperationLogAction::Update, $company, ['status'], ['st
 - **管理画面のルートを足すとき**：`auth:admin` のグループの内側に書けば、この制限が掛かります。足すものはありません。
 - **止められないもの**：上限より遅く、時間をかけて取る動きは止まりません。そちらは、詳細の閲覧や CSV のダウンロードの記録から調べます。
 
-### IPブロック管理（IpBlocker）
-
-**ファイル**：`packages/neobit/core/src/Security/IpBlocker.php`（冒頭のコメント）・`src/Http/Middleware/RejectBlockedIp.php`・`src/Http/Controllers/IpBlockController.php`・`bootstrap/app.php`・`routes/web.php`
-
-不正な URL を続けて叩く BOT を、IP アドレスで止めます。Cloudflare などの WAF や fail2ban を入れられない環境で、PHP の側で身を守るためのものです。止めた IP アドレスからのアクセスには、どのページも 404 を返します。
-
-- **止める場所**：全体のミドルウェア `RejectBlockedIp` です。ルートの無い URL（`/.env`・`/wp-login.php` など）も、ルートを探す前にここを通ります。止めている一覧はキャッシュに置き、毎回 DB は読みません。403 ではなく 404 にし、画面もルートの無い URL を開いたときと同じ 404 の画面にします。止められていることを、相手に気付かせないためです。Apache が PHP を通さずに返すファイル（画像・CSS など）は止まりません。
-- **自動で止める**：応答が 404・405 になったアクセスを、IP アドレスごとに数えます。`config/neobit.php` の `ip_block_watch_minutes`（10分）の中に `ip_block_watch_count`（30回）を超えたら、`ip_block_hours`（24時間）止めます。`ip_block_auto` を false にすると数えず、管理画面からの登録だけになります。IPv6 は `/64` のまとまりで数えて止めます。
-- **止めない IP アドレス**：アクセス制限（0章）のサイトと管理画面の IP アドレスは、`.env` の分も画面の分も、自動でも手動でも止めません。管理画面からは、今の自分の IP アドレスを含むものも登録できません。管理者が自分を止めないようにするためです。
-- **管理画面**：止めている IP アドレスの一覧と、手動の登録・期限の変更・解除です。IP アドレスは1つでも、`203.0.113.0/24` のようなまとまりでも登録できます。一覧と登録の欄には、実際に止まる範囲（`203.0.113.0 ～ 203.0.113.255`）を出します。まとまりは、広すぎると関係の無い人まで止めるので、IPv4 は `/16`、IPv6 は `/32` より狭いものだけにします。
-- **ルート**：案件が書きます。機能を使うかどうかを、案件ごとに決めるためです。管理者だけのグループの中に、「頭.index」「頭.store」「頭.update」「頭.destroy」の組で名前を付けます。update・destroy の URL には `{ipBlock}` を入れます。
-
-    ```php
-    // routes/web.php（管理者だけのグループの中）
-    Route::get('/ip-blocks', [IpBlockController::class, 'index'])->name('ip-blocks.index');
-    Route::post('/ip-blocks', [IpBlockController::class, 'store'])->name('ip-blocks.store');
-    Route::patch('/ip-blocks/{ipBlock}', [IpBlockController::class, 'update'])->name('ip-blocks.update');
-    Route::delete('/ip-blocks/{ipBlock}', [IpBlockController::class, 'destroy'])->name('ip-blocks.destroy');
-    ```
-
-    ミドルウェアは、ルートを書かなくても動きます。管理画面を出さない案件でも、自動で止める仕組みは働きます。`bootstrap/app.php` の全体のミドルウェアに `RejectBlockedIp` を足してあることを確かめてください。
-- **記録**：止めたこと・解除したこと・期限を変えたことを、操作ログに残します。自動で止めたものは、操作した人が空です。自動で止めたときは `warning` のログも書き、毎朝の操作ログの報告の「気になる点」にも載せます。期限の過ぎた行は、毎時の片付けが消します。
-- **気を付けること**：手前にプロキシがある環境で `TRUSTED_PROXIES` が正しくないと、全員が同じ IP アドレスに見えます。その IP アドレスを止めると、サイト全体が止まります。IP アドレスを次々に変えて来る攻撃は止めきれません。それは WAF の領域です。
-
 ### 画面
 
 - **一覧と検索**（`/admin/operation-logs`）：日付の範囲・操作・操作した人・対象・IP アドレス・補足で絞れます。補足は、中の語を部分一致で探します。空白で区切ると、全部の語を含む行に絞ります。CSV でも出せます。見るだけの画面で、登録・編集・削除はありません。
@@ -2890,6 +2570,343 @@ Route::prefix('company')->name('company.')->group(function () {
 4. `bootstrap/app.php` の、ログインしていないときの移動先に足す。
 5. その種類だけの文面にしたいメールは、テンプレートを、種類の名前を頭に付けて用意する（`種類の名前_verification_code`・`_password_changed`・`_profile_changed`・`_invitation`）。用意しなければ、頭を付けない名前のテンプレートか、フレームワークの既定が使われる（11章）。
 6. `config/login.php` に、種類の名前のキーを足す。
+
+## 24. アクセス制限（接続元の IP アドレスの制限）
+
+<p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
+
+**ファイル**：`packages/neobit/core/src/Security/AccessRestriction.php`（冒頭のコメント）・`src/Http/Middleware/RestrictSiteAccess.php`・`RestrictAdminAccess.php`・`src/Http/Controllers/AccessRestrictionController.php`、画面は `packages/neobit/core/resources/views/maintenance.blade.php`
+
+サイト（訪問者画面）と管理画面を開ける IP アドレスを、管理画面の「アクセス制限」で、それぞれ絞れます。運用する人が、サーバーに入らずに変えられます。2つの制限は、互いに影響しません。
+
+| 項目 | チェックを入れたとき | 使うとき |
+|---|---|---|
+| サイト（訪問者画面） | サイトの IP アドレスのほかに、メンテナンス中の画面を 503 で返す。管理画面には掛からない | 公開前のデモの運用、メンテナンスの間 |
+| 管理画面 | 管理画面の IP アドレスのほかに、ログイン画面も含めて 404 を返す。サイトには掛からない | 事務所などの決まった場所からしか管理画面を使わないサイト |
+
+- **入力**：1行に1つか、カンマ区切りです。`192.168.0.0/24` のようなまとまりと、IPv6 も書けます。
+- **チェックを入れたときだけ掛かる**：IP アドレスを書いただけでは、制限は掛かりません。
+- **設定ファイルの分**：`.env` の `SITE_ALLOWED_IPS`・`ADMIN_ALLOWED_IPS` に書いた IP アドレスは、それぞれの一覧に足し合わせます。画面からは外せず、画面にはそれぞれの欄の上に「次のIPアドレスは、設定ファイルで常に許可されています。」と出ます。サーバーを管理する人の事務所などを書いておくと、画面でどう設定しても締め出されません。`.env` を変えたら `php artisan config:cache` をやり直します。
+- **締め出さない**：管理画面の制限を掛けて保存するとき、今の自分の IP アドレスが管理画面の一覧に無ければ、保存させません。サイトの制限は管理画面に影響しないので、確かめません。それでも回線が変わるなどで締め出されたときは、サーバーで `php artisan app:access-denied-off` を実行します。両方の制限を外します。IP アドレスの一覧は残ります。
+- **ルート**：案件が書きます。機能を使うかどうかを、案件ごとに決めるためです。管理者だけのグループの中に、「頭.index」（GET）と「頭.update」（PATCH）の組で名前を付けます。
+
+    ```php
+    // routes/web.php（管理者だけのグループの中）
+    Route::get('/access-restriction', [AccessRestrictionController::class, 'index'])->name('access-restriction.index');
+    Route::patch('/access-restriction', [AccessRestrictionController::class, 'update'])->name('access-restriction.update');
+    ```
+
+- **サイトの制限から管理画面を外す**：`bootstrap/app.php` の `RestrictSiteAccess::except()` に、管理画面の URL（見本のサイトでは `admin`・`admin/*`）を書きます。管理画面の URL の頭は案件が決めるので、案件の側で書きます。
+- **設定の置き場所**：DB の `settings` テーブルです。毎回のアクセスで読むので、キャッシュに置き、保存のたびに作り直します。変えた内容は、操作ログに「アクセス制限の変更」として残ります。
+- **IPブロック管理との関係**：2つの一覧にある IP アドレスは、IPブロック管理で止めません（26章）。
+- **プロキシを前に置くときは、`TRUSTED_PROXIES` を先に書きます**。書かないと、全員がプロキシの IP アドレスに見えるので、全員が通るか、全員が止まります。
+- **メンテナンス中の画面**は、レイアウトを継承しない1枚の HTML です。DB もセッションも使わないので、DB を止めている間も出せます。文言は、アプリの `resources/views/vendor/neobit/maintenance.blade.php` に同じ名前で置いて上書きします。デモの運用のときも、この画面が出ます。
+- **503 で返す**のは、一時的に止めていることを検索エンジンに伝えて、登録を消されないようにするためです。
+- **制限の間も通すパス**は、`bootstrap/app.php` の `RestrictSiteAccess::except()` に書きます。今は、死活監視（`/up`）と、お知らせメールの配信停止（`/mail/unsubscribe`）と、管理画面です。止めている間に届いたメールからも、停止できるようにするためです。
+- **管理画面を 404 にする**のは、そこに管理画面があることを知らせないためです。止めたアクセスは、操作ログに残しません。
+- **Apache が直接返すファイルは止まりません**。`public/build/` の中と、公開のアップロードファイル（`public/storage/`）は、Laravel を通らないためです。そこまで止めるときは、Apache の設定で絞ります。
+- **コマンドは止まりません**。スケジューラー（19章）とキュー（21章）は、制限の間も動きます。メンテナンスの間に一斉メールを送りたくないときは、送信が終わってから止めます。
+- Laravel の `php artisan down` は使いません。サーバーでコマンドを打つ必要があり、画面の設定とは別の仕組みになるためです。
+
+## 25. ベーシック認証
+
+<p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
+
+**ファイル**：`packages/neobit/core/src/Security/BasicAuth.php`（冒頭のコメント）・`src/Http/Controllers/BasicAuthController.php`・`src/Models/BasicAuthUser.php`、画面は `packages/neobit/core/resources/views/admin/basic_auth/index.blade.php`　**実例**：管理画面の「セキュリティ」の「ベーシック認証」
+
+運用する人が管理画面から、訪問者画面と管理画面のそれぞれに、ベーシック認証を掛けるかと、そのユーザーを別々に変えられます。認証するのは Apache なので、Laravel を通らない `public` の下の HTML や画像にも掛かります。
+
+- **仕組み**：管理画面で切り替えると、目印のファイル `storage/app/basic-auth/site.on`（訪問者画面）・`admin.on`（管理画面）を作る・消します。ユーザーを追加・削除すると、その範囲の `storage/app/basic-auth/site.htpasswd`・`admin.htpasswd` を書き直します（パスワードは bcrypt の `$2y$`）。サーバーの VirtualHost に書いた決まりが、目印のファイルがあるときだけ認証を掛けます。`public/.htaccess` は変えません。
+- **サーバーの設定**（1回だけ。サーバーを管理する人）：VirtualHost に次の決まりを書き、Apache を読み直します。パスはそのサーバーのプロジェクトの場所に書き換えます。決まりを書いていないサーバーでは、画面で切り替えても掛かりません。
+
+    ```apache
+    <Directory "/var/www/memsys/public">
+        # 管理画面の「ベーシック認証」の訪問者画面。目印のファイルがあるときだけ掛ける。死活監視と配信停止のリンク・管理画面には掛けない
+        <If "-f '/var/www/memsys/storage/app/basic-auth/site.on' && %{REQUEST_URI} !~ m#^/(up|mail/unsubscribe|admin)#">
+            AuthType Basic
+            AuthName "Restricted"
+            AuthUserFile /var/www/memsys/storage/app/basic-auth/site.htpasswd
+            Require valid-user
+        </If>
+        # 管理画面の「ベーシック認証」の管理画面。AuthNameは訪問者画面と分ける
+        <If "-f '/var/www/memsys/storage/app/basic-auth/admin.on' && %{REQUEST_URI} =~ m#^/admin#">
+            AuthType Basic
+            AuthName "RestrictedAdmin"
+            AuthUserFile /var/www/memsys/storage/app/basic-auth/admin.htpasswd
+            Require valid-user
+        </If>
+    </Directory>
+    ```
+- **AuthName は範囲ごとに分けます**（訪問者画面は `Restricted`、管理画面は `RestrictedAdmin`）。ブラウザは入れた ID とパスワードを、ホスト名と AuthName の組ごとに覚えます。同じ AuthName にすると、訪問者画面で入れたものを管理画面にも黙って送り、同じユーザーが両方にあれば、管理画面の窓が出ずに通ってしまいます。
+- **サーバーでのオンオフ**：目印のファイルを作る・消すだけです。パスワードを忘れて管理画面に入れなくなったときは、`admin.on` を消します。
+
+    ```bash
+    touch storage/app/basic-auth/admin.on   # 管理画面に掛ける
+    rm storage/app/basic-auth/admin.on      # 外す
+    ```
+- **掛けない URL**：訪問者画面に掛けても、死活監視（`/up`）とメルマガの配信停止（`/mail/unsubscribe`）には掛けません。訪問者画面に掛けても管理画面には掛からず、管理画面に掛けても訪問者画面には掛かりません。
+- **ユーザー**：訪問者画面と管理画面で別々に持ちます。同じユーザー名を両方に作っても、別のユーザーです。追加と削除だけです。パスワードを変えるときは、削除して追加し直します。ユーザー名は半角の英数字と `-`・`_`・`.` で、`:` は使えません（ユーザー名とパスワードの区切りのため）。パスワードは8文字以上です。
+- **締め出さない**：範囲ごとに、ユーザーが0人のときは掛けられず、掛けている間は最後のユーザーを削除できません。
+- **操作ログ**：「ベーシック認証の変更」「ベーシック認証のユーザーの追加」「ベーシック認証のユーザーの削除」で残します。補足には範囲とユーザー名だけを残し、パスワードは残しません。
+- **パスワードの総当たりは止めません**：認証するのは Laravel より手前の Apache なので、失敗の回数を数えられません。要るときは、サーバーの fail2ban などで止めます。
+- **アクセス制限との関係**：別の仕組みで、互いに影響しません。アクセス制限で通している IP アドレスにも、ベーシック認証は掛かります。
+
+## 26. IPブロック管理（IpBlocker）
+
+<p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
+
+**ファイル**：`packages/neobit/core/src/Security/IpBlocker.php`（冒頭のコメント）・`src/Http/Middleware/RejectBlockedIp.php`・`src/Http/Controllers/IpBlockController.php`・`bootstrap/app.php`・`routes/web.php`
+
+不正な URL を続けて叩く BOT を、IP アドレスで止めます。Cloudflare などの WAF や fail2ban を入れられない環境で、PHP の側で身を守るためのものです。止めた IP アドレスからのアクセスには、どのページも 404 を返します。
+
+- **止める場所**：全体のミドルウェア `RejectBlockedIp` です。ルートの無い URL（`/.env`・`/wp-login.php` など）も、ルートを探す前にここを通ります。止めている一覧はキャッシュに置き、毎回 DB は読みません。403 ではなく 404 にし、画面もルートの無い URL を開いたときと同じ 404 の画面にします。止められていることを、相手に気付かせないためです。Apache が PHP を通さずに返すファイル（画像・CSS など）は止まりません。
+- **自動で止める**：応答が 404・405 になったアクセスを、IP アドレスごとに数えます。`config/neobit.php` の `ip_block_watch_minutes`（10分）の中に `ip_block_watch_count`（30回）を超えたら、`ip_block_hours`（24時間）止めます。`ip_block_auto` を false にすると数えず、管理画面からの登録だけになります。IPv6 は `/64` のまとまりで数えて止めます。
+- **止めない IP アドレス**：アクセス制限（24章）のサイトと管理画面の IP アドレスは、`.env` の分も画面の分も、自動でも手動でも止めません。管理画面からは、今の自分の IP アドレスを含むものも登録できません。管理者が自分を止めないようにするためです。
+- **管理画面**：止めている IP アドレスの一覧と、手動の登録・期限の変更・解除です。IP アドレスは1つでも、`203.0.113.0/24` のようなまとまりでも登録できます。一覧と登録の欄には、実際に止まる範囲（`203.0.113.0 ～ 203.0.113.255`）を出します。まとまりは、広すぎると関係の無い人まで止めるので、IPv4 は `/16`、IPv6 は `/32` より狭いものだけにします。
+- **ルート**：案件が書きます。機能を使うかどうかを、案件ごとに決めるためです。管理者だけのグループの中に、「頭.index」「頭.store」「頭.update」「頭.destroy」の組で名前を付けます。update・destroy の URL には `{ipBlock}` を入れます。
+
+    ```php
+    // routes/web.php（管理者だけのグループの中）
+    Route::get('/ip-blocks', [IpBlockController::class, 'index'])->name('ip-blocks.index');
+    Route::post('/ip-blocks', [IpBlockController::class, 'store'])->name('ip-blocks.store');
+    Route::patch('/ip-blocks/{ipBlock}', [IpBlockController::class, 'update'])->name('ip-blocks.update');
+    Route::delete('/ip-blocks/{ipBlock}', [IpBlockController::class, 'destroy'])->name('ip-blocks.destroy');
+    ```
+
+    ミドルウェアは、ルートを書かなくても動きます。管理画面を出さない案件でも、自動で止める仕組みは働きます。`bootstrap/app.php` の全体のミドルウェアに `RejectBlockedIp` を足してあることを確かめてください。
+- **記録**：止めたこと・解除したこと・期限を変えたことを、操作ログに残します。自動で止めたものは、操作した人が空です。自動で止めたときは `warning` のログも書き、毎朝の操作ログの報告の「気になる点」にも載せます。期限の過ぎた行は、毎時の片付けが消します。
+- **気を付けること**：手前にプロキシがある環境で `TRUSTED_PROXIES` が正しくないと、全員が同じ IP アドレスに見えます。その IP アドレスを止めると、サイト全体が止まります。IP アドレスを次々に変えて来る攻撃は止めきれません。それは WAF の領域です。
+
+## 27. SEO（ページのタイトル・説明文・OGP）
+
+<p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
+
+**ファイル**：`packages/neobit/core/src/Seo/Seo.php`（冒頭のコメント）・`SeoSubject.php`、画面は `packages/neobit/core/resources/views/_seo_head.blade.php`　**実例**：ニュースの詳細（`NewsController::show()`）・固定ページ（`PageController::show()`）
+
+訪問者の側のページの `<head>` に、タイトル・説明文・OGP・X のカードを、サイト全体で揃った形で出します。何も入れなくても、記事の詳細では記事から、ほかの画面ではサイトの既定から値が決まります。運用する人は、記事ごとの SEO の欄と、管理画面の「SEO設定」で値を変えられます。
+
+```blade
+{{-- layouts/app.blade.php の <head> --}}
+@include('neobit::_seo_head')
+```
+
+```php
+// モデル。SEOの元になる値を返す
+class News extends Model implements SeoSubject
+{
+    public function seoTitle(): string { return $this->title; }
+    public function seoDescriptionSource(): ?string { return $this->body; }
+    public function seoImageUrl(): ?string { return $this->list_image_url; }
+}
+
+// コントローラーの詳細の画面
+Seo::for($news);
+```
+
+| 値 | 記事の詳細（`Seo::for()` を呼んだ画面） | ほかの画面 |
+|---|---|---|
+| タイトル | 記事の SEO の欄か記事のタイトルを、タイトルの形（`{title}｜{site}`）に当てはめる | 「SEO設定」のページのタイトルか、画面の `@section('title')` を当てはめる。無ければサイト名だけ |
+| 説明文 | 記事の SEO の欄か、本文のタグを除いた先頭の120文字（長ければ「…」） | 「SEO設定」のページの説明文か、既定の説明文。空なら説明文のタグを出さない |
+| シェアの画像 | 記事の SEO の欄か記事の画像。無ければ既定の画像 | 「SEO設定」のページの画像か、既定の画像。無ければ出さない |
+| `og:type` | article | website |
+
+- **サイトの既定**：管理画面の「SEO設定」の既定（タイトルの形・説明文・画像）で、空欄なら `config/neobit.php` の `seo`（`title_format`・`description`・`image`）です。本文から作る説明文の文字数は `description_length` です。既定の画像は、`public` の下のパス（例：`/images/ogp.png`）か URL で書きます。
+- **Blade で値を使う**：ヘルパーの `seo()` で取り出せます。名前は `'title'`・`'description'`・`'image'`・`'url'`・`'canonical'`・`'type'`・`'site_name'`・`'robots'`・`'site_verification'` です。`_seo_head` も中でこれを使っているので、並べ方を変えたい案件は、部品を使わずにレイアウトで自分で書けます。
+
+    ```blade
+    <meta name="description" content="{{ seo('description') }}">
+    ```
+- **URL**：画像と `og:url` は `https://` から始まる絶対の URL で出します。`og:url` は `?` の後ろを除いた今の URL です。
+- **説明文の作り方**：本文の `<script>`・`<style>` は中身ごと除き、段落や改行のタグは空白にしてから、残りのタグを除きます。
+- 部品を置くのは、訪問者の側のレイアウトだけです。管理画面と企業会員の画面は、検索に出さない画面のためです。
+
+### 記事ごとの SEO の欄
+
+**ファイル**：`packages/neobit/core/src/Seo/SeoFields.php`（コントローラー）・`HasSeoMeta.php`（モデル）・`src/Models/SeoMeta.php`、画面は `packages/neobit/core/resources/views/_seo_fields.blade.php`　**実例**：ニュースと固定ページの登録・編集（`Admin\NewsController`・`Admin\PageController`）
+
+運用する人が、記事ごとに SEO のタイトル・説明文・シェアの画像の URL・検索に出さない（noindex）を、登録・編集の画面で決められます。値は共通のテーブル `seo_metas` に1記事1行で持つので、コーナーのテーブルに列を足す必要はありません。
+
+```php
+// モデル。SeoSubjectと一緒に使う。モデルの短い名前（enforceMorphMap()）にも登録しておく
+class News extends Model implements SeoSubject
+{
+    use HasSeoMeta;
+}
+
+// コントローラー
+use SeoFields;
+
+] + $this->ajaxUploadRules() + $this->seoRules();
+```
+
+```blade
+{{-- 入力欄（_fields.blade.php） --}}
+@include('neobit::_seo_fields', ['input' => $input, 'readonly' => $readonly])
+```
+
+- **空欄のとき**：入れていない項目は、記事から自動で補います（タイトル・本文の先頭・記事の画像かサイトの既定の画像）。全部空なら、`seo_metas` の行を持ちません。
+- **画像**：アップロードではなく URL を入れます。`/` から始まるサイトの中のパス（本文に挿入した画像の URL など）か、`http(s)://` から始まる URL です。その画像を後で消すと、シェアの画像は出なくなります。
+- **検索に出さない**：入れると `<meta name="robots" content="noindex">` を出します。ヘルパーでは `seo('robots')` が `noindex` を返します。
+- **画面**：入力の画面では、普段は閉じた「SEO の設定」の枠で、値かエラーがあれば開いた状態で出ます。確認・詳細の画面では、入れた値だけを並べ、全部空なら「（自動）」と出します。
+- **FormFlow が呼ぶ**：値の組み立て・保存・削除は FormFlow が呼ぶので、入口の書き方は変わりません。部品を置いていない画面からの保存では、SEO の欄には触りません。
+- CSV の書き出し・取り込みには含めません。SEO の欄の変更は、操作ログの「変わった列」には入りません。
+
+### SEO 設定の画面（記事を持たないページとサイト全体の既定）
+
+**ファイル**：`packages/neobit/core/src/Seo/SeoSettings.php`（冒頭のコメント）・`src/Http/Controllers/SeoSettingsController.php`、画面は `packages/neobit/core/resources/views/admin/seo_settings/index.blade.php`　**実例**：管理画面の「運用」の「SEO設定」
+
+運用する人が管理画面から、サイト全体の既定（タイトルの形・説明文・シェアの画像・Google Search Console の確認タグ）と、記事を持たないページ（トップページ・一覧・お問い合わせなど）ごとのタイトル・説明文・画像・検索に出さないを変えられます。値は `settings` テーブルに持ちます。
+
+```php
+// routes/web.php。管理者だけが入れるグループの中に、「頭.index」「頭.update」の組で書く
+Route::get('/seo-settings', [SeoSettingsController::class, 'index'])->name('seo-settings.index');
+Route::patch('/seo-settings', [SeoSettingsController::class, 'update'])->name('seo-settings.update');
+
+// config/neobit.php の seo。画面に出すページ。ルート名 => 画面に出す名前
+'page_routes' => [
+    'top' => 'トップページ',
+    'news.index' => 'お知らせの一覧',
+],
+```
+
+- **画面に出すページ**：設定の `seo.page_routes` に並べたルートです。引数の要らないルートだけを書きます。引数の要るルートを書くと、画面に URL を出しません。
+- **値の優先**：記事の SEO の欄 > 記事の値 > 「SEO設定」のページごとの値 > 画面の `@section('title')` > 「SEO設定」の既定 > 設定ファイルの順です。「SEO設定」のページの値を `@section('title')` より先にするのは、運用する人が画面で入れた値だからです。記事のあるページでは記事の値が先に決まるので、ページごとの値は、記事を持たないページで効きます。
+- **空欄**：既定を空欄にすると、設定ファイルの値を使います。入力欄の見本に、その設定ファイルの値を出します。ページの欄を全部空にすると、そのページの設定を持ちません。
+- **タイトルの形**：`{title}` を必ず入れます。`{site}` は任意です。
+- **運営者**：運営者の名前（空欄なら設定ファイルの `organization_name`、それも空ならサイト名）とロゴの URL を、構造化データで出します。
+- **確認タグ**：Search Console が示す `<meta name="google-site-verification" content="…">` をそのまま貼っても、値だけを入れてもかまいません。content の値（英数字・`_`・`-`）だけを保存し、`_seo_head` が全部のページの `<head>` に出します。
+- **検索に出さない**：チェックしたページには noindex を付け、サイトマップからも外します。
+- **キャッシュ**：訪問者の全部のページで読むので、画面の設定をキャッシュに置き、保存のたびに作り直します。DB を直接書き換えたときは、キャッシュを消します。
+- **操作ログ**：保存すると「SEO設定の変更」に、変えた項目の名前だけを残します。説明文などの値は残しません。何も変わっていなければ残しません。確認画面は挟みません。
+
+### 検索に出さないページ・canonical・サイトマップ・robots.txt
+
+**ファイル**：`packages/neobit/core/src/Seo/Seo.php`・`SitemapSource.php`・`src/Http/Controllers/SitemapController.php`・`RobotsController.php`
+
+- **検索に出さない（noindex）**：次のどれかの画面には、`<meta name="robots" content="noindex">` が自動で付きます。
+    - ルートに `auth` のミドルウェアが付いた画面（マイページなど、ログインしないと開けない画面）
+    - コントローラーで `Seo::noindex()` を呼んだ画面。一覧の絞り込みはセッションに持っていて URL からは見分けられないので、絞り込みのある一覧で呼びます（見本はニュースの一覧）
+    - 設定の `seo.noindex_routes` に並べたルートの名前。`*` が使えます（見本はお問い合わせの完了 `contact.thanks`）
+    - 記事の SEO の欄で、検索に出さないにしたもの
+    - 「SEO設定」のページごとの設定で、検索に出さないにしたもの
+- **canonical**：全部の画面に `<link rel="canonical">` を出します。今の URL から `?` の後ろを除いたもので、ページ送りの `?page=` だけは残します（2ページ目以降も別のページとして検索に出すため）。
+- **XML サイトマップ**（`/sitemap.xml`。フレームワークのルート `seo.sitemap`）：設定の `seo.sitemap_routes`（記事を持たないページのルートの名前）と、`seo.sitemap_models`（記事のモデル）から作ります。モデルは `SitemapSource` を実装し、訪問者に見せてよい記事のクエリ（`sitemapQuery()`）と記事の URL（`sitemapUrl()`）を返します。SEO の欄で検索に出さないにした記事と、「SEO設定」で検索に出さないにしたページは載せず、`updated_at` を更新日として出します。毎回その場で作るので、記事が数千件を超えるサイトでは、分割やキャッシュを考えます。
+
+    ```php
+    class News extends Model implements SeoSubject, SitemapSource
+    {
+        public static function sitemapQuery(): Builder { return static::query()->visibleTo(null); }
+        public function sitemapUrl(): string { return route('news.show', $this); }
+    }
+    ```
+- **robots.txt**（`/robots.txt`。フレームワークのルート `seo.robots`）：本番（`APP_ENV=production`）では、設定の `seo.robots_disallow` の場所を巡回させず、サイトマップの絶対の URL を伝えます。本番以外（開発サーバーなど）では、全部を巡回させません（`Disallow: /`）。`public/robots.txt` があると Apache がそちらを返すので、置きません。
+- **設定を書くとき**：`seo` は配列のキーなので、アプリの `config/neobit.php` で書くときは、全部のキーを書きます（見本のサイトの `config/neobit.php` を参照）。
+
+### パンくずリストと構造化データ（JSON-LD）
+
+**ファイル**：`packages/neobit/core/src/Seo/Seo.php`・`SeoArticle.php`、画面は `packages/neobit/core/resources/views/_breadcrumbs.blade.php`・`_seo_head.blade.php`　**実例**：ニュースの詳細（`NewsController::show()`）・固定ページ（`PageController::show()`）
+
+```blade
+{{-- layouts/app.blade.php の本文の上 --}}
+@include('neobit::_breadcrumbs')
+```
+
+```php
+// コントローラー。途中の段を、浅い段から順に足す
+Seo::for($news);
+Seo::breadcrumb('お知らせ', route('news.index'));
+
+// 段の数が決まっていないとき（親子のカテゴリーなど）は、親をたどって足す
+foreach ($category->ancestorsAndSelf() as $node) {
+    Seo::breadcrumb($node->name, route('products.category', $node));
+}
+```
+
+- **パンくずの段**：先頭の「トップ」と、末尾の今のページ名は自動で付きます。ページ名は `<title>` と同じ順（記事の SEO の欄 → 記事 → 「SEO設定」のページ → `@section('title')`）で決まる、タイトルの形に当てはめる前の名前です。トップページと、ページ名の無い画面には出しません。段を足していない画面は「トップ > ページ名」です。
+- **URL の無い段**：`Seo::breadcrumb('製品情報')` のように URL を省くと、リンクにせず文字だけを出します。
+- **固定ページの入れ子**：見本の `PageController::show()` は、slug（`company/history`）を「/」で区切り、公開している親のページを段にします。親は1回の問い合わせでまとめて探し、非公開や無いページの段は飛ばします。slug の持ち方はコーナーごとに違うので、部品にはしていません。
+- **構造化データ**：`_seo_head` が `<script type="application/ld+json">` を1つ出します。中身は今のページに当てはまるものだけです。
+    - パンくず（`BreadcrumbList`）：パンくずのある画面。今のページの段には URL を付けません
+    - 記事（`Article`）：`SeoArticle`（`seoPublishedAt()`・`seoModifiedAt()`）を実装したモデルの記事。題・画像・公開日・更新日・正規の URL と、書いた側・出した側（運営者）
+    - サイトと運営者（`WebSite`・`Organization`）：トップページだけ。運営者の名前とロゴは「SEO設定」
+- **出さないとき**：検索に出さないページでは、構造化データを出しません。パンくずの表示は出します。
+- **エスケープ**：JSON の `<`・`>`・`&` は `\u003C` などに置き換えるので、記事の題に `</script>` があっても抜け出せません。
+
+    ```php
+    class News extends Model implements SeoArticle, SitemapSource
+    {
+        public function seoPublishedAt(): ?DateTimeInterface { return $this->article_date; }
+        public function seoModifiedAt(): ?DateTimeInterface { return $this->updated_at; }
+    }
+    ```
+
+### slug（URL の名前）の検証のルール
+
+**ファイル**：`packages/neobit/core/src/Rules/SlugRule.php`・`NotReservedPathRule.php`　**実例**：固定ページ（`Admin\PageController`）
+
+slug はコーナーのテーブルの列に持ち、検証のルールだけを共通の部品にしています。重なりの検証は Laravel の `Rule::unique`、URL から探すのは `where()` で足ります。
+
+```php
+'slug' => [
+    'required', 'string', 'max:100',
+    new SlugRule(nested: true),                           // 形。nested: true なら「/」で区切ってつなげられる
+    Rule::unique(Page::class, 'slug')->ignore($page?->id),
+    new NotReservedPathRule(),                            // URL の直下（/{slug}）に置くコーナーだけ
+],
+
+// routes/web.php。検証と同じパターンを使う
+Route::get('/{slug}', ...)->where('slug', SlugRule::NESTED_PATTERN);
+```
+
+- **形**：半角の英小文字・数字・ハイフン・アンダーバーで、先頭は英小文字か数字。`nested: true` なら「/」でつなげられ、先頭・末尾の「/」と「//」は通しません。エラーの文は、通常の `validation.regex` の文です。
+- **ほかの画面と重ならない**：名前の最初の区切りが、ほかのルートの URL の最初の区切りと同じなら断ります。`/news/{slug}` のように頭の付いた URL に置くコーナーでは要りません。
+
+## 28. リダイレクト（301 リダイレクトの管理）
+
+<p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
+
+**ファイル**：`packages/neobit/core/src/Seo/RedirectResolver.php`（当て方）・`RedirectChecker.php`（登録のときの確かめ）・`src/Http/Middleware/ApplyRedirects.php`・`src/Http/Controllers/RedirectController.php`・`src/Models/Redirect.php`、画面は `packages/neobit/core/resources/views/admin/redirects/`　**実例**：管理画面の「運用」の「リダイレクト」
+
+運用する人が管理画面から、古い URL を新しい URL へ移すリダイレクトを登録できます。`.htaccess` は書き換えず、全体のミドルウェアで当てます。登録のときに、`.htaccess` で起きやすい思った動きにならない登録を止めます。
+
+```php
+// bootstrap/app.php。ルートの無い古い URL にも当てるので、全体のミドルウェアに足す
+$middleware->append(ApplyRedirects::class);
+
+// routes/web.php。管理者だけが入れるグループの中に、組の名前で書く。csv・csv-import は {redirect} より先に書く
+Route::get('/redirects', [RedirectController::class, 'index'])->name('redirects.index');
+Route::post('/redirects', [RedirectController::class, 'store'])->name('redirects.store');
+Route::get('/redirects/csv', [RedirectController::class, 'csv'])->name('redirects.csv');
+Route::get('/redirects/csv-import', [RedirectController::class, 'csvImport'])->name('redirects.csv-import');
+Route::post('/redirects/csv-import/confirm', [RedirectController::class, 'csvImportConfirm'])->name('redirects.csv-import.confirm');
+Route::post('/redirects/csv-import/execute', [RedirectController::class, 'csvImportExecute'])->name('redirects.csv-import.execute');
+Route::patch('/redirects/{redirect}', [RedirectController::class, 'update'])->name('redirects.update');
+Route::delete('/redirects/{redirect}', [RedirectController::class, 'destroy'])->name('redirects.destroy');
+```
+
+- **使うかどうか**：設定の `seo.redirects` を `true` にします（フレームワークの既定は `false`）。`false` のときは登録を見ずに、末尾の「/」を外す働きだけをします。キャッシュの置き場所が DB なので、一覧を読むだけでも毎回 DB を引くためです。ミドルウェアは使わないときも置いたままにします。
+- **当たる順番**：完全に一致するもの → 末尾に `*` を書いたもののうち、`*` の前がいちばん長いもの、だけで決まります。登録の順番には頼らないので、並び替えはありません。
+- **`*`**：古い URL・新しい URL とも、末尾に1つだけ書けます。古い URL の `*` はその下の全部に当たり、新しい URL にも `*` を書いたときだけ、当たった残りを引き継ぎます（`/blog/*` → `/news/*` なら、`/blog/2020/abc` は `/news/2020/abc`）。
+- **末尾の「/」**：`/company/` と `/company` は別物です。Laravel の決まりでは `public/.htaccess` が末尾の「/」を外しますが、そこで外すと末尾が「/」の古い URL に当たらないので、`.htaccess` から消し、ミドルウェアが「登録に当たればそこへ、当たらず末尾が「/」なら外して 301」の順で受け持ちます。サイトの URL の形は変わりません。
+- **そのほかの決まり**：大文字と小文字は別物です。日本語の URL は、`%E3…` の形と日本語のままの形のどちらでも当たります。当てるのは GET と HEAD だけです。新しい URL に `?` が無ければ、来たリクエストの `?` の後ろを付け足します。
+- **登録のときの確かめ**（画面と CSV で共通）：形・二重の登録・自分へのリダイレクト・輪・つながり（直す相手を示す）・今ある引数の無い画面の URL との重なり（`*` なら巻き込む画面を示す）・新しい URL がサイトの中で開けるか。引数のある画面（`/{slug}` など）は、記事が本当にあるかまでは確かめません。
+- **一覧での編集**：一覧のいちばん上が追加の行です。ほかの行は「編集」を押すとその行だけが入力欄になり、「更新」「キャンセル」に変わります。編集中は、ほかの行の「編集」「削除」と、追加の行（入力欄と「追加」）は使えません。保存すると、見ていた一覧（ページ・検索・並び順）に戻ります。行の切り替えは `redirects.js` が行うので、`vite.config.js` の一覧に `vendor/neobit/core/resources/js/redirects.js` を足します。
+- **URL を試す**：一覧の上の欄に URL を入れると、どのリダイレクトに、なぜ当たり（完全一致かワイルドカードか）、どこへ移るかを出します。
+- **CSV**：書き出しと取り込みができます。列は「古いURL・新しいURL・種類・有効」です。取り込みは古い URL を鍵に、ある行は更新・無い行は追加し、登録済みの行と CSV の行を合わせて確かめます。1行でもエラーがあれば何も保存しません。
+- **HIT回数**：一覧に、当たった回数（HIT回数）と最後に当たった日（最終HIT日）を出します。並び順を「最終HIT日の古い順」にすると、使われなくなったリダイレクトが上に来ます。
+- **キャッシュ**：有効なリダイレクトの一覧をキャッシュに置き、`Redirect` の保存と削除のたびに作り直します。DB を直接書き換えたときは、キャッシュを消します。
+- **操作ログ**：追加・更新・削除は「登録・更新・削除」で残します。アプリは、モデルの短い名前（`enforceMorphMap()`）に `'redirect' => Redirect::class` を、操作ログの対象の種類（`AppOperationLogModel`）に `Redirect` を足します。
+
+`.htaccess` のリダイレクトから移すときの置き換え方です。
+
+| `.htaccess` | 登録する形 |
+|---|---|
+| `Redirect 301 /blog /news`（下も全部移したい） | `/blog` → `/news` と、`/blog/*` → `/news/*` の2行 |
+| `Redirect 301 /blog /news`（`/blog` だけを移したい） | `/blog` → `/news` の1行 |
+| `RedirectMatch 301 ^/blog/(.*)$ /news/$1` | `/blog/*` → `/news/*` |
+| `RewriteRule ^old\.html$ /new [R=301,L]` | `/old.html` → `/new` |
+
+Apache の `Redirect` は、書かなくても前方一致で当たり、残りを後ろに付け、書いた順に最初に当たったものを使います。ここでは、前方一致は `*` を書いたときだけにし、順番にも頼りません。正規表現は使えないので、`(.*)` のような書き方は `*` に置き換えます。
 
 ## 付録. フレームワーク外で考慮すべきセキュリティ対策
 

@@ -34,7 +34,7 @@
 | `site.on`・`admin.on` | あればその範囲に掛ける。中身は空 |
 | `site.htpasswd`・`admin.htpasswd` | その範囲の「ユーザー名:bcrypt のハッシュ」を1行に1人、ユーザー名の順。隣に書いてから置き換える |
 
-**VirtualHost の決まり**（利用ガイドの0章「ベーシック認証」）
+**VirtualHost の決まり**（利用ガイドの25章「ベーシック認証」）
 
 - `<Directory "…/public">` の中に、範囲ごとの `<If>` を1つずつ。目印のファイルがあり、その範囲の URL なら、その範囲の `.htpasswd` で `Require valid-user`。
 - `AuthName` は範囲ごとに分ける（訪問者画面は `Restricted`、管理画面は `RestrictedAdmin`）。
