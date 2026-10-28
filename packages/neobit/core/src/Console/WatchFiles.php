@@ -85,7 +85,7 @@ class WatchFiles extends Command
             return self::FAILURE;
         }
 
-        $this->info(sprintf('通常の更新 %d件・判断待ち %d件・改ざんの疑い %d件・アップロードの置き場所の受け付けていないファイル %d件・確かめられなかったディレクトリ %d件',
+        $this->info(sprintf('通常の更新 %d件・判断待ち %d件・改ざんの疑い %d件・許可されていないアップロードファイル %d件・確かめられなかったディレクトリ %d件',
             $result['accepted'], $result['pending'], count($result['alerts']), count($result['dangers']), count($result['unreadable'])));
 
         if (! $result['notify']) {

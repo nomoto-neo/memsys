@@ -7,8 +7,8 @@ use Closure;
 use RuntimeException;
 
 /**
- * 改ざん監視。通常の運用では変わらないファイルが変わった・増えた・消えたことと、アップロードの置き場所に置かれた
- * 受け付けていないファイルを見つける。app:watch-filesコマンドが5分ごとに呼び、見つけたら通知のメールを送る。
+ * 改ざん監視。通常の運用では変わらないファイルが変わった・増えた・消えたことと、
+ * 許可されていないアップロードファイルを見つける。app:watch-filesコマンドが5分ごとに呼び、見つけたら通知のメールを送る。
  *
  * ■ 動かす権限
  * コードを更新する利用者（webapp）のcrontabから動かす。基準などの記録（bootstrap/cache/file-watch.json）は
@@ -130,7 +130,7 @@ final class FileWatcher
     /** アップロードの置き場所で見つけたら、すぐ知らせるファイルの名前。置かれるとPHPを動かす設定にされるもの */
     private const DANGER_NAMES = ['.htaccess', '.user.ini'];
 
-    /** 公開の置き場所で、受け付けていない拡張子でも知らせないファイルの名前。Laravelが最初から置くもの */
+    /** 公開の置き場所で、許可されていない拡張子でも知らせないファイルの名前。Laravelが最初から置くもの */
     private const PUBLIC_UPLOAD_IGNORE = ['.gitignore'];
 
     private readonly string $basePath;
@@ -597,7 +597,7 @@ final class FileWatcher
     }
 
     /**
-     * アップロードの置き場所に置かれた、受け付けていないファイル。名前と、置かれた時刻（ctime）。決まりはクラスの説明のとおり
+     * 許可されていないアップロードファイル。名前と、置かれた時刻（ctime）。決まりはクラスの説明のとおり
      *
      * @return list<array{label: string, time: int}>
      */
@@ -619,7 +619,7 @@ final class FileWatcher
             $name = basename($file);
             $extension = strtolower(pathinfo($name, PATHINFO_EXTENSION));
 
-            // PHPとして動くものと、受け付けていない拡張子のもの
+            // PHPとして動くものと、許可されていない拡張子のもの
             $runnable = in_array($extension, self::DANGER_EXTENSIONS, true) || in_array($name, self::DANGER_NAMES, true);
             $unexpected = ! in_array($name, self::PUBLIC_UPLOAD_IGNORE, true) && ! in_array($extension, $allowed, true);
             if (! $runnable && ! $unexpected) {

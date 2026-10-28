@@ -179,7 +179,7 @@ class FileWatchTest extends TestCase
 
     public function test_unexpected_files_in_the_upload_place_are_reported_at_once(): void
     {
-        // 公開の置き場所：受け付けていない拡張子は全部知らせる。画像・PDFと、Laravelの.gitignoreは知らせない
+        // 公開の置き場所：許可されていない拡張子は全部知らせる。画像・PDFと、Laravelの.gitignoreは知らせない
         $this->write('storage/app/public/news/000/000012/shell.php', '<?php system($_GET["c"]);', 3);
         $this->write('storage/app/public/news/000/000012/photo.jpg', 'jpeg', 3);
         $this->write('storage/app/public/news/000/000012/manual.pdf', 'pdf', 3);

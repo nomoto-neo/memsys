@@ -2927,7 +2927,7 @@ Apache の `Redirect` は、書かなくても前方一致で当たり、残り�
 
 **ファイル**：`packages/neobit/core/src/Security/FileWatcher.php`（冒頭のコメント）・`src/Console/WatchFiles.php`、メールは `packages/neobit/core/resources/mail-templates/file_watch_alert.blade.php`
 
-通常の運用では変わらないファイルが変わった・増えた・消えたことと、アップロードの置き場所に置かれた受け付けていないファイル（`.php`・JavaScript・HTML など）を見つけて、通知のメールで知らせます。入口で止めきれずに書き換えられたとき、侵入者が仕組みに気付く前に知らせるためです。改ざんされたら管理画面を見て運用する状況ではないので、管理画面には出しません。
+通常の運用では変わらないファイルが変わった・増えた・消えたことと、許可されていないアップロードファイル（`.php`・JavaScript・HTML など）を見つけて、通知のメールで知らせます。入口で止めきれずに書き換えられたとき、侵入者が仕組みに気付く前に知らせるためです。改ざんされたら管理画面を見て運用する状況ではないので、管理画面には出しません。
 
 **サーバーの設定**（1回だけ。サーバーを管理する人）
 
@@ -2974,7 +2974,7 @@ sudo -u devapp /usr/bin/php artisan app:watch-files --init
     - プロジェクトの直下のディレクトリ。名前が増えた・消えたことだけを見ます（例：知らない `backdoor/` ができた）
     - `bootstrap/cache` の設定などのキャッシュ（`config.php` など）。サーバーの Laravel が実際に読むのは `.env` ではなくここなので、書き換えられるとすぐに効くためです。**デプロイの外で `config:cache` をやり直したとき（`.env` を変えたときなど）は、`.version` も一緒に更新します**
     - 外すのは、この監視の記録とロックのファイル、鍵のファイル、サーバーでテストを動かしたときにできる `.phpunit.cache`・`.phpunit.result.cache` です
-- 公開のアップロードの置き場所（`storage/app/public`。`/storage/` の URL で外から開ける）の、受け付けていないファイル。アップロードのたびにファイルが増えるので、基準とは比べずに、毎回次のものを探し、待たずにすぐ知らせます。
+- 公開のアップロードの置き場所（`storage/app/public`。`/storage/` の URL で外から開ける）の、許可されていないアップロードファイル。アップロードのたびにファイルが増えるので、基準とは比べずに、毎回次のものを探し、待たずにすぐ知らせます。
     - PHP として動く拡張子のファイル（`.php`・`.phtml`・`.phar` など）と `.htaccess`・`.user.ini`
     - アップロードの設定（`upload.image_types`・`attach_types`）と、`file_watch.public_upload_extra` に無い拡張子のもの。JavaScript・CSS・HTML・SVG などを、一覧に書かずに全部拾います。画面からのアップロードでは置かれ得ないので、あれば改ざんの疑いが強いためです。
 - 非公開の置き場所（`storage/app/private`）は見ません。Web から直接開けないので置かれても動かせないうえ、Laravel が作った本人（apache）しか読めない権限（0700・0600）で作られ、監視の利用者には開けないためです。
