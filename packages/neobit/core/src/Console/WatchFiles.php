@@ -85,8 +85,12 @@ class WatchFiles extends Command
             return self::FAILURE;
         }
 
-        $this->info(sprintf('通常の更新 %d件・判断待ち %d件・改ざんの疑い %d件・許可されていないアップロードファイル %d件・確かめられなかったディレクトリ %d件',
-            $result['accepted'], $result['pending'], count($result['alerts']), count($result['dangers']), count($result['unreadable'])));
+        // 件数を1項目1行で出す。見出しの短い順に並べて、見比べやすくする
+        $this->info('判断待ち：'.$result['pending'].'件');
+        $this->info('通常の更新：'.$result['accepted'].'件');
+        $this->info('改ざんの疑い：'.count($result['alerts']).'件');
+        $this->info('確かめられなかったディレクトリ：'.count($result['unreadable']).'件');
+        $this->info('許可されていないアップロードファイル：'.count($result['dangers']).'件');
 
         if (! $result['notify']) {
             return self::SUCCESS;

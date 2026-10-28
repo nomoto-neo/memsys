@@ -2950,7 +2950,7 @@ MAILTO=dev@example.com
 sudo -u devapp /usr/bin/php artisan app:watch-files --init
 ```
 
-5分ほど待ってから同じ利用者で `app:watch-files` を手で1回動かし、「改ざんの疑い 0件」と出れば動いています。
+5分ほど待ってから同じ利用者で `app:watch-files` を手で1回動かし、「改ざんの疑い：0件」と出れば動いています。
 
 **鍵のファイル**（サイトを更新するたび）
 
