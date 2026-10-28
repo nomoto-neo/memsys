@@ -45,7 +45,7 @@ class WatchFiles extends Command
             return self::SUCCESS;
         }
 
-        $watcher = new FileWatcher();
+        $watcher = app(FileWatcher::class);
 
         // 前の回が動いている間は、何もせずに終わる（5分ごとの回と--fullの回が重なったとき）
         if (! $watcher->lock()) {
@@ -104,7 +104,7 @@ class WatchFiles extends Command
      */
     private function notify(array $alerts, array $dangers, array $unreadable): int
     {
-        $to = (string) (config('neobit.file_watch.to') ?: config('logging.channels.error_notify.with.to'));
+        $to = (string) (config('neobit.file_watch.to') ?: config('logging.channels.error_notify.handler_with.to'));
         $recipients = array_filter(array_map('trim', explode(',', $to)));
 
         if ($recipients === []) {

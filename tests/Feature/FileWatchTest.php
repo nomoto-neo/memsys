@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Mail;
+use Neobit\Core\Mail\TemplatedMail;
 use Neobit\Core\Security\FileWatcher;
 use Tests\TestCase;
 
@@ -333,5 +335,22 @@ class FileWatchTest extends TestCase
         $this->assertSame(['app/Secret', 'storage/app/public/hidden'], $result['unreadable']);
         $this->assertSame([], $result['alerts']);
         $this->assertTrue($result['notify']);
+    }
+
+    public function test_alert_mail_goes_to_the_error_notify_address_without_its_own(): void
+    {
+        // file_watch.toが空なら、エラーの通知と同じ宛先（ERROR_NOTIFY_TO）へ送る
+        Mail::fake();
+        config([
+            'neobit.file_watch.to' => null,
+            'logging.channels.error_notify.handler_with.to' => 'dev@example.com',
+        ]);
+        $this->app->instance(FileWatcher::class, $this->watcher());
+
+        $this->write('public/index.php', '<?php // 書き換えられた入口', 2);
+        Carbon::setTestNow(Carbon::createFromTimestamp($this->start + 20 * 60));
+
+        $this->artisan('app:watch-files')->assertSuccessful();
+        Mail::assertSent(TemplatedMail::class, fn (TemplatedMail $mail) => $mail->hasTo('dev@example.com'));
     }
 }
