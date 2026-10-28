@@ -3,6 +3,7 @@
 namespace Neobit\Core\Security;
 
 use Illuminate\Support\Facades\DB;
+use InvalidArgumentException;
 use Neobit\Core\Enums\OperationLogAction;
 use Neobit\Core\Models\BasicAuthUser;
 use Neobit\Core\Operations\OperationRecorder;
@@ -38,8 +39,8 @@ final class BasicAuth
 
     // ---- 入力の決まり ----
 
-    /** ユーザー名の形。:はユーザー名とパスワードの区切りなので使えない */
-    public const USERNAME_PATTERN = '/^[A-Za-z0-9._-]{1,50}$/';
+    /** ユーザー名の形。:はユーザー名とパスワードの区切りなので使えない。末尾は\zにして、改行を通さない */
+    public const USERNAME_PATTERN = '/^[A-Za-z0-9._-]{1,50}\z/';
 
     // ---- 今の状態 ----
 
@@ -81,9 +82,18 @@ final class BasicAuth
 
     // ---- ユーザー ----
 
-    /** 範囲にユーザーを追加して、その範囲の.htpasswdを書き直す。パスワードはbcrypt（Apacheが読める$2y$）にする */
+    /**
+     * 範囲にユーザーを追加して、その範囲の.htpasswdを書き直す。パスワードはbcrypt（Apacheが読める$2y$）にする。
+     * 画面の外から検証を通さずに呼ばれても.htpasswdを崩さないよう、ここでもユーザー名の形を確かめる
+     */
     public static function addUser(string $area, string $username, string $password): BasicAuthUser
     {
+        // 改行や:が入ると、.htpasswdに別の行を書き足せてしまうので断る
+        $username = trim($username);
+        if (preg_match(self::USERNAME_PATTERN, $username) !== 1) {
+            throw new InvalidArgumentException('ベーシック認証のユーザー名の形が正しくありません：'.json_encode($username));
+        }
+
         $user = DB::transaction(function () use ($area, $username, $password) {
             $user = BasicAuthUser::create([
                 'area' => $area,

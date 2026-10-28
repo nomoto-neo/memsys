@@ -7,9 +7,11 @@ use App\Models\Staff;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
+use InvalidArgumentException;
 use Neobit\Core\Enums\OperationLogAction;
 use Neobit\Core\Models\BasicAuthUser;
 use Neobit\Core\Models\OperationLog;
+use Neobit\Core\Security\BasicAuth;
 use Tests\TestCase;
 
 /**
@@ -158,5 +160,23 @@ class BasicAuthTest extends TestCase
         $staff = $this->manager(StaffAcl::Staff);
 
         $this->actingAs($staff, 'admin')->get(route('admin.basic-auth.index'))->assertRedirect(route('admin.staff.edit', $staff));
+    }
+
+    public function test_add_user_rejects_names_that_break_htpasswd(): void
+    {
+        // 画面の外から呼ばれても、前後の空白は外して登録する
+        BasicAuth::addUser('site', "  staff\n", 'secret-password');
+        $this->assertSame(['staff'], array_keys($this->htpasswd('site')));
+
+        // 真ん中の改行や:は、.htpasswdに行を書き足せてしまうので断る
+        foreach (["evil\nroot", 'evil:hash'] as $username) {
+            try {
+                BasicAuth::addUser('site', $username, 'secret-password');
+                $this->fail('断られなかったユーザー名：'.$username);
+            } catch (InvalidArgumentException) {
+            }
+        }
+        $this->assertSame(['staff'], array_keys($this->htpasswd('site')));
+        $this->assertSame(1, BasicAuthUser::query()->count());
     }
 }
