@@ -94,6 +94,7 @@
 | 4 | `php artisan migrate` | マイグレーションを足したとき |
 | 5 | `php artisan config:cache` | 毎回。`.env` か `config/` を変えたときは必ず |
 | 6 | `php artisan view:clear` | 毎回 |
+| 7 | `php artisan app:gate --export` | 毎回。入口の見張りの状態と画面を、今の設定で書き出し直す（26章） |
 
 - **`config:cache` は必須です**。サーバーでは、PHP-FPM を apache で動かし、`.env` は apache から読めないようにしています。`config:cache` は `.env` の値を取り込んだ `bootstrap/cache/config.php` を作り、Laravel はそれだけを読むようになるので、apache が `.env` を読めなくても画面も cron も動きます。
 - **composer のコマンドの後は、`config:cache` をやり直します**。`composer install`・`composer dump-autoload`・`composer update` は、Laravel の決まり（`post-autoload-dump`）で `bootstrap/cache/config.php` を消します。やり直さないと、下の `config:clear` と同じく DB が SQLite になって止まります。
@@ -105,7 +106,7 @@
 - devapp が `storage/` の下に作ったファイル（artisan を実行したときのログなど）も、既定の ACL（`default:user:apache:rwx`）で apache が書けます。作った後に権限を直す必要はありません。
 - 設定が効いているかは、画面を開いて確かめます。sudo を使えるときは `sudo -u apache php artisan config:show database.default` でも確かめられ、`mariadb` と出れば apache が読めています。devapp で同じコマンドを実行しても、devapp は `.env` を読めるので確かめになりません。
 - 手元の開発環境は `.env` を直接読むので、`config:cache` は要りません。
-- フレームワークを更新して、見本のサイトの `public/index.php`・`public/.htaccess` が変わったときは、それも案件のサーバーへ写します（30章）。
+- フレームワークを更新して、見本のサイトの `public/index.php`・`public/.htaccess` が変わったときは、それも案件のサーバーへ写します（26章の入口の見張り、30章）。
 - **改ざん監視を使っているサイトは、ファイルを送るときに鍵のファイル（既定は `.version`）も、中身を変えて送ります**（29章）。送り忘れると、更新したファイルが改ざんとして知らされます。
 
 ### サーバーの権限（set_permissions.sh）
@@ -2639,6 +2640,7 @@ Route::prefix('company')->name('company.')->group(function () {
 - **サイトの制限から管理画面を外す**：`bootstrap/app.php` の `RestrictSiteAccess::except()` に、管理画面の URL（見本のサイトでは `admin`・`admin/*`）を書きます。管理画面の URL の頭は案件が決めるので、案件の側で書きます。
 - **設定の置き場所**：DB の `settings` テーブルです。毎回のアクセスで読むので、キャッシュに置き、保存のたびに作り直します。変えた内容は、操作ログに「アクセス制限の変更」として残ります。
 - **IPブロック管理との関係**：2つの一覧にある IP アドレスは、IPブロック管理で止めません（26章）。
+- **入口の見張り**：アクセス制限も、IPブロック管理と同じく、Laravel を起動する前の見張りが先に判断します（26章の「入口の見張り」）。メンテナンス中の画面を変えたとき（`resources/views/vendor/neobit/maintenance.blade.php`）は、`php artisan app:gate --export` で見張りの画面も作り直します。
 - **プロキシを前に置くときは、`TRUSTED_PROXIES` を先に書きます**。書かないと、全員がプロキシの IP アドレスに見えるので、全員が通るか、全員が止まります。
 - **メンテナンス中の画面**は、レイアウトを継承しない1枚の HTML です。DB もセッションも使わないので、DB を止めている間も出せます。文言は、アプリの `resources/views/vendor/neobit/maintenance.blade.php` に同じ名前で置いて上書きします。デモの運用のときも、この画面が出ます。
 - **503 で返す**のは、一時的に止めていることを検索エンジンに伝えて、登録を消されないようにするためです。
@@ -2716,6 +2718,31 @@ Route::prefix('company')->name('company.')->group(function () {
     ミドルウェアは、ルートを書かなくても動きます。管理画面を出さない案件でも、自動で止める仕組みは働きます。`bootstrap/app.php` の全体のミドルウェアに `RejectBlockedIp` を足してあることを確かめてください。
 - **記録**：止めたこと・解除したこと・期限を変えたことを、操作ログに残します。自動で止めたものは、操作した人が空です。自動で止めたときは `warning` のログも書き、毎朝の操作ログの報告の「気になる点」にも載せます。期限の過ぎた行は、毎時の片付けが消します。
 - **気を付けること**：手前にプロキシがある環境で `TRUSTED_PROXIES` が正しくないと、全員が同じ IP アドレスに見えます。その IP アドレスを止めると、サイト全体が止まります。IP アドレスを次々に変えて来る攻撃は止めきれません。それは WAF の領域です。
+
+### 入口の見張り（Gate）
+
+**ファイル**：`packages/neobit/core/gate.php`（冒頭のコメント）・`src/Security/Gate.php`・`src/Security/GateState.php`・`src/Console/CheckGate.php`、入口の `public/index.php`
+
+IP ブロックとアクセス制限（24章）の判断を、Laravel を起動する前にも行います。止めている IP アドレスの要求を Laravel の起動の前に返して、攻撃が続いているときの負荷を軽くするためです。Laravel を通らない PHP（WordPress など）にも、同じ守りを掛けられます。
+
+- **掛け方**：`public/index.php` の頭で `gate.php` を `require` します。新しいプロジェクトも、見本のサイトの `public/index.php` を写します。
+
+    ```php
+    // IPブロックとアクセス制限を、Laravelを起動する前に判断する（Neobit\Core\Security\Gate）。
+    // 止めるときは、ここで応答を返して終わる。見張りのファイルが無ければ、後ろのLaravelが判断する
+    define('NEOBIT_GATE_STATE', __DIR__.'/../storage/app/gate/state.json');
+    if (is_file($gate = __DIR__.'/../vendor/neobit/core/gate.php')) {
+        require $gate;
+    }
+    ```
+
+- **判断は1つ**：見張りと、Laravel のミドルウェア（`RejectBlockedIp`・`RestrictSiteAccess`・`RestrictAdminAccess`）は、同じ判断のクラス `Gate` を使います。見張りが掛かっていない環境（`php artisan serve`・テスト）や、見張りの状態が古いときは、ミドルウェアが同じ判断をします。
+- **状態のファイル**：見張りは Laravel を読み込まないので、Laravel が書き出した `storage/app/gate/state.json` を読みます。中身は、止めている IP アドレスと期限、サイトと管理画面の制限と許す IP アドレス（`.env` の分も）、管理画面の URL の頭、サイトの制限を掛けない URL、信頼するプロキシです。IP ブロックとアクセス制限を変えたときに、書き出し直します。JSON にしているのは、apache が書ける場所のファイルを、どの要求でも PHP のコードとして動かさないためです。
+- **応答**：今までと同じです。止めている IP アドレスと管理画面の制限は 404、サイトの制限は 503 です。画面も、Laravel が返すものと同じ HTML を、書き出しのときに作って置いてあります（`404.html`・`maintenance.html`）。止められていることに、相手に気付かせないためです。
+- **`.env` を変えたとき**：許す IP アドレスや `TRUSTED_PROXIES` を変えて `config:cache` をやり直したら、`php artisan app:gate --export` で書き出し直します（0章の表）。忘れても、設定のキャッシュより状態のファイルが古ければ、次のアクセスで Laravel が書き出し直します。
+- **確かめ**：`php artisan app:gate` で、書き出した日時・止めている IP アドレスの数・制限の状態を出します。状態のファイルが無いときや、今の状態と食い違っているときは、知らせて失敗で終わります。
+- **書き出せないとき**：解除などで書き出しに失敗すると、エラーのログを書きます（エラーの通知のメールが届きます）。古い状態のままだと、見張りが解除した IP アドレスを止め続けるためです。`storage/app/gate/` に書けるかを確かめて、`php artisan app:gate --export` を実行します。状態のファイルを読めないときと、`gate.php` が無いとき（送り忘れなど）は、見張りは何もせずに通し、ミドルウェアが判断します。画面だけを作れないとき（案件が足したエラーの画面がコマンドから描けないなど）は、状態は書き出し、エラーのログを書きます。見張りは、画面の代わりに短い文を返します。
+- **プロキシの後ろ**：見張りも、`TRUSTED_PROXIES` に書いたプロキシから届いたときだけ `X-Forwarded-For` を読みます。求め方は Laravel と同じです。
 
 ## 27. SEO（ページのタイトル・説明文・OGP）
 
@@ -3143,7 +3170,7 @@ public_html/              ← 公開ディレクトリ。Laravel の public の�
     └─ system/            ← Laravel 本体。外からは閉じる
 ```
 
-- **`index.php`**：`vendor/autoload.php` と `bootstrap/app.php` の読み込み先を `__DIR__.'/app/system/…'` にし、`$app->usePublicPath(__DIR__);` を足します。`asset()`・アップロードの URL・`public_path()`・`storage:link` の場所を、公開ディレクトリにするためです。最後の行は、見本のサイトの `public/index.php` と同じく `PublicFiles::handle()` にします（30章）。
+- **`index.php`**：`vendor/autoload.php` と `bootstrap/app.php` の読み込み先を `__DIR__.'/app/system/…'` にし、`$app->usePublicPath(__DIR__);` を足します。`asset()`・アップロードの URL・`public_path()`・`storage:link` の場所を、公開ディレクトリにするためです。最後の行は、見本のサイトの `public/index.php` と同じく `PublicFiles::handle()` にします（30章）。頭の入口の見張り（26章）も、`NEOBIT_GATE_STATE` と `gate.php` の読み込み先を `__DIR__.'/app/system/…'` にします。
 - **`vite.config.js`**：`npm run build` の出力先（`laravel()` の `publicDirectory`）を公開ディレクトリにします。
 - **本体を閉じる（守りを2枚にする）**：公開ディレクトリの `.htaccess` の `RewriteEngine On` の次に、`/app/system/` の下は 404 を返す1行を足します。403 だと、そこに何かあることを教えるためです。加えて `app/system/.htaccess` に `Require all denied` を置き、`.htaccess` の書き損じでも本体が見えないようにします。
 
