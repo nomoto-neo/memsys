@@ -4,6 +4,7 @@ namespace Neobit\Core;
 
 use Illuminate\Support\ServiceProvider;
 use Neobit\Core\Console\AccessDeniedOff;
+use Neobit\Core\Console\CheckGate;
 use Neobit\Core\Console\CleanupTemporaryData;
 use Neobit\Core\Console\ReportOperationLogs;
 use Neobit\Core\Console\ResetTwoFactor;
@@ -69,6 +70,7 @@ class NeobitServiceProvider extends ServiceProvider
 
             $this->commands([
                 AccessDeniedOff::class,
+                CheckGate::class,
                 CleanupTemporaryData::class,
                 ReportOperationLogs::class,
                 ResetTwoFactor::class,

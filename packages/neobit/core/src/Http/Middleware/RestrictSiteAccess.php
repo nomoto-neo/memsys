@@ -4,7 +4,8 @@ namespace Neobit\Core\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Neobit\Core\Security\AccessRestriction;
+use Neobit\Core\Security\Gate;
+use Neobit\Core\Security\GateState;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -22,11 +23,14 @@ use Symfony\Component\HttpFoundation\Response;
  * 管理画面の制限（RestrictAdminAccess）だけを掛けるので、渡さなくてもいつも通す。
  * Apacheが直接返すファイル（public/build/・public/storage/）は、ここを通らないので止まらない。
  * コマンドも通らないので、スケジューラーとキューは、制限の間も動く。
+ *
+ * 判断は、入口の見張りと同じもの（Neobit\Core\Security\Gate）を使う。見張りが掛かっていない環境や、
+ * 見張りの状態のファイルが古いときの保険になる。
  */
 class RestrictSiteAccess
 {
-    /** メンテナンス中の画面のビュー */
-    private const VIEW = 'neobit::maintenance';
+    /** メンテナンス中の画面のビュー。入口の見張りが返す画面も、このビューから作る（GateState） */
+    public const VIEW = 'neobit::maintenance';
 
     // 制限の間も、IPアドレスに関係なく通すパス。「mail/unsubscribe」「up」の形
     /** @var string[] */
@@ -42,13 +46,21 @@ class RestrictSiteAccess
         self::$except = $paths;
     }
 
+    /**
+     * 制限の間も通すパスの全部。except()で渡したものに、管理画面の下を足す。入口の見張りにも書き出す（GateState）。
+     *
+     * @return string[]
+     */
+    public static function exceptPaths(): array
+    {
+        $admin = GateState::adminPath();
+
+        return [...self::$except, $admin, $admin.'/*'];
+    }
+
     public function handle(Request $request, Closure $next): Response
     {
-        // 管理画面は、設定の頭のURLから外す
-        $admin = trim((string) config('neobit.admin_path'), '/');
-        $except = [...self::$except, $admin, $admin.'/*'];
-
-        if ($request->is($except) || AccessRestriction::allowsSite($request)) {
+        if (Gate::opensSite(GateState::build(), $request->decodedPath(), (string) $request->ip())) {
             return $next($request);
         }
 

@@ -11,7 +11,6 @@ use Illuminate\Support\Facades\RateLimiter;
 use Neobit\Core\Enums\OperationLogAction;
 use Neobit\Core\Models\IpBlock;
 use Neobit\Core\Operations\OperationRecorder;
-use Symfony\Component\HttpFoundation\IpUtils;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -37,6 +36,10 @@ use Symfony\Component\HttpFoundation\Response;
  * ■ 記録
  * 止めたこと・解除したことは、操作ログに残す。いつ誰が止めて解除したかは、操作ログで追う。
  * 解除した行と、期限が過ぎた行は消す。期限が過ぎた行は、毎時の片付け（TemporaryDataCleaner）が消す。
+ *
+ * ■ 入口の見張り
+ * 止めるかの判断は、入口の見張りと同じもの（Neobit\Core\Security\Gate）を使う。止めている一覧を変えたら、
+ * 見張りの状態も書き出す（GateState）。見張りは、Laravelを起動する前に、同じ一覧で止める。
  */
 final class IpBlocker
 {
@@ -89,15 +92,7 @@ final class IpBlocker
             return false;
         }
 
-        $now = now()->getTimestamp();
-        $ranges = [];
-        foreach (self::blockedList() as [$range, $until]) {
-            if ($until === null || $until > $now) {
-                $ranges[] = $range;
-            }
-        }
-
-        return $ranges !== [] && IpUtils::checkIp($ip, $ranges);
+        return Gate::isBlocked(self::blockedList(), $ip, now()->getTimestamp());
     }
 
     /**
@@ -269,7 +264,7 @@ final class IpBlocker
      */
     public static function coversProtected(string $range, string $currentIp): bool
     {
-        if ($currentIp !== '' && IpUtils::checkIp($currentIp, $range)) {
+        if (Gate::inRange($currentIp, [$range])) {
             return true;
         }
 
@@ -278,7 +273,7 @@ final class IpBlocker
             $allowedAddress = explode('/', $allowed, 2)[0];
             $rangeAddress = explode('/', $range, 2)[0];
 
-            if (IpUtils::checkIp($allowedAddress, $range) || IpUtils::checkIp($rangeAddress, $allowed)) {
+            if (Gate::inRange($allowedAddress, [$range]) || Gate::inRange($rangeAddress, [$allowed])) {
                 return true;
             }
         }
@@ -286,8 +281,8 @@ final class IpBlocker
         return false;
     }
 
-    /** 止めている一覧。[IPアドレスかまとまり, 期限のUNIX時刻かnull]の並び */
-    private static function blockedList(): array
+    /** 止めている一覧。[IPアドレスかまとまり, 期限のUNIX時刻かnull]の並び。入口の見張りの状態にも入れる（GateState） */
+    public static function blockedList(): array
     {
         return Cache::rememberForever(self::CACHE_KEY, fn () => IpBlock::query()
             ->active()
@@ -296,10 +291,11 @@ final class IpBlocker
             ->all());
     }
 
-    /** 止めている一覧のキャッシュを消す。次の判定で、DBから作り直す */
+    /** 止めている一覧のキャッシュを消して、次の判定でDBから作り直す。入口の見張りの状態も書き出す */
     private static function forgetList(): void
     {
         Cache::forget(self::CACHE_KEY);
+        GateState::exportOrReport();
     }
 
     /** アクセス制限で通しているIPアドレスの一覧 */
@@ -313,7 +309,7 @@ final class IpBlocker
     {
         $allowed = self::allowedList();
 
-        return $allowed !== [] && IpUtils::checkIp($ip, $allowed);
+        return Gate::inRange($ip, $allowed);
     }
 
     /** 自動で止めるときの単位。IPv4は1つ、IPv6は/64のまとまり */

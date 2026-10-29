@@ -8,7 +8,6 @@ use Illuminate\Support\Facades\Cache;
 use Neobit\Core\Enums\OperationLogAction;
 use Neobit\Core\Models\Setting;
 use Neobit\Core\Operations\OperationRecorder;
-use Symfony\Component\HttpFoundation\IpUtils;
 
 /**
  * アクセス制限。サイト（訪問者画面）と管理画面を、それぞれ決めたIPアドレスからだけ開けるようにする。
@@ -33,6 +32,9 @@ use Symfony\Component\HttpFoundation\IpUtils;
  * ■ 速さ
  * 毎回のアクセスで読むので、画面の設定はキャッシュに置き、保存のたびに作り直す。設定のテーブルが
  * まだ無いとき（マイグレーションの前）は、画面の設定が無いものとして動く。
+ *
+ * ■ 入口の見張り
+ * 判断は、入口の見張りと同じもの（Neobit\Core\Security\Gate）を使う。保存したら、見張りの状態も書き出す（GateState）。
  */
 final class AccessRestriction
 {
@@ -57,16 +59,16 @@ final class AccessRestriction
 
     // ---- 判断 ----
 
-    /** サイト（訪問者画面）を開いてよいか。制限していなければ誰でもよい */
+    /** サイト（訪問者画面）のIPアドレスの制限で、開いてよいか。制限していなければ誰でもよい */
     public static function allowsSite(Request $request): bool
     {
-        return ! self::settings()['site_restricted'] || self::matches((string) $request->ip(), self::siteIps());
+        return Gate::allows(GateState::build()['site'], (string) $request->ip());
     }
 
     /** 管理画面を開いてよいか。制限していなければ誰でもよい */
     public static function allowsAdmin(Request $request): bool
     {
-        return ! self::settings()['admin_restricted'] || self::matches((string) $request->ip(), self::adminIps());
+        return Gate::allows(GateState::build()['admin'], (string) $request->ip());
     }
 
     /** サイトと管理画面の一覧にあるIPアドレスの全部。IPブロック管理が、止めない対象にする */
@@ -145,6 +147,7 @@ final class AccessRestriction
         Setting::put(self::ADMIN_IPS_KEY, array_values($adminIps));
 
         Cache::forget(self::CACHE_KEY);
+        GateState::exportOrReport();
 
         OperationRecorder::record(OperationLogAction::AccessRestrictionChange, detail: [
             'site' => 'サイトの制限：'.($siteRestricted ? 'する' : 'しない'),
@@ -214,7 +217,7 @@ final class AccessRestriction
     /** IPアドレスが、一覧のどれかに当たるか */
     private static function matches(string $ip, array $ranges): bool
     {
-        return $ip !== '' && $ranges !== [] && IpUtils::checkIp($ip, $ranges);
+        return Gate::inRange($ip, $ranges);
     }
 
     /** IPアドレスか、192.0.2.0/24のようなまとまりの形をそろえる。正しくない形ならnull */

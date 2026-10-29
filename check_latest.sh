@@ -284,7 +284,6 @@ has   packages/neobit/core/src/Security/FileWatcher.php                 'final c
 has   packages/neobit/core/src/Console/WatchFiles.php                   'app:watch-files'
 has   packages/neobit/core/resources/mail-templates/file_watch_alert.blade.php 'ファイルの改ざんを検知しました'
 has   packages/neobit/core/src/Operations/OperationLogReport.php       'fileUpdates'
-has   packages/neobit/core/src/Http/Middleware/RestrictSiteAccess.php   "config('neobit.admin_path')"
 has   routes/web.php                                                    "prefix(config('neobit.admin_path'))"
 lacks bootstrap/app.php                                                 "'admin/*'"
 lacks config/neobit.php                                                 "'robots_disallow' => ['/admin'"
@@ -328,6 +327,15 @@ has   app/Http/Controllers/PageController.php                           'PublicF
 has   public/index.php                                                  'PublicFiles::handle'
 has   public/.htaccess                                                  'RewriteRule ^index\.php$ - [L]'
 has   set_permissions.sh                                                'pm = ondemand'
+has   packages/neobit/core/gate.php                                     "is_file(__DIR__.'/src/Security/Gate.php')"
+has   packages/neobit/core/src/Security/Gate.php                        'function clientIp'
+has   packages/neobit/core/src/Security/GateState.php                   'function writeFile'
+has   packages/neobit/core/src/Console/CheckGate.php                    'app:gate'
+has   packages/neobit/core/src/Security/IpBlocker.php                   'GateState::exportOrReport'
+has   packages/neobit/core/src/Security/AccessRestriction.php           'GateState::exportOrReport'
+has   packages/neobit/core/src/Http/Middleware/RejectBlockedIp.php      'GateState::refreshIfStale'
+has   packages/neobit/core/src/Http/Middleware/RestrictSiteAccess.php   'Gate::opensSite'
+has   public/index.php                                                  'is_file($gate'
 
 echo
 if [ $ng -eq 0 ]; then
