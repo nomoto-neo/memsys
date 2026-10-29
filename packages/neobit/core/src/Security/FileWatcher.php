@@ -42,6 +42,13 @@ use RuntimeException;
  * 取り込み、「手で認めた更新」として記録に残す。待っている最中の変化は取り込まない。init()で基準を作り直すと、
  * それも黙って取り込み、通常の更新の記録も消えるため。
  *
+ * ■ 管理画面の「改ざん監視」
+ * 管理画面は、開くたびにinspect()でその場の状況を出す。apache（Web）で動くので記録は書かず、中身を読めない
+ * ファイル（.envなど）は、最後のcronの結果（記録のlast_result）を使う。
+ * 承認を押すと、承認の目印（storageの下のapproval.json）を置く（requestApproval()）。記録はapacheが書けないので、
+ * 毎分のcron（app:watch-files --approve）がapplyApproval()で拾い、目印の一覧のうち、まだ疑いか判断待ちのものだけを
+ * 基準に取り込む。承認した人の名前は、通常の更新の記録に残し、1日1回の報告と画面に出す。
+ *
  * ■ アップロードの置き場所
  * アップロードのたびにファイルが増えるので、基準とは比べない。代わりに毎回、公開の置き場所（storage/app/public。
  * /storage/のURLで外から開ける）に、次のファイルが無いかを確かめ、見つけたら待たずに知らせる。
@@ -80,6 +87,9 @@ final class FileWatcher
 
     /** 同時に動かないよう押さえる、ロックのファイル（basePathの下） */
     private const LOCK_FILE = 'bootstrap/cache/file-watch.lock';
+
+    /** 管理画面で承認した目印（storageの下）。管理画面（apache）が書き、cron（devapp）が拾って消す */
+    private const APPROVAL_FILE = 'app/file-watch/approval.json';
 
     // ---- 通常の更新の見分け方（秒） ----
 
@@ -162,6 +172,12 @@ final class FileWatcher
 
     /** この回で集めた、アップロードの置き場所のファイル。名前 => パス。まだ集めていなければnull */
     private ?array $uploadFiles = null;
+
+    /** 記録を書かずに確かめているか（inspect()）。apacheで動くので、中身を読めないファイルがある */
+    private bool $readOnly = false;
+
+    /** 記録を書かずに確かめた回で、中身を読めなかったファイルの名前 */
+    private array $unhashable = [];
 
     /**
      * 場所とctimeの読み方は、テストで差し替える。手元のWindowsでは、ctimeがファイルを作った日時になるため。
@@ -266,6 +282,9 @@ final class FileWatcher
         sort($this->unreadable);
         $notify = $this->shouldNotify($state, $sorted['alerts'], $dangers, $this->unreadable, $now);
 
+        // 管理画面が、中身を読めないファイルの分類に使う
+        $state['last_result'] = $this->result($sorted['alerts'], $sorted['pendingList'], $dangers, $now);
+
         $this->save($state);
 
         return [
@@ -308,7 +327,7 @@ final class FileWatcher
         foreach ($sorted['alertCandidates'] as $label => $candidate) {
             $this->absorb($state, $label, $candidate);
         }
-        $state['accepted'][] = ['manual' => true, 'from' => $now, 'to' => $now, 'files' => array_column($sorted['alerts'], 'label')];
+        $state['accepted'][] = ['manual' => true, 'by' => null, 'from' => $now, 'to' => $now, 'files' => array_column($sorted['alerts'], 'label')];
 
         // 通知の控えを消し、次に別の疑いが出たらすぐ知らせる
         $state['last_alert'] = null;
@@ -316,6 +335,159 @@ final class FileWatcher
         $this->save($state);
 
         return $sorted['alerts'];
+    }
+
+    /**
+     * 記録を書かずに、その場の状況を確かめる。管理画面（apache）が開くたびに呼ぶ。基準がまだ無ければnull。
+     * apacheが中身を読めないファイル（.envなど）は、最後のcronの結果（last_result）の分類を使う。
+     *
+     * @return array{at: int, alerts: list<array{label: string, kind: string, time: int}>, pending: list<array{label: string, kind: string, time: int}>, dangers: list<array{label: string, time: int}>, unreadable: list<string>}|null
+     */
+    public function inspect(): ?array
+    {
+        $this->unreadable = [];
+        $this->uploadFiles = null;
+        $this->unhashable = [];
+        $state = $this->load();
+        if ($state === null) {
+            return null;
+        }
+        $now = now()->getTimestamp();
+        $last = $state['last_result'] ?? [];
+
+        // 記録の写しで比べて分け、記録は書かない
+        $this->readOnly = true;
+        try {
+            $sorted = $this->sort($state, false, $now);
+            $dangers = $this->dangers();
+        } finally {
+            $this->readOnly = false;
+        }
+
+        // 中身を読めなかったファイルは、最後のcronの分類に従う
+        $alerts = $sorted['alerts'];
+        $pending = $sorted['pendingList'];
+        foreach ((array) ($last['alerts'] ?? []) as $entry) {
+            if (in_array($entry['label'], $this->unhashable, true)) {
+                $alerts[] = $entry;
+            }
+        }
+        foreach ((array) ($last['pending'] ?? []) as $entry) {
+            if (in_array($entry['label'], $this->unhashable, true)) {
+                $pending[] = $entry;
+            }
+        }
+        sort($this->unreadable);
+
+        return $this->result($alerts, $pending, $dangers, $now);
+    }
+
+    /**
+     * 承認する一覧のしるし。管理画面が、画面に出した一覧と、押したときの一覧が同じかを確かめるのに使う。
+     * 一覧をそのまま送ると、ファイルが多いとき（WordPressの更新など）にPHPの受け取れる数（max_input_vars）を超えて、
+     * 黙って一部だけになるため
+     *
+     * @param  list<array{label: string, kind: string, time: int}>  $items
+     */
+    public static function signature(array $items): string
+    {
+        $keys = array_map(fn (array $item) => $item['kind'].':'.$item['label'], $items);
+        sort($keys);
+
+        return hash('sha256', implode("\n", $keys));
+    }
+
+    /**
+     * 管理画面で承認した一覧を、承認の目印に書く。次の毎分のcron（applyApproval()）が拾う。前の目印があれば上書きする
+     *
+     * @param  list<array{label: string, kind: string, time: int}>  $items
+     */
+    public function requestApproval(array $items, string $by): void
+    {
+        $path = storage_path(self::APPROVAL_FILE);
+        if (! is_dir(dirname($path))) {
+            mkdir(dirname($path), 0775, true);
+        }
+
+        $approval = ['by' => $by, 'at' => now()->getTimestamp(), 'items' => array_values($items)];
+        file_put_contents($path.'.tmp', json_encode($approval, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE), LOCK_EX);
+        rename($path.'.tmp', $path);
+    }
+
+    /**
+     * まだcronが拾っていない承認の目印。無ければnull
+     *
+     * @return array{by: string, at: int, items: list<array{label: string, kind: string, time: int}>}|null
+     */
+    public function pendingApproval(): ?array
+    {
+        $json = @file_get_contents(storage_path(self::APPROVAL_FILE));
+        $approval = $json === false ? null : json_decode($json, true);
+
+        return is_array($approval) && isset($approval['by'], $approval['at'], $approval['items']) ? $approval : null;
+    }
+
+    /**
+     * 承認の目印を拾って、基準に取り込む。app:watch-files --approveが毎分呼ぶ。目印が無ければnull。
+     * 目印の一覧のうち、今も同じ種類の改ざんの疑いか判断待ちのものだけを取り込む。承認の後に増えた変化や、
+     * 一覧に無い変化は取り込まない。取り込んだら目印を消し、取り込んだ一覧と承認した人を返す。
+     *
+     * @return array{by: string, requested_at: int, items: list<array{label: string, kind: string, time: int}>}|null
+     */
+    public function applyApproval(): ?array
+    {
+        $approval = $this->pendingApproval();
+        if ($approval === null) {
+            return null;
+        }
+
+        $this->unreadable = [];
+        $this->uploadFiles = null;
+        $state = $this->loadBaseline();
+        $now = now()->getTimestamp();
+        $sorted = $this->sort($state, false, $now);
+
+        // 承認した一覧に、種類も同じで入っているものだけを取り込む
+        $requested = array_map(fn (array $item) => $item['kind'].':'.$item['label'], $approval['items']);
+        $approved = [];
+        foreach ($sorted['alertCandidates'] + $sorted['pendingCandidates'] as $label => $candidate) {
+            if (in_array($candidate['kind'].':'.$label, $requested, true)) {
+                $this->absorb($state, $label, $candidate);
+                $approved[] = ['label' => $label, 'kind' => $candidate['kind'], 'time' => $candidate['time']];
+            }
+        }
+
+        // 承認した人の名前と一緒に記録し、通知の控えを消して、次に別の疑いが出たらすぐ知らせる
+        if ($approved !== []) {
+            $state['accepted'][] = ['manual' => true, 'by' => (string) $approval['by'], 'from' => $now, 'to' => $now, 'files' => array_column($approved, 'label')];
+            $state['last_alert'] = null;
+        }
+
+        // 管理画面のための、この回の結果。取り込んだものは外す
+        $approvedLabels = array_column($approved, 'label');
+        $remaining = fn (array $entries) => array_values(array_filter($entries, fn (array $entry) => ! in_array($entry['label'], $approvedLabels, true)));
+        $dangers = $this->dangers();
+        sort($this->unreadable);
+        $state['last_result'] = $this->result($remaining($sorted['alerts']), $remaining($sorted['pendingList']), $dangers, $now);
+
+        $this->save($state);
+        @unlink(storage_path(self::APPROVAL_FILE));
+
+        return ['by' => (string) $approval['by'], 'requested_at' => (int) $approval['at'], 'items' => $approved];
+    }
+
+    /**
+     * 記録にある、取り込んだ更新の全部（8日分）。新しい順。管理画面の「最近取り込んだ更新」に出す。
+     * 手で認めた更新はmanualがtrueで、管理画面で承認したものはbyに承認した人の名前、サーバーで認めたものはnull
+     *
+     * @return list<array{from: int, to: int, files: list<string>, manual?: bool, by?: string|null}>
+     */
+    public function recentlyAccepted(): array
+    {
+        $entries = (array) ($this->load()['accepted'] ?? []);
+        usort($entries, fn (array $a, array $b) => $b['from'] <=> $a['from']);
+
+        return $entries;
     }
 
     /**
@@ -340,9 +512,9 @@ final class FileWatcher
 
     /**
      * 基準と比べて、変わった・増えた・消えたファイルを、通常の更新・待つ・知らせるに分ける。
-     * 通常の更新は、ここで基準に取り込む。知らせるものは、手で認めて取り込めるよう、比べた中身も返す。
+     * 通常の更新は、ここで基準に取り込む。知らせるものと待つものは、手で認めて取り込めるよう、比べた中身も返す。
      *
-     * @return array{alerts: list<array{label: string, kind: string, time: int}>, alertCandidates: array<string, array>, accepted: int, pending: int}
+     * @return array{alerts: list<array{label: string, kind: string, time: int}>, alertCandidates: array<string, array>, pendingList: list<array{label: string, kind: string, time: int}>, pendingCandidates: array<string, array>, accepted: int, pending: int}
      */
     private function sort(array &$state, bool $full, int $now): array
     {
@@ -369,8 +541,14 @@ final class FileWatcher
                 continue;
             }
 
-            // ハッシュ値が同じなら変化なし。ctimeと大きさだけを新しくする（権限だけを変えたときなど）
-            $hash = hash_file('sha256', $info['path']);
+            // ハッシュ値が同じなら変化なし。ctimeと大きさだけを新しくする（権限だけを変えたときなど）。
+            // 記録を書かずに確かめているとき、中身を読めないファイルは、呼んだ側が最後のcronの結果を使う
+            $hash = $this->hashOf($info['path']);
+            if ($hash === false) {
+                $this->unhashable[] = $label;
+
+                continue;
+            }
             if ($hash === $base['hash']) {
                 $state['files'][$label]['ctime'] = $info['ctime'];
                 $state['files'][$label]['size'] = $info['size'];
@@ -424,8 +602,9 @@ final class FileWatcher
         // 通常の更新か、待つか、知らせるか
         $alerts = [];
         $alertCandidates = [];
+        $pendingList = [];
+        $pendingCandidates = [];
         $accepted = 0;
-        $pending = 0;
         foreach ($candidates as $label => $candidate) {
             $period = $this->periodOf($candidate['time'], $periods);
 
@@ -435,7 +614,8 @@ final class FileWatcher
                 $accepted++;
             } elseif ($now - $candidate['time'] < self::WAIT) {
                 // 鍵が後から届くかもしれないので、まだ待つ
-                $pending++;
+                $pendingList[] = ['label' => $label, 'kind' => $candidate['kind'], 'time' => $candidate['time']];
+                $pendingCandidates[$label] = $candidate;
             } else {
                 $alerts[] = ['label' => $label, 'kind' => $candidate['kind'], 'time' => $candidate['time']];
                 $alertCandidates[$label] = $candidate;
@@ -443,7 +623,14 @@ final class FileWatcher
         }
         $state['accepted'] = array_values(array_filter($state['accepted'], fn (array $entry) => $entry['to'] >= $now - self::KEEP_ACCEPTED));
 
-        return ['alerts' => $alerts, 'alertCandidates' => $alertCandidates, 'accepted' => $accepted, 'pending' => $pending];
+        return [
+            'alerts' => $alerts,
+            'alertCandidates' => $alertCandidates,
+            'pendingList' => $pendingList,
+            'pendingCandidates' => $pendingCandidates,
+            'accepted' => $accepted,
+            'pending' => count($pendingList),
+        ];
     }
 
     /**
@@ -512,7 +699,7 @@ final class FileWatcher
             $state['files'][$label] = [
                 'ctime' => $info['ctime'],
                 'size' => $info['size'],
-                'hash' => $info['hash'] ?? hash_file('sha256', $info['path']),
+                'hash' => $info['hash'] ?? $this->hashOf($info['path']),
             ];
         }
     }
@@ -808,6 +995,25 @@ final class FileWatcher
         $paths = array_map(fn ($path) => trim((string) $path, '/'), (array) config('neobit.wordpress.watch_exclude'));
 
         return array_values(array_filter($paths, fn (string $path) => $path !== ''));
+    }
+
+    /**
+     * ファイルのハッシュ値。記録を書かずに確かめているときは、読めなければfalse（apacheが読めない.envなど）。
+     * cronで読めないときは、今までどおり例外にして気付けるようにする
+     */
+    private function hashOf(string $path): string|false
+    {
+        return $this->readOnly ? @hash_file('sha256', $path) : hash_file('sha256', $path);
+    }
+
+    /**
+     * 1回の確かめの結果。記録のlast_resultと、inspect()が返す形
+     *
+     * @return array{at: int, alerts: list<array{label: string, kind: string, time: int}>, pending: list<array{label: string, kind: string, time: int}>, dangers: list<array{label: string, time: int}>, unreadable: list<string>}
+     */
+    private function result(array $alerts, array $pending, array $dangers, int $now): array
+    {
+        return ['at' => $now, 'alerts' => $alerts, 'pending' => $pending, 'dangers' => $dangers, 'unreadable' => $this->unreadable];
     }
 
     /** 鍵のファイルのctime。設定が空か、ファイルが無ければnull */

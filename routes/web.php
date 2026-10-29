@@ -35,6 +35,7 @@ use App\Http\Controllers\TopController;
 use Illuminate\Support\Facades\Route;
 use Neobit\Core\Http\Controllers\AccessRestrictionController;
 use Neobit\Core\Http\Controllers\BasicAuthController;
+use Neobit\Core\Http\Controllers\FileWatchController;
 use Neobit\Core\Http\Controllers\CodeTableController;
 use Neobit\Core\Http\Controllers\IpBlockController;
 use Neobit\Core\Http\Controllers\OperationLogController;
@@ -564,6 +565,11 @@ Route::prefix(config('neobit.admin_path'))->name('admin.')->middleware(['admin.i
             Route::patch('/basic-auth/{area}', [BasicAuthController::class, 'update'])->whereIn('area', ['site', 'admin'])->name('basic-auth.update');
             Route::post('/basic-auth/{area}/users', [BasicAuthController::class, 'store'])->whereIn('area', ['site', 'admin'])->name('basic-auth.store');
             Route::delete('/basic-auth/users/{basicAuthUser}', [BasicAuthController::class, 'destroy'])->name('basic-auth.destroy');
+
+            // 改ざん監視（今の状況と、変更内容の承認。フレームワークの画面）。
+            // 名前は「頭.index」「頭.approve」の組にする。コントローラーが組のもう一方の名前を作る
+            Route::get('/file-watch', [FileWatchController::class, 'index'])->name('file-watch.index');
+            Route::post('/file-watch/approve', [FileWatchController::class, 'approve'])->name('file-watch.approve');
 
             // SEO設定（記事を持たないページのSEOと、サイト全体の既定。フレームワークの画面）。
             // 名前は「頭.index」「頭.update」の組にする。コントローラーが組のもう一方の名前を作る

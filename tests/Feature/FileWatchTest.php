@@ -205,7 +205,7 @@ class FileWatchTest extends TestCase
 
         // 1日1回の報告に、手で認めた更新として載る
         $entries = $this->watcher()->acceptedOn(Carbon::parse('2026-10-27'));
-        $this->assertSame([['manual' => true, 'from' => $this->start + 1500, 'to' => $this->start + 1500, 'files' => ['public/index.php', 'config/app.php']]], $entries);
+        $this->assertSame([['manual' => true, 'by' => null, 'from' => $this->start + 1500, 'to' => $this->start + 1500, 'files' => ['public/index.php', 'config/app.php']]], $entries);
     }
 
     public function test_declining_leaves_the_alerts_as_they_were(): void

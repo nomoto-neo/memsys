@@ -40,6 +40,7 @@
             ['admin.ip-blocks.index', 'admin.ip-blocks.*', 'IPブロック'],
             ['admin.access-restriction.index', 'admin.access-restriction.*', 'アクセス制限'],
             ['admin.basic-auth.index', 'admin.basic-auth.*', 'ベーシック認証'],
+            ['admin.file-watch.index', 'admin.file-watch.*', '改ざん監視'],
         ];
     } else {
         // 管理者でないときは、スタッフの一覧の代わりに自分の情報だけを出す

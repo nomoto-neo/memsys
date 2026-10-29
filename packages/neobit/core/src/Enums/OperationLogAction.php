@@ -39,6 +39,7 @@ enum OperationLogAction: string implements OperationLogActionType
     case BasicAuthChange = 'basic_auth_change';
     case BasicAuthUserAdd = 'basic_auth_user_add';
     case BasicAuthUserDelete = 'basic_auth_user_delete';
+    case FileWatchApproval = 'file_watch_approval';
 
     /** 値ごとの名前 */
     private const LABELS = [
@@ -67,6 +68,7 @@ enum OperationLogAction: string implements OperationLogActionType
         self::BasicAuthChange->value => 'ベーシック認証の変更',
         self::BasicAuthUserAdd->value => 'ベーシック認証のユーザーの追加',
         self::BasicAuthUserDelete->value => 'ベーシック認証のユーザーの削除',
+        self::FileWatchApproval->value => '改ざん監視の承認',
     ];
 
     public function label(): string
