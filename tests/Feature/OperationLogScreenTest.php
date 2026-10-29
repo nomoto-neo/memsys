@@ -71,6 +71,42 @@ class OperationLogScreenTest extends TestCase
             ->assertSee(route('admin.operation-logs.csv'));
     }
 
+    public function test_long_details_are_cut_and_shown_whole_in_a_modal(): void
+    {
+        $manager = $this->manager();
+
+        // 短い補足は、そのまま出す
+        OperationLog::create([
+            'operator_type' => 'staff',
+            'operator_id' => $manager->id,
+            'action' => OperationLogAction::AccessRestrictionChange,
+            'detail' => ['site' => 'メンテナンス画面：表示しない'],
+        ]);
+
+        // 長い補足は、切って「…」と「全文」を出し、全文はモーダルで項目ごとに出す
+        $long = OperationLog::create([
+            'operator_type' => 'staff',
+            'operator_id' => $manager->id,
+            'action' => OperationLogAction::AccessRestrictionChange,
+            'detail' => [
+                'site' => 'メンテナンス画面：表示する',
+                'site_ips' => 'メンテナンス中も訪問者画面を閲覧できるIPアドレス：'.str_repeat('203.0.113.10（事務所） ', 6).'198.51.100.99（最後）',
+            ],
+        ]);
+
+        $this->actingAs($manager, 'admin')
+            ->get(route('admin.operation-logs.index'))
+            ->assertOk()
+            ->assertSee('メンテナンス画面：表示しない')
+            ->assertSee('…')
+            ->assertSee('data-bs-target="#operationLogFull-'.$long->id.'"', false)
+            ->assertSee('アクセス制限の変更の補足')
+            ->assertSee('<div class="text-break">メンテナンス画面：表示する</div>', false)
+            ->assertSee('198.51.100.99（最後）');
+
+        $this->assertTrue($long->hasLongChangesText());
+    }
+
     public function test_model_without_a_name_shows_its_type(): void
     {
         // 設定に列挙型が無くても、例外にせず、種類の名前のまま出す。コード表は1つのプロセスの中で

@@ -16,6 +16,9 @@ class OperationLog extends Model
 {
     public const UPDATED_AT = null;
 
+    /** 一覧の表で、変わった項目と補足をこの文字数で切る。超えたら、全文をモーダルで出す */
+    public const DETAIL_SHOWN_LENGTH = 60;
+
     protected $table = 'operation_logs';
 
     protected $fillable = [
@@ -216,10 +219,12 @@ class OperationLog extends Model
     }
 
     /**
-     * 補足のうち、画面に出す文字。CSVの記録のidのように、ほかのテーブルとつなぐための値と、
-     * 対象の欄に出すCSVの名前は出さない
+     * 補足のうち、画面に出す項目を、並びのまま1つずつ。CSVの記録のidのように、ほかのテーブルとつなぐための値と、
+     * 対象の欄に出すCSVの名前は出さない。長い補足の全文のモーダルで、1行ずつ出す
+     *
+     * @return list<string>
      */
-    public function detailText(): string
+    public function detailLines(): array
     {
         $shown = array_filter(
             $this->detail ?? [],
@@ -227,6 +232,24 @@ class OperationLog extends Model
             ARRAY_FILTER_USE_KEY,
         );
 
-        return implode(' ', $shown);
+        return array_values(array_map('strval', $shown));
+    }
+
+    /** 補足のうち、画面に出す文字。項目を空白でつなぐ */
+    public function detailText(): string
+    {
+        return implode(' ', $this->detailLines());
+    }
+
+    /** 一覧の表の「変わった項目・補足」の欄に出す文字。変わった項目と補足をつなぐ */
+    public function changesText(): string
+    {
+        return trim(implode('、', $this->changed_fields ?? []).' '.$this->detailText());
+    }
+
+    /** 「変わった項目・補足」の欄が長く、切って出し、全文をモーダルで出すか */
+    public function hasLongChangesText(): bool
+    {
+        return mb_strlen($this->changesText()) > self::DETAIL_SHOWN_LENGTH;
     }
 }

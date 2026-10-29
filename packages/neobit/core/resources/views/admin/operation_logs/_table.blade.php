@@ -12,6 +12,8 @@
 
     CSVと一斉メールの送信は、件数を別の記録（$related[操作ログのid]）から出す。
     件数を押すと、内訳のモーダルが開く。モーダルは表の下にまとめて置く。
+    変わった項目と補足が長い（OperationLog::hasLongChangesText()）ときは、切って「…」と「全文」の
+    リンクを出し、押すと全文のモーダルが開く。全文は、補足の項目ごとに1行ずつ出す。
 --}}
 <table class="table table-striped table-sm align-middle">
     <thead>
@@ -47,8 +49,13 @@
                     @endif
                 </td>
                 <td>
-                    {{ implode('、', $log->changed_fields ?? []) }}
-                    {{ $log->detailText() }}
+                    {{-- 長いときは切って、全文をモーダルで出す --}}
+                    @if ($log->hasLongChangesText())
+                        {{ mb_substr($log->changesText(), 0, $log::DETAIL_SHOWN_LENGTH) }}…
+                        <a href="#" data-bs-toggle="modal" data-bs-target="#operationLogFull-{{ $log->id }}">全文</a>
+                    @else
+                        {{ $log->changesText() }}
+                    @endif
                     @isset($related[$log->id])
                         <a href="#" data-bs-toggle="modal" data-bs-target="#operationLogDetail-{{ $log->id }}">{{ $log->countSummary($related[$log->id]) }}</a>
                     @endisset
@@ -63,6 +70,37 @@
         @endforelse
     </tbody>
 </table>
+
+{{--
+    長い補足の全文のモーダル。変わった項目を1行、補足の項目を1行ずつ出す。
+--}}
+@foreach ($records as $log)
+    @if ($log->hasLongChangesText())
+        <div class="modal fade" id="operationLogFull-{{ $log->id }}" tabindex="-1"
+             aria-labelledby="operationLogFullLabel-{{ $log->id }}" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="operationLogFullLabel-{{ $log->id }}">{{ $log->action->label() }}の補足</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="閉じる"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="text-muted small">{{ $log->created_at->format('Y-m-d H:i:s') }}</p>
+                        @if (($log->changed_fields ?? []) !== [])
+                            <div>変わった項目：{{ implode('、', $log->changed_fields) }}</div>
+                        @endif
+                        @foreach ($log->detailLines() as $line)
+                            <div class="text-break">{{ $line }}</div>
+                        @endforeach
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">閉じる</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+@endforeach
 
 {{--
     内訳のモーダル。<tbody>の直下には<tr>しか置けないので、表の外にまとめて置く。
