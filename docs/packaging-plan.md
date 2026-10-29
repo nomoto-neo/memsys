@@ -395,17 +395,29 @@
 
 - 直下の入口は Laravel。知らない URL も Laravel が受ける（固定ページ・リダイレクト・404 を Laravel で扱う）。WordPress の入口は `wordpress.php` などの名前で置く
 - WordPress に回すのは、`.htaccess` の一覧に書いた URL だけ。ディレクトリ単位（`/faq/`・`/shop/`・`/news/` など）と、もしあれば最上位の固定ページ（1件ずつ）、WordPress の動きに要るもの（`wp-admin/`・`wp-includes/`・`wp-content/`・`wp-login.php`・`wp-json/` など）。既存のサイトでは、固定ページはほとんどディレクトリに分かれていて、最上位にはほぼ無い
+- 最上位（`/`）に `p`・`page_id`・`post_type`・`preview`・`s` の問い合わせが付いたものも、WordPress に回す。下書きのプレビュー（`/?post_type=news&p=123&preview=true`）・短い URL・検索は、パーマリンクを決めていても最上位で呼ばれるため。Laravel の側では、最上位でこれらの名前を使わない（検索を作るときは `/search?q=` のように別の URL にする）
 - 共通のヘッダー・フッターは、Laravel のレイアウトと WordPress のテーマの両方に持つ（どちらを前に出しても変わらない）
 
 作るものの案（実装の前に、確認したいことをまとめる）。
 
-1. WordPress に回す URL を設定に書く。固定ページやリダイレクトの検証で、重なる URL を登録できないようにする。`.htaccess` は人が書き、設定から決まりを書き出すコマンドを作る（Laravel に `.htaccess` を書き換えさせると、apache の権限で侵入されたときに書き換えられるため）
-2. WordPress の前の見張りのファイル。PHP の `auto_prepend_file` で動かし、Laravel を起動せず、Laravel が書き出した「止めている IP の一覧・アクセス制限の状態と許す IP」を読んで止める
+1. WordPress に回す URL を設定に書く。固定ページやリダイレクトの検証で、重なる URL を登録できないようにする。`.htaccess` は人が書き、設定から決まりを書き出すコマンドを作る（Laravel に `.htaccess` を書き換えさせると、apache の権限で侵入されたときに書き換えられるため）。`/wp-sitemap.xml` と Laravel のサイトマップの分け方も決める
+2. WordPress の前の見張りのファイル。Laravel を起動せず、Laravel が書き出した「止めている IP の一覧・アクセス制限の状態と許す IP」を読んで止める。見張りを掛ける場所は、使えるものを上から選ぶ
+   - PHP-FPM のプールの設定の `php_admin_value[auto_prepend_file]`。`.user.ini` や `ini_set()` で後から外せないので、一番強い。自前の VPS ではこれにする
+   - `.user.ini` の `auto_prepend_file`。プールの設定に触れない共用のサーバー向け
+   - どちらも使えないときは、`wp-config.php` の頭で `require` する。WordPress の入口（`wp-login.php`・`wp-admin/` の下・`xmlrpc.php`・`wp-cron.php` も）は全部 `wp-config.php` を読むので、WordPress として動く URL には掛かる。プラグインの `.php` を URL で直に開かれたときは掛からないので、`.htaccess` で `wp-content/` の下の `.php` を直に開けないようにして補う（動かなくなるプラグインが無いかは案件ごとに確かめる）
 3. WordPress の管理画面（`/wp-admin/`・`wp-login.php`）に、管理画面と同じアクセス制限（許す IP）を掛けられるようにする。`xmlrpc.php` は使っていなければ閉じる
 4. 改ざん監視に WordPress のファイルを足す。自動の更新で変わるファイルの扱いを決める（`wp-content/uploads` は許可されていないアップロードファイルとして確かめる、など）
 5. 利用ガイドに、置き方・`.htaccess` の見本・固定ページの移し替えの手順を書く
 
-- 実装の前に、案件のサーバーで `.user.ini` の `auto_prepend_file` が使えるかと、WordPress のパーマリンクの設定（コーナーの頭の名前の下に入るか）を確かめる
+実装の前に、案件のサイトで確かめること。
+
+- 実際のサイトの URL で、記事・一覧・2ページ目・月別・`/feed/` が、コーナーの頭の名前の下に入っているか。頭の外に出る URL は、1件ずつ WordPress へ回すか、Laravel で受けるかを決める。管理画面のアカウントがあれば、「設定」→「パーマリンク」のカスタム構造とカテゴリーベース・タグベースも見る
+- 見張りを掛ける場所に、上の3つのどれが使えるか
+
+最初の案件で分かったこと（2026-10-29）。
+
+- トップページのほかは、カスタム投稿タイプの記事も含めて、全部コーナーの頭の名前の下にある。記事の URL で確かめた。設定の画面は、アカウントをもらっていないのでまだ見ていない
+- `.user.ini` は使える
 
 ### 段階4-7　設定ファイルの分け方
 
