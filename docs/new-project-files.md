@@ -83,6 +83,8 @@
 
 Laravel を公開ディレクトリの外に置けないレンタルサーバーでは、本体を公開ディレクトリの `app/system/` に置き、`index.php` と `vite.config.js` を書き換えます。手順と、置いた後に外から確かめることは、利用ガイドの付録「Laravel を公開ディレクトリの外に置けないサーバー」にあります。
 
+`storage/` のほかに apache が書き込むディレクトリがある案件では、プロジェクトの直下の `set_permissions.writable` に書きます（利用ガイドの0章「サーバーの権限」）。
+
 WordPress を置く案件では、`config/neobit.php` に `wordpress` の節を書き、サーバーごとの `.env` に `WORDPRESS_GATE`（`prepend` か `wp-config`）を書きます。`public/.htaccess` には WordPress に回す URL の決まりを、`public/` には `wordpress.php` を置きます（利用ガイドの31章）。
 
 改ざん監視を使うサーバーでは、コードを更新する利用者の crontab に `app:watch-files` を2行書き、`php artisan app:watch-files --init` で基準を作ります（利用ガイドの29章）。鍵のファイルの名前は `config/neobit.php` の `file_watch.release_file`（既定は `.version`）で、案件ごとに変えられます。

@@ -1,0 +1,8 @@
+# Apache（PHP）が書き込むディレクトリ。プロジェクトの直下からのパスを1行に1つ書く。
+# storage は書かなくても、いつも書けるようにする。
+# set_permissions.sh が、ここに書いたディレクトリを storage と同じ形（持ち主は Web の利用者、Web の利用者も読み書き）にそろえる。
+# 無ければ作る。/ で始まるパス・.. を含むパス・シンボリックリンクは書けない。
+
+# WordPress と共存するときの、アップロードの置き場所と、キャッシュのプラグインが書く場所
+# public/wp-content/uploads
+# public/wp-content/cache

@@ -326,7 +326,8 @@ has   packages/neobit/core/src/Seo/RedirectChecker.php                  'isFallb
 has   app/Http/Controllers/PageController.php                           'PublicFileController'
 has   public/index.php                                                  'PublicFiles::handle'
 has   public/.htaccess                                                  'RewriteRule ^index\.php$ - [L]'
-has   set_permissions.sh                                                'pm = ondemand'
+has   set_permissions.sh                                                'set_permissions.writable'
+has   set_permissions.writable                                          '# public/wp-content/uploads'
 has   packages/neobit/core/gate.php                                     "is_file(__DIR__.'/src/Security/Gate.php')"
 has   packages/neobit/core/src/Security/Gate.php                        "state['admin']['ips']"
 has   packages/neobit/core/src/Security/GateState.php                   'function watchWordPress'

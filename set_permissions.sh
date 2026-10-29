@@ -9,6 +9,7 @@
 # - 全体：持ち主:作業のグループ。作業のグループは読み書き、Web の利用者は ACL で読むだけ、その他の人はなし
 # - bootstrap/cache：全体と同じ。Web の利用者が書けないので、設定のキャッシュと改ざん監視の記録を Web の側から書き換えられない
 # - storage の下：持ち主は Web の利用者。Web の利用者も ACL で読み書きできる
+# - set_permissions.writable に書いたディレクトリ：storage と同じ。無ければ作る（WordPress のアップロードの置き場所など）
 # - .env と .env. で始まる控え（.env.example・.env.unused を除く）：Web の利用者は読めない
 # - ディレクトリは全部 setgid と既定の ACL を付け、中に新しく作ったファイルも同じ形になるようにする
 
@@ -45,6 +46,23 @@ id "$owner" > /dev/null 2>&1 || stop "利用者 $owner がいません。"
 id "$web" > /dev/null 2>&1 || stop "利用者 $web がいません。"
 getent group "$group" > /dev/null || stop "グループ $group がありません。"
 command -v setfacl > /dev/null || stop 'setfacl がありません。acl のパッケージを入れてください。'
+
+# Web の利用者が書き込むディレクトリ。storage のほかに、案件が set_permissions.writable に1行に1つ書いたもの。
+# プロジェクトの外を変えないよう、/ で始まるパス・.. を含むパス・シンボリックリンクは止める
+writable=()
+writable_file="$dir/set_permissions.writable"
+if [ -f "$writable_file" ]; then
+    while IFS= read -r line || [ -n "$line" ]; do
+        # 前後の空白・改行の CR・末尾の / を外す。空の行と # の行は読み飛ばす
+        line=$(printf '%s' "$line" | tr -d '\r' | sed 's/^[[:space:]]*//; s/[[:space:]]*$//; s:/*$::')
+        case "$line" in
+            '' | '#'*) continue ;;
+            /* | *..*) stop "set_permissions.writable に、プロジェクトの外を指し得るパスがあります：$line" ;;
+        esac
+        [ -L "$dir/$line" ] && stop "set_permissions.writable のパスが、シンボリックリンクです：$line"
+        writable+=("$line")
+    done < "$writable_file"
+fi
 
 # アプリケーション名は .env の APP_NAME。書いていなければディレクトリの名前
 app_name=$(grep -m1 '^APP_NAME=' "$dir/.env" 2> /dev/null | cut -d= -f2- | tr -d '"'"'")
@@ -129,6 +147,11 @@ run() {  # run コマンド … 並べる。--apply のときは実行し、失�
     fi
 }
 
+# set_permissions.writable に書いたディレクトリが無ければ作る。下の全体の手順で、ほかと同じ形にそろう
+for path in "${writable[@]}"; do
+    [ -d "$dir/$path" ] || run mkdir -p "$dir/$path"
+done
+
 # 持ち主。シンボリックリンク（public/storage）は辿らず、リンクそのものを変える
 run chown -hR "$owner:$group" "$dir"
 run chown -hR "$web:$group" "$dir/storage"
@@ -144,6 +167,13 @@ run find "$dir" -type d -exec setfacl -m "d:u::rwx,d:u:$web:rx,d:g::rwx,d:o::---
 # storage の下は、Web の利用者も読み書き
 run setfacl -R -m "u:$web:rwX" "$dir/storage"
 run find "$dir/storage" -type d -exec setfacl -m "d:u:$web:rwx" {} +
+
+# set_permissions.writable に書いたディレクトリも、storage と同じ形にする
+for path in "${writable[@]}"; do
+    run chown -hR "$web:$group" "$dir/$path"
+    run setfacl -R -m "u:$web:rwX" "$dir/$path"
+    run find "$dir/$path" -type d -exec setfacl -m "d:u:$web:rwx" {} +
+done
 
 # .env と、秘密が入り得る控えは、Web の利用者から読めなくする。設定は config:cache で読ませる
 for env_file in "$dir"/.env "$dir"/.env.*; do
@@ -174,6 +204,9 @@ can no  'bootstrap/cache に書けない'   -w "$dir/bootstrap/cache"
 can yes 'storage/logs に書ける'        -w "$dir/storage/logs"
 can yes 'public/index.php を読める'    -r "$dir/public/index.php"
 can no  'app/ に書けない'              -w "$dir/app"
+for path in "${writable[@]}"; do
+    can yes "$path に書ける（set_permissions.writable）" -w "$dir/$path"
+done
 
 echo
 if [ $ng -eq 0 ]; then
