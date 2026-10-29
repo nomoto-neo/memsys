@@ -393,7 +393,7 @@ A は済み、B は未着手。2026-10-29 に足した段階。2つに分けて�
 
 **A. 入口の見張りを、Laravel から分ける**（WordPress と共存しないサイトでも、既定の形にする）
 
-済み（2026-10-29。`gate.php`・`Gate`・`GateState`・`app:gate`、見本のサイトの `public/index.php`。設計は `docs/entry-gate-spec.md`）。
+済み（2026-10-29。`gate.php`・`Gate`・`GateState`・`app:gate`、見本のサイトの `public/index.php`。設計は `docs/entry-gate-spec.md`）。2026-10-29 に開発サーバーで、止めた IP への 404 とサイトの制限の 503 を、見張りが Laravel を起動せずに返すことを確かめた。
 
 IP ブロックとアクセス制限の判断を、Laravel を起動する前に動く小さな見張り（`gate.php`）でも行う。攻撃が続いているときに、止めている IP の要求を Laravel の起動の前に返して軽くするためと、Laravel を通らない PHP（WordPress）にも同じ守りを掛けるため。
 
