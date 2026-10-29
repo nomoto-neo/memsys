@@ -3,6 +3,7 @@
 namespace Neobit\Core\Seo;
 
 use Illuminate\Http\Request;
+use Neobit\Core\Http\PublicFiles;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 /**
@@ -206,12 +207,17 @@ final class RedirectChecker
         }
 
         try {
-            app('router')->getRoutes()->match(Request::create(RedirectResolver::encodeLocation($path), 'GET'));
-
-            return true;
+            $route = app('router')->getRoutes()->match(Request::create(RedirectResolver::encodeLocation($path), 'GET'));
         } catch (HttpException) {
             return false;
         }
+
+        // フォールバックのルートはどのURLにも当たるので、公開ディレクトリのHTMLか古いPHPがあるかで決める
+        if ($route->isFallback) {
+            return PublicFiles::file($path) !== null || PublicFiles::isDirectory($path);
+        }
+
+        return true;
     }
 
     /**

@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Neobit\Core\Http\Controllers\PublicFileController;
 use Neobit\Core\Http\Controllers\RobotsController;
 use Neobit\Core\Http\Controllers\SitemapController;
 use Neobit\Core\Http\Controllers\UploadedFileController;
@@ -19,3 +20,7 @@ Route::middleware('web')->group(function () {
 // 検索エンジンへの案内。XMLのサイトマップと、巡回のしかた（robots.txt）。中身は設定のseoで決める
 Route::get('/sitemap.xml', SitemapController::class)->name('seo.sitemap');
 Route::get('/robots.txt', RobotsController::class)->name('seo.robots');
+
+// どのルートにも当たらないとき、公開ディレクトリのHTMLと古いPHPを返す（Neobit\Core\Http\Controllers\PublicFileController）。
+// 古い.phpはフォームをPOSTで受けるので、どのメソッドも受け、webのグループ（セッション・CSRF）は通さない
+Route::any('{path}', PublicFileController::class)->where('path', '.*')->fallback()->name('public-files');

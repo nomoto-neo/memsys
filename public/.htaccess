@@ -14,7 +14,11 @@
     RewriteRule .* - [E=HTTP_X_XSRF_TOKEN:%{HTTP:X-XSRF-Token}]
 
     # Send Requests To Front Controller...
-    RewriteCond %{REQUEST_FILENAME} !-d
+    # 実在するHTMLと古いPHP、ディレクトリのURLも、Laravelを通して返す。IPブロック・アクセス制限・
+    # リダイレクト・セキュリティのヘッダーを掛けるため（Neobit\Core\Http\PublicFiles）
+    RewriteRule ^index\.php$ - [L]
+    RewriteCond %{REQUEST_FILENAME} -d [OR]
+    RewriteCond %{REQUEST_FILENAME} \.(html?|php)$ [NC,OR]
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
 </IfModule>

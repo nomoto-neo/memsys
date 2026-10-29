@@ -2,6 +2,7 @@
 
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
+use Neobit\Core\Http\PublicFiles;
 
 define('LARAVEL_START', microtime(true));
 
@@ -17,4 +18,8 @@ require __DIR__.'/../vendor/autoload.php';
 /** @var Application $app */
 $app = require_once __DIR__.'/../bootstrap/app.php';
 
-$app->handleRequest(Request::capture());
+// 公開ディレクトリの古い.phpに当たったときは、グローバルの場所で動かす（Neobit\Core\Http\PublicFiles）
+$script = PublicFiles::handle($app, Request::capture());
+if ($script !== null) {
+    require $script;
+}

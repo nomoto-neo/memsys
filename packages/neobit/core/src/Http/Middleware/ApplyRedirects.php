@@ -4,6 +4,7 @@ namespace Neobit\Core\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Neobit\Core\Http\PublicFiles;
 use Neobit\Core\Seo\RedirectResolver;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -42,9 +43,10 @@ class ApplyRedirects
             }
         }
 
-        // 末尾の/を外したURLへ移す。トップページの/は外さない
+        // 末尾の/を外したURLへ移す。トップページの/と、公開ディレクトリの実在するディレクトリのURLは外さない。
+        // ディレクトリのHTMLの中の相対のリンクは、末尾の/があって正しく解けるため（Neobit\Core\Http\PublicFiles）
         $path = $request->getPathInfo();
-        if ($path !== '/' && str_ends_with($path, '/')) {
+        if ($path !== '/' && str_ends_with($path, '/') && ! PublicFiles::isDirectory(rawurldecode($path))) {
             $query = $request->getQueryString();
 
             return redirect()->to($request->getSchemeAndHttpHost().$request->getBaseUrl().rtrim($path, '/').($query !== null ? '?'.$query : ''), 301);
