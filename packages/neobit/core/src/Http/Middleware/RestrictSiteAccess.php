@@ -13,6 +13,8 @@ use Symfony\Component\HttpFoundation\Response;
  * メンテナンスの間に使う。制限を掛けるか・通すIPアドレスは、管理画面の「アクセス制限」で決める
  * （Neobit\Core\Security\AccessRestriction）。
  *
+ * 管理画面の許すIPアドレスも、ここで許す。管理画面に入れる人が、メンテナンス中のサイトを確かめられるようにするため。
+ *
  * 入ってよいIPアドレスのほかから開かれたら、メンテナンス中の画面
  * （neobit::maintenance）を503で返す。503にするのは、一時的に止めていることを
  * 検索エンジンに伝えて、登録を消されないようにするため。

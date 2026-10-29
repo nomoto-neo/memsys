@@ -1,6 +1,7 @@
 {{--
     アクセス制限（Neobit\Core\Http\Controllers\AccessRestrictionController）。サイト（訪問者画面）と管理画面の
-    それぞれに、制限を掛けるかと、開けるIPアドレスを決める。2つは互いに影響しない。
+    それぞれに、制限を掛けるかと、開けるIPアドレスを決める。管理画面を開けるIPアドレスは、サイトの制限でも
+    通す（Neobit\Core\Security\Gate の「管理画面に入れる人」）。
     ルートの名前（$routes）は、アプリが付けた名前をコントローラーが渡す。設定ファイル（.env）で
     常に許可しているIPアドレスは、それぞれの欄の上に出す。画面からは外せない。
 --}}
@@ -28,6 +29,7 @@
             </div>
             <p class="small text-muted mb-3">
                 チェックを入れると、下のIPアドレス以外の人には訪問者画面にメンテナンス中の画面が表示されます。
+                管理画面を開けるIPアドレスの人も、訪問者画面を開けます。
             </p>
 
             <label for="site-ips" class="form-label">サイトを開けるIPアドレス</label>
@@ -57,6 +59,7 @@
             </div>
             <p class="small text-muted mb-3">
                 チェックを入れると、下のIPアドレス以外の人は管理画面を閲覧できなくなります。
+                下のIPアドレスの人は、チェックが無くても、サイトのアクセス制限の間も訪問者画面を開けます。
             </p>
 
             <label for="admin-ips" class="form-label">管理画面を開けるIPアドレス</label>

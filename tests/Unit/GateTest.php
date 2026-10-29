@@ -87,6 +87,18 @@ class GateTest extends TestCase
         $this->assertSame(Gate::PASS, Gate::decide($state, '198.51.100.7', '/', self::NOW));
     }
 
+    public function test_admin_addresses_also_open_the_restricted_site(): void
+    {
+        // 管理画面に入れる人は、メンテナンス中のサイトも開ける。管理画面の制限をしていなくても、一覧に書いた人だけ
+        $state = $this->state([
+            'site' => ['restricted' => true, 'ips' => []],
+            'admin' => ['restricted' => false, 'ips' => ['192.0.2.50']],
+        ]);
+
+        $this->assertSame(Gate::PASS, Gate::decide($state, '192.0.2.50', '/', self::NOW));
+        $this->assertSame(Gate::MAINTENANCE, Gate::decide($state, '198.51.100.7', '/', self::NOW));
+    }
+
     public function test_paths_are_read_like_laravel(): void
     {
         $this->assertSame('/', Gate::path('/'));

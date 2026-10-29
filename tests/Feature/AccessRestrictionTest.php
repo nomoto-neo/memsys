@@ -14,7 +14,7 @@ use Tests\TestCase;
 
 /**
  * アクセス制限（Neobit\Core\Security\AccessRestriction）。サイト（訪問者画面）と管理画面のそれぞれに、
- * 管理画面の「アクセス制限」でチェックを入れたときだけ掛かる。2つは互いに影響しない。
+ * 管理画面の「アクセス制限」でチェックを入れたときだけ掛かる。管理画面のIPアドレスは、サイトの制限でも通す。
  * サイトの制限（RestrictSiteAccess）はメンテナンス中の画面を、管理画面の制限（RestrictAdminAccess）は404を返す。
  */
 class AccessRestrictionTest extends TestCase
@@ -84,9 +84,19 @@ class AccessRestrictionTest extends TestCase
         AccessRestriction::save(true, [], true, [self::ADMIN_IP]);
 
         $this->fromIp(self::OFFICE_IP)->get('/')->assertOk();
-        // 管理画面のIPアドレスでも、サイトのIPアドレスに無ければ、サイトは開けない
-        $this->fromIp(self::ADMIN_IP)->get('/')->assertStatus(503);
+        $this->fromIp(self::OTHER_IP)->get('/')->assertStatus(503);
         $this->fromIp(self::ADMIN_IP)->get('/app/admin/login')->assertOk();
+    }
+
+    public function test_admin_addresses_also_open_the_restricted_site(): void
+    {
+        // 管理画面に入れる人は、メンテナンス中のサイトも開ける。管理画面の制限をしていなくても、一覧に書いた人だけ
+        config(['app.admin_allowed_ips' => ['192.0.2.60']]);
+        AccessRestriction::save(true, [self::OFFICE_IP], false, [self::ADMIN_IP]);
+
+        $this->fromIp(self::ADMIN_IP)->get('/')->assertOk();
+        $this->fromIp('192.0.2.60')->get('/')->assertOk();
+        $this->fromIp(self::OTHER_IP)->get('/')->assertStatus(503);
     }
 
     public function test_health_check_and_unsubscribe_stay_open(): void

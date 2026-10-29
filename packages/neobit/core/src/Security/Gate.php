@@ -18,6 +18,11 @@ namespace Neobit\Core\Security;
  * - admin_path：管理画面のURLの頭（app/admin の形）
  * - site_except：サイトの制限を掛けないURL（up・mail/unsubscribe・管理画面の下など。* で続きを表す）
  * - trusted_proxies：信頼するプロキシ（.envのTRUSTED_PROXIES）
+ *
+ * ■ 管理画面に入れる人
+ * 管理画面の許すIPアドレスは、サイトの制限でも許す。管理画面に入れる人が、メンテナンス中のサイトを確かめたり、
+ * WordPressのブロックエディタで記事を保存したり（wp-json）できるようにするため。足すのは一覧だけなので、
+ * 管理画面の制限をしていなくても、サイトの制限が全員に開くことはない。
  */
 final class Gate
 {
@@ -148,10 +153,15 @@ final class Gate
         return false;
     }
 
-    /** サイト（訪問者画面）を開いてよいか。制限を掛けないURLか、サイトの制限で許しているIPアドレスなら開ける */
+    /**
+     * サイト（訪問者画面）を開いてよいか。制限を掛けないURLか、サイトの制限で許しているIPアドレスなら開ける。
+     * 管理画面の許すIPアドレスも許す（クラスの説明の「管理画面に入れる人」）。
+     */
     public static function opensSite(array $state, string $path, string $ip): bool
     {
-        return self::matchesPath((array) ($state['site_except'] ?? []), $path) || self::allows((array) ($state['site'] ?? []), $ip);
+        return self::matchesPath((array) ($state['site_except'] ?? []), $path)
+            || self::allows((array) ($state['site'] ?? []), $ip)
+            || self::inRange($ip, (array) ($state['admin']['ips'] ?? []));
     }
 
     /** 制限の範囲（site・admin）を、そのIPアドレスで開いてよいか。制限していなければ誰でもよい */
