@@ -182,13 +182,15 @@
 | `SpamGuard` | `startedToken()`・`check()`、定数 `HONEYPOT_FIELD`・`STARTED_FIELD`・`TURNSTILE_FIELD` | |
 | `AdminRequestLimit` | `limit()` | |
 | `FileWatcher` | `init()`・`check()`・`acceptedOn()`、定数 `DEFAULT_PATHS` | 改ざん監視 |
+| `PublicFiles` | `handle()`・`file()`・`isDirectory()` | 入口の `public/index.php` が `handle()` を呼ぶ |
+| `PublicScriptResponse` | 古い `.php` を動かす目印の応答。`script` | |
 | `BasicAuth` | `isOn()`・`save()`・`addUser()`・`deleteUser()`、定数 `AREAS`（`site`・`admin`）・`USERNAME_PATTERN` | 範囲ごとの目印のファイルと `.htpasswd` を作る |
 | `AccessRestriction` | `allowsSite()`・`allowsAdmin()`・`allowedIps()`・`siteIps()`・`adminIps()`・`envSiteIps()`・`envAdminIps()`・`settings()`・`save()`・`turnOff()`・`parseList()`・`lockoutMessage()` | |
 | `IpBlocker` | `isBlocked()`・`countMiss()`・`block()`・`changeUntil()`・`release()`・`deleteExpired()`・`normalizeRange()`・`rangeBounds()`・`coversProtected()` | |
 | `CsvImportSettings`・`CsvImportResult`・`CsvImportRow`・`CsvColumnSet` | 取り込みの設定と結果 | |
 | 検証のルール | `KatakanaRule`・`HiraganaRule`・`PhoneNumberRule`・`SameCountAsRule`・`UploadRequiredRule`・`SlugRule`・`NotReservedPathRule` | |
 | ミドルウェア | `AjaxFormResponse`・`ApplyRedirects`・`NoIndexHeader`・`NormalizeInput`・`RejectBlockedIp`・`RestrictAdminAccess`・`RestrictSiteAccess`・`RunScheduleOnRequest`・`SecurityHeaders` | |
-| コントローラー | `CodeTableController`・`IpBlockController`・`AccessRestrictionController`・`BasicAuthController`・`SeoSettingsController`・`RedirectController`・`OperationLogController`（どれもルートは案件が書く）・`UploadedFileController`・`SitemapController`・`RobotsController` | |
+| コントローラー | `CodeTableController`・`IpBlockController`・`AccessRestrictionController`・`BasicAuthController`・`SeoSettingsController`・`RedirectController`・`OperationLogController`（どれもルートは案件が書く）・`UploadedFileController`・`SitemapController`・`RobotsController`・`PublicFileController`（どの URL も受けるルートを案件が書くときは、自分のページが無ければこれに渡す） | |
 
 ## 7. ヘルパー
 
@@ -259,6 +261,7 @@
 |---|---|---|
 | `uploads.tmp`・`uploads.show` | フレームワークが登録する。一時ファイルと非公開のファイル | |
 | `seo.sitemap`・`seo.robots` | フレームワークが登録する。`/sitemap.xml` と `/robots.txt` | |
+| `public-files` | フレームワークが登録するフォールバックのルート。公開ディレクトリの HTML と古い PHP | |
 | `{ログインの頭}.login`・`.login.verify`・`.login.verify.confirm`・`.login.verify.resend`・`.password.forgot` | 案件が書く。ログインの部品が、この名前で探す | |
 | 項目見出し一覧の「頭.index」「頭.update」 | 案件が書く | |
 | IPブロック管理の「頭.index」「頭.store」「頭.update」「頭.destroy」 | 案件が書く。update・destroy の URL に `{ipBlock}` | |

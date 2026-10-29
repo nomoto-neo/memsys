@@ -67,6 +67,8 @@
 
 `public/.htaccess` は、Laravel の決まりの「末尾の / を外す」決まり（Redirect Trailing Slashes）を消してあります。その働きはリダイレクトのミドルウェア（`ApplyRedirects`）が受け持つので、Laravel の新しい版の `.htaccess` に差し替えるときも、この決まりは戻しません。
 
+`public/.htaccess` と `public/index.php` は、公開ディレクトリの HTML と古い PHP も Laravel を通して返す形にしてあります（利用ガイドの30章）。`.htaccess` は `.html`・`.htm`・`.php` とディレクトリの URL も `index.php` に回し、`index.php` の最後は `PublicFiles::handle()` です。Laravel の新しい版のものに差し替えるときも、この2つは戻しません。
+
 ### ルートやビューの名前を直接書いているもの
 
 どれも、部品と組で使う、フレームワーク自身のルートとビューです。業務の画面のルート名は、部品には書いていません。

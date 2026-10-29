@@ -32,6 +32,7 @@
 - [27. SEO（ページのタイトル・説明文・OGP）](#27.%20SEO（ページのタイトル・説明文・OGP）)
 - [28. リダイレクト（301 リダイレクトの管理）](#28.%20リダイレクト（301%20リダイレクトの管理）)
 - [29. 改ざん監視（FileWatcher）](#29.%20改ざん監視（FileWatcher）)
+- [30. 公開ディレクトリの HTML と古い PHP（PublicFiles）](#30.%20公開ディレクトリの%20HTML%20と古い%20PHP（PublicFiles）)
 - [付録. フレームワーク外で考慮すべきセキュリティ対策](#付録.%20フレームワーク外で考慮すべきセキュリティ対策)
 
 ## 版の履歴
@@ -104,6 +105,7 @@
 - devapp が `storage/` の下に作ったファイル（artisan を実行したときのログなど）も、既定の ACL（`default:user:apache:rwx`）で apache が書けます。作った後に権限を直す必要はありません。
 - 設定が効いているかは、画面を開いて確かめます。sudo を使えるときは `sudo -u apache php artisan config:show database.default` でも確かめられ、`mariadb` と出れば apache が読めています。devapp で同じコマンドを実行しても、devapp は `.env` を読めるので確かめになりません。
 - 手元の開発環境は `.env` を直接読むので、`config:cache` は要りません。
+- フレームワークを更新して、見本のサイトの `public/index.php`・`public/.htaccess` が変わったときは、それも案件のサーバーへ写します（30章）。
 - **改ざん監視を使っているサイトは、ファイルを送るときに鍵のファイル（既定は `.version`）も、中身を変えて送ります**（29章）。送り忘れると、更新したファイルが改ざんとして知らされます。
 
 ### サイトの名前（APP_NAME・SITE_NAME）
@@ -3000,6 +3002,41 @@ sudo -u devapp /usr/bin/php artisan app:watch-files --init
 - 共用のレンタルサーバーで、Web とファイルの更新が同じ利用者で動くときは、記録を Web の側から書き換えられない守りが効きません（付録「Laravel を公開ディレクトリの外に置けないサーバー」）。
 - DB の中身（記事の本文に仕込まれたスクリプトなど）は見ません。
 
+## 30. 公開ディレクトリの HTML と古い PHP（PublicFiles）
+
+<p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
+
+**ファイル**：`packages/neobit/core/src/Http/PublicFiles.php`（冒頭のコメント）・`src/Http/Controllers/PublicFileController.php`、入口の `public/index.php`・`public/.htaccess`
+
+デザイナーが作った `.html` や、残しておく古い作りの `.php`（`contact/index.php` など）を公開ディレクトリに置くと、Laravel を通してから返します。IP ブロック・アクセス制限・リダイレクト・セキュリティのヘッダーを、これらのページにも掛けるためです。CSS・JS・画像は、今までどおり Apache が直接返します。
+
+**返し方**
+
+- Laravel のルートが先です。どのルートにも当たらないときにだけ、公開ディレクトリのファイルを探します。見本のサイトの固定ページ（`/{slug}`）のように、どの URL も受けるルートは、自分のページが無ければ `PublicFileController` に渡します（`App\Http\Controllers\PageController::show()`）。
+- `.html`・`.htm` は、中身をそのまま返します。`Content-Type` に charset は付けず、ページの meta のとおりに読ませます（Shift_JIS のページのため）。変わっていなければ 304 を返します。
+- ディレクトリの URL（`/about/`）は、`index.html`・`index.htm`・`index.php` の順に探します。末尾の `/` が無ければ（`/about`）、`/about/` へ 301 で移します。ページの中の相対のリンクを正しく解くためです。リダイレクトのミドルウェアも、実在するディレクトリの URL では末尾の `/` を外しません。
+- `.php` は、Laravel の全体のミドルウェアを通った後、入口の `index.php` が、Laravel の付けたヘッダーを送ってから、**グローバルの場所で** `require` します。`global $db;` などのグローバル変数を当てにした書き方も、そのまま動きます。作業のディレクトリと `$_SERVER['PHP_SELF']`・`SCRIPT_NAME`・`SCRIPT_FILENAME` は、Apache が直接動かしたときと同じく、そのファイルになります。
+- 返さないもの：公開ディレクトリの外、`.` で始まる名前、入口の `index.php`、`storage/`（公開のアップロードの置き場所）と `build/` の下、管理画面の URL の下、Laravel の本体を公開ディレクトリの中に置くサーバーでは本体の中。どれも 404 です。
+
+**古い `.php` を置くときの決まり**
+
+- `exit` と `die` は `return` に書き換えます。ファイルの一番上の階層の `return` は、そのファイルだけを終えます。残っていても、ヘッダーは送った後なので、守りは掛かったままです。
+- Laravel のセッション・CSRF の確かめ・入力をそろえる処理は通りません。`$_POST`・`$_GET` は送られたままの値で、セッションは PHP の `session_start()` をそのまま使えます。
+- 警告を例外に変える Laravel の仕組みは外してから動かします。古い作りのファイルは、警告を出しながら動くことが多いためです。
+- 置き換えられるものは、フレームワークのコーナーに作り直します。これは、作り直すまでの間も守りを掛けておくための仕組みです。
+
+**新しいプロジェクトの入口**
+
+`public/index.php` の最後は、`$app->handleRequest(...)` ではなく、次の形にします。`public/.htaccess` は、`.html`・`.htm`・`.php` とディレクトリの URL も `index.php` に回す決まりにします（見本のサイトのものを写します）。
+
+```php
+// 公開ディレクトリの古い.phpに当たったときは、グローバルの場所で動かす（Neobit\Core\Http\PublicFiles）
+$script = PublicFiles::handle($app, Request::capture());
+if ($script !== null) {
+    require $script;
+}
+```
+
 ## 付録. フレームワーク外で考慮すべきセキュリティ対策
 
 <p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
@@ -3066,7 +3103,7 @@ Laravel は、公開ディレクトリ（Apache の `DocumentRoot`）を `public
 
 **B. 公開ディレクトリの中に置くしかないとき**
 
-公開ディレクトリを Laravel の `public` そのものにし、本体だけを公開ディレクトリの `app/system/` に置きます。公開ディレクトリの直下に増えるシステムのディレクトリを `app/` の1つにし、デザイナーが Laravel の外のファイル（HTML・画像など）を公開ディレクトリに自由に置けるようにするためです。Laravel の `.htaccess` は、実際にあるファイルはそのまま返し、無いものだけを Laravel に送るので、外のファイルの邪魔をしません。管理画面の既定の URL（`/app/admin`）も、同じ `app/` の下にまとまります。
+公開ディレクトリを Laravel の `public` そのものにし、本体だけを公開ディレクトリの `app/system/` に置きます。公開ディレクトリの直下に増えるシステムのディレクトリを `app/` の1つにし、デザイナーが Laravel の外のファイル（HTML・画像など）を公開ディレクトリに自由に置けるようにするためです。Laravel の `.htaccess` は、デザイナーが置いた画像・CSS・JS はそのまま返し、HTML と古い PHP は Laravel を通してから返します（30章）。管理画面の既定の URL（`/app/admin`）も、同じ `app/` の下にまとまります。
 
 ```
 public_html/              ← 公開ディレクトリ。Laravel の public の中身を直接置く
@@ -3079,7 +3116,7 @@ public_html/              ← 公開ディレクトリ。Laravel の public の�
     └─ system/            ← Laravel 本体。外からは閉じる
 ```
 
-- **`index.php`**：`vendor/autoload.php` と `bootstrap/app.php` の読み込み先を `__DIR__.'/app/system/…'` にし、`$app->usePublicPath(__DIR__);` を足します。`asset()`・アップロードの URL・`public_path()`・`storage:link` の場所を、公開ディレクトリにするためです。
+- **`index.php`**：`vendor/autoload.php` と `bootstrap/app.php` の読み込み先を `__DIR__.'/app/system/…'` にし、`$app->usePublicPath(__DIR__);` を足します。`asset()`・アップロードの URL・`public_path()`・`storage:link` の場所を、公開ディレクトリにするためです。最後の行は、見本のサイトの `public/index.php` と同じく `PublicFiles::handle()` にします（30章）。
 - **`vite.config.js`**：`npm run build` の出力先（`laravel()` の `publicDirectory`）を公開ディレクトリにします。
 - **本体を閉じる（守りを2枚にする）**：公開ディレクトリの `.htaccess` の `RewriteEngine On` の次に、`/app/system/` の下は 404 を返す1行を足します。403 だと、そこに何かあることを教えるためです。加えて `app/system/.htaccess` に `Require all denied` を置き、`.htaccess` の書き損じでも本体が見えないようにします。
 
