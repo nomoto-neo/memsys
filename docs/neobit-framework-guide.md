@@ -3290,16 +3290,22 @@ require __DIR__.'/vendor/neobit/core/gate.php';
 
 **セキュリティのヘッダー**
 
-WordPress の画面と、見張りが返す 404・503 には、`SecurityHeaders`（0章）のヘッダーが付きません。Laravel を通らないためです。Apache の設定（VirtualHost か `public/.htaccess`）で付けます。
+WordPress の画面と、見張りが返す 404・503 には、`SecurityHeaders`（0章）のヘッダーが付きません。Laravel を通らないためです。Apache の設定で付けます。HTTPS の VirtualHost（certbot で証明書を取ったサーバーでは、certbot が作る `〜-le-ssl.conf` の `<VirtualHost *:443>`）に書きます。HTTP の VirtualHost は HTTPS へ移すだけなので、書いても HTTPS の画面には付きません。
 
 ```apache
-Header always set X-Frame-Options "SAMEORIGIN"
-Header always set X-Content-Type-Options "nosniff"
-Header always set Referrer-Policy "strict-origin-when-cross-origin"
-Header always set Strict-Transport-Security "max-age=31536000" "expr=%{HTTPS} == 'on'"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Strict-Transport-Security "max-age=31536000" "expr=%{HTTPS} == 'on'"
 ```
 
-`always set` は上書きなので、Laravel の画面で二重にはならないはずです。書いたら、`curl -sI` で Laravel の画面・WordPress の画面・見張りの 404 を開き、どれにも1つずつ付くことを確かめます。
+```bash
+sudo apachectl configtest && sudo systemctl reload httpd
+```
+
+- **`always` を付けます**。PHP-FPM（Laravel・WordPress・見張り）が返したヘッダーは、Apache の `always` の側に入ります。`Header always set` はそれを上書きするので、Laravel が付けた同じヘッダーと二重になりません。`always` を付けない `Header set` は別に足すので、Laravel と WordPress の画面で同じヘッダーが2行になります（2026-10-30 に開発サーバーで確かめた）。
+- 書いたら、`curl -sI` で Laravel の画面（管理画面のログイン画面など）・WordPress の画面（`/wp-login.php` など）・見張りの 404（`/xmlrpc.php`）・503（サイトの制限の間）を開き、どれにも1行ずつ付くことを確かめます。
+- 見張りの 404・503 にもヘッダーが付くので、止められた人が、ほかの画面とヘッダーを見比べても気付きません。WordPress を置かないサイトでも、書いておくと同じ効き目があります。
 
 **コーナーを足すとき**
 

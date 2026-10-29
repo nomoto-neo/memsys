@@ -87,12 +87,11 @@
 |---|---|
 | 中 | 管理画面の許す IP は、管理画面の制限のチェックが無くても、サイトの制限で通る。古い IP が一覧に残っていると、その IP もメンテナンス中のサイトに入れる。画面に説明を書いた |
 | 中 | `wp-config` の段では、プラグインの `.php` を直に開かれたときに見張りが掛からない。`.htaccess` で `wp-content/` の下の `.php` を閉じて補う（WordPress のファイルを通す行より上に置く）。閉じると動かなくなるプラグインが無いかは案件ごとに確かめる |
-| 中 | WordPress の画面と見張りの応答には、`SecurityHeaders` のヘッダーが付かない。Apache の `Header always set` で付ける（利用ガイドの見本） |
+| 中 | WordPress の画面と見張りの応答には、`SecurityHeaders` のヘッダーが付かない。Apache の HTTPS の VirtualHost に `Header always set` で付ける（利用ガイドの見本）。`always` を付けないと、Laravel と WordPress の画面で二重になる |
 | 中 | `watch_exclude` の場所（キャッシュ）は何も見ないので、キャッシュの HTML・JavaScript の書き換えに気付けない。キャッシュはどこに置いても（Redis などのメモリでも）PHP から書けるので、改ざん監視では見られない。外から監視するサービスと組み合わせる |
 | 低 | アップロードの置き場所の悪い `.htaccess` は、15分待ってから知らせる。Apache の `AllowOverride AuthConfig Limit` で、そもそも PHP を動かす設定を効かなくできる（利用ガイドの31章） |
 | 低 | WordPress の 404 は数えないので、WordPress のコーナーの下だけを叩く攻撃は、自動では止まらない |
 | 低 | リダイレクト（28章）は WordPress のコーナーの下には効かない |
-| 低 | 開発サーバーでの確かめはまだ |
 
 ## F. セキュリティ・権限・データ整合性の注意
 
@@ -111,12 +110,19 @@
 - `tests/Feature/FileWatchTest.php`：WordPress のアップロードの画像とキャッシュは知らせず、前の基準のものも消えたものにしない。アップロードの `.php` はすぐ知らせる。テーマの書き換えは知らせる。アップロードの置き場所の `.htaccess` は、鍵と一緒なら通常の更新、鍵の無い追加と書き換えは両方の置き場所で改ざんとして知らせる。前の版の基準からは、最初の回だけ知らせずに取り込む
 - 全体で 513件（成功 512件、飛ばし 1件）
 
-**未実施**
+**開発サーバーで確かめたこと**（2026-10-29〜30。dev.neobit.jp。仮の WordPress に `/column/`・`/topics/`・`/info/`。止める IP には、サーバーの中から `curl --resolve dev.neobit.jp:443:127.0.0.1` で開いた 127.0.0.1 を使った）
 
-- 開発サーバーでの確かめ（PHP-FPM のプールの設定で `prepend` を掛け、止めた IP から `/column/`・`/wp-login.php` を開いて 404、`app:gate` の WordPress の行、メンテナンス中に管理画面の許す IP からブロックエディタで保存、WordPress で画像を上げて改ざん監視が知らせないこと、`Header always set` のヘッダーが二重にならないこと）
+- 段の書き忘れ：`wordpress` の節を書いて `WORDPRESS_GATE` が空のとき、`app:gate` が知らせて失敗で終わる
+- `prepend`：PHP-FPM のプールの設定に `php_admin_value[auto_prepend_file]` を書き、`.env` に `WORDPRESS_GATE=prepend`。管理画面を1回開いた後の `app:gate` で、掛かっていることを確かめた。開く前は警告だけ
+- IP ブロック：127.0.0.1 を止めると、`/column/1/`・`/wp-login.php`・`/xmlrpc.php` が全部 404。WordPress のヘッダー（`Expires: 1984` など）が無く、WordPress を動かす前に見張りが返している
+- 解除した後：`/column/1/` はサイトの制限で 503、`/wp-login.php` は管理画面の扱いで 200、`/xmlrpc.php` はいつも隠す URL で 404
+- アップロード：WordPress で画像を上げても、改ざん監視は知らせない。アップロードの置き場所は、`set_permissions.writable` に書いて `set_permissions.sh --apply` でそろえるまで apache が書けず、画像の保存が「ディレクトリを作成できません」で止まった
+- アップロードの置き場所の `.htaccess`：`.version` の期間に置いたものは通常の更新として取り込み、期間の外の書き換えは15分後に「変わったファイル」として知らせた。中身を戻すと知らせが止まる
+- `set_permissions.sh --apply` は、全部のファイルの ctime を新しくするので、改ざん監視から見ると `.version` を送ったのと同じになる（利用ガイドの0章・29章に書いた）
+- ヘッダー：443 の VirtualHost に `Header always set` で4つを書くと、見張りの 503・404、Laravel の画面、WordPress の画面のどれにも1行ずつ付く。`always` を付けない `Header set` では、Laravel と WordPress の画面で2行になった
+- 管理画面に入れる人：サイトの制限を掛け、管理画面の制限は掛けていない状態で、管理画面の許す IP だけに入っている回線から、ブロックエディタで記事を保存できた（保存が通る `wp-json` は、表の URL と同じくサイトの制限が掛かる）
 
 ## H. 今後の改善提案・TODO
 
-- 開発サーバーで上の確かめをする
 - 計画書の案の1：WordPress に回す URL を設定に書き、固定ページやリダイレクトで重なる URL を登録できないようにする。設定から `.htaccess` の決まりを書き出すコマンド。`/wp-sitemap.xml` と Laravel のサイトマップの分け方
 - 案件のサイトで、パーマリンクの設定と、見張りを掛ける段と、`DISALLOW_FILE_MODS` の取り決めを確かめる（計画書の4-13 の「実装の前に、案件のサイトで確かめること」）
