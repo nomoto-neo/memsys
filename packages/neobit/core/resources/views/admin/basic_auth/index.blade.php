@@ -35,7 +35,7 @@
                 <div class="invalid-feedback w-100" data-item="on">{{ $bag->first('on') }}</div>
             </form>
             @if ($area === 'site')
-                <p class="small text-muted mb-3">死活監視とメルマガの配信停止のリンクには掛けません。</p>
+                <p class="small text-muted mb-3">死活監視とメルマガの配信停止のリンク、証明書の更新などに使う /.well-known には掛けません。</p>
             @else
                 <p class="small text-muted mb-3">管理画面の下の全部のURLに掛けます。</p>
             @endif
