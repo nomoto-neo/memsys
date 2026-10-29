@@ -57,7 +57,7 @@
 | 4-10 | ルートのファイルを、画面の種類ごとに分ける。フレームワークの画面のルートを、1行で書けるようにする | 未着手 |
 | 4-11 | 改ざん監視（通常の運用では変わらないファイルの変化と、知らないファイルを、通知のメールで知らせる） | 済み（2026-10-27） |
 | 4-12 | 公開ディレクトリの HTML と古い PHP を、Laravel を通して返す | 済み（2026-10-29） |
-| 4-13 | WordPress との共存（Laravel を前に出し、WordPress には決まったコーナーだけを受け持たせる置き方と、WordPress の守り） | 未着手 |
+| 4-13 | 入口の見張りを Laravel から分ける。それを使った WordPress との共存（Laravel を前に出し、WordPress には決まったコーナーだけを受け持たせる置き方と、WordPress の守り） | 未着手 |
 | 5 | 配布の形を決める | 未着手 |
 | 6 | 文書を、切り離した後の形に合わせる | 未着手 |
 
@@ -387,11 +387,27 @@
 
 済み（2026-10-29。`PublicFiles`・`PublicFileController`・`PublicScriptResponse`、見本のサイトの `public/index.php`・`public/.htaccess`。設計は `docs/public-files-spec.md`）。既存の取引先のサイトには、デザイナーが作った `.html` や、残しておく古い作りの `.php` が公開ディレクトリにある。Apache が直接返すと、IP ブロック・アクセス制限・リダイレクト・セキュリティのヘッダーが掛からないので、Laravel を通してから返す。古い `.php` は、グローバル変数を当てにした書き方も動くよう、入口の `index.php` がグローバルの場所で動かす。
 
-### 段階4-13　WordPress との共存
+### 段階4-13　入口の見張りと、WordPress との共存
 
-未着手。2026-10-29 に足した段階。既存の WordPress のサイトに Laravel を入れるときの置き方と、WordPress の守り。WordPress は `__()` などの関数を条件なしで作り、Laravel と同じ PHP の中では動かせないので、URL で振り分ける。
+未着手。2026-10-29 に足した段階。2つに分けて進める。
+
+**A. 入口の見張りを、Laravel から分ける**（WordPress と共存しないサイトでも、既定の形にする）
+
+IP ブロックとアクセス制限の判断を、Laravel を起動する前に動く小さな見張り（`gate.php`）でも行う。攻撃が続いているときに、止めている IP の要求を Laravel の起動の前に返して軽くするためと、Laravel を通らない PHP（WordPress）にも同じ守りを掛けるため。
+
+- 判断のロジックは、Laravel に頼らない小さなクラス1つにまとめ、見張りと Laravel のミドルウェア（`RejectBlockedIp`・`RestrictSiteAccess`・`RestrictAdminAccess`）の両方が使う。同じ判断を2か所に書かない
+- 状態（止めている IP と期限、サイトと管理画面の制限と許す IP）は、Laravel が `storage/app/` の下のファイルに書き出し、両方が読む。IP の登録・解除・自動で止めたとき、アクセス制限を保存したときに書き出す。期限は見張りが時刻と比べる
+- Laravel のミドルウェアは残す。見張りが掛かっていない環境（`php artisan serve`・テスト・設定を忘れたサーバー）や、状態のファイルが読めないときの保険にするため。見張りは、状態のファイルを読めないときは止めずに通す
+- 見張りは、Laravel の入口 `public/index.php` の頭で `require` する。こちらのファイルなので、どのサーバーでも置ける。`auto_prepend_file` と両方で掛かっても、2回目は何もしない
+- 404 の回数を数えて自動で止めるのは、今までどおり Laravel が受け持つ。見張りは止めるかどうかだけを見る
+
+**B. WordPress との共存**（A の見張りを使う）
+
+既存の WordPress のサイトに Laravel を入れるときの置き方と、WordPress の守り。WordPress は `__()` などの関数を条件なしで作り、Laravel と同じ PHP の中では動かせないので、URL で振り分ける。
 
 狙われやすい WordPress を後ろに下げ、自衛の機能が効く Laravel を前に出す。WordPress には決まったコーナーだけを受け持たせ、ほかは Laravel が受ける。「WordPress のサイトの守りも固められる」ことを、このフレームワークの売りの1つにする。
+
+- 分担。入口で止める守り（IP ブロック・メンテナンスの画面・サイトと管理画面のアクセス制限・ベーシック認証）と、ファイルの守り（権限・改ざん監視）はフレームワークが受け持つ。リダイレクトは、`.htaccess` が Laravel より先に WordPress へ回すので、WordPress のコーナーの下には効かない。ログインの守り・操作ログ・スパムの守り・SEO など中の処理は WordPress 次第
 
 - 直下の入口は Laravel。知らない URL も Laravel が受ける（固定ページ・リダイレクト・404 を Laravel で扱う）。WordPress の入口は `wordpress.php` などの名前で置く
 - WordPress に回すのは、`.htaccess` の一覧に書いた URL だけ。ディレクトリ単位（`/faq/`・`/shop/`・`/news/` など）と、もしあれば最上位の固定ページ（1件ずつ）、WordPress の動きに要るもの（`wp-admin/`・`wp-includes/`・`wp-content/`・`wp-login.php`・`wp-json/` など）。既存のサイトでは、固定ページはほとんどディレクトリに分かれていて、最上位にはほぼ無い
@@ -401,13 +417,17 @@
 作るものの案（実装の前に、確認したいことをまとめる）。
 
 1. WordPress に回す URL を設定に書く。固定ページやリダイレクトの検証で、重なる URL を登録できないようにする。`.htaccess` は人が書き、設定から決まりを書き出すコマンドを作る（Laravel に `.htaccess` を書き換えさせると、apache の権限で侵入されたときに書き換えられるため）。`/wp-sitemap.xml` と Laravel のサイトマップの分け方も決める
-2. WordPress の前の見張りのファイル。Laravel を起動せず、Laravel が書き出した「止めている IP の一覧・アクセス制限の状態と許す IP」を読んで止める。見張りを掛ける場所は、使えるものを上から選ぶ
+2. WordPress にも A の見張りを掛ける。`index.php` を通らないので、掛ける場所は、使えるものを上から選ぶ
    - PHP-FPM のプールの設定の `php_admin_value[auto_prepend_file]`。`.user.ini` や `ini_set()` で後から外せないので、一番強い。自前の VPS ではこれにする
    - `.user.ini` の `auto_prepend_file`。プールの設定に触れない共用のサーバー向け
-   - どちらも使えないときは、`wp-config.php` の頭で `require` する。WordPress の入口（`wp-login.php`・`wp-admin/` の下・`xmlrpc.php`・`wp-cron.php` も）は全部 `wp-config.php` を読むので、WordPress として動く URL には掛かる。プラグインの `.php` を URL で直に開かれたときは掛からないので、`.htaccess` で `wp-content/` の下の `.php` を直に開けないようにして補う（動かなくなるプラグインが無いかは案件ごとに確かめる）
-3. WordPress の管理画面（`/wp-admin/`・`wp-login.php`）に、管理画面と同じアクセス制限（許す IP）を掛けられるようにする。`xmlrpc.php` は使っていなければ閉じる
+   - どちらも使えないときは、`wp-config.php` の頭で `require` する。WordPress が PHP で返すもの（表のページ・`wp-login.php`・`wp-admin/` の下・`wp-json/`・`xmlrpc.php`・`wp-cron.php`）は全部 `wp-config.php` を読むので、WordPress のコンテンツには掛かる。プラグインの `.php` を URL で直に開かれたときは掛からないので、`.htaccess` で `wp-content/` の下の `.php` を直に開けないようにして補う（動かなくなるプラグインが無いかは案件ごとに確かめる）
+   - 画像・CSS などの静的なファイルは、どの段でも見張りは掛からない（Laravel の側と同じ）。掛かるのは Apache のベーシック認証だけ
+   - 掛ける場所は設定（`'gate' => 'prepend'` か `'wp-config'`）に書く。書いた場所に置けていないときだけ、管理画面のダッシュボードと確かめのコマンドで警告する。`prepend` は Laravel への要求の中の `ini_get('auto_prepend_file')` で、`wp-config` は `wp-config.php` の `require` の行で確かめる。WordPress を使わないサイトでは確かめない（見張りは `index.php` で必ず掛かるため）
+3. WordPress の管理画面（`/wp-admin/`・`wp-login.php`）に、管理画面と同じアクセス制限（許す IP）を掛けられるようにする。`admin-ajax.php` は表の画面からも呼ばれるので通す。`xmlrpc.php` は使っていなければ閉じる
 4. 改ざん監視に WordPress のファイルを足す。自動の更新で変わるファイルの扱いを決める（`wp-content/uploads` は許可されていないアップロードファイルとして確かめる、など）
 5. 利用ガイドに、置き方・`.htaccess` の見本・固定ページの移し替えの手順を書く
+
+確かめ方。見本のサイトでは、開発サーバーに仮の WordPress（投稿の `/column/`、カスタム投稿タイプの `/topics/`・`/info/`）を置いて確かめる。仮の WordPress は git で管理しない。案件のサイトでの確かめは、提案が通ってから行う。
 
 実装の前に、案件のサイトで確かめること。
 
