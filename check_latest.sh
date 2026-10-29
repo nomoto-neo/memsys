@@ -315,6 +315,18 @@ has   packages/neobit/core/src/Rules/UploadRequiredRule.php             'class U
 has   packages/neobit/core/src/Crud/FormFlow.php                        'requiredUploadRules'
 has   packages/neobit/core/resources/views/_ajax_upload_block.blade.php 'errorKey'
 has   app/Http/Controllers/Admin/NewsController.php                     "News::LIST_IMAGE_WIDTH, 'required' => true"
+has   packages/neobit/core/src/Console/WatchFiles.php                   'error_notify.handler_with.to'
+has   packages/neobit/core/src/Security/BasicAuth.php                   'InvalidArgumentException'
+has   packages/neobit/core/resources/mail-templates/file_watch_alert.blade.php '許可されていないアップロードファイル'
+has   packages/neobit/core/src/Http/PublicFiles.php                     'class PublicFiles'
+has   packages/neobit/core/src/Http/PublicScriptResponse.php            'class PublicScriptResponse'
+has   packages/neobit/core/src/Http/Controllers/PublicFileController.php 'class PublicFileController'
+has   packages/neobit/core/routes/web.php                               'PublicFileController'
+has   packages/neobit/core/src/Http/Middleware/ApplyRedirects.php       'PublicFiles::isDirectory'
+has   packages/neobit/core/src/Seo/RedirectChecker.php                  'isFallback'
+has   app/Http/Controllers/PageController.php                           'PublicFileController'
+has   public/index.php                                                  'PublicFiles::handle'
+has   public/.htaccess                                                  'RewriteRule ^index\.php$ - [L]'
 
 echo
 if [ $ng -eq 0 ]; then
