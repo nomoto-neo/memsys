@@ -280,7 +280,7 @@ has   packages/neobit/core/src/Http/Controllers/BasicAuthController.php 'class B
 has   routes/web.php                                                    'BasicAuthController'
 has   resources/views/admin/_menu.blade.php                             'admin.basic-auth.index'
 has   packages/neobit/core/src/Http/Middleware/NoIndexHeader.php        'class NoIndexHeader'
-has   packages/neobit/core/src/Security/FileWatcher.php                 'function acceptAlerts'
+has   packages/neobit/core/src/Security/FileWatcher.php                 'function isUploadConfig'
 has   packages/neobit/core/src/Console/WatchFiles.php                   '{--accept'
 has   packages/neobit/core/resources/mail-templates/file_watch_alert.blade.php 'ファイルの改ざんを検知しました'
 has   packages/neobit/core/src/Operations/OperationLogReport.php       'fileUpdates'
@@ -328,14 +328,17 @@ has   public/index.php                                                  'PublicF
 has   public/.htaccess                                                  'RewriteRule ^index\.php$ - [L]'
 has   set_permissions.sh                                                'pm = ondemand'
 has   packages/neobit/core/gate.php                                     "is_file(__DIR__.'/src/Security/Gate.php')"
-has   packages/neobit/core/src/Security/Gate.php                        'function clientIp'
-has   packages/neobit/core/src/Security/GateState.php                   'function writeFile'
-has   packages/neobit/core/src/Console/CheckGate.php                    'app:gate'
+has   packages/neobit/core/src/Security/Gate.php                        "state['admin']['ips']"
+has   packages/neobit/core/src/Security/GateState.php                   'function watchWordPress'
+has   packages/neobit/core/src/Console/CheckGate.php                    'function checkWordPress'
 has   packages/neobit/core/src/Security/IpBlocker.php                   'GateState::exportOrReport'
 has   packages/neobit/core/src/Security/AccessRestriction.php           'GateState::exportOrReport'
-has   packages/neobit/core/src/Http/Middleware/RejectBlockedIp.php      'GateState::refreshIfStale'
+has   packages/neobit/core/src/Http/Middleware/RejectBlockedIp.php      'GateState::watchWordPress'
 has   packages/neobit/core/src/Http/Middleware/RestrictSiteAccess.php   'Gate::opensSite'
 has   public/index.php                                                  'is_file($gate'
+has   packages/neobit/core/config/neobit.php                            "'wordpress' => null"
+has   packages/neobit/core/stubs/config/neobit.php                      "// 'wordpress' => null"
+has   packages/neobit/core/resources/views/admin/access_restriction/index.blade.php '管理画面を開けるIPアドレスの人も'
 
 echo
 if [ $ng -eq 0 ]; then

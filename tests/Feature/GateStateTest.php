@@ -181,6 +181,104 @@ class GateStateTest extends TestCase
         Log::shouldHaveReceived('error')->withArgs(fn (string $message) => str_contains($message, '画面を作れませんでした'));
     }
 
+    /** WordPressを置く案件の設定。$gateは.envのWORDPRESS_GATEにあたる */
+    private function useWordPress(string $gate, string $wpConfig = 'wp-config.php'): void
+    {
+        config(['neobit.wordpress' => [
+            'gate' => $gate,
+            'admin_paths' => ['wp-admin', 'wp-admin/*', 'wp-login.php'],
+            'open_paths' => ['wp-admin/admin-ajax.php', 'wp-cron.php'],
+            'hidden_paths' => ['xmlrpc.php'],
+            'wp_config' => $wpConfig,
+            'upload_path' => 'public/wp-content/uploads',
+            'watch_exclude' => [],
+        ]]);
+    }
+
+    public function test_gate_guards_wordpress_paths(): void
+    {
+        // 段が書かれていれば、WordPressのURLの決まりを書き出す
+        $this->useWordPress('prepend');
+        $missing = $this->withServerVariables(['REMOTE_ADDR' => self::VISITOR])->get('/no-such-page')->assertNotFound()->getContent();
+        AccessRestriction::save(true, [], true, ['192.0.2.50']);
+        $this->assertSame(['wp-admin', 'wp-admin/*', 'wp-login.php'], GateState::read()['wordpress']['admin']);
+
+        $this->assertSame($missing, $this->runGate(self::VISITOR, '/xmlrpc.php'));
+        $this->assertSame($missing, $this->runGate(self::VISITOR, '/wp-login.php'));
+        $this->assertSame('PASSED', $this->runGate(self::VISITOR, '/wp-cron.php?doing_wp_cron=1'));
+        $this->assertSame('PASSED', $this->runGate('192.0.2.50', '/wp-admin/'));
+
+        // 管理画面に入れる人は、メンテナンス中のサイトも開ける
+        $this->assertSame('PASSED', $this->runGate('192.0.2.50', '/wp-json/wp/v2/posts/1'));
+
+        // 段が書かれていなければ、WordPressの決まりは書き出さない
+        $this->useWordPress('');
+        GateState::export();
+        $this->assertNull(GateState::read()['wordpress']);
+    }
+
+    public function test_missing_gate_setting_is_reported(): void
+    {
+        $this->useWordPress('');
+        GateState::export();
+        Log::spy();
+
+        // 1時間に1回だけ知らせる
+        GateState::watchWordPress();
+        GateState::watchWordPress();
+        Log::shouldHaveReceived('critical')->withArgs(fn (string $message) => str_contains($message, 'WORDPRESS_GATE'))->once();
+
+        $this->artisan('app:gate')->expectsOutputToContain('.env の WORDPRESS_GATE がありません')->assertFailed();
+
+        // WordPressを置かない案件では、何も言わない
+        config(['neobit.wordpress' => null]);
+        GateState::export();
+        $this->artisan('app:gate')->doesntExpectOutputToContain('WordPress')->assertSuccessful();
+    }
+
+    public function test_prepend_is_checked_on_web_requests(): void
+    {
+        $this->useWordPress('prepend');
+        GateState::export();
+        Log::spy();
+
+        // コマンドからは分からないので、Webの要求で見るまでは確かめていない。送った直後の手順を失敗にしないよう、警告だけ
+        $this->artisan('app:gate')->expectsOutputToContain('まだ Web の要求で確かめていません')->assertSuccessful();
+
+        // auto_prepend_fileが見張りを指していなければ、変わったときに1回知らせる
+        GateState::watchWordPress('');
+        GateState::watchWordPress('');
+        Log::shouldHaveReceived('critical')->withArgs(fn (string $message) => str_contains($message, 'auto_prepend_file'))->once();
+        $this->artisan('app:gate')->expectsOutputToContain('gate.php が設定されていません')->assertFailed();
+
+        // 指していれば、確かめた時刻を出す
+        GateState::watchWordPress(base_path('packages/neobit/core/gate.php'));
+        $this->artisan('app:gate')->expectsOutputToContain('WordPress の保護機能：prepend（')->assertSuccessful();
+    }
+
+    public function test_wp_config_gate_is_checked_in_the_file(): void
+    {
+        // wp-config.phpの場所は、プロジェクトのルートからのパス
+        $wpConfig = 'storage/framework/testing/wp-config-gate-test.php';
+        File::ensureDirectoryExists(dirname(base_path($wpConfig)));
+        $this->useWordPress('wp-config', $wpConfig);
+        GateState::export();
+
+        try {
+            File::put(base_path($wpConfig), "<?php\ndefine('DB_NAME', 'wp');\n");
+            $this->artisan('app:gate')->expectsOutputToContain('gate.php の require がありません')->assertFailed();
+
+            // コメントにした行は数えない
+            File::put(base_path($wpConfig), "<?php\n// require __DIR__.'/vendor/neobit/core/gate.php';\n  # require 'gate.php';\n");
+            $this->artisan('app:gate')->expectsOutputToContain('gate.php の require がありません')->assertFailed();
+
+            File::put(base_path($wpConfig), "<?php\nrequire __DIR__.'/vendor/neobit/core/gate.php';\ndefine('DB_NAME', 'wp');\n");
+            $this->artisan('app:gate')->expectsOutputToContain('WordPress の保護機能：wp-config')->assertSuccessful();
+        } finally {
+            File::delete(base_path($wpConfig));
+        }
+    }
+
     public function test_command_shows_the_state_and_finds_a_stale_copy(): void
     {
         AccessRestriction::save(false, [], true, ['192.0.2.50']);

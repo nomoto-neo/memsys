@@ -45,10 +45,17 @@ use RuntimeException;
  * ■ アップロードの置き場所
  * アップロードのたびにファイルが増えるので、基準とは比べない。代わりに毎回、公開の置き場所（storage/app/public。
  * /storage/のURLで外から開ける）に、次のファイルが無いかを確かめ、見つけたら待たずに知らせる。
- * - PHPとして動く拡張子と、.htaccess・.user.ini（置かれるとPHPを動かす設定にされるもの）
+ * - PHPとして動く拡張子のもの
  * - アップロードの設定（upload.image_types・attach_types）と、設定のfile_watch.public_upload_extraに無い拡張子のもの。
  *   JavaScript・HTML・SVGなどを、一覧に書かずに全部拾うため。画面からのアップロードでは置かれ得ないので、あれば
  *   改ざんの疑いが強い
+ * .htaccess・.user.ini（置かれるとPHPを動かす設定にされるもの）だけは、ほかのコードと同じく基準と比べる。
+ * プラグインなどが置く正しいものもあるので、増えた・変わった・消えたときに、通常の更新か改ざんかを見分けて知らせる。
+ * 前の版の基準には入っていないので、最初の回だけは知らせずに基準に取り込む。
+ * WordPressを置く案件（設定のneobit.wordpressがある）では、WordPressのアップロードの置き場所（upload_path）も
+ * 同じに扱い、基準と比べる走査から外す。外さないと、画像を上げるたびに追加として知らせるため。
+ * 設定のwatch_excludeの場所（キャッシュのプラグインが書く場所など）は、何も見ない。前の基準に入っていた
+ * ファイルは、消えたものとしては知らせず、黙って基準から外す。
  * 非公開の置き場所（storage/app/private）は見ない。Webから直接開けないので、置かれても動かせないうえ、
  * Laravelが作った本人（apache）しか読めない権限（0700・0600）で作られ、この監視の利用者には開けないため。
  *
@@ -133,8 +140,8 @@ final class FileWatcher
     /** アップロードの置き場所で見つけたら、すぐ知らせる拡張子。PHPとして動くもの */
     private const DANGER_EXTENSIONS = ['php', 'phtml', 'phar', 'php3', 'php4', 'php5', 'php7', 'php8', 'phps', 'pht'];
 
-    /** アップロードの置き場所で見つけたら、すぐ知らせるファイルの名前。置かれるとPHPを動かす設定にされるもの */
-    private const DANGER_NAMES = ['.htaccess', '.user.ini'];
+    /** アップロードの置き場所で、基準と比べるファイルの名前。置かれるとPHPを動かす設定にされるもの */
+    private const UPLOAD_CONFIG_NAMES = ['.htaccess', '.user.ini'];
 
     /** 公開の置き場所で、許可されていない拡張子でも知らせないファイルの名前。Laravelが最初から置くもの */
     private const PUBLIC_UPLOAD_IGNORE = ['.gitignore'];
@@ -152,6 +159,9 @@ final class FileWatcher
 
     /** この回で開けなかったディレクトリの名前 */
     private array $unreadable = [];
+
+    /** この回で集めた、アップロードの置き場所のファイル。名前 => パス。まだ集めていなければnull */
+    private ?array $uploadFiles = null;
 
     /**
      * 場所とctimeの読み方は、テストで差し替える。手元のWindowsでは、ctimeがファイルを作った日時になるため。
@@ -216,6 +226,7 @@ final class FileWatcher
     public function init(): int
     {
         $this->unreadable = [];
+        $this->uploadFiles = null;
         $files = [];
         foreach ($this->scan(true) as $label => $info) {
             $files[$label] = $info + ['hash' => hash_file('sha256', $info['path'])];
@@ -226,6 +237,7 @@ final class FileWatcher
         $this->save([
             'files' => $files,
             'root_dirs' => $this->rootDirectories(),
+            'upload_config' => true,
             'keys' => $key !== null ? [$key] : [],
             'deleted_seen' => [],
             'accepted' => [],
@@ -244,6 +256,7 @@ final class FileWatcher
     public function check(bool $full = false): array
     {
         $this->unreadable = [];
+        $this->uploadFiles = null;
         $state = $this->loadBaseline();
         $now = now()->getTimestamp();
 
@@ -277,6 +290,7 @@ final class FileWatcher
     public function acceptAlerts(Closure $confirm): ?array
     {
         $this->unreadable = [];
+        $this->uploadFiles = null;
         $state = $this->loadBaseline();
         $now = now()->getTimestamp();
 
@@ -364,6 +378,24 @@ final class FileWatcher
                 continue;
             }
             $candidates[$label] = ['kind' => 'changed', 'time' => $info['ctime'], 'info' => $info + ['hash' => $hash]];
+        }
+
+        // アップロードの置き場所の.htaccessなどは、前の版の基準に入っていないので、最初の回だけは知らせずに基準に取り込む
+        if (! isset($state['upload_config'])) {
+            foreach ($candidates as $label => $candidate) {
+                if ($candidate['kind'] === 'added' && $this->isUploadConfig($label)) {
+                    $this->absorb($state, $label, $candidate);
+                    unset($candidates[$label]);
+                }
+            }
+            $state['upload_config'] = true;
+        }
+
+        // WordPressのアップロードの置き場所などの見ない場所は、前の基準に入っていても、消えたものにせず黙って外す
+        foreach (array_keys($state['files']) as $label) {
+            if ($this->isExcluded($label, $this->wordpressIgnored()) && ! $this->isUploadConfig($label)) {
+                unset($state['files'][$label]);
+            }
         }
 
         // 消えたファイル。消えた時刻は分からないので、最初に気付いた時刻を使う。vendor/は--fullのときだけ見る。
@@ -532,14 +564,22 @@ final class FileWatcher
 
         $files = [];
         foreach ($paths as $path) {
-            $this->collect($this->basePath.'/'.$path, $path, self::EXCLUDE, $files);
+            $this->collect($this->basePath.'/'.$path, $path, [...self::EXCLUDE, ...$this->wordpressIgnored()], $files);
         }
-        $this->collect($this->publicPath, 'public', array_map(fn (string $name) => 'public/'.$name, self::PUBLIC_EXCLUDE), $files);
+        $publicExclude = array_map(fn (string $name) => 'public/'.$name, self::PUBLIC_EXCLUDE);
+        $this->collect($this->publicPath, 'public', [...$publicExclude, ...$this->wordpressIgnored()], $files);
 
         // 直下のファイル。中身まで見る
         foreach ($this->rootEntries() as $name => $isDirectory) {
             if (! $isDirectory) {
-                $this->collect($this->basePath.'/'.$name, $name, [], $files);
+                $this->collect($this->basePath.'/'.$name, $name, $this->wordpressIgnored(), $files);
+            }
+        }
+
+        // アップロードの置き場所の.htaccessなど。PHPを動かす設定にされるので、中身を基準と比べる
+        foreach ($this->uploadFiles() as $label => $file) {
+            if ($this->isUploadConfig($label)) {
+                $files[$label] = ['path' => $file, 'ctime' => ($this->ctime)($file), 'size' => (int) filesize($file)];
             }
         }
         ksort($files);
@@ -666,10 +706,6 @@ final class FileWatcher
      */
     private function dangers(): array
     {
-        if (! is_dir($this->publicUploadPath)) {
-            return [];
-        }
-
         // 公開の置き場所で受け付ける拡張子。アップロードの設定と、運用で置く分
         $allowed = array_map('strtolower', [
             ...(array) config('upload.image_types'),
@@ -678,12 +714,17 @@ final class FileWatcher
         ]);
 
         $dangers = [];
-        foreach ($this->walk($this->publicUploadPath, 'storage/app/public') as $label => $file) {
+        foreach ($this->uploadFiles() as $label => $file) {
+            // .htaccessなどは、基準と比べる（scan()）
+            if ($this->isUploadConfig($label)) {
+                continue;
+            }
+
             $name = basename($file);
             $extension = strtolower(pathinfo($name, PATHINFO_EXTENSION));
 
             // PHPとして動くものと、許可されていない拡張子のもの
-            $runnable = in_array($extension, self::DANGER_EXTENSIONS, true) || in_array($name, self::DANGER_NAMES, true);
+            $runnable = in_array($extension, self::DANGER_EXTENSIONS, true);
             $unexpected = ! in_array($name, self::PUBLIC_UPLOAD_IGNORE, true) && ! in_array($extension, $allowed, true);
             if (! $runnable && ! $unexpected) {
                 continue;
@@ -694,6 +735,79 @@ final class FileWatcher
         usort($dangers, fn (array $a, array $b) => strcmp($a['label'], $b['label']));
 
         return $dangers;
+    }
+
+    /**
+     * アップロードの置き場所のファイル。名前 => パス。公開の置き場所（storage/app/public）と、WordPressのアップロードの
+     * 置き場所。watch_excludeの場所は外す。scan()とdangers()の両方で使うので、1回の確かめで1回だけたどる
+     *
+     * @return array<string, string>
+     */
+    private function uploadFiles(): array
+    {
+        if ($this->uploadFiles !== null) {
+            return $this->uploadFiles;
+        }
+
+        $places = ['storage/app/public' => $this->publicUploadPath];
+        $wordpressUpload = $this->wordpressUploadPath();
+        if ($wordpressUpload !== null) {
+            $places[$wordpressUpload] = $this->basePath.'/'.$wordpressUpload;
+        }
+
+        $this->uploadFiles = [];
+        foreach ($places as $label => $path) {
+            if (is_dir($path)) {
+                $this->uploadFiles += $this->walk($path, $label, $this->wordpressExcluded());
+            }
+        }
+
+        return $this->uploadFiles;
+    }
+
+    /** アップロードの置き場所の、基準と比べる.htaccessなどの名前か */
+    private function isUploadConfig(string $label): bool
+    {
+        if (! in_array(basename($label), self::UPLOAD_CONFIG_NAMES, true)) {
+            return false;
+        }
+
+        return $this->isExcluded($label, array_filter(['storage/app/public', $this->wordpressUploadPath()]));
+    }
+
+    /** WordPressのアップロードの置き場所（basePathからのパス）。WordPressを置かないか、設定が空ならnull */
+    private function wordpressUploadPath(): ?string
+    {
+        $path = trim((string) config('neobit.wordpress.upload_path'), '/');
+
+        return is_array(config('neobit.wordpress')) && $path !== '' ? $path : null;
+    }
+
+    /**
+     * WordPressを置くときに、基準と比べる走査から外す場所（basePathからのパス）。アップロードの置き場所とwatch_exclude
+     *
+     * @return list<string>
+     */
+    private function wordpressIgnored(): array
+    {
+        return array_values(array_filter([$this->wordpressUploadPath(), ...$this->wordpressExcluded()], fn (?string $path) => $path !== null));
+    }
+
+    /**
+     * 設定のwatch_excludeの場所（basePathからのパス）。基準とも、許可されていないアップロードファイルの確かめとも比べない。
+     * キャッシュのプラグインが書く場所など、何が置かれるかを決められない場所に使う
+     *
+     * @return list<string>
+     */
+    private function wordpressExcluded(): array
+    {
+        if (! is_array(config('neobit.wordpress'))) {
+            return [];
+        }
+
+        $paths = array_map(fn ($path) => trim((string) $path, '/'), (array) config('neobit.wordpress.watch_exclude'));
+
+        return array_values(array_filter($paths, fn (string $path) => $path !== ''));
     }
 
     /** 鍵のファイルのctime。設定が空か、ファイルが無ければnull */

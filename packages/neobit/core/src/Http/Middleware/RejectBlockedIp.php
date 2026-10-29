@@ -20,6 +20,7 @@ use Symfony\Component\HttpFoundation\Response;
  *
  * 入口の見張り（Neobit\Core\Security\Gate）が先に同じ判断をするので、ここは見張りが掛かっていないときの保険になる。
  * 見張りの状態のファイルが無いか、.envを変えて古くなっていれば、ここで書き出し直す（GateState::refreshIfStale()）。
+ * WordPressを置く案件では、WordPressの見張りが掛かっているかもここで見る（GateState::watchWordPress()）。
  */
 class RejectBlockedIp
 {
@@ -27,6 +28,9 @@ class RejectBlockedIp
     {
         // 入口の見張りの状態が無いか古ければ、書き出し直す
         GateState::refreshIfStale();
+
+        // WordPressの見張りが掛かっていなければ、知らせる
+        GateState::watchWordPress();
 
         // 止めているIPアドレスには、何も処理せず、ふつうの404の画面を返す
         if (IpBlocker::isBlocked((string) $request->ip())) {

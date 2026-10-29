@@ -99,6 +99,43 @@ class GateTest extends TestCase
         $this->assertSame(Gate::MAINTENANCE, Gate::decide($state, '198.51.100.7', '/', self::NOW));
     }
 
+    public function test_wordpress_paths_follow_their_own_rules(): void
+    {
+        $state = $this->state([
+            'site' => ['restricted' => true, 'ips' => ['203.0.113.10']],
+            'admin' => ['restricted' => true, 'ips' => ['192.0.2.50']],
+            'blocks' => [['203.0.113.66', null]],
+            'wordpress' => [
+                'admin' => ['wp-admin', 'wp-admin/*', 'wp-login.php'],
+                'open' => ['wp-admin/admin-ajax.php', 'wp-cron.php'],
+                'hidden' => ['xmlrpc.php'],
+            ],
+        ]);
+        $visitor = '198.51.100.7';
+
+        // 使わない入口は、誰にも404
+        $this->assertSame(Gate::NOT_FOUND, Gate::decide($state, '192.0.2.50', 'xmlrpc.php', self::NOW));
+
+        // 表の画面やサーバー自身が呼ぶものは、どの制限も掛けない。止めているIPだけは止める
+        $this->assertSame(Gate::PASS, Gate::decide($state, $visitor, 'wp-admin/admin-ajax.php', self::NOW));
+        $this->assertSame(Gate::PASS, Gate::decide($state, $visitor, 'wp-cron.php', self::NOW));
+        $this->assertSame(Gate::NOT_FOUND, Gate::decide($state, '203.0.113.66', 'wp-cron.php', self::NOW));
+
+        // 管理画面とログインは、管理画面の制限だけ。サイトの許すIPでも、管理画面の外なら404
+        $this->assertSame(Gate::NOT_FOUND, Gate::decide($state, $visitor, 'wp-login.php', self::NOW));
+        $this->assertSame(Gate::NOT_FOUND, Gate::decide($state, '203.0.113.10', 'wp-admin', self::NOW));
+        $this->assertSame(Gate::PASS, Gate::decide($state, '192.0.2.50', 'wp-admin/post.php', self::NOW));
+
+        // 記事とREST APIは、表のURLと同じくサイトの制限。管理画面に入れる人は、メンテナンス中も保存できる
+        $this->assertSame(Gate::MAINTENANCE, Gate::decide($state, $visitor, 'column/1', self::NOW));
+        $this->assertSame(Gate::MAINTENANCE, Gate::decide($state, $visitor, 'wp-json/wp/v2/posts/1', self::NOW));
+        $this->assertSame(Gate::PASS, Gate::decide($state, '192.0.2.50', 'wp-json/wp/v2/posts/1', self::NOW));
+
+        // WordPressを置かなければ、WordPressのURLもふつうのURL
+        $plain = ['wordpress' => null] + $state;
+        $this->assertSame(Gate::MAINTENANCE, Gate::decide($plain, $visitor, 'xmlrpc.php', self::NOW));
+    }
+
     public function test_paths_are_read_like_laravel(): void
     {
         $this->assertSame('/', Gate::path('/'));
