@@ -87,7 +87,7 @@ Laravel を公開ディレクトリの外に置けないレンタルサーバー
 
 WordPress を置く案件では、`config/neobit.php` に `wordpress` の節を書き、サーバーごとの `.env` に `WORDPRESS_GATE`（`prepend` か `wp-config`）を書きます。`public/.htaccess` には WordPress に回す URL の決まりを、`public/` には `wordpress.php` を置きます（利用ガイドの31章）。
 
-改ざん監視を使うサーバーでは、コードを更新する利用者の crontab に `app:watch-files` を2行書き、`php artisan app:watch-files --init` で基準を作ります（利用ガイドの29章）。鍵のファイルの名前は `config/neobit.php` の `file_watch.release_file`（既定は `.version`）で、案件ごとに変えられます。
+改ざん監視を使うサーバーでは、コードを更新する利用者の crontab に `app:watch-files` を3行（5分ごと・1日1回の `--full`・毎分の `--approve`）書き、`php artisan app:watch-files --init` で基準を作ります（利用ガイドの29章）。鍵のファイルの名前は `config/neobit.php` の `file_watch.release_file`（既定は `.version`）で、案件ごとに変えられます。管理画面の「改ざん監視」を使うときは、`routes/web.php` の管理者だけのグループにルートを2行書き、管理画面のメニューに足します。
 
 ## サーバーへ送らないもの
 

@@ -181,7 +181,7 @@
 | `HtmlSanitizer` | `clean()` | |
 | `SpamGuard` | `startedToken()`・`check()`、定数 `HONEYPOT_FIELD`・`STARTED_FIELD`・`TURNSTILE_FIELD` | |
 | `AdminRequestLimit` | `limit()` | |
-| `FileWatcher` | `init()`・`check()`・`acceptedOn()`、定数 `DEFAULT_PATHS` | 改ざん監視 |
+| `FileWatcher` | `init()`・`check()`・`inspect()`・`acceptAlerts()`・`requestApproval()`・`pendingApproval()`・`applyApproval()`・`recentlyAccepted()`・`acceptedOn()`、定数 `DEFAULT_PATHS` | 改ざん監視 |
 | `PublicFiles` | `handle()`・`file()`・`isDirectory()` | 入口の `public/index.php` が `handle()` を呼ぶ |
 | `gate.php`（パッケージの直下） | 定数 `NEOBIT_GATE_STATE` | 入口の `public/index.php` の頭で読む。状態のファイルの場所を定数で渡す。WordPress には、`auto_prepend_file` か `wp-config.php` の `require` でこのパスを書く |
 | 設定 `neobit.wordpress` | キー `gate`・`admin_paths`・`open_paths`・`hidden_paths`・`wp_config`・`upload_path`・`watch_exclude`、`.env` の `WORDPRESS_GATE`（`prepend`・`wp-config`） | WordPress を置く案件の `config/neobit.php` が書く |
@@ -192,7 +192,7 @@
 | `CsvImportSettings`・`CsvImportResult`・`CsvImportRow`・`CsvColumnSet` | 取り込みの設定と結果 | |
 | 検証のルール | `KatakanaRule`・`HiraganaRule`・`PhoneNumberRule`・`SameCountAsRule`・`UploadRequiredRule`・`SlugRule`・`NotReservedPathRule` | |
 | ミドルウェア | `AjaxFormResponse`・`ApplyRedirects`・`NoIndexHeader`・`NormalizeInput`・`RejectBlockedIp`・`RestrictAdminAccess`・`RestrictSiteAccess`・`RunScheduleOnRequest`・`SecurityHeaders` | |
-| コントローラー | `CodeTableController`・`IpBlockController`・`AccessRestrictionController`・`BasicAuthController`・`SeoSettingsController`・`RedirectController`・`OperationLogController`（どれもルートは案件が書く）・`UploadedFileController`・`SitemapController`・`RobotsController`・`PublicFileController`（どの URL も受けるルートを案件が書くときは、自分のページが無ければこれに渡す） | |
+| コントローラー | `CodeTableController`・`IpBlockController`・`AccessRestrictionController`・`BasicAuthController`・`FileWatchController`・`SeoSettingsController`・`RedirectController`・`OperationLogController`（どれもルートは案件が書く）・`UploadedFileController`・`SitemapController`・`RobotsController`・`PublicFileController`（どの URL も受けるルートを案件が書くときは、自分のページが無ければこれに渡す） | |
 
 ## 7. ヘルパー
 
