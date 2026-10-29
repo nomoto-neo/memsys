@@ -327,6 +327,7 @@ has   packages/neobit/core/src/Seo/RedirectChecker.php                  'isFallb
 has   app/Http/Controllers/PageController.php                           'PublicFileController'
 has   public/index.php                                                  'PublicFiles::handle'
 has   public/.htaccess                                                  'RewriteRule ^index\.php$ - [L]'
+has   set_permissions.sh                                                'pm = ondemand'
 
 echo
 if [ $ng -eq 0 ]; then
