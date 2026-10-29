@@ -183,7 +183,8 @@
 | `AdminRequestLimit` | `limit()` | |
 | `FileWatcher` | `init()`・`check()`・`acceptedOn()`、定数 `DEFAULT_PATHS` | 改ざん監視 |
 | `PublicFiles` | `handle()`・`file()`・`isDirectory()` | 入口の `public/index.php` が `handle()` を呼ぶ |
-| `gate.php`（パッケージの直下） | 定数 `NEOBIT_GATE_STATE` | 入口の `public/index.php` の頭で読む。状態のファイルの場所を定数で渡す |
+| `gate.php`（パッケージの直下） | 定数 `NEOBIT_GATE_STATE` | 入口の `public/index.php` の頭で読む。状態のファイルの場所を定数で渡す。WordPress には、`auto_prepend_file` か `wp-config.php` の `require` でこのパスを書く |
+| 設定 `neobit.wordpress` | キー `gate`・`admin_paths`・`open_paths`・`hidden_paths`・`wp_config`・`upload_path`・`watch_exclude`、`.env` の `WORDPRESS_GATE`（`prepend`・`wp-config`） | WordPress を置く案件の `config/neobit.php` が書く |
 | `PublicScriptResponse` | 古い `.php` を動かす目印の応答。`script` | |
 | `BasicAuth` | `isOn()`・`save()`・`addUser()`・`deleteUser()`、定数 `AREAS`（`site`・`admin`）・`USERNAME_PATTERN` | 範囲ごとの目印のファイルと `.htpasswd` を作る |
 | `AccessRestriction` | `allowsSite()`・`allowsAdmin()`・`allowedIps()`・`siteIps()`・`adminIps()`・`envSiteIps()`・`envAdminIps()`・`settings()`・`save()`・`turnOff()`・`parseList()`・`lockoutMessage()` | |

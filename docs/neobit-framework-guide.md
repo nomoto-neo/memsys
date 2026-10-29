@@ -33,6 +33,7 @@
 - [28. リダイレクト（301 リダイレクトの管理）](#28.%20リダイレクト（301%20リダイレクトの管理）)
 - [29. 改ざん監視（FileWatcher）](#29.%20改ざん監視（FileWatcher）)
 - [30. 公開ディレクトリの HTML と古い PHP（PublicFiles）](#30.%20公開ディレクトリの%20HTML%20と古い%20PHP（PublicFiles）)
+- [31. WordPress との共存](#31.%20WordPress%20との共存)
 - [付録. フレームワーク外で考慮すべきセキュリティ対策](#付録.%20フレームワーク外で考慮すべきセキュリティ対策)
 
 ## 版の履歴
@@ -107,6 +108,7 @@
 - 設定が効いているかは、画面を開いて確かめます。sudo を使えるときは `sudo -u apache php artisan config:show database.default` でも確かめられ、`mariadb` と出れば apache が読めています。devapp で同じコマンドを実行しても、devapp は `.env` を読めるので確かめになりません。
 - 手元の開発環境は `.env` を直接読むので、`config:cache` は要りません。
 - フレームワークを更新して、見本のサイトの `public/index.php`・`public/.htaccess` が変わったときは、それも案件のサーバーへ写します（26章の入口の見張り、30章）。
+- WordPress を置くサイトは、`php artisan app:gate` で `WordPress の保護機能：` の行も確かめます（31章）。`prepend` の段は、Laravel のページ（管理画面など）を1回開いてから確かめます。WordPress のページは Laravel を通らないので、確かめになりません。
 - **改ざん監視を使っているサイトは、ファイルを送るときに鍵のファイル（既定は `.version`）も、中身を変えて送ります**（29章）。送り忘れると、更新したファイルが改ざんとして知らされます。
 
 ### サーバーの権限（set_permissions.sh）
@@ -2627,7 +2629,7 @@ Route::prefix('company')->name('company.')->group(function () {
 
 - **入力**：1行に1つか、カンマ区切りです。`192.168.0.0/24` のようなまとまりと、IPv6 も書けます。
 - **チェックを入れたときだけ掛かる**：IP アドレスを書いただけでは、制限は掛かりません。
-- **管理画面に入れる人**：管理画面の IP アドレス（画面と `.env` の `ADMIN_ALLOWED_IPS`）は、サイトの制限でも通します。管理画面に入れる人が、メンテナンス中のサイトを確かめたり、WordPress のブロックエディタで記事を保存したりできるようにするためです。管理画面の制限のチェックが無くても、一覧に書いた IP アドレスは通ります。一覧が空なら、サイトの制限が全員に開くことはありません。
+- **管理画面に入れる人**：管理画面の IP アドレス（画面と `.env` の `ADMIN_ALLOWED_IPS`）は、サイトの制限でも通します。管理画面に入れる人が、メンテナンス中のサイトを確かめたり、WordPress のブロックエディタで記事を保存したり（31章）できるようにするためです。管理画面の制限のチェックが無くても、一覧に書いた IP アドレスは通ります。一覧が空なら、サイトの制限が全員に開くことはありません。
 - **設定ファイルの分**：`.env` の `SITE_ALLOWED_IPS`・`ADMIN_ALLOWED_IPS` に書いた IP アドレスは、それぞれの一覧に足し合わせます。画面からは外せず、画面にはそれぞれの欄の上に「次のIPアドレスは、設定ファイルで常に許可されています。」と出ます。サーバーを管理する人の事務所などを書いておくと、画面でどう設定しても締め出されません。`.env` を変えたら `php artisan config:cache` をやり直します。
 - **締め出さない**：管理画面の制限を掛けて保存するとき、今の自分の IP アドレスが管理画面の一覧に無ければ、保存させません。サイトの制限は管理画面に影響しないので、確かめません。それでも回線が変わるなどで締め出されたときは、サーバーで `php artisan app:access-denied-off` を実行します。両方の制限を外します。IP アドレスの一覧は残ります。
 - **ルート**：案件が書きます。機能を使うかどうかを、案件ごとに決めるためです。管理者だけのグループの中に、「頭.index」（GET）と「頭.update」（PATCH）の組で名前を付けます。
@@ -2738,12 +2740,13 @@ IP ブロックとアクセス制限（24章）の判断を、Laravel を起動�
     ```
 
 - **判断は1つ**：見張りと、Laravel のミドルウェア（`RejectBlockedIp`・`RestrictSiteAccess`・`RestrictAdminAccess`）は、同じ判断のクラス `Gate` を使います。見張りが掛かっていない環境（`php artisan serve`・テスト）や、見張りの状態が古いときは、ミドルウェアが同じ判断をします。
-- **状態のファイル**：見張りは Laravel を読み込まないので、Laravel が書き出した `storage/app/gate/state.json` を読みます。中身は、止めている IP アドレスと期限、サイトと管理画面の制限と許す IP アドレス（`.env` の分も）、管理画面の URL の頭、サイトの制限を掛けない URL、信頼するプロキシです。IP ブロックとアクセス制限を変えたときに、書き出し直します。JSON にしているのは、apache が書ける場所のファイルを、どの要求でも PHP のコードとして動かさないためです。
+- **状態のファイル**：見張りは Laravel を読み込まないので、Laravel が書き出した `storage/app/gate/state.json` を読みます。中身は、止めている IP アドレスと期限、サイトと管理画面の制限と許す IP アドレス（`.env` の分も）、管理画面の URL の頭、サイトの制限を掛けない URL、信頼するプロキシと、WordPress を置く案件では WordPress の URL の決まり（31章）です。IP ブロックとアクセス制限を変えたときに、書き出し直します。JSON にしているのは、apache が書ける場所のファイルを、どの要求でも PHP のコードとして動かさないためです。
 - **応答**：今までと同じです。止めている IP アドレスと管理画面の制限は 404、サイトの制限は 503 です。画面も、Laravel が返すものと同じ HTML を、書き出しのときに作って置いてあります（`404.html`・`maintenance.html`）。止められていることに、相手に気付かせないためです。
 - **`.env` を変えたとき**：許す IP アドレスや `TRUSTED_PROXIES` を変えて `config:cache` をやり直したら、`php artisan app:gate --export` で書き出し直します（0章の表）。忘れても、設定のキャッシュより状態のファイルが古ければ、次のアクセスで Laravel が書き出し直します。
 - **確かめ**：`php artisan app:gate` で、書き出した日時・止めている IP アドレスの数・制限の状態を出します。状態のファイルが無いときや、今の状態と食い違っているときは、知らせて失敗で終わります。
 - **書き出せないとき**：解除などで書き出しに失敗すると、エラーのログを書きます（エラーの通知のメールが届きます）。古い状態のままだと、見張りが解除した IP アドレスを止め続けるためです。`storage/app/gate/` に書けるかを確かめて、`php artisan app:gate --export` を実行します。状態のファイルを読めないときと、`gate.php` が無いとき（送り忘れなど）は、見張りは何もせずに通し、ミドルウェアが判断します。画面だけを作れないとき（案件が足したエラーの画面がコマンドから描けないなど）は、状態は書き出し、エラーのログを書きます。見張りは、画面の代わりに短い文を返します。
 - **プロキシの後ろ**：見張りも、`TRUSTED_PROXIES` に書いたプロキシから届いたときだけ `X-Forwarded-For` を読みます。求め方は Laravel と同じです。
+- **WordPress**：`index.php` を通らない WordPress には、PHP の `auto_prepend_file` か `wp-config.php` で見張りを掛けます（31章）。
 
 ## 27. SEO（ページのタイトル・説明文・OGP）
 
@@ -3030,8 +3033,11 @@ sudo -u devapp /usr/bin/php artisan app:watch-files --init
     - `bootstrap/cache` の設定などのキャッシュ（`config.php` など）。サーバーの Laravel が実際に読むのは `.env` ではなくここなので、書き換えられるとすぐに効くためです。**デプロイの外で `config:cache` をやり直したとき（`.env` を変えたときなど）は、`.version` も一緒に更新します**
     - 外すのは、この監視の記録とロックのファイル、鍵のファイル、サーバーでテストを動かしたときにできる `.phpunit.cache`・`.phpunit.result.cache` です
 - 公開のアップロードの置き場所（`storage/app/public`。`/storage/` の URL で外から開ける）の、許可されていないアップロードファイル。アップロードのたびにファイルが増えるので、基準とは比べずに、毎回次のものを探し、待たずにすぐ知らせます。
-    - PHP として動く拡張子のファイル（`.php`・`.phtml`・`.phar` など）と `.htaccess`・`.user.ini`
+    - PHP として動く拡張子のファイル（`.php`・`.phtml`・`.phar` など）
     - アップロードの設定（`upload.image_types`・`attach_types`）と、`file_watch.public_upload_extra` に無い拡張子のもの。JavaScript・CSS・HTML・SVG などを、一覧に書かずに全部拾います。画面からのアップロードでは置かれ得ないので、あれば改ざんの疑いが強いためです。
+- アップロードの置き場所の `.htaccess`・`.user.ini` は、置かれると PHP を動かす設定にされるので、ほかのコードと同じく基準と比べます。増えた・変わった・消えたら、鍵のファイルの期間に入らなければ改ざんとして知らせます。プラグインなどが置く正しいものもあるので、種類の確かめのようにすぐ知らせ続けることはしません。動いている途中でプラグインが作ったものは1回知らせるので、中身を確かめて `--accept` で取り込みます。前の版の基準には入っていないので、新しい版にした最初の回だけは、今あるものを知らせずに取り込みます。
+- WordPress を置く案件（31章）では、WordPress のアップロードの置き場所（設定の `wordpress.upload_path`。既定は `public/wp-content/uploads`）も、`storage/app/public` と同じに扱います。公開ディレクトリの中ですが、`.htaccess`・`.user.ini` のほかは基準と比べず、ファイルの種類だけを確かめます。比べると、画像を上げるたびに追加として知らされるためです。設定の `wordpress.watch_exclude` の場所（キャッシュのプラグインが書く場所など）は、何も見ません。WordPress の本体・プラグイン・テーマは、`DISALLOW_FILE_MODS` で管理画面から変えられないので、ほかのファイルと同じく基準と比べます。
+- `watch_exclude` の場所は、PHP の権限で書けて、中身の書き換えに気付けません。キャッシュのプラグインが書く HTML・JavaScript を書き換えられると、消えるまでそのままページに出ます。キャッシュはどこに置いても（Redis などのメモリでも）PHP から書けるので、改ざん監視では見られません。キャッシュの書き換えに気付くには、外から定期的にページを取得して比べる外部の監視サービスを使います（付録「サイトの改ざんを見つける仕組みの重ね方」）。
 - 非公開の置き場所（`storage/app/private`）は見ません。Web から直接開けないので置かれても動かせないうえ、Laravel が作った本人（apache）しか読めない権限（0700・0600）で作られ、監視の利用者には開けないためです。
 - 監視する場所の中に、監視の利用者が開けないディレクトリがあれば、止まらずに飛ばし、「確かめられなかったディレクトリ」として知らせます。改ざんを隠す場所になり得るためです。その下のファイルは、消えたものとしては扱いません。
 - 5分ごとの回と `--full` の回が重ならないよう、記録の隣のロックのファイル（`bootstrap/cache/file-watch.lock`）を押さえます。前の回が動いている間は、次の回は何もせずに終わります。
@@ -3099,6 +3105,201 @@ if ($script !== null) {
     require $script;
 }
 ```
+
+## 31. WordPress との共存
+
+<p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
+
+**ファイル**：`packages/neobit/core/src/Security/Gate.php`・`GateState.php`（冒頭のコメントの「WordPressの見張り」）・`src/Console/CheckGate.php`・`src/Security/FileWatcher.php`、設定は `config/neobit.php` の `wordpress`
+
+既存の WordPress のサイトに Laravel を入れるときの置き方です。狙われやすい WordPress を後ろに下げ、自衛の機能が効く Laravel を前に出します。WordPress には決まったコーナー（`/column/` など）だけを受け持たせ、ほかの URL は Laravel が受けます。
+
+WordPress は `__()` などの関数を条件なしで作るので、Laravel と同じ PHP の中では動かせません。`public/.htaccess` で、URL ごとにどちらかへ振り分けます。
+
+**フレームワークが受け持つ守りと、WordPress 次第のもの**
+
+| 守り | WordPress のコーナーの下 |
+|---|---|
+| IP ブロック・メンテナンスの画面・サイトと管理画面のアクセス制限 | 効く（入口の見張りを WordPress にも掛ける） |
+| ベーシック認証・ファイルの権限・改ざん監視 | 効く（Apache とサーバーの仕組みなので） |
+| リダイレクト（28章） | 効かない。`.htaccess` が Laravel より先に WordPress へ回すため |
+| ログインの守り・操作ログ・スパムの守り・SEO・存在しない URL の数え（自動で止める） | WordPress 次第 |
+
+**置き方**
+
+- WordPress の本体（`wp-admin/`・`wp-includes/`・`wp-content/`・`wp-*.php`）を、`public/` の直下に置きます。既存のサイトと同じ `/wp-admin/` の URL のままにするためです。
+- 直下の `index.php` は Laravel の入口なので、WordPress の入口は `public/wordpress.php` という名前で置きます。中身は WordPress の `index.php` と同じです。
+- WordPress が書き込む場所（アップロードの置き場所と、キャッシュのプラグインが書く場所）は、プロジェクトの直下の `set_permissions.writable` に書き、`set_permissions.sh` を流します（0章の「サーバーの権限」）。書かないと、全体と同じく apache は読むだけになり、画像を上げると「ディレクトリを作成できません」で止まります。
+
+    ```
+    public/wp-content/uploads
+    public/wp-content/cache
+    ```
+
+
+    ```php
+    <?php
+
+    /**
+     * WordPress の入口。WordPress の index.php の代わり。
+     * 最上位の index.php は Laravel の入口なので、WordPress に回す URL だけを public/.htaccess がここへ送る。
+     */
+    define('WP_USE_THEMES', true);
+
+    require __DIR__.'/wp-blog-header.php';
+    ```
+
+- `wp-config.php` は、`public/` の外（プロジェクトの直下）に置きます。WordPress は、本体の1つ上のディレクトリの `wp-config.php` も探すので、そのまま読めます。Web から開けない場所に、DB のパスワードを置くためです。
+- `wp-config.php` には、`DISALLOW_FILE_MODS` を書きます。本体・プラグイン・テーマの更新とインストールと、ファイルの画面での編集を、WordPress の管理画面から止めます。管理画面を乗っ取られても裏口の PHP を置かれないようにするためで、apache がコードに書けない権限の形（0章）とも合います。更新は、保守の作業として作業する人がファイルを送って当て、`.version` も送ります（29章）。お客さんが自分でプラグインを入れている案件では、この取り決めを結べるかを先に確かめます。
+
+    ```php
+    define('DISALLOW_FILE_MODS', true);
+    define('AUTOMATIC_UPDATER_DISABLED', true);
+    ```
+
+- `public/.htaccess` は、apache が書けない権限のままにします。WordPress のパーマリンクの設定を保存すると、WordPress は `public/.htaccess` を書き換えようとするためです。書けなければ、WordPress は書くべき内容を画面に出すだけで、何も壊しません。
+
+**`.htaccess` の振り分け**
+
+`public/.htaccess` の、Laravel の決まり（`# Send Requests To Front Controller...`）の前に書きます。コーナーを足したら、ここにも足します。
+
+```apache
+# WordPress に回す URL。Laravel より先に決める
+# WordPress の入口に回した後の、もう一巡りでは何もしない
+RewriteRule ^wordpress\.php$ - [L]
+# 本体のディレクトリと、最上位の WordPress のファイルは、Apache が直に返す・動かす
+RewriteRule ^(wp-admin|wp-includes|wp-content)(/|$) - [L]
+RewriteRule ^(wp-[a-z-]+|xmlrpc)\.php$ - [L]
+# コーナーの頭の名前の下と、WordPress の API・サイトマップは、WordPress の入口へ
+RewriteRule ^(column|topics|wp-json)(/|$) wordpress.php [L]
+RewriteRule ^wp-sitemap.*\.xml$ wordpress.php [L]
+# 最上位に WordPress の問い合わせ（プレビュー・短い URL・検索）が付いたものも、WordPress の入口へ
+RewriteCond %{QUERY_STRING} (^|&)(p|page_id|post_type|preview|s)= [NC]
+RewriteRule ^$ wordpress.php [L]
+```
+
+- 回すのは、ここに書いた URL だけです。知らない URL は Laravel が受けます（固定ページ・リダイレクト・404）。
+- コーナーは、記事・一覧・2ページ目・月別・`/feed/` が全部その頭の名前の下に入るよう、WordPress のパーマリンクを決めます。投稿の記事は「設定」→「パーマリンク」のカスタム構造で、カスタム投稿タイプは登録するときの `rewrite` の `slug` で決まります。
+- 最上位（`/`）に `p`・`page_id`・`post_type`・`preview`・`s` の問い合わせが付いたものも WordPress に回します。下書きのプレビュー（`/?post_type=news&p=123&preview=true`）・短い URL・検索は、パーマリンクを決めていても最上位で呼ばれるためです。Laravel の側では、最上位でこれらの名前を使いません（検索を作るときは `/search?q=` のように別の URL にします）。
+- 共通のヘッダー・フッターは、Laravel のレイアウトと WordPress のテーマの両方に持ちます。
+
+**設定**
+
+WordPress を置く案件だけが、アプリの `config/neobit.php` に `wordpress` の節を書きます。全部のキーを書きます。
+
+```php
+    'wordpress' => [
+        'gate' => env('WORDPRESS_GATE'),
+        'admin_paths' => [
+            'wp-admin',
+            'wp-admin/*',
+            'wp-login.php',
+        ],
+        'open_paths' => [
+            'wp-admin/admin-ajax.php',
+            'wp-cron.php',
+            // 表のフォームの送り先にするプラグインがあるとき
+            // 'wp-admin/admin-post.php',
+        ],
+        'hidden_paths' => [
+            'xmlrpc.php',
+        ],
+        'wp_config' => 'wp-config.php',
+        'upload_path' => 'public/wp-content/uploads',
+        'watch_exclude' => [
+            'public/wp-content/cache',
+        ],
+    ],
+```
+
+| キー | 中身 |
+|---|---|
+| `gate` | 入口の見張りを掛ける段。サーバーで決まるので、`.env` の `WORDPRESS_GATE` に書きます（下の「見張りの掛け方」） |
+| `admin_paths` | 管理画面とログインの URL。Laravel の管理画面と同じく、サイトの制限は掛けず、管理画面の制限（許す IP の外は 404）を掛けます。ログインの URL を変えるプラグインを使う案件では、ここを書き換えます |
+| `open_paths` | いつも通す URL。サイトの制限も管理画面の制限も掛けません。止めている IP だけは止めます。`admin-ajax.php` は表の画面からも呼ばれ、`wp-cron.php` は WordPress がサーバー自身から HTTP で呼ぶ（止めると予約投稿などが止まる）ためです |
+| `hidden_paths` | いつも 404 にする URL。使わない入口を、無いことにして隠します。`xmlrpc.php` を使う案件では、ここから外します |
+| `wp_config` | `wp-config.php` の場所（プロジェクトの直下からのパス） |
+| `upload_path` | WordPress のアップロードの置き場所。改ざん監視は、`storage/app/public` と同じ扱いにします。ファイルの種類を確かめ、`.htaccess`・`.user.ini` だけを基準と比べます（29章） |
+| `watch_exclude` | 改ざん監視で何も見ない場所。キャッシュのプラグインが書く場所など。中身の書き換えに気付けなくなるので、要る場所だけを書きます |
+
+- URL は、先頭の `/` を付けずに書き、`*` で下を全部にします（サイトの制限を掛けない URL と同じ書き方です）。
+- `admin-post.php` は、表のフォームの送り先にするプラグインがあるときだけ `open_paths` に足します。足さずに管理画面の制限を掛けると、訪問者のフォームが 404 になります。
+- `wp-json`（REST API）は、どこにも書きません。表の URL と同じくサイトの制限が掛かります。ブロックエディタの保存も `wp-json` を通りますが、管理画面の許す IP はサイトの制限でも許す（24章）ので、メンテナンス中も記事を保存できます。表のフォーム（Contact Form 7 など）が `wp-json` を使っていても、管理画面の制限には掛かりません。
+- 設定を変えたら、`php artisan config:cache` と `php artisan app:gate --export` を実行します。
+
+**見張りの掛け方**
+
+`index.php` を通らない WordPress には、`public/index.php` の見張り（26章）が掛かりません。次のどれかで掛け、その段を `.env` に書きます。上のものほど強いので、使えるものを上から選びます。
+
+| 段 | `.env` | 掛け方 | 使うサーバー |
+|---|---|---|---|
+| PHP-FPM のプールの設定 | `WORDPRESS_GATE=prepend` | プールの設定に `php_admin_value[auto_prepend_file]` を書く。`.user.ini` や `ini_set()` で後から外せない | 自前の VPS |
+| `.user.ini` | `WORDPRESS_GATE=prepend` | `public/.user.ini` に `auto_prepend_file` を書く | プールの設定に触れない共用のサーバー |
+| `wp-config.php` | `WORDPRESS_GATE=wp-config` | `wp-config.php` の頭で `require` する | どちらも使えないとき |
+
+```
+; PHP-FPM のプールの設定（/etc/php-fpm.d/サイトの名前.conf）
+php_admin_value[auto_prepend_file] = /var/www/memsys_dev/vendor/neobit/core/gate.php
+
+; public/.user.ini
+auto_prepend_file = /var/www/memsys_dev/vendor/neobit/core/gate.php
+```
+
+```php
+// wp-config.php の頭（<?php の次の行）
+require __DIR__.'/vendor/neobit/core/gate.php';
+```
+
+- **プールはサイトごとに分けます**。`php_admin_value` はプールの全部のスクリプトに効くので、ほかのサイトと同じプールに書くと、ほかのサイトにもこのサイトの止める IP が掛かります。書き換えたら、`systemctl reload php-fpm` で読み直します（root の作業です）。
+- **`.user.ini` は、効くまで5分ほどかかります**。PHP-FPM が読み直す間隔（`user_ini.cache_ttl`、既定で5分）のためです。置いた直後の `app:gate` は「掛かっていない」と出ることがあります。
+- `prepend` の2つは、`public/index.php` にも掛かります。`index.php` の `require` と両方で掛かっても、2回目は何もしません。
+- **`wp-config.php` の段の弱いところ**：WordPress が PHP で返すもの（表のページ・`wp-login.php`・`wp-admin/` の下・`wp-json/`・`xmlrpc.php`・`wp-cron.php`）は全部 `wp-config.php` を読むので、見張りが掛かります。プラグインの `.php` を URL で直に開かれたときは掛からないので、`.htaccess` で `wp-content/` の下の `.php` を直に開けないようにして補います。動かなくなるプラグインが無いかは、案件ごとに確かめます。この行は、WordPress のファイルを Apache に直に返させる行（`wp-admin|wp-includes|wp-content`）より**上**に置きます。下に置くと、上の行で書き換えが終わり、この行まで届きません。
+
+    ```apache
+    RewriteRule ^wordpress\.php$ - [L]
+    # wp-content の下の .php を、URL で直に開かせない（wp-config の段のとき）。下の行より先に決める
+    RewriteRule ^wp-content/.*\.php$ - [R=404,L]
+    # 本体のディレクトリと、最上位の WordPress のファイルは、Apache が直に返す・動かす
+    RewriteRule ^(wp-admin|wp-includes|wp-content)(/|$) - [L]
+    ```
+
+- 画像・CSS などの静的なファイルには、どの段でも見張りは掛かりません（Laravel の側と同じです）。
+- **掛かっているかの確かめ**：`php artisan app:gate` が、`WordPress の保護機能：` の行で知らせます。
+    - `prepend` は、コマンドの PHP の設定が Web と別なので、コマンドからは分かりません。Laravel が Web の要求の中で `auto_prepend_file` を見て、結果を控えておき、`app:gate` はそれを出します。Laravel のページ（管理画面など）を1回も開いていなければ「まだ確かめていません」と警告を出します（送った直後の手順を失敗に見せないよう、失敗にはしません）。
+    - `wp-config` は、`wp-config.php` に `gate.php` の `require` があるかを見ます。
+    - 掛かっていないときは、`app:gate` は失敗で終わります。
+    - `wp-config` の確かめでは、コメントにした行（`//`・`#`・`*` で始まる行）は数えません。
+- **書き忘れたとき**：`wordpress` の節があるのに `.env` の `WORDPRESS_GATE` が空なら、WordPress が守られていないので、critical のログを書きます（エラーの通知のメールが届きます。1時間に1回まで）。`prepend` なのに `auto_prepend_file` が見張りを指していないと分かったときも、critical のログを書きます。
+
+**アップロードの置き場所の `.htaccess`**
+
+アップロードの置き場所は apache が書けるので、悪い `.htaccess` を置かれると、`AddHandler` で `.jpg` を PHP として動かす設定にされます。改ざん監視は知らせます（29章）が、Apache の設定で、そもそも効かないようにしておくと確かです。`.htaccess` に書けるのを、アクセスの許可・拒否だけにします。プラグインが置く「開かせない」ための `.htaccess` は、そのまま効きます。
+
+```apache
+# VirtualHost の中。WordPress のアップロードの置き場所では、.htaccess に書けるのをアクセスの許可・拒否だけにする
+<Directory /var/www/memsys_dev/public/wp-content/uploads>
+    AllowOverride AuthConfig Limit
+</Directory>
+```
+
+**セキュリティのヘッダー**
+
+WordPress の画面と、見張りが返す 404・503 には、`SecurityHeaders`（0章）のヘッダーが付きません。Laravel を通らないためです。Apache の設定（VirtualHost か `public/.htaccess`）で付けます。
+
+```apache
+Header always set X-Frame-Options "SAMEORIGIN"
+Header always set X-Content-Type-Options "nosniff"
+Header always set Referrer-Policy "strict-origin-when-cross-origin"
+Header always set Strict-Transport-Security "max-age=31536000" "expr=%{HTTPS} == 'on'"
+```
+
+`always set` は上書きなので、Laravel の画面で二重にはならないはずです。書いたら、`curl -sI` で Laravel の画面・WordPress の画面・見張りの 404 を開き、どれにも1つずつ付くことを確かめます。
+
+**コーナーを足すとき**
+
+1. WordPress の管理画面で、投稿タイプかカテゴリーを作り、パーマリンクがその頭の名前の下に入るようにします。
+2. `public/.htaccess` の `RewriteRule ^(column|topics|wp-json)(/|$) wordpress.php [L]` に、頭の名前を足します。
+3. Laravel の側で、同じ頭の名前の URL（ルート・固定ページ・リダイレクト）を使っていないことを確かめます。
 
 ## 付録. フレームワーク外で考慮すべきセキュリティ対策
 

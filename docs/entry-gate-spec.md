@@ -34,11 +34,13 @@ IP ブロックとアクセス制限は、Laravel の全体のミドルウェア
 | 順 | 当たるとき | 応答 |
 |---|---|---|
 | 1 | 止めている IP アドレス（期限が今より後か、期限なし） | 404 |
-| 2 | 管理画面の URL（`admin_path` か、その下） | 管理画面の制限の外なら 404。中なら通す |
-| 3 | サイトの制限を掛けない URL（`site_except`）か、サイトの制限の中か、管理画面の許す IP アドレス | 通す |
-| 4 | それ以外 | 503（メンテナンス中の画面） |
+| 2 | WordPress のいつも隠す URL（`wordpress.hidden`。WordPress を置くときだけ） | 404 |
+| 3 | WordPress のいつも通す URL（`wordpress.open`） | 通す |
+| 4 | 管理画面の URL（`admin_path` か、その下）と、WordPress の管理画面とログイン（`wordpress.admin`） | 管理画面の制限の外なら 404。中なら通す |
+| 5 | サイトの制限を掛けない URL（`site_except`）か、サイトの制限の中か、管理画面の許す IP アドレス | 通す |
+| 6 | それ以外 | 503（メンテナンス中の画面） |
 
-3 の管理画面の許す IP アドレスは、2026-10-29 に足した。管理画面に入れる人が、メンテナンス中のサイトを確かめられるようにするため。
+WordPress の分と、5 の管理画面の許す IP アドレスは、2026-10-29 に WordPress との共存（`docs/wordpress-coexist-spec.md`）で足した。
 
 **状態**（`GateState::build()`。見張りは、これに `exported_at` を足した JSON を読む）
 
@@ -82,7 +84,7 @@ IP ブロックとアクセス制限は、Laravel の全体のミドルウェア
 - 見張りは PHP の標準の関数だけで動く（`inet_pton`・`json_decode`・`filter_var`）
 - 状態のファイルの場所は、`public/index.php` が定数 `NEOBIT_GATE_STATE` で渡す。渡さなければ、`gate.php` から3つ上（`vendor/neobit/core/` の形）をプロジェクトのルートとみなす
 - `storage/app/gate/` に、Web の利用者と作業する人の両方が書けること（`set_permissions.sh` の形なら書ける）
-- WordPress など、Laravel を通らない PHP に掛けるのは、計画書の段階4-13 の B（`auto_prepend_file` か `wp-config.php`）
+- WordPress など、Laravel を通らない PHP には、`auto_prepend_file` か `wp-config.php` で掛ける（`docs/wordpress-coexist-spec.md`）
 
 ## D. 設計判断とトレードオフ
 
@@ -135,6 +137,5 @@ IP ブロックとアクセス制限は、Laravel の全体のミドルウェア
 
 ## H. 今後の改善提案・TODO
 
-- 計画書の段階4-13 の B：WordPress にも見張りを掛ける（`auto_prepend_file`・`wp-config.php`）。`app:gate` に、決めた場所に見張りを置けているかの確かめを足す
 - 見張りが止めた回数を数えられると、攻撃の量が分かる。数えるとファイルへの書き込みが増えるので、要るかは運用を見て決める
-- 見張りが返す応答に、`SecurityHeaders` と同じヘッダーを足すか。書き出しのときに、Laravel の 404 の応答のヘッダーも書き出せば、見比べても分からなくなる
+- 見張りが返す応答に、`SecurityHeaders` と同じヘッダーを足すか。書き出しのときに、Laravel の 404 の応答のヘッダーも書き出せば、見比べても分からなくなる。今は、利用ガイドの31章の `Header always set` の見本を Apache に書けば付く
