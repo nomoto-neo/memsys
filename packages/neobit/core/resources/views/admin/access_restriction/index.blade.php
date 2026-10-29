@@ -1,9 +1,10 @@
 {{--
-    アクセス制限（Neobit\Core\Http\Controllers\AccessRestrictionController）。サイト（訪問者画面）と管理画面の
-    それぞれに、制限を掛けるかと、開けるIPアドレスを決める。管理画面を開けるIPアドレスは、サイトの制限でも
-    通す（Neobit\Core\Security\Gate の「管理画面に入れる人」）。
+    アクセス制限（Neobit\Core\Http\Controllers\AccessRestrictionController）。メンテナンス画面と、管理画面の存在を
+    隠すかを決め、それぞれで通すIPアドレスを書く。上から順に読めるよう、1つの枠に並べる。
+    「常にサイト全体を閲覧できるIPアドレス」は管理画面の許すIPアドレスで、メンテナンス中の訪問者画面でも通す
+    （Neobit\Core\Security\Gate の「管理画面に入れる人」）。IPアドレスの欄は1行に1つで、# から後ろはコメント。
     ルートの名前（$routes）は、アプリが付けた名前をコントローラーが渡す。設定ファイル（.env）で
-    常に許可しているIPアドレスは、それぞれの欄の上に出す。画面からは外せない。
+    常に許可しているIPアドレスは、それぞれの欄の下に出す。画面からは外せない。
 --}}
 @extends(config('neobit.layouts.admin'))
 
@@ -16,64 +17,56 @@
     @csrf
     @method('PATCH')
 
-    {{-- サイト（訪問者画面）の制限 --}}
     <div class="card mb-4">
         <div class="card-body">
-            <h2 class="h6 mb-3">サイト（訪問者画面）</h2>
-            <div class="form-check mb-2">
-                {{-- チェックを外したときも値が届くよう、先に0を置く --}}
+            {{-- メンテナンス画面。チェックを外したときも値が届くよう、先に0を置く --}}
+            <div class="form-check mb-4">
                 <input type="hidden" name="site_restricted" value="0">
                 <input type="checkbox" id="site-restricted" name="site_restricted" value="1" class="form-check-input"
                        @checked($siteRestricted)>
-                <label for="site-restricted" class="form-check-label">アクセス制限を掛ける</label>
+                <label for="site-restricted" class="form-check-label">メンテナンス画面を表示する</label>
             </div>
-            <p class="small text-muted mb-3">
-                チェックを入れると、下のIPアドレス以外の人には訪問者画面にメンテナンス中の画面が表示されます。
-                管理画面を開けるIPアドレスの人も、訪問者画面を開けます。
-            </p>
 
-            <label for="site-ips" class="form-label">サイトを開けるIPアドレス</label>
-            <textarea id="site-ips" name="site_ips" rows="5" class="form-control"
-                      placeholder="1行に1つ。カンマで区切ってもかまいません">{{ $siteIps }}</textarea>
-            <div class="invalid-feedback" data-item="site_ips">{{ $errors->first('site_ips') }}</div>
-            @if ($envSiteIps !== [])
-                <div class="small text-muted mb-2">
-                    ※ 次のIPアドレスは、設定ファイルで常に許可されています。
-                    @foreach ($envSiteIps as $ip)
-                        <div class="ms-3">{{ $ip }}</div>
-                    @endforeach
-                </div>
-            @endif
-        </div>
-    </div>
+            {{-- メンテナンス中も通すIPアドレス --}}
+            <div class="mb-4">
+                <label for="site-ips" class="form-label mb-0">メンテナンス中も訪問者画面を閲覧できるIPアドレス</label>
+                <p class="small text-muted mb-1">（IPアドレスは1行に1つ。# から後ろはコメントです。行の頭に # を付けると、その行は使いません。）</p>
+                <textarea id="site-ips" name="site_ips" rows="5" class="form-control">{{ $siteIps }}</textarea>
+                <div class="invalid-feedback" data-item="site_ips">{{ $errors->first('site_ips') }}</div>
+                @if ($envSiteIps !== [])
+                    <div class="small text-muted mt-1">
+                        ※ 次のIPアドレスは、設定ファイルにより常に許可されています。
+                        @foreach ($envSiteIps as $ip)
+                            <div class="ms-3">{{ $ip }}</div>
+                        @endforeach
+                    </div>
+                @endif
+            </div>
 
-    {{-- 管理画面の制限 --}}
-    <div class="card mb-4">
-        <div class="card-body">
-            <h2 class="h6 mb-3">管理画面</h2>
-            <div class="form-check mb-2">
+            {{-- 常に通すIPアドレス。管理画面の許すIPアドレスで、メンテナンス中の訪問者画面にも入れる --}}
+            <div class="mb-4">
+                <label for="admin-ips" class="form-label mb-0">常にサイト全体を閲覧できるIPアドレス</label>
+                <p class="small text-muted mb-1">（メンテナンス中でも訪問者画面を閲覧でき、管理画面の存在を隠していても管理画面に入れます。）</p>
+                <textarea id="admin-ips" name="admin_ips" rows="5" class="form-control">{{ $adminIps }}</textarea>
+                <div class="invalid-feedback" data-item="admin_ips">{{ $errors->first('admin_ips') }}</div>
+                @if ($envAdminIps !== [])
+                    <div class="small text-muted mt-1">
+                        ※ 次のIPアドレスは、設定ファイルにより常に許可されています。
+                        @foreach ($envAdminIps as $ip)
+                            <div class="ms-3">{{ $ip }}</div>
+                        @endforeach
+                    </div>
+                @endif
+            </div>
+
+            {{-- 管理画面の存在を隠す。許していない人には、ページが見つからない画面（404）を返す --}}
+            <div class="form-check mb-1">
                 <input type="hidden" name="admin_restricted" value="0">
                 <input type="checkbox" id="admin-restricted" name="admin_restricted" value="1" class="form-check-input"
                        @checked($adminRestricted)>
-                <label for="admin-restricted" class="form-check-label">アクセス制限を掛ける</label>
+                <label for="admin-restricted" class="form-check-label">管理画面の存在を隠す</label>
             </div>
-            <p class="small text-muted mb-3">
-                チェックを入れると、下のIPアドレス以外の人は管理画面を閲覧できなくなります。
-                下のIPアドレスの人は、チェックが無くても、サイトのアクセス制限の間も訪問者画面を開けます。
-            </p>
-
-            <label for="admin-ips" class="form-label">管理画面を開けるIPアドレス</label>
-            <textarea id="admin-ips" name="admin_ips" rows="5" class="form-control"
-                      placeholder="1行に1つ。カンマで区切ってもかまいません">{{ $adminIps }}</textarea>
-            <div class="invalid-feedback" data-item="admin_ips">{{ $errors->first('admin_ips') }}</div>
-            @if ($envAdminIps !== [])
-                <div class="small text-muted mb-2">
-                    ※ 次のIPアドレスは、設定ファイルで常に許可されています。
-                    @foreach ($envAdminIps as $ip)
-                        <div class="ms-3">{{ $ip }}</div>
-                    @endforeach
-                </div>
-            @endif
+            <p class="small text-muted mb-0">管理画面の存在を隠しても、「常にサイト全体を閲覧できるIPアドレス」の人は管理画面に入れます。</p>
         </div>
     </div>
 

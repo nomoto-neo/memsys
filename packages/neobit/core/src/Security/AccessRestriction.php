@@ -16,7 +16,8 @@ use Neobit\Core\Operations\OperationRecorder;
  * 管理画面の制限（RestrictAdminAccess）。
  *
  * ■ 決まり
- * - サイトと管理画面は、それぞれ画面でチェックを入れたときだけ制限する。互いに影響しない
+ * - サイトと管理画面は、それぞれ画面でチェックを入れたときだけ制限する。管理画面の制限はサイトに掛からず、
+ *   サイトの制限は管理画面に掛からない。ただし、管理画面のIPアドレスは、サイトの制限でも通す（Gate::opensSite()）
  * - サイトは、サイトのIPアドレスのほかに、メンテナンス中の画面を出す。管理画面の下のURLには掛けない
  *   （外すパスは、アプリがRestrictSiteAccess::except()で渡す）
  * - 管理画面は、管理画面のIPアドレスのほかに、404を返す
@@ -32,6 +33,11 @@ use Neobit\Core\Operations\OperationRecorder;
  * ■ 速さ
  * 毎回のアクセスで読むので、画面の設定はキャッシュに置き、保存のたびに作り直す。設定のテーブルが
  * まだ無いとき（マイグレーションの前）は、画面の設定が無いものとして動く。
+ *
+ * ■ 一覧の書き方
+ * 画面の2つの欄は、1行に1つ。# から後ろはコメントで、行の頭に # を付けると、その行は使わない。どのIPアドレスが
+ * 誰のものかを残すためと、一時的に外して後で戻せるようにするため。入力した文はそのまま保存し（コメントも並び順も）、
+ * 判断に使うIPアドレスの一覧は、保存のときにそこから作って別に保存する。
  *
  * ■ 入口の見張り
  * 判断は、入口の見張りと同じもの（Neobit\Core\Security\Gate）を使う。保存したら、見張りの状態も書き出す（GateState）。
@@ -51,6 +57,11 @@ final class AccessRestriction
     private const ADMIN_RESTRICTED_KEY = 'access.admin_restricted';
 
     private const ADMIN_IPS_KEY = 'access.admin_allowed_ips';
+
+    /** 画面で入力した文のキー。コメントも並び順もそのまま持つ */
+    private const SITE_TEXT_KEY = 'access.site_allowed_ips_text';
+
+    private const ADMIN_TEXT_KEY = 'access.admin_allowed_ips_text';
 
     /** 設定ファイルの一覧のある設定の名前。config/app.phpが.envから作る */
     private const ENV_SITE_IPS = 'app.site_allowed_ips';
@@ -105,12 +116,13 @@ final class AccessRestriction
 
     /**
      * 画面で入れた設定。DBを毎回読まないよう、キャッシュに置く。
+     * 入力した文がまだ無いとき（コメントを書けるようになる前に保存した設定）は、一覧を1行1つの文にする。
      *
-     * @return array{site_restricted: bool, site_ips: string[], admin_restricted: bool, admin_ips: string[]}
+     * @return array{site_restricted: bool, site_ips: string[], site_text: string, admin_restricted: bool, admin_ips: string[], admin_text: string}
      */
     public static function settings(): array
     {
-        $defaults = ['site_restricted' => false, 'site_ips' => [], 'admin_restricted' => false, 'admin_ips' => []];
+        $defaults = ['site_restricted' => false, 'site_ips' => [], 'site_text' => '', 'admin_restricted' => false, 'admin_ips' => [], 'admin_text' => ''];
 
         // キャッシュに前の版の形が残っていても動くよう、足りない項目は既定の値で補う
         $cached = Cache::get(self::CACHE_KEY);
@@ -121,16 +133,20 @@ final class AccessRestriction
         // 設定のテーブルがまだ無いとき（マイグレーションの前）は、画面の設定が無いものとして動く。
         // キャッシュには置かず、テーブルができたら読めるようにする
         try {
-            $values = Setting::values([self::SITE_RESTRICTED_KEY, self::SITE_IPS_KEY, self::ADMIN_RESTRICTED_KEY, self::ADMIN_IPS_KEY]);
+            $values = Setting::values([self::SITE_RESTRICTED_KEY, self::SITE_IPS_KEY, self::SITE_TEXT_KEY, self::ADMIN_RESTRICTED_KEY, self::ADMIN_IPS_KEY, self::ADMIN_TEXT_KEY]);
         } catch (QueryException) {
             return $defaults;
         }
 
+        $siteIps = array_values((array) ($values[self::SITE_IPS_KEY] ?? []));
+        $adminIps = array_values((array) ($values[self::ADMIN_IPS_KEY] ?? []));
         $settings = [
             'site_restricted' => (bool) ($values[self::SITE_RESTRICTED_KEY] ?? false),
-            'site_ips' => array_values((array) ($values[self::SITE_IPS_KEY] ?? [])),
+            'site_ips' => $siteIps,
+            'site_text' => (string) ($values[self::SITE_TEXT_KEY] ?? implode("\n", $siteIps)),
             'admin_restricted' => (bool) ($values[self::ADMIN_RESTRICTED_KEY] ?? false),
-            'admin_ips' => array_values((array) ($values[self::ADMIN_IPS_KEY] ?? [])),
+            'admin_ips' => $adminIps,
+            'admin_text' => (string) ($values[self::ADMIN_TEXT_KEY] ?? implode("\n", $adminIps)),
         ];
 
         Cache::forever(self::CACHE_KEY, $settings);
@@ -138,23 +154,46 @@ final class AccessRestriction
         return $settings;
     }
 
-    /** 画面の設定を保存して、操作ログに残す */
-    public static function save(bool $siteRestricted, array $siteIps, bool $adminRestricted, array $adminIps): void
+    /**
+     * 画面の設定を保存して、操作ログに残す。IPアドレスは、画面で入力した文で受け取り、判断に使う一覧をそこから作る。
+     * 正しくない行は、呼ぶ前にparseList()で確かめておく。ここでは読み飛ばす。
+     */
+    public static function save(bool $siteRestricted, string $siteText, bool $adminRestricted, string $adminText): void
     {
+        $siteIps = self::parseList($siteText, $siteInvalid, $siteComments);
+        $adminIps = self::parseList($adminText, $adminInvalid, $adminComments);
+
         Setting::put(self::SITE_RESTRICTED_KEY, $siteRestricted);
-        Setting::put(self::SITE_IPS_KEY, array_values($siteIps));
+        Setting::put(self::SITE_IPS_KEY, $siteIps);
+        Setting::put(self::SITE_TEXT_KEY, $siteText);
         Setting::put(self::ADMIN_RESTRICTED_KEY, $adminRestricted);
-        Setting::put(self::ADMIN_IPS_KEY, array_values($adminIps));
+        Setting::put(self::ADMIN_IPS_KEY, $adminIps);
+        Setting::put(self::ADMIN_TEXT_KEY, $adminText);
 
         Cache::forget(self::CACHE_KEY);
         GateState::exportOrReport();
 
         OperationRecorder::record(OperationLogAction::AccessRestrictionChange, detail: [
-            'site' => 'サイトの制限：'.($siteRestricted ? 'する' : 'しない'),
-            'site_ips' => 'サイトのIPアドレス：'.($siteIps !== [] ? implode(' ', $siteIps) : 'なし'),
-            'admin' => '管理画面の制限：'.($adminRestricted ? 'する' : 'しない'),
-            'admin_ips' => '管理画面のIPアドレス：'.($adminIps !== [] ? implode(' ', $adminIps) : 'なし'),
+            'site' => 'メンテナンス画面：'.($siteRestricted ? '表示する' : '表示しない'),
+            'site_ips' => 'メンテナンス中も訪問者画面を閲覧できるIPアドレス：'.self::listForLog($siteIps, $siteComments),
+            'admin_ips' => '常にサイト全体を閲覧できるIPアドレス：'.self::listForLog($adminIps, $adminComments),
+            'admin' => '管理画面の存在：'.($adminRestricted ? '隠す' : '隠さない'),
         ]);
+    }
+
+    /**
+     * 操作ログに残す、IPアドレスの並び。コメントがあれば、IPアドレスの後ろに括弧で付ける
+     *
+     * @param  string[]  $ips
+     * @param  array<string, string>  $comments
+     */
+    private static function listForLog(array $ips, array $comments): string
+    {
+        if ($ips === []) {
+            return 'なし';
+        }
+
+        return implode(' ', array_map(fn (string $ip) => isset($comments[$ip]) ? "{$ip}（{$comments[$ip]}）" : $ip, $ips));
     }
 
     /**
@@ -165,24 +204,28 @@ final class AccessRestriction
     {
         $settings = self::settings();
 
-        self::save(false, $settings['site_ips'], false, $settings['admin_ips']);
+        self::save(false, $settings['site_text'], false, $settings['admin_text']);
     }
 
     // ---- 入力の確かめ ----
 
     /**
-     * 画面で入れた文字を、IPアドレスの一覧にする。1行に1つか、カンマ区切り。空の行は読み飛ばす。
-     * 正しくない形のものは、$invalidに入れて返す。
+     * 画面で入れた文を、IPアドレスの一覧にする。1行に1つ。# から後ろはコメントで、行の頭が # の行と空の行は読み飛ばす。
+     * 正しくない形のものは$invalidに、コメントはIPアドレスをキーにして$commentsに入れて返す。
      *
      * @param  string[]  $invalid
+     * @param  array<string, string>  $comments
      * @return string[]
      */
-    public static function parseList(?string $text, ?array &$invalid = null): array
+    public static function parseList(?string $text, ?array &$invalid = null, ?array &$comments = null): array
     {
         $invalid = [];
+        $comments = [];
         $ips = [];
 
-        foreach (preg_split('/[\r\n,]+/', (string) $text) as $entry) {
+        foreach (preg_split('/\r\n|\r|\n/', (string) $text) as $line) {
+            // # から後ろを、コメントとして分ける
+            [$entry, $comment] = str_contains($line, '#') ? explode('#', $line, 2) : [$line, ''];
             $entry = trim($entry);
             if ($entry === '') {
                 continue;
@@ -190,12 +233,15 @@ final class AccessRestriction
 
             $normalized = self::normalize($entry);
             if ($normalized === null) {
-                $invalid[] = $entry;
+                $invalid[] = trim($comment) !== '' ? $entry.'（'.trim($comment).'）' : $entry;
 
                 continue;
             }
 
             $ips[$normalized] = $normalized;
+            if (trim($comment) !== '') {
+                $comments[$normalized] = trim($comment);
+            }
         }
 
         return array_values($ips);
@@ -208,7 +254,7 @@ final class AccessRestriction
     public static function lockoutMessage(bool $adminRestricted, array $adminIps, string $currentIp): ?string
     {
         if ($adminRestricted && ! self::matches($currentIp, [...$adminIps, ...self::envAdminIps()])) {
-            return "あなたのIPアドレス（{$currentIp}）が管理画面のIPアドレスに無いので、保存すると管理画面を開けなくなります。";
+            return "あなたのIPアドレス（{$currentIp}）が「常にサイト全体を閲覧できるIPアドレス」に無いので、保存すると管理画面を開けなくなります。";
         }
 
         return null;

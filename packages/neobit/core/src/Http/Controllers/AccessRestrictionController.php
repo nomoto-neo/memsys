@@ -41,16 +41,16 @@ class AccessRestrictionController
 
     // ---- 表示・保存 ----
 
-    /** 今の設定。設定ファイルで常に許可しているIPアドレスも、それぞれの欄の上に出す */
+    /** 今の設定。IPアドレスは、入力した文（コメントも）をそのまま出す。設定ファイルで常に許可しているIPアドレスも、それぞれの欄の下に出す */
     public function index(Request $request): View
     {
         $settings = AccessRestriction::settings();
 
         return view('neobit::admin.access_restriction.index', [
             'siteRestricted' => (bool) old('site_restricted', $settings['site_restricted']),
-            'siteIps' => old('site_ips', implode("\n", $settings['site_ips'])),
+            'siteIps' => old('site_ips', $settings['site_text']),
             'adminRestricted' => (bool) old('admin_restricted', $settings['admin_restricted']),
-            'adminIps' => old('admin_ips', implode("\n", $settings['admin_ips'])),
+            'adminIps' => old('admin_ips', $settings['admin_text']),
             'envSiteIps' => AccessRestriction::envSiteIps(),
             'envAdminIps' => AccessRestriction::envAdminIps(),
             'currentIp' => (string) $request->ip(),
@@ -63,9 +63,11 @@ class AccessRestrictionController
     {
         $validated = $request->validate($this->rules());
 
-        // 1行に1つか、カンマ区切りの一覧にする。正しくない形のものがあれば、それを示して戻す
-        $siteIps = AccessRestriction::parseList($validated['site_ips'] ?? null, $siteInvalid);
-        $adminIps = AccessRestriction::parseList($validated['admin_ips'] ?? null, $adminInvalid);
+        // 入力した文の改行をそろえ、IPアドレスの一覧にして確かめる。正しくない形のものがあれば、それを示して戻す
+        $siteText = str_replace(["\r\n", "\r"], "\n", (string) ($validated['site_ips'] ?? ''));
+        $adminText = str_replace(["\r\n", "\r"], "\n", (string) ($validated['admin_ips'] ?? ''));
+        AccessRestriction::parseList($siteText, $siteInvalid);
+        $adminIps = AccessRestriction::parseList($adminText, $adminInvalid);
 
         $errors = [];
         if ($siteInvalid !== []) {
@@ -86,7 +88,7 @@ class AccessRestrictionController
             throw ValidationException::withMessages(['admin_ips' => $lockout]);
         }
 
-        AccessRestriction::save($siteRestricted, $siteIps, $adminRestricted, $adminIps);
+        AccessRestriction::save($siteRestricted, $siteText, $adminRestricted, $adminText);
 
         return redirect()->route($this->routeNames($request)['index'])
             ->with('status', 'アクセス制限を保存しました。');

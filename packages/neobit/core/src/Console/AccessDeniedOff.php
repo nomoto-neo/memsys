@@ -16,7 +16,7 @@ use Neobit\Core\Security\AccessRestriction;
  * 管理画面を開けなくなったときに、サーバーで実行する。
  */
 #[Signature('app:access-denied-off')]
-#[Description('アクセス制限を外す（サイトと管理画面の制限を、両方外す）')]
+#[Description('アクセス制限を外す（メンテナンス画面を止め、管理画面の存在を隠すのもやめる）')]
 class AccessDeniedOff extends Command
 {
     public function handle(): int
@@ -25,7 +25,7 @@ class AccessDeniedOff extends Command
 
         Log::warning('AccessDeniedOff: コマンドで、アクセス制限を外しました。');
 
-        $this->info('サイトと管理画面の制限を、両方外しました。IPアドレスの一覧は残してあります。');
+        $this->info('メンテナンス画面を止め、管理画面の存在を隠すのもやめました。IPアドレスの一覧（コメントも）は残してあります。');
 
         return self::SUCCESS;
     }

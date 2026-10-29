@@ -334,12 +334,13 @@ has   packages/neobit/core/src/Security/GateState.php                   'functio
 has   packages/neobit/core/src/Console/CheckGate.php                    'function checkWordPress'
 has   packages/neobit/core/src/Security/IpBlocker.php                   'GateState::exportOrReport'
 has   packages/neobit/core/src/Security/AccessRestriction.php           'GateState::exportOrReport'
+has   packages/neobit/core/src/Security/AccessRestriction.php           'SITE_TEXT_KEY'
+has   packages/neobit/core/resources/views/admin/access_restriction/index.blade.php '管理画面の存在を隠す'
 has   packages/neobit/core/src/Http/Middleware/RejectBlockedIp.php      'GateState::watchWordPress'
 has   packages/neobit/core/src/Http/Middleware/RestrictSiteAccess.php   'Gate::opensSite'
 has   public/index.php                                                  'is_file($gate'
 has   packages/neobit/core/config/neobit.php                            "'wordpress' => null"
 has   packages/neobit/core/stubs/config/neobit.php                      "// 'wordpress' => null"
-has   packages/neobit/core/resources/views/admin/access_restriction/index.blade.php '管理画面を開けるIPアドレスの人も'
 
 echo
 if [ $ng -eq 0 ]; then

@@ -130,7 +130,7 @@ class IpBlockTest extends TestCase
         // 入ってよいIPアドレスは、自動で止めない。.envの分も、アクセス制限の画面で入れた分も
         $this->fromIp(self::ATTACKER)->get('/no-such-page');
         $this->fromIp(self::ATTACKER)->get('/no-such-page');
-        AccessRestriction::save(false, ['192.0.2.77'], false, []);
+        AccessRestriction::save(false, '192.0.2.77', false, '');
         $this->fromIp('192.0.2.77')->get('/no-such-page');
         $this->fromIp('192.0.2.77')->get('/no-such-page');
         $this->assertSame(0, IpBlock::count());

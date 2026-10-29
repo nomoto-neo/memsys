@@ -11,6 +11,7 @@ use Neobit\Core\Enums\OperationLogAction;
 use Neobit\Core\Models\OperationLog;
 use Neobit\Core\Security\AccessRestriction;
 use Tests\TestCase;
+use Neobit\Core\Models\Setting;
 
 /**
  * アクセス制限（Neobit\Core\Security\AccessRestriction）。サイト（訪問者画面）と管理画面のそれぞれに、
@@ -57,7 +58,7 @@ class AccessRestrictionTest extends TestCase
 
     public function test_site_shows_the_maintenance_page_to_other_addresses(): void
     {
-        AccessRestriction::save(true, [self::OFFICE_IP], false, []);
+        AccessRestriction::save(true, self::OFFICE_IP, false, '');
 
         // ルートが無いURLでも、同じ画面を出す。ヘッダーも付く
         foreach (['/', '/login', '/no-such-page'] as $path) {
@@ -72,7 +73,7 @@ class AccessRestrictionTest extends TestCase
 
     public function test_site_restriction_does_not_touch_the_admin(): void
     {
-        AccessRestriction::save(true, [self::OFFICE_IP], false, []);
+        AccessRestriction::save(true, self::OFFICE_IP, false, '');
 
         // サイトのIPアドレスに無くても、管理画面は開ける
         $this->fromIp(self::OTHER_IP)->get('/app/admin/login')->assertOk();
@@ -81,7 +82,7 @@ class AccessRestrictionTest extends TestCase
     public function test_site_lets_in_env_addresses_and_ranges(): void
     {
         config(['app.site_allowed_ips' => ['203.0.113.0/24']]);
-        AccessRestriction::save(true, [], true, [self::ADMIN_IP]);
+        AccessRestriction::save(true, '', true, self::ADMIN_IP);
 
         $this->fromIp(self::OFFICE_IP)->get('/')->assertOk();
         $this->fromIp(self::OTHER_IP)->get('/')->assertStatus(503);
@@ -92,7 +93,7 @@ class AccessRestrictionTest extends TestCase
     {
         // 管理画面に入れる人は、メンテナンス中のサイトも開ける。管理画面の制限をしていなくても、一覧に書いた人だけ
         config(['app.admin_allowed_ips' => ['192.0.2.60']]);
-        AccessRestriction::save(true, [self::OFFICE_IP], false, [self::ADMIN_IP]);
+        AccessRestriction::save(true, self::OFFICE_IP, false, self::ADMIN_IP);
 
         $this->fromIp(self::ADMIN_IP)->get('/')->assertOk();
         $this->fromIp('192.0.2.60')->get('/')->assertOk();
@@ -101,7 +102,7 @@ class AccessRestrictionTest extends TestCase
 
     public function test_health_check_and_unsubscribe_stay_open(): void
     {
-        AccessRestriction::save(true, [self::OFFICE_IP], false, []);
+        AccessRestriction::save(true, self::OFFICE_IP, false, '');
 
         $this->fromIp(self::OTHER_IP)->get('/up')->assertOk();
         $this->fromIp(self::OTHER_IP)->get(MailUnsubscribe::url('member@example.com'))->assertOk()->assertSee('配信を停止する');
@@ -113,7 +114,7 @@ class AccessRestrictionTest extends TestCase
     public function test_admin_is_hidden_from_other_addresses(): void
     {
         config(['app.admin_allowed_ips' => [self::OFFICE_IP]]);
-        AccessRestriction::save(false, [], true, []);
+        AccessRestriction::save(false, '', true, '');
 
         // ログイン画面も、ログインの要る画面も、404にする。ログイン画面へは回さない
         $this->fromIp(self::OTHER_IP)->get('/app/admin/login')->assertNotFound();
@@ -141,14 +142,15 @@ class AccessRestrictionTest extends TestCase
         $this->fromIp('192.0.2.99')->actingAs($manager, 'admin')
             ->get(route('admin.access-restriction.index'))
             ->assertOk()
-            ->assertSee('次のIPアドレスは、設定ファイルで常に許可されています。')
+            ->assertSee('次のIPアドレスは、設定ファイルにより常に許可されています。')
             ->assertSee('192.0.2.99');
 
-        // 1行に1つでも、カンマ区切りでもよい
+        // 1行に1つ。# から後ろはコメントで、空白は挟んでも挟まなくてもよい。行の頭が # の行は使わない
+        $siteText = self::OFFICE_IP."  # 事務所\n198.51.100.0/24#支社, 本社\n# 203.0.113.11  # 自宅（一時的に外す）";
         $this->fromIp('192.0.2.99')->actingAs($manager, 'admin')
             ->patch(route('admin.access-restriction.update'), [
                 'site_restricted' => '1',
-                'site_ips' => self::OFFICE_IP."\n198.51.100.0/24, 203.0.113.11",
+                'site_ips' => str_replace("\n", "\r\n", $siteText),
                 'admin_restricted' => '1',
                 'admin_ips' => self::ADMIN_IP,
             ])
@@ -156,10 +158,36 @@ class AccessRestrictionTest extends TestCase
 
         $settings = AccessRestriction::settings();
         $this->assertTrue($settings['site_restricted']);
-        $this->assertSame([self::OFFICE_IP, '198.51.100.0/24', '203.0.113.11'], $settings['site_ips']);
+        $this->assertSame([self::OFFICE_IP, '198.51.100.0/24'], $settings['site_ips']);
         $this->assertTrue($settings['admin_restricted']);
         $this->assertSame([self::ADMIN_IP], $settings['admin_ips']);
-        $this->assertSame(1, OperationLog::where('action', OperationLogAction::AccessRestrictionChange->value)->count());
+
+        // 入力した文は、コメントも並び順もそのまま画面に出す
+        $this->assertSame($siteText, $settings['site_text']);
+        $this->fromIp('192.0.2.99')->actingAs($manager, 'admin')
+            ->get(route('admin.access-restriction.index'))
+            ->assertSee('# 203.0.113.11  # 自宅（一時的に外す）');
+
+        // 操作ログには、使うIPアドレスとコメントを並べる
+        $log = OperationLog::where('action', OperationLogAction::AccessRestrictionChange->value)->sole();
+        $this->assertStringContainsString(self::OFFICE_IP.'（事務所） 198.51.100.0/24（支社, 本社）', json_encode($log->detail, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        $this->assertStringNotContainsString('203.0.113.11', json_encode($log->detail, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+    }
+
+    public function test_commas_are_no_longer_separators(): void
+    {
+        // カンマで区切った2つは、1つの正しくない形として知らせる
+        $this->fromIp('192.0.2.99')->actingAs($this->manager(), 'admin')
+            ->patch(route('admin.access-restriction.update'), ['site_restricted' => '0', 'site_ips' => self::OFFICE_IP.', 203.0.113.11', 'admin_restricted' => '0', 'admin_ips' => ''])
+            ->assertSessionHasErrors('site_ips');
+    }
+
+    public function test_lists_saved_before_comments_are_shown_one_per_line(): void
+    {
+        // コメントを書けるようになる前に保存した設定は、入力した文が無いので、一覧を1行1つにして出す
+        Setting::put('access.site_allowed_ips', [self::OFFICE_IP, '198.51.100.0/24']);
+
+        $this->assertSame(self::OFFICE_IP."\n198.51.100.0/24", AccessRestriction::settings()['site_text']);
     }
 
     public function test_settings_that_lock_out_the_current_address_are_not_saved(): void
@@ -189,16 +217,17 @@ class AccessRestrictionTest extends TestCase
 
     public function test_command_turns_both_restrictions_off(): void
     {
-        AccessRestriction::save(true, [self::OFFICE_IP], true, [self::ADMIN_IP]);
+        AccessRestriction::save(true, self::OFFICE_IP, true, self::ADMIN_IP.' # 制作会社');
 
         $this->artisan('app:access-denied-off')->assertSuccessful();
 
-        // 両方の制限を外し、IPアドレスの一覧は、次に制限を掛けるときのために残す
+        // 両方の制限を外し、IPアドレスの一覧とコメントは、次に制限を掛けるときのために残す
         $settings = AccessRestriction::settings();
         $this->assertFalse($settings['site_restricted']);
         $this->assertFalse($settings['admin_restricted']);
         $this->assertSame([self::OFFICE_IP], $settings['site_ips']);
         $this->assertSame([self::ADMIN_IP], $settings['admin_ips']);
+        $this->assertSame(self::ADMIN_IP.' # 制作会社', $settings['admin_text']);
 
         $this->fromIp(self::OTHER_IP)->get('/')->assertOk();
         $this->fromIp(self::OTHER_IP)->get('/app/admin/login')->assertOk();

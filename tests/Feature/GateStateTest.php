@@ -60,7 +60,7 @@ class GateStateTest extends TestCase
     {
         config(['app.site_allowed_ips' => ['192.0.2.0/24'], 'app.trusted_proxies' => ['10.0.0.5']]);
 
-        AccessRestriction::save(true, ['203.0.113.10'], true, ['192.0.2.50']);
+        AccessRestriction::save(true, '203.0.113.10', true, '192.0.2.50');
 
         $state = GateState::read();
         $this->assertTrue($state['site']['restricted']);
@@ -83,7 +83,7 @@ class GateStateTest extends TestCase
         $this->assertSame('PASSED', $this->runGate(self::VISITOR));
 
         // サイトの制限では、メンテナンス中の画面を返す。管理画面の下は通す
-        AccessRestriction::save(true, [], false, []);
+        AccessRestriction::save(true, '', false, '');
         $maintenance = $this->withServerVariables(['REMOTE_ADDR' => self::VISITOR])->get('/')->assertStatus(503)->getContent();
         $this->assertSame($maintenance, $this->runGate(self::VISITOR, '/about'));
         $this->assertSame('PASSED', $this->runGate(self::VISITOR, '/'.GateState::adminPath().'/login'));
@@ -200,7 +200,7 @@ class GateStateTest extends TestCase
         // 段が書かれていれば、WordPressのURLの決まりを書き出す
         $this->useWordPress('prepend');
         $missing = $this->withServerVariables(['REMOTE_ADDR' => self::VISITOR])->get('/no-such-page')->assertNotFound()->getContent();
-        AccessRestriction::save(true, [], true, ['192.0.2.50']);
+        AccessRestriction::save(true, '', true, '192.0.2.50');
         $this->assertSame(['wp-admin', 'wp-admin/*', 'wp-login.php'], GateState::read()['wordpress']['admin']);
 
         $this->assertSame($missing, $this->runGate(self::VISITOR, '/xmlrpc.php'));
@@ -281,7 +281,7 @@ class GateStateTest extends TestCase
 
     public function test_command_shows_the_state_and_finds_a_stale_copy(): void
     {
-        AccessRestriction::save(false, [], true, ['192.0.2.50']);
+        AccessRestriction::save(false, '', true, '192.0.2.50');
         IpBlocker::block(self::ATTACKER, null, 'テスト');
 
         $this->artisan('app:gate')
