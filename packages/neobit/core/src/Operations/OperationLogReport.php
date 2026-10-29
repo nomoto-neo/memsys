@@ -153,13 +153,20 @@ final class OperationLogReport
     /** ファイルの、1つの更新の期間に並べる数の上限。多いときは「ほか○件」にする */
     private const FILE_UPDATE_LINES = 10;
 
-    /** 改ざん監視が通常の更新とみなしたファイルの、更新の期間ごとの一覧。無ければ空の文字 */
+    /** 改ざん監視が通常の更新とみなしたファイルの、更新の期間ごとの一覧。手で認めた更新も並べる。無ければ空の文字 */
     private static function fileUpdates(CarbonInterface $date): string
     {
         $blocks = [];
         foreach ((new FileWatcher())->acceptedOn($date) as $entry) {
             $files = array_values(array_unique($entry['files']));
-            $lines = [date('Y-m-d H:i', $entry['from']).'〜'.date('H:i', $entry['to']).' の更新（'.count($files).'件）'];
+            if (! empty($entry['manual'])) {
+                // 知らせたファイルを、app:watch-files --acceptで認めたとき
+                $heading = date('Y-m-d H:i', $entry['from']).' に手で認めた更新';
+            } else {
+                // 鍵の前後の、通常の更新の期間
+                $heading = date('Y-m-d H:i', $entry['from']).'〜'.date('H:i', $entry['to']).' の更新';
+            }
+            $lines = [$heading.'（'.count($files).'件）'];
             foreach (array_slice($files, 0, self::FILE_UPDATE_LINES) as $file) {
                 $lines[] = '  '.$file;
             }

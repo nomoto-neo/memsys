@@ -36,6 +36,12 @@ use RuntimeException;
  *   ここなので、書き換えられるとすぐに効くため。デプロイの外でconfig:cacheをやり直したときは、鍵のファイルも更新する
  * 外すのは、この監視の記録とロックのファイル、鍵のファイル、テストでできるファイル。
  *
+ * ■ 手で認める
+ * 鍵を送り忘れた更新は、後から鍵だけを送っても期間に入らず、知らせ続ける（消えたファイルは送り直しでも直せない）。
+ * 中身を確かめた人がacceptAlerts()（app:watch-files --accept）で認めると、そのとき知らせるファイルだけを基準に
+ * 取り込み、「手で認めた更新」として記録に残す。待っている最中の変化は取り込まない。init()で基準を作り直すと、
+ * それも黙って取り込み、通常の更新の記録も消えるため。
+ *
  * ■ アップロードの置き場所
  * アップロードのたびにファイルが増えるので、基準とは比べない。代わりに毎回、公開の置き場所（storage/app/public。
  * /storage/のURLで外から開ける）に、次のファイルが無いかを確かめ、見つけたら待たずに知らせる。
@@ -238,12 +244,94 @@ final class FileWatcher
     public function check(bool $full = false): array
     {
         $this->unreadable = [];
-        $state = $this->load();
-        if ($state === null) {
-            throw new RuntimeException('改ざん監視の基準がありません。先に php artisan app:watch-files --init を実行してください。');
-        }
+        $state = $this->loadBaseline();
         $now = now()->getTimestamp();
 
+        $sorted = $this->sort($state, $full, $now);
+
+        $dangers = $this->dangers();
+        sort($this->unreadable);
+        $notify = $this->shouldNotify($state, $sorted['alerts'], $dangers, $this->unreadable, $now);
+
+        $this->save($state);
+
+        return [
+            'alerts' => $sorted['alerts'],
+            'dangers' => $dangers,
+            'unreadable' => $this->unreadable,
+            'accepted' => $sorted['accepted'],
+            'pending' => $sorted['pending'],
+            'notify' => $notify,
+        ];
+    }
+
+    /**
+     * 今知らせるファイルを、手で認めて基準に取り込む。app:watch-files --acceptが呼ぶ。
+     * その場で確かめ直し、知らせるものがあれば$confirmに一覧を渡して聞く。認められたら取り込んで、その一覧を返す。
+     * 知らせるものが無ければ空、断られたらnull。どちらも基準は変えず、通知の控えもそのままにする。
+     * 待っている最中の変化・許可されていないアップロードファイル・確かめられなかったディレクトリは取り込まない。
+     *
+     * @param  Closure(list<array{label: string, kind: string, time: int}>): bool  $confirm
+     * @return list<array{label: string, kind: string, time: int}>|null
+     */
+    public function acceptAlerts(Closure $confirm): ?array
+    {
+        $this->unreadable = [];
+        $state = $this->loadBaseline();
+        $now = now()->getTimestamp();
+
+        // 通常の更新の期間に入るものは、いつもどおり取り込む
+        $sorted = $this->sort($state, false, $now);
+
+        // 知らせるものが無いか、断られたら、疑いは取り込まずに終わる
+        if ($sorted['alerts'] === [] || ! $confirm($sorted['alerts'])) {
+            $this->save($state);
+
+            return $sorted['alerts'] === [] ? [] : null;
+        }
+
+        // 疑いを基準に取り込み、手で認めた更新として記録する
+        foreach ($sorted['alertCandidates'] as $label => $candidate) {
+            $this->absorb($state, $label, $candidate);
+        }
+        $state['accepted'][] = ['manual' => true, 'from' => $now, 'to' => $now, 'files' => array_column($sorted['alerts'], 'label')];
+
+        // 通知の控えを消し、次に別の疑いが出たらすぐ知らせる
+        $state['last_alert'] = null;
+
+        $this->save($state);
+
+        return $sorted['alerts'];
+    }
+
+    /**
+     * $dateの日にかかる、通常の更新の期間ごとの一覧。手で認めた更新はmanualがtrue。1日1回の報告のメールに載せる。記録が無ければ空
+     *
+     * @return list<array{from: int, to: int, files: list<string>, manual?: bool}>
+     */
+    public function acceptedOn(CarbonInterface $date): array
+    {
+        $state = $this->load();
+        if ($state === null) {
+            return [];
+        }
+
+        $from = $date->copy()->startOfDay()->getTimestamp();
+        $to = $from + 86400;
+
+        return array_values(array_filter($state['accepted'], fn (array $entry) => $entry['to'] >= $from && $entry['from'] < $to));
+    }
+
+    // ---- 判断 ----
+
+    /**
+     * 基準と比べて、変わった・増えた・消えたファイルを、通常の更新・待つ・知らせるに分ける。
+     * 通常の更新は、ここで基準に取り込む。知らせるものは、手で認めて取り込めるよう、比べた中身も返す。
+     *
+     * @return array{alerts: list<array{label: string, kind: string, time: int}>, alertCandidates: array<string, array>, accepted: int, pending: int}
+     */
+    private function sort(array &$state, bool $full, int $now): array
+    {
         // 鍵のファイルのctimeを、気付いた分だけ残す
         $key = $this->keyCtime();
         if ($key !== null && ! in_array($key, $state['keys'], true)) {
@@ -303,6 +391,7 @@ final class FileWatcher
 
         // 通常の更新か、待つか、知らせるか
         $alerts = [];
+        $alertCandidates = [];
         $accepted = 0;
         $pending = 0;
         foreach ($candidates as $label => $candidate) {
@@ -317,45 +406,13 @@ final class FileWatcher
                 $pending++;
             } else {
                 $alerts[] = ['label' => $label, 'kind' => $candidate['kind'], 'time' => $candidate['time']];
+                $alertCandidates[$label] = $candidate;
             }
         }
         $state['accepted'] = array_values(array_filter($state['accepted'], fn (array $entry) => $entry['to'] >= $now - self::KEEP_ACCEPTED));
 
-        $dangers = $this->dangers();
-        sort($this->unreadable);
-        $notify = $this->shouldNotify($state, $alerts, $dangers, $this->unreadable, $now);
-
-        $this->save($state);
-
-        return [
-            'alerts' => $alerts,
-            'dangers' => $dangers,
-            'unreadable' => $this->unreadable,
-            'accepted' => $accepted,
-            'pending' => $pending,
-            'notify' => $notify,
-        ];
+        return ['alerts' => $alerts, 'alertCandidates' => $alertCandidates, 'accepted' => $accepted, 'pending' => $pending];
     }
-
-    /**
-     * $dateの日にかかる、通常の更新の期間ごとの一覧。1日1回の報告のメールに載せる。記録が無ければ空
-     *
-     * @return list<array{from: int, to: int, files: list<string>}>
-     */
-    public function acceptedOn(CarbonInterface $date): array
-    {
-        $state = $this->load();
-        if ($state === null) {
-            return [];
-        }
-
-        $from = $date->copy()->startOfDay()->getTimestamp();
-        $to = $from + 86400;
-
-        return array_values(array_filter($state['accepted'], fn (array $entry) => $entry['to'] >= $from && $entry['from'] < $to));
-    }
-
-    // ---- 判断 ----
 
     /**
      * 鍵のctimeの並びから、更新の期間の一覧を作る。鍵どうしの間が30分以内なら1つにまとめる。
@@ -393,6 +450,23 @@ final class FileWatcher
     /** 通常の更新を、基準に取り込み、期間の記録に足す */
     private function accept(array &$state, string $label, array $candidate, array $period): void
     {
+        $this->absorb($state, $label, $candidate);
+
+        // 期間の記録は、最初の鍵で見分ける。続けて更新すると、期間の終わりが延びる。手で認めた記録には鍵が無い
+        foreach ($state['accepted'] as $index => $entry) {
+            if (($entry['key'] ?? null) === $period[2]) {
+                $state['accepted'][$index]['to'] = $period[1];
+                $state['accepted'][$index]['files'][] = $label;
+
+                return;
+            }
+        }
+        $state['accepted'][] = ['key' => $period[2], 'from' => $period[0], 'to' => $period[1], 'files' => [$label]];
+    }
+
+    /** 変わった・増えた・消えたファイルを、基準に取り込む */
+    private function absorb(array &$state, string $label, array $candidate): void
+    {
         if (isset($candidate['directory'])) {
             // 直下のディレクトリは、名前の一覧を直す
             $state['root_dirs'] = $candidate['kind'] === 'deleted'
@@ -409,17 +483,6 @@ final class FileWatcher
                 'hash' => $info['hash'] ?? hash_file('sha256', $info['path']),
             ];
         }
-
-        // 期間の記録は、最初の鍵で見分ける。続けて更新すると、期間の終わりが延びる
-        foreach ($state['accepted'] as $index => $entry) {
-            if ($entry['key'] === $period[2]) {
-                $state['accepted'][$index]['to'] = $period[1];
-                $state['accepted'][$index]['files'][] = $label;
-
-                return;
-            }
-        }
-        $state['accepted'][] = ['key' => $period[2], 'from' => $period[0], 'to' => $period[1], 'files' => [$label]];
     }
 
     /**
@@ -655,6 +718,12 @@ final class FileWatcher
         $state = json_decode((string) file_get_contents($path), true);
 
         return is_array($state) ? $state : null;
+    }
+
+    /** 確かめに使う記録を読む。まだ基準が無ければ、--initを案内する例外 */
+    private function loadBaseline(): array
+    {
+        return $this->load() ?? throw new RuntimeException('改ざん監視の基準がありません。先に php artisan app:watch-files --init を実行してください。');
     }
 
     /** 記録を書く。読んでいる途中に半端なファイルを読まないよう、隣に書いてから置き換える */

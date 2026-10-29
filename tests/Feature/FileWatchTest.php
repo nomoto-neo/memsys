@@ -177,6 +177,75 @@ class FileWatchTest extends TestCase
         $this->assertSame([['label' => 'config/app.php', 'kind' => 'deleted', 'time' => $this->start + 300]], $result['alerts']);
     }
 
+    public function test_alerts_are_accepted_by_hand_and_recorded(): void
+    {
+        // 鍵を送り忘れた書き換えと削除。待っている最中の変化と、危ないアップロードも混ぜる
+        $this->write('public/index.php', '<?php // 新しい入口', 2);
+        File::delete($this->base.'/config/app.php');
+        $this->checkAt(5);
+        $this->write('storage/app/public/shell.php', '<?php', 3);
+        $this->write('app/Models/Fresh.php', '<?php // 来たばかり', 18);
+        $this->assertTrue($this->checkAt(20)['notify']);
+
+        // 認めると、知らせていたファイルだけを取り込む
+        Carbon::setTestNow(Carbon::createFromTimestamp($this->start + 25 * 60));
+        $shown = null;
+        $accepted = $this->watcher()->acceptAlerts(function (array $alerts) use (&$shown) {
+            $shown = $alerts;
+
+            return true;
+        });
+        $this->assertSame([['public/index.php', 'changed'], ['config/app.php', 'deleted']], array_map(fn (array $alert) => [$alert['label'], $alert['kind']], $accepted));
+        $this->assertSame($shown, $accepted);
+
+        // 待っている変化と危ないアップロードは残る
+        $result = $this->checkAt(26);
+        $this->assertSame([[], 1], [$result['alerts'], $result['pending']]);
+        $this->assertSame(['storage/app/public/shell.php'], array_column($result['dangers'], 'label'));
+
+        // 1日1回の報告に、手で認めた更新として載る
+        $entries = $this->watcher()->acceptedOn(Carbon::parse('2026-10-27'));
+        $this->assertSame([['manual' => true, 'from' => $this->start + 1500, 'to' => $this->start + 1500, 'files' => ['public/index.php', 'config/app.php']]], $entries);
+    }
+
+    public function test_declining_leaves_the_alerts_as_they_were(): void
+    {
+        $this->write('public/index.php', '<?php // 新しい入口', 2);
+        $this->assertTrue($this->checkAt(20)['notify']);
+
+        // 断ったら何も取り込まず、通知の控えもそのまま（1時間に1回の間引きが続く）
+        Carbon::setTestNow(Carbon::createFromTimestamp($this->start + 25 * 60));
+        $this->assertNull($this->watcher()->acceptAlerts(fn () => false));
+
+        $result = $this->checkAt(26);
+        $this->assertSame(['public/index.php'], array_column($result['alerts'], 'label'));
+        $this->assertFalse($result['notify']);
+
+        // 知らせるものが無ければ、聞かずに空を返す
+        $this->write('public/index.php', '<?php // 入口', 30);
+        $this->checkAt(31);
+        $this->assertSame([], $this->watcher()->acceptAlerts(fn () => $this->fail('聞かない')));
+    }
+
+    public function test_accept_command_shows_the_list_and_asks(): void
+    {
+        $this->app->instance(FileWatcher::class, $this->watcher());
+        $this->write('public/index.php', '<?php // 新しい入口', 2);
+        File::delete($this->base.'/config/app.php');
+        $this->checkAt(1);
+        Carbon::setTestNow(Carbon::createFromTimestamp($this->start + 20 * 60));
+
+        $this->artisan('app:watch-files --accept')
+            ->expectsOutputToContain('改ざんの疑い：2件')
+            ->expectsOutputToContain('変更  public/index.php（2026-10-27 10:02）')
+            ->expectsOutputToContain('削除  config/app.php（2026-10-27 10:01）')
+            ->expectsConfirmation('この2件を、通常の更新として基準に取り込みますか？', 'yes')
+            ->expectsOutputToContain('2件を基準に取り込みました。')
+            ->assertSuccessful();
+
+        $this->artisan('app:watch-files --accept')->expectsOutputToContain('取り込む改ざんの疑いはありません。')->assertSuccessful();
+    }
+
     public function test_unexpected_files_in_the_upload_place_are_reported_at_once(): void
     {
         // 公開の置き場所：許可されていない拡張子は全部知らせる。画像・PDFと、Laravelの.gitignoreは知らせない

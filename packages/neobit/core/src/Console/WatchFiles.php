@@ -25,8 +25,9 @@ use Throwable;
  * ■ 手で動かすとき
  * --init  今の状態を基準にする。サーバーで最初に1回、webappで実行する
  * --full  全部のハッシュ値を比べ直し、vendor/も見る
+ * --accept  今知らせているファイルを、中身を確かめた上で基準に取り込む。一覧を出して確認してから取り込む。devappで実行する
  */
-#[Signature('app:watch-files {--init : 今の状態を基準にする} {--full : 全部のハッシュ値を比べ直し、vendor/も見る}')]
+#[Signature('app:watch-files {--init : 今の状態を基準にする} {--full : 全部のハッシュ値を比べ直し、vendor/も見る} {--accept : 今知らせているファイルを、確かめて基準に取り込む}')]
 #[Description('ファイルの改ざんを確かめ、見つけたら通知のメールを送る')]
 class WatchFiles extends Command
 {
@@ -61,7 +62,7 @@ class WatchFiles extends Command
         }
     }
 
-    /** ロックを押さえた後の1回分。基準を作るか、確かめて知らせる */
+    /** ロックを押さえた後の1回分。基準を作るか、知らせているファイルを取り込むか、確かめて知らせる */
     private function watch(FileWatcher $watcher): int
     {
         // 基準を作る
@@ -76,6 +77,11 @@ class WatchFiles extends Command
         }
 
         try {
+            // 知らせているファイルを、手で認めて取り込む
+            if ($this->option('accept')) {
+                return $this->accept($watcher);
+            }
+
             $result = $watcher->check((bool) $this->option('full'));
         } catch (RuntimeException $e) {
             // 基準が無い。サーバーを置いた後に、--initを忘れている
@@ -97,6 +103,34 @@ class WatchFiles extends Command
         }
 
         return $this->notify($result['alerts'], $result['dangers'], $result['unreadable']);
+    }
+
+    /** 知らせているファイルの一覧を出し、確認できたら基準に取り込む。取り込んだらログに残す */
+    private function accept(FileWatcher $watcher): int
+    {
+        $accepted = $watcher->acceptAlerts(function (array $alerts): bool {
+            // メールと同じく、変更・追加・削除の順に並べる
+            $kinds = array_keys(self::KIND_LABELS);
+            usort($alerts, fn (array $a, array $b) => array_search($a['kind'], $kinds, true) <=> array_search($b['kind'], $kinds, true));
+
+            $this->info('改ざんの疑い：'.count($alerts).'件');
+            foreach ($alerts as $alert) {
+                $this->line('  '.self::KIND_LABELS[$alert['kind']].'  '.$alert['label'].'（'.date('Y-m-d H:i', $alert['time']).'）');
+            }
+
+            return $this->confirm('この'.count($alerts).'件を、通常の更新として基準に取り込みますか？');
+        });
+
+        if ($accepted === []) {
+            $this->info('取り込む改ざんの疑いはありません。');
+        } elseif ($accepted === null) {
+            $this->info('取り込みませんでした。');
+        } else {
+            Log::info('WatchFiles: 改ざんの疑いを、手で認めて基準に取り込みました。', ['files' => array_column($accepted, 'label')]);
+            $this->info(count($accepted).'件を基準に取り込みました。');
+        }
+
+        return self::SUCCESS;
     }
 
     /**
