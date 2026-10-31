@@ -28,7 +28,7 @@ use Neobit\Core\Operations\OperationRecorder;
 /**
  * 管理画面のスタッフ管理と、ログイン中の本人のパスキーの管理。
  *
- * 誰が何をしてよいかは、コントローラーに入る前にroutes/web.phpで確かめる。
+ * 誰が何をしてよいかは、コントローラーに入る前にroutes/admin.phpで確かめる。
  * 一覧と新規登録は管理者だけが使え、詳細・編集・削除などはStaffPolicyで判断する。
  */
 class StaffController extends Controller
@@ -45,7 +45,7 @@ class StaffController extends Controller
 
     // ログイン中の本人による、パスキーの一覧・登録・削除（passkeyIndex()など）。
     // Neobit\Core\Auth\PasskeyManagement参照。使わないサイトでは、このuseと
-    // routes/web.phpのadmin.passkeysのルートを消す。
+    // routes/admin.phpのadmin.passkeysのルートを消す。
     use PasskeyManagement;
 
     // ログイン中の本人による、バックアップコードの発行と、認証アプリの登録の解除
@@ -227,7 +227,7 @@ class StaffController extends Controller
         return false;
     }
 
-    // ---- 登録（管理者のみ。routes/web.phpのacl.managerの内側） ----
+    // ---- 登録（管理者のみ。routes/admin.phpのacl.managerの内側） ----
 
     /** 新規登録フォームの表示 */
     public function create(): View
@@ -275,7 +275,7 @@ class StaffController extends Controller
             ->with('status', 'スタッフを登録しました。');
     }
 
-    // ---- 詳細・編集（本人または管理者。routes/web.phpのcan:view・can:updateの内側） ----
+    // ---- 詳細・編集（本人または管理者。routes/admin.phpのcan:view・can:updateの内側） ----
 
     /** 詳細画面の表示 */
     public function show(Staff $staff): View
@@ -343,7 +343,7 @@ class StaffController extends Controller
             ->with('status', 'スタッフ情報を更新しました。');
     }
 
-    // ---- 削除・削除の取り消し・2段階認証の登録解除（管理者のみ・自分自身は対象外。routes/web.phpのcanの内側） ----
+    // ---- 削除・削除の取り消し・2段階認証の登録解除（管理者のみ・自分自身は対象外。routes/admin.phpのcanの内側） ----
 
     /**
      * 削除の実行。StaffはSoftDeletesを使っているので、行は消さずにdeleted_atへ削除日時を
@@ -429,7 +429,7 @@ class StaffController extends Controller
 
             if ($staff->id === Auth::guard('admin')->id()) {
                 // 自分のパスワードを変えたときは、ログイン中のスタッフを更新後のインスタンスに
-                // 差し替える。auth.session（routes/web.php）はリクエストの最後に、ログイン中の
+                // 差し替える。auth.session（routes/admin.php）はリクエストの最後に、ログイン中の
                 // スタッフのパスワードのハッシュ値をセッションに控え直すので、差し替えないと
                 // 古い値が控えられ、次のリクエストで自分までログアウトされてしまう。
                 Auth::guard('admin')->setUser($staff);

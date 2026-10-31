@@ -24,7 +24,7 @@ use Neobit\Core\Operations\OperationRecorder;
  * 退職した人のアカウントを止める、メールアドレスが空の人に代わりに入れる、
  * パスワードを本人の代わりに変える、といった運営の対応に使う。
  * 担当者IDは変えない。最後の1人の担当者も削除できる。
- * URLの{user}は、{company}の担当者だけを受け取る（routes/web.phpのscopeBindings()）。
+ * URLの{user}は、{company}の担当者だけを受け取る（routes/admin.phpのscopeBindings()）。
  */
 class CompanyUserController extends Controller
 {

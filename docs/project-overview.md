@@ -46,6 +46,7 @@ Laravel の標準の構成に、次のものを足している（各ディレク
 | `packages/neobit/core/` | ネオビットフレームワークの共通部品。どのプロジェクトでもそのまま使う前提 |
 | `app/Services/` | 業務の処理をまとめたクラス。画面とコマンドの両方から呼ぶ処理を置く |
 | `app/Http/Controllers/Admin/`・`Company/` | 管理画面と企業会員の画面のコントローラー。直下は訪問者と個人会員の側 |
+| `routes/` | 画面の種類ごとのルート。`web.php`（訪問者と個人会員）・`company.php`（企業会員）・`admin.php`（管理画面）・`pages.php`（固定ページ。最後に読む）。頭の URL・名前・ミドルウェアは `bootstrap/app.php` が付ける |
 | `app/Enums/`・`code/` | 選択肢の定義。列挙型と、CSV で持つコード表 |
 | `resources/views/` 直下の `_` で始まるビュー | どのコーナーからも使う部分ビュー |
 | `resources/js/` | 画面ごとの JavaScript。足したら `vite.config.js` の一覧にも足す。フレームワークのスクリプトと CSS は `packages/neobit/core/resources/` にあり、`vite.config.js` には `vendor/neobit/core/` の下のパスで書く |

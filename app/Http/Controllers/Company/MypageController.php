@@ -33,7 +33,7 @@ class MypageController extends Controller
     use FormFlow;
 
     // パスキーの一覧・登録・削除（passkeyIndex()など。Neobit\Core\Auth\PasskeyManagement参照）。
-    // 使わないサイトでは、このuseとroutes/web.phpのcompany.mypage.passkeysのルートを消す。
+    // 使わないサイトでは、このuseとroutes/company.phpのcompany.mypage.passkeysのルートを消す。
     use PasskeyManagement;
 
     // ログイン中の本人による、バックアップコードの発行と、認証アプリの登録の解除（twoFactorIndex()など。

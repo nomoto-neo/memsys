@@ -97,7 +97,7 @@ class AppServiceProvider extends ServiceProvider
         }
 
         // ログイン後の管理画面の全体に掛ける、スタッフごとの回数の制限。
-        // routes/web.phpの管理画面のグループが、throttle:admin-screenで使う
+        // routes/admin.phpの管理画面のグループが、throttle:admin-screenで使う
         RateLimiter::for('admin-screen', AdminRequestLimit::limit(...));
 
         // 一斉メールを送る速さの制限。App\Jobs\SendBulkMailのRateLimitedが使う

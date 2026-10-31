@@ -26,7 +26,7 @@ use Webauthn\PublicKeyCredentialRequestOptions;
  * 1. コントローラーにuse PasskeyLogin;を書き、次の定数とメソッドを用意する
  *      private const PASSKEY_GUARD = 'web';        // ログインさせるガード
  *      private function passkeyRedirectUrl(): string // ログイン後に移動するURL
- * 2. routes/web.phpに、passkeyLoginOptions()とpasskeyLogin()へのルートを書く。
+ * 2. ルートのファイルに、passkeyLoginOptions()とpasskeyLogin()へのルートを書く。
  *    名前はlogin.passkey.optionsとlogin.passkeyで、管理画面はadmin.を付ける
  * 3. ログイン画面はルートがあるときだけ「パスキーでログイン」のボタンを出す。
  *    ルートを消せばボタンも消える

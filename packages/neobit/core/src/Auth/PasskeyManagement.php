@@ -36,7 +36,7 @@ use Webauthn\PublicKeyCredentialCreationOptions;
  *      private const PASSKEY_GUARD = 'web';                 // ログイン中の本人を取るガード
  *      private const PASSKEY_ROUTE = 'mypage.passkeys';     // 一覧画面のルート名
  *      private const PASSKEY_VIEW = 'mypage.passkeys';      // 一覧画面のビュー
- * 2. routes/web.phpに、PASSKEY_ROUTEと、その後ろに.code・.confirm・.options・.store・.destroyを
+ * 2. ルートのファイルに、PASSKEY_ROUTEと、その後ろに.code・.confirm・.options・.store・.destroyを
  *    付けた名前でルートを書く。.codeは確認コードの送信で、メールの方式のときだけ使う
  * 3. 一覧画面のビューは、neobit::_passkeysを@includeする
  * 一覧画面への入口はルートがあるときだけ出すので、ルートを消せば入口も消える。

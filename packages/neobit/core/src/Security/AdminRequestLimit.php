@@ -13,7 +13,7 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * ログイン後の管理画面の全体に掛ける、回数の制限。スタッフごとに、1分に送れる回数を決める。
  * 一覧や詳細を、プログラムで続けて開いてデータを取り出す動きを止めるため。
- * AppServiceProviderがadmin-screenという名前で登録し、routes/web.phpの管理画面のグループが
+ * AppServiceProviderがadmin-screenという名前で登録し、routes/admin.phpの管理画面のグループが
  * throttle:admin-screenで使う。
  *
  * ■ 回数

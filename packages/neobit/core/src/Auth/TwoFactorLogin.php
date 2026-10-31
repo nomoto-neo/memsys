@@ -272,7 +272,7 @@ trait TwoFactorLogin
 
     /**
      * 確認コードの再送信。メールが届かない・見失った場合の救済で、メールの方式だけにある。
-     * 連続送信は、routes/web.phpのthrottleで防ぐ。
+     * 連続送信は、ルートのthrottleで防ぐ。
      */
     public function resendCode(Request $request): RedirectResponse
     {

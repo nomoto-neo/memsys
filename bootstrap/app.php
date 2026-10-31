@@ -7,9 +7,11 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 use Neobit\Core\Auth\LoginRedirect;
 use Neobit\Core\Http\Middleware\AjaxFormResponse;
 use Neobit\Core\Http\Middleware\ApplyRedirects;
+use Neobit\Core\Http\Middleware\NoIndexHeader;
 use Neobit\Core\Http\Middleware\NormalizeInput;
 use Neobit\Core\Http\Middleware\RejectBlockedIp;
 use Neobit\Core\Http\Middleware\RestrictAdminAccess;
@@ -23,6 +25,25 @@ return Application::configure(basePath: dirname(__DIR__))
         web: __DIR__.'/../routes/web.php',
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
+        then: function () {
+            // 企業会員の画面。共通部品が、company.の名前の決まりからルートを作る
+            Route::middleware('web')
+                ->prefix('company')
+                ->name('company.')
+                ->group(base_path('routes/company.php'));
+
+            // 管理画面。admin.ipは、接続元のIPアドレスの制限（Neobit\Core\Http\Middleware\RestrictAdminAccess）。
+            // 管理画面を開けるIPアドレス（管理画面の「アクセス制限」と.envのADMIN_ALLOWED_IPS）を決めていれば、
+            // それに無いIPアドレスには、ログイン画面も含めて404を返す
+            Route::middleware(['web', 'admin.ip', NoIndexHeader::class])
+                ->prefix(config('neobit.admin_path'))
+                ->name('admin.')
+                ->group(base_path('routes/admin.php'));
+
+            // 固定ページ。/を含むURLも受けるので、どのルートにも当たらなかったURLだけを受けるよう、最後に読む
+            Route::middleware('web')
+                ->group(base_path('routes/pages.php'));
+        },
     )
     ->withMiddleware(function (Middleware $middleware) {
         // 非ログイン時の飛び先：管理画面(admin.*)はadmin.loginへ、企業会員の画面(company.*)は
@@ -90,7 +111,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [NormalizeInput::class]);
 
         // 'manager'という短い名前で、ルート定義からEnsureStaffIsManagerを
-        // 呼べるようにする登録。routes/web.php側のRoute::middleware('manager')が
+        // 呼べるようにする登録。routes/admin.php側のRoute::middleware('acl.manager')が
         // これを見に行く（詳しくはEnsureStaffIsManager::class参照）。
         $middleware->alias([
             'acl.manager' => EnsureStaffIsManager::class,

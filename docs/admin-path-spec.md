@@ -14,7 +14,7 @@
 | 範囲 | 内容 |
 |---|---|
 | フレームワーク | 設定の `admin_path`（既定 `app/admin`）、`RestrictSiteAccess` が管理画面を自分で外す、新しいミドルウェア `NoIndexHeader`、`robots_disallow` の既定を空に |
-| 見本のサイト | `routes/web.php` の管理画面のグループの `prefix` と `NoIndexHeader`、`bootstrap/app.php` の `except()` から管理画面を外した、`robots_disallow` から `/admin` を外した、コメントの中の URL |
+| 見本のサイト | `bootstrap/app.php` の管理画面のルートの `prefix` と `NoIndexHeader`、`bootstrap/app.php` の `except()` から管理画面を外した、`robots_disallow` から `/admin` を外した、コメントの中の URL |
 | テスト | `/admin/…` の文字を `/app/admin/…` に直した。slug の予約の名前を `admin` から `app` に直した。新しく `AdminPathTest` |
 | サーバー | 管理画面の URL が `/app/admin` に変わる。ベーシック認証の VirtualHost の決まりを直す |
 
@@ -28,7 +28,7 @@
 
 | 部品 | 使い方 |
 |---|---|
-| `routes/web.php` | `Route::prefix(config('neobit.admin_path'))->name('admin.')->middleware(['admin.ip', NoIndexHeader::class])` |
+| `bootstrap/app.php` | `Route::middleware(['web', 'admin.ip', NoIndexHeader::class])->prefix(config('neobit.admin_path'))->name('admin.')` |
 | `RestrictSiteAccess` | `except()` で渡されたパスに、`admin_path` と `admin_path/*` を足して、制限の外にする |
 | `NoIndexHeader` | 応答に `X-Robots-Tag: noindex, nofollow` を付ける。管理画面のグループに付ける |
 

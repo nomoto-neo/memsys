@@ -369,7 +369,7 @@ class MemberController extends Controller
 
     /**
      * この会員を対象にした操作と、この会員が行った操作を、新しい順に出す。
-     * 問い合わせに答えるのに使う。操作ログの一覧と同じく、管理者だけが開ける（routes/web.phpのacl.manager）。
+     * 問い合わせに答えるのに使う。操作ログの一覧と同じく、管理者だけが開ける（routes/admin.phpのacl.manager）。
      */
     public function operationLogs(Member $member): View
     {

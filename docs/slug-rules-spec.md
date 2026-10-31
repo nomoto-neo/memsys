@@ -35,12 +35,12 @@
 **見本のサイト**
 
 - `Admin\PageController::rules()` の slug：`new SlugRule(nested: true)`・`Rule::unique(...)`・`new NotReservedPathRule()`。
-- `routes/web.php` の固定ページのルート：`->where('slug', SlugRule::NESTED_PATTERN)`。
+- `routes/pages.php` の固定ページのルート：`->where('slug', SlugRule::NESTED_PATTERN)`。
 
 ## C. 前提・依存
 
 - Laravel の検証（`ValidationRule`）とルートの一覧（`Route::getRoutes()`）
-- 固定ページのルートを `routes/web.php` のいちばん最後に置く決まり（今のまま）
+- 固定ページのルートを `routes/pages.php` のいちばん最後に置く決まり（今のまま）
 
 ## D. 設計判断とトレードオフ
 

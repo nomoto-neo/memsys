@@ -191,10 +191,10 @@ has   vite.config.js                                                    'preserv
 has   vite.config.js                                                    'ip_block.js'
 has   bootstrap/app.php                                                 'RejectBlockedIp::class'
 has   bootstrap/app.php                                                 'RunScheduleOnRequest::class'
-has   routes/web.php                                                    'IpBlockController'
-has   routes/web.php                                                    'AccessRestrictionController'
+has   routes/admin.php                                                  'IpBlockController'
+has   routes/admin.php                                                  'AccessRestrictionController'
 has   resources/pdf-sheets/resume_a4.pdf                                '%PDF'
-has   routes/web.php                                                    'use Neobit\Core\Http\Controllers\OperationLogController;'
+has   routes/admin.php                                                  'use Neobit\Core\Http\Controllers\OperationLogController;'
 has   config/neobit.php                                                 "'operation_log_models' => ["
 has   resources/views/layouts/admin.blade.php                           'vendor/neobit/core/resources/css/global.css'
 has   resources/views/layouts/app.blade.php                             'vendor/neobit/core/resources/css/global.css'
@@ -205,15 +205,15 @@ has   app/Models/Staff.php                                              'public 
 lacks config/app.php                                                    'admin_requests_per_minute'
 lacks config/logging.php                                                'operation_report_thresholds'
 has   resources/mail-templates/member_verification_code.blade.php       '【{!! $site_name !!}】'
-has   routes/web.php                                                    'CodeTableController'
+has   routes/admin.php                                                  'CodeTableController'
 has   app/Http/Controllers/ContactController.php                        'catch (MailTemplateException'
 has   config/cleanup.php                                                'BulkMailCleanup::class'
-has   routes/web.php                                                    'bulk-mails.failedCsv'
+has   routes/admin.php                                                  'bulk-mails.failedCsv'
 has   app/Rules/MailDomainRule.php                                      'class MailDomainRule'
 has   config/mail.php                                                   "'bulk_check_domain'"
 has   config/mail.php                                                   "'return_path'"
 has   app/Services/NewsletterSubscription.php                           'final class NewsletterSubscription'
-has   routes/web.php                                                    'newsletter-subscribers.index'
+has   routes/admin.php                                                  'newsletter-subscribers.index'
 has   packages/neobit/core/src/Auth/LoginVerificationCode.php           '?string $purposeLabel = null'
 has   packages/neobit/core/src/Crud/ChildTables.php                 'trait ChildTables'
 has   packages/neobit/core/src/Crud/ChildTables.php                 'private function childTableRelation('
@@ -241,7 +241,7 @@ has   packages/neobit/core/resources/views/_seo_fields.blade.php        'seo_noi
 has   app/Http/Controllers/Admin/NewsController.php                     '$this->seoRules()'
 has   packages/neobit/core/src/Rules/SlugRule.php                       'class SlugRule'
 has   packages/neobit/core/src/Rules/NotReservedPathRule.php            'class NotReservedPathRule'
-has   routes/web.php                                                    'SlugRule::NESTED_PATTERN'
+has   routes/pages.php                                                  'SlugRule::NESTED_PATTERN'
 lacks app/Models/Page.php                                               'isReservedSlug'
 has   packages/neobit/core/src/Http/Controllers/SitemapController.php   'class SitemapController'
 has   packages/neobit/core/src/Http/Controllers/RobotsController.php    'class RobotsController'
@@ -252,7 +252,7 @@ has   packages/neobit/core/src/Http/Controllers/SeoSettingsController.php 'class
 has   packages/neobit/core/resources/views/admin/seo_settings/index.blade.php 'site_verification'
 has   packages/neobit/core/resources/views/_seo_head.blade.php          'google-site-verification'
 has   packages/neobit/core/src/Seo/Seo.php                              'IMAGE_URL_PATTERN'
-has   routes/web.php                                                    'SeoSettingsController'
+has   routes/admin.php                                                  'SeoSettingsController'
 has   config/neobit.php                                                 "'page_routes'"
 has   resources/views/admin/_menu.blade.php                             'admin.seo-settings.index'
 has   packages/neobit/core/src/Seo/SeoArticle.php                       'interface SeoArticle'
@@ -271,13 +271,13 @@ has   packages/neobit/core/src/Http/Controllers/RedirectController.php  'class R
 has   packages/neobit/core/resources/js/redirects.js                    'data-redirect-row'
 has   vite.config.js                                                    'redirects.js'
 has   bootstrap/app.php                                                 'ApplyRedirects::class'
-has   routes/web.php                                                    'RedirectController'
+has   routes/admin.php                                                  'RedirectController'
 has   app/Providers/AppServiceProvider.php                              "'redirect' => Redirect::class"
 has   config/neobit.php                                                 "'redirects' => true"
 has   packages/neobit/core/database/migrations/2026_10_28_000000_create_basic_auth_users_table.php "Schema::create('basic_auth_users'"
 has   packages/neobit/core/src/Security/BasicAuth.php                   'final class BasicAuth'
 has   packages/neobit/core/src/Http/Controllers/BasicAuthController.php 'class BasicAuthController'
-has   routes/web.php                                                    'BasicAuthController'
+has   routes/admin.php                                                  'BasicAuthController'
 has   resources/views/admin/_menu.blade.php                             'admin.basic-auth.index'
 has   packages/neobit/core/src/Http/Middleware/NoIndexHeader.php        'class NoIndexHeader'
 has   packages/neobit/core/src/Security/FileWatcher.php                 'function applyApproval'
@@ -286,11 +286,11 @@ has   packages/neobit/core/resources/views/admin/file_watch/index.blade.php '現
 has   packages/neobit/core/resources/views/admin/file_watch/_list.blade.php 'kindLabels'
 has   packages/neobit/core/resources/mail-templates/file_watch_approved.blade.php 'さんがサイトの変更内容を承認しました'
 has   packages/neobit/core/src/Console/WatchFiles.php                   '{--approve'
-has   routes/web.php                                                    'FileWatchController'
+has   routes/admin.php                                                  'FileWatchController'
 has   packages/neobit/core/src/Console/WatchFiles.php                   '{--accept'
 has   packages/neobit/core/resources/mail-templates/file_watch_alert.blade.php 'ファイルの改ざんを検知しました'
 has   packages/neobit/core/src/Operations/OperationLogReport.php       'fileUpdates'
-has   routes/web.php                                                    "prefix(config('neobit.admin_path'))"
+has   bootstrap/app.php                                                 "prefix(config('neobit.admin_path'))"
 lacks bootstrap/app.php                                                 "'admin/*'"
 lacks config/neobit.php                                                 "'robots_disallow' => ['/admin'"
 # 末尾の/を外す働きは、ミドルウェア（ApplyRedirects）へ移した。残っていると、末尾が/の古いURLに当たらない

@@ -43,7 +43,7 @@ use Neobit\Core\Operations\OperationRecorder;
  * 1段階目が通った担当者のidをセッションに置き、登録が済むまではログインさせない。
  * 途中でやめたときは、次のログインでもう一度ここへ回る。
  * 新しく始めるサイトでは、メールアドレスが空の担当者がいないので、この画面は使われない。
- * このコントローラーと、routes/web.phpのcompany.login.setupのルートを消してよい。
+ * このコントローラーと、routes/company.phpのcompany.login.setupのルートを消してよい。
  */
 class FirstLoginSetupController extends Controller
 {

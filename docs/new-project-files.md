@@ -2,7 +2,7 @@
 
 ネオビットフレームワークを新しいプロジェクトに展開するときに、書き換えることになるファイルをまとめたものです。2026-10-05 の時点の、見本のサイト（memsys）のコードを調べた結果です。
 
-コントローラー・モデル・ルート（`routes/web.php`）・`.env`・`resources/`・`code/` は、プロジェクトごとに書くのが前提なので、ここには載せていません。載せているのは、それ以外で触ることになるファイルです。
+コントローラー・モデル・ルート（`routes/`）・`.env`・`resources/`・`code/` は、プロジェクトごとに書くのが前提なので、ここには載せていません。載せているのは、それ以外で触ることになるファイルです。
 
 ## 1. コーナーやテーブルを足すたびに触るもの
 
@@ -87,7 +87,7 @@ Laravel を公開ディレクトリの外に置けないレンタルサーバー
 
 WordPress を置く案件では、`config/neobit.php` に `wordpress` の節を書き、サーバーごとの `.env` に `WORDPRESS_GATE`（`prepend` か `wp-config`）を書きます。`public/.htaccess` には WordPress に回す URL の決まりを、`public/` には `wordpress.php` を置きます（利用ガイドの31章）。
 
-改ざん監視を使うサーバーでは、コードを更新する利用者の crontab に `app:watch-files` を3行（5分ごと・1日1回の `--full`・毎分の `--approve`）書き、`php artisan app:watch-files --init` で基準を作ります（利用ガイドの29章）。鍵のファイルの名前は `config/neobit.php` の `file_watch.release_file`（既定は `.version`）で、案件ごとに変えられます。管理画面の「改ざん監視」を使うときは、`routes/web.php` の管理者だけのグループにルートを2行書き、管理画面のメニューに足します。
+改ざん監視を使うサーバーでは、コードを更新する利用者の crontab に `app:watch-files` を3行（5分ごと・1日1回の `--full`・毎分の `--approve`）書き、`php artisan app:watch-files --init` で基準を作ります（利用ガイドの29章）。鍵のファイルの名前は `config/neobit.php` の `file_watch.release_file`（既定は `.version`）で、案件ごとに変えられます。管理画面の「改ざん監視」を使うときは、`routes/admin.php` の管理者だけのグループにルートを2行書き、管理画面のメニューに足します。
 
 ## サーバーへ送らないもの
 

@@ -71,7 +71,7 @@ trait TwoFactorManagement
 
     /**
      * バックアップコードの発行の前の本人確認のために、確認コードをメールで送る。
-     * メールの方式の人だけが使う。連続送信は、routes/web.phpのthrottleで防ぐ。
+     * メールの方式の人だけが使う。連続送信は、ルートのthrottleで防ぐ。
      */
     public function sendBackupCodesCode(Request $request): RedirectResponse
     {

@@ -33,7 +33,7 @@ class AuthSessionController extends Controller
 
     // パスキーでのログイン（passkeyLoginOptions()・passkeyLogin()）。パスキーで
     // 通ったときは、2段階目も求めない（Neobit\Core\Auth\PasskeyLogin参照）。
-    // 使わないサイトでは、このuseとroutes/web.phpのadmin.login.passkeyのルートを消す。
+    // 使わないサイトでは、このuseとroutes/admin.phpのadmin.login.passkeyのルートを消す。
     use PasskeyLogin;
 
     // ---- ログイン（TwoFactorLogin）の設定 ----

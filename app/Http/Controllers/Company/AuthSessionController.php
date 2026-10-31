@@ -36,7 +36,7 @@ class AuthSessionController extends Controller
     use TwoFactorLogin;
 
     // パスキーでのログイン（passkeyLoginOptions()・passkeyLogin()）。
-    // 使わないサイトでは、このuseとroutes/web.phpのcompany.login.passkeyのルートを消す。
+    // 使わないサイトでは、このuseとroutes/company.phpのcompany.login.passkeyのルートを消す。
     use PasskeyLogin;
 
     // ---- ログイン（TwoFactorLogin）の設定 ----

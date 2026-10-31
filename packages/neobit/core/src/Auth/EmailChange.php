@@ -32,7 +32,7 @@ use Illuminate\View\View;
  *      private const EMAIL_CHANGE_DONE_MESSAGE = '...';               // 保存の後に出すメッセージ
  *      private const EMAIL_CHANGE_THROTTLE_SCOPE = '...';             // 確認コードの試行制限
  * 2. update()で、saveData()の前にholdForEmailChange()を呼び、戻り値があればそれを返す
- * 3. routes/web.phpに、EMAIL_CHANGE_ROUTEと、その後ろに.confirm・.resend・.backを付けた名前で
+ * 3. ルートのファイルに、EMAIL_CHANGE_ROUTEと、その後ろに.confirm・.resend・.backを付けた名前で
  *    ルートを書く。.resendにはthrottleを付ける
  */
 trait EmailChange

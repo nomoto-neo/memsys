@@ -39,7 +39,7 @@ private function csvImportSettings(): CsvImportSettings
 ```
 
 ```php
-// routes/web.php（/members/{member} より前に書く）
+// routes/admin.php（/members/{member} より前に書く）
 Route::get('/members/csv-import', [AdminMemberController::class, 'csvImport'])->name('members.csv-import');
 Route::post('/members/csv-import/confirm', [AdminMemberController::class, 'csvImportConfirm'])->name('members.csv-import.confirm');
 Route::post('/members/csv-import/execute', [AdminMemberController::class, 'csvImportExecute'])->name('members.csv-import.execute');

@@ -165,7 +165,7 @@ MAIL_FROM_NAME="${SITE_NAME}"
 
 管理画面の頭の URL は、`config/neobit.php` の `admin_path` で決めます。既定は `app/admin`（`/app/admin/login` など）です。`/admin` は URL を順に叩く攻撃で真っ先に狙われるので、既定でも `/admin` には置きません。
 
-- `routes/web.php` は、管理画面のグループを `Route::prefix(config('neobit.admin_path'))` で書きます。ルートの名前（`admin.*`）は URL に関係なく同じなので、画面とコントローラーは直しません。
+- `bootstrap/app.php` は、管理画面のルートのファイルを `->prefix(config('neobit.admin_path'))` で読みます。ルートの名前（`admin.*`）は URL に関係なく同じなので、画面とコントローラーは直しません。
 - サイトのアクセス制限（24章）は、`admin_path` の下をいつも制限の外にします。`bootstrap/app.php` に書く必要はありません。
 - **robots.txt には書きません**。robots.txt は誰でも読めるので、隠した URL を教えることになるためです。管理画面のルートのグループには `NoIndexHeader` を付け、全部の応答に `X-Robots-Tag: noindex, nofollow` を付けて、検索に出ないようにします。
 - **前の `/admin` は 404 にします**。新しい URL へ移すと、移した先を教えることになるためです。
@@ -369,8 +369,8 @@ class NewsController extends Controller
 |---|---|---|
 | そうしている理由 | メールアドレスが変わったときは、変わる前のアドレスにも送る。他人に書き換えられたときに本人が気付けるのは、変わる前のアドレスだけだから | `LoginProfileNotice` |
 | あえてしていないこと | パスワードと同じ bcrypt は使わない。同じ値でも毎回違うハッシュ値になるので検索できず、記録の数だけログインが遅くなる | `TrustedDeviceManager` |
-| 順番や場所に意味があること | `/members/csv` は `/members/{member}` より前に書く。後ろだと csv が会員の id として扱われる | `routes/web.php` |
-| ほかの所とのつながり | 自分自身は削除できない。判断は `StaffPolicy` | `routes/web.php` |
+| 順番や場所に意味があること | `/members/csv` は `/members/{member}` より前に書く。後ろだと csv が会員の id として扱われる | `routes/admin.php` |
+| ほかの所とのつながり | 自分自身は削除できない。判断は `StaffPolicy` | `routes/admin.php` |
 | 処理の段落の見出し | 行を消す前に、お知らせの宛先を控える | `Admin\CompanyController::reject()` |
 
 「あえてしていないこと」は、特に書いておきます。コードに無いものは、読んでも気付けないためです。
@@ -416,7 +416,7 @@ class NewsController extends Controller
    - `use FormFlow;` と `rules()`・`formValues()`・`saveValues()`（5章）
    - アップロードがあれば `use AjaxFileUpload;` と `UPLOAD_FILES`（7章）
    - 入口：`index`・`create`・`confirmForStore`・`backToCreate`・`store`・`show`・`edit`・`confirmForUpdate`・`backToEdit`・`update`・`destroy`
-4. **ルート**：`routes/web.php` の管理画面のグループ（`auth:admin`・`auth.session` の内側）に足す。`/xxx/csv` のような固定の URL は、`/xxx/{id}` より前に書く。
+4. **ルート**：`routes/admin.php` の、ログイン中のスタッフのグループ（`auth:admin`・`auth.session` の内側）に足す。`/xxx/csv` のような固定の URL は、`/xxx/{id}` より前に書く。
 5. **画面**：`resources/views/admin/<コーナー>/` に `index`・`_fields`・`create`・`edit`・`confirm`・`show`。
 6. **入口のリンク**：管理画面の左のメニュー（`admin/_menu.blade.php`）に項目を足す。
 7. **権限**：管理者だけの機能なら `acl.manager`、1件ごとに判断が要るなら Policy（13章）。
@@ -958,7 +958,7 @@ SunEditor は npm のパッケージなので、`package.json` から外した�
 
 固定ページは、URL の名前（`t_pages.slug`）がそのままパスになります。`aboutus` なら `/aboutus` です。
 
-- **ルートは、`routes/web.php` のいちばん最後に置きます**。ほかの全部の画面を先に当てて、どれにも当たらなかった1区切りの URL だけを受けるためです。画面を足すときは、このルートより上に書きます。
+- **ルートは `routes/pages.php` に置き、`bootstrap/app.php` がいちばん最後に読みます**。ほかの全部の画面を先に当てて、どれにも当たらなかった URL だけを受けるためです。画面を足すときは、ほかのルートのファイルに書きます。
 - **ほかの画面と同じ名前のページは作れません**。`login`・`news`・`admin` のような、ほかの画面の URL の最初の区切りと同じ名前は、検証で断ります（`NotReservedPathRule`）。ルートの一覧から調べるので、画面を足しても、直す所はありません。
 - **名前の形**は、検証もルートも `SlugRule` のパターン（`SlugRule::NESTED_PATTERN`）を使います。食い違うと、登録できるのに開けないページができるためです。
 - 後から足した画面の URL が、すでにあるページの名前と重なったときは、画面のほうが先に当たり、ページは開けなくなります。ページの名前を変えます。
@@ -1072,7 +1072,7 @@ DBのコード表を増やすときは、`config/neobit.php` の `code_table_db`
 項目見出し一覧の画面は、フレームワークにあります（`CodeTableController`・`neobit::admin.code_tables.index`・`code_editor.js`）。ルートはアプリが書きます。管理者だけが入れるグループの中に、「頭.index」（GET）と「頭.update」（PATCH）の組で名前を付けます。コントローラーは、呼ばれたルートの名前から組のもう一方を作るので、頭（見本のサイトでは `admin.codes`）はアプリが決めてかまいません。
 
 ```php
-// routes/web.php（管理者だけのグループの中）
+// routes/admin.php（管理者だけのグループの中）
 Route::get('/codes', [CodeTableController::class, 'index'])->name('codes.index');
 Route::patch('/codes', [CodeTableController::class, 'update'])->name('codes.update');
 ```
@@ -2315,7 +2315,7 @@ OperationRecorder::record(OperationLogAction::Update, $company, ['status'], ['st
 
 ### 管理画面の回数の制限（AdminRequestLimit）
 
-**ファイル**：`packages/neobit/core/src/Security/AdminRequestLimit.php`（冒頭のコメント）・`routes/web.php`（管理画面のグループの `throttle:admin-screen`）
+**ファイル**：`packages/neobit/core/src/Security/AdminRequestLimit.php`（冒頭のコメント）・`routes/admin.php`（ログイン中のスタッフのグループの `throttle:admin-screen`）
 
 ログイン後の管理画面の全体に、スタッフごとの回数の制限を掛けています。一覧や詳細を、プログラムで続けて開いてデータを取り出す動きを止めるためです。
 
@@ -2334,7 +2334,7 @@ OperationRecorder::record(OperationLogAction::Update, $company, ['status'], ['st
 - **一覧の画面はフレームワークにあります**（`OperationLogController`・`neobit::admin.operation_logs.index`）。ルートは案件が書きます。管理者だけのグループの中に、「頭.index」（GET）・「頭.search」（POST）・「頭.csv」（GET）・「頭.day」（POST）の組で名前を付けます。日々の報告のメールに画面の URL を載せるなら、`config/neobit.php` の `operation_log_route` に「頭.index」を書きます。会員ごとの操作ログの画面は案件の画面で、表は同じ部分ビュー（`neobit::admin.operation_logs._table`）を使います。
 
     ```php
-    // routes/web.php（管理者だけのグループの中）
+    // routes/admin.php（管理者だけのグループの中）
     Route::get('/operation-logs', [OperationLogController::class, 'index'])->name('operation-logs.index');
     Route::post('/operation-logs', [OperationLogController::class, 'storeSearchCondition'])->name('operation-logs.search');
     Route::get('/operation-logs/csv', [OperationLogController::class, 'csv'])->name('operation-logs.csv');
@@ -2576,7 +2576,7 @@ Route::prefix('company')->name('company.')->group(function () {
 | `app/Models/`・`app/Enums/` | `Company`・`CompanyUser`、`CompanyStatus` |
 | `app/Http/Middleware/` | `EnsureCompanyIsApproved` |
 | `resources/` | `views/company/`・`views/layouts/company.blade.php`・`views/admin/companies/`・`views/admin/company_users/`、`mail-templates/company_*.blade.php`、管理画面の左のメニュー（`admin/_menu.blade.php`）の「企業会員」 |
-| `routes/web.php` | 企業会員のグループと、管理画面の企業会員管理のルート |
+| `routes/company.php`・`routes/admin.php` | 企業会員の画面と、管理画面の企業会員管理のルート |
 | `config/` | `auth.php` の `company` のガードとプロバイダー、`login.php` の `company_user` |
 | `bootstrap/app.php` | 移動先の `company.*` の行、`company.approved` の短い名前 |
 | `database/` | 企業（`t_companies`）と担当者（`t_company_users`）のテーブルのマイグレーション、`CompanySeeder` と、`DatabaseSeeder` の呼び出し。招待のテーブル（`team_invitations`）は、共通のテーブルなので残す |
@@ -2645,7 +2645,7 @@ Route::prefix('company')->name('company.')->group(function () {
 - **ルート**：案件が書きます。機能を使うかどうかを、案件ごとに決めるためです。管理者だけのグループの中に、「頭.index」（GET）と「頭.update」（PATCH）の組で名前を付けます。
 
     ```php
-    // routes/web.php（管理者だけのグループの中）
+    // routes/admin.php（管理者だけのグループの中）
     Route::get('/access-restriction', [AccessRestrictionController::class, 'index'])->name('access-restriction.index');
     Route::patch('/access-restriction', [AccessRestrictionController::class, 'update'])->name('access-restriction.update');
     ```
@@ -2715,7 +2715,7 @@ Route::prefix('company')->name('company.')->group(function () {
 
 <p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
 
-**ファイル**：`packages/neobit/core/src/Security/IpBlocker.php`（冒頭のコメント）・`src/Http/Middleware/RejectBlockedIp.php`・`src/Http/Controllers/IpBlockController.php`・`bootstrap/app.php`・`routes/web.php`
+**ファイル**：`packages/neobit/core/src/Security/IpBlocker.php`（冒頭のコメント）・`src/Http/Middleware/RejectBlockedIp.php`・`src/Http/Controllers/IpBlockController.php`・`bootstrap/app.php`・`routes/admin.php`
 
 不正な URL を続けて叩く BOT を、IP アドレスで止めます。Cloudflare などの WAF や fail2ban を入れられない環境で、PHP の側で身を守るためのものです。止めた IP アドレスからのアクセスには、どのページも 404 を返します。
 
@@ -2726,7 +2726,7 @@ Route::prefix('company')->name('company.')->group(function () {
 - **ルート**：案件が書きます。機能を使うかどうかを、案件ごとに決めるためです。管理者だけのグループの中に、「頭.index」「頭.store」「頭.update」「頭.destroy」の組で名前を付けます。update・destroy の URL には `{ipBlock}` を入れます。
 
     ```php
-    // routes/web.php（管理者だけのグループの中）
+    // routes/admin.php（管理者だけのグループの中）
     Route::get('/ip-blocks', [IpBlockController::class, 'index'])->name('ip-blocks.index');
     Route::post('/ip-blocks', [IpBlockController::class, 'store'])->name('ip-blocks.store');
     Route::patch('/ip-blocks/{ipBlock}', [IpBlockController::class, 'update'])->name('ip-blocks.update');
@@ -2844,7 +2844,7 @@ use SeoFields;
 運用する人が管理画面から、サイト全体の既定（タイトルの形・説明文・シェアの画像・Google Search Console の確認タグ）と、記事を持たないページ（トップページ・一覧・お問い合わせなど）ごとのタイトル・説明文・画像・検索に出さないを変えられます。値は `settings` テーブルに持ちます。
 
 ```php
-// routes/web.php。管理者だけが入れるグループの中に、「頭.index」「頭.update」の組で書く
+// routes/admin.php。管理者だけが入れるグループの中に、「頭.index」「頭.update」の組で書く
 Route::get('/seo-settings', [SeoSettingsController::class, 'index'])->name('seo-settings.index');
 Route::patch('/seo-settings', [SeoSettingsController::class, 'update'])->name('seo-settings.update');
 
@@ -2940,7 +2940,7 @@ slug はコーナーのテーブルの列に持ち、検証のルールだけを
     new NotReservedPathRule(),                            // URL の直下（/{slug}）に置くコーナーだけ
 ],
 
-// routes/web.php。検証と同じパターンを使う
+// routes/pages.php。検証と同じパターンを使う
 Route::get('/{slug}', ...)->where('slug', SlugRule::NESTED_PATTERN);
 ```
 
@@ -2959,7 +2959,7 @@ Route::get('/{slug}', ...)->where('slug', SlugRule::NESTED_PATTERN);
 // bootstrap/app.php。ルートの無い古い URL にも当てるので、全体のミドルウェアに足す
 $middleware->append(ApplyRedirects::class);
 
-// routes/web.php。管理者だけが入れるグループの中に、組の名前で書く。csv・csv-import は {redirect} より先に書く
+// routes/admin.php。管理者だけが入れるグループの中に、組の名前で書く。csv・csv-import は {redirect} より先に書く
 Route::get('/redirects', [RedirectController::class, 'index'])->name('redirects.index');
 Route::post('/redirects', [RedirectController::class, 'store'])->name('redirects.store');
 Route::get('/redirects/csv', [RedirectController::class, 'csv'])->name('redirects.csv');
@@ -3082,7 +3082,7 @@ sudo -u devapp /usr/bin/php artisan app:watch-files --init
 - **ルート**：案件が書きます。管理者だけのグループの中に、「頭.index」（GET）と「頭.approve」（POST）の組で名前を付けます。
 
     ```php
-    // routes/web.php（管理者だけのグループの中）
+    // routes/admin.php（管理者だけのグループの中）
     Route::get('/file-watch', [FileWatchController::class, 'index'])->name('file-watch.index');
     Route::post('/file-watch/approve', [FileWatchController::class, 'approve'])->name('file-watch.approve');
     ```

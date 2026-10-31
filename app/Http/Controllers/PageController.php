@@ -12,7 +12,7 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * 固定ページの、訪問者の側の表示。/aboutus や /service/price のように、URLの名前（slug）がそのままパスになる。
  *
- * ルートは、routes/web.phpのいちばん最後に置いてある。ほかの全部の画面のURLを先に当てて、
+ * ルートは、routes/pages.phpに置いてあり、いちばん最後に読む。ほかの全部の画面のURLを先に当てて、
  * どれにも当たらなかった1区切りのURLだけを、ここで受けるため。
  * 固定ページが無ければ、公開ディレクトリのHTMLと古いPHP（Neobit\Core\Http\Controllers\PublicFileController）を探す。
  * このルートが受けるURLは、フレームワークのフォールバックのルートまで届かないため。
