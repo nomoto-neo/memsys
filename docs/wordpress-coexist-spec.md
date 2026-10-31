@@ -96,7 +96,7 @@
 ## F. セキュリティ・権限・データ整合性の注意
 
 - `public/.htaccess` は apache が書けない権限のままにする。WordPress がパーマリンクの保存で書き換えようとするため。
-- `DISALLOW_FILE_MODS` で、WordPress の管理画面からのコードの書き換えを止める。止めない案件では、apache がコードを書ける分、守りが弱まる。
+- `DISALLOW_FILE_MODS` で、WordPress の管理画面からのコードの書き換えを止める。止めない案件では、apache がコードを書ける分、守りが弱まる。お客さんが画面から更新する案件は、これを外して「SSH SFTP Updater Support」を使い、SSH でつないだ利用者の権限で書く（利用ガイドの31章）。apache はコードに書けないままで、変わったファイルは改ざん監視の承認で取り込む。
 - `open_paths` に書いた URL は、サイトの制限も管理画面の制限も掛からない。書き込みに WordPress のログインが要るものだけを書く。
 - 見張りが読む状態のファイルの書き換えで止める向きにされる心配は、A と同じ（`docs/entry-gate-spec.md` の F）。
 
