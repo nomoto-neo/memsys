@@ -123,7 +123,7 @@ class FileWatchApprovalTest extends TestCase
             ->assertSessionMissing('status');
         $this->assertSame('野本', $this->watcher()->pendingApproval()['by']);
         $log = OperationLog::where('action', OperationLogAction::FileWatchApproval->value)->sole();
-        $this->assertSame(['変更：public/index.php', '追加：app/Models/Page.php'], $log->detailLines());
+        $this->assertSame(['変わったファイル（1件）', 'public/index.php', '増えたファイル（1件）', 'app/Models/Page.php'], $log->detailLines());
 
         // 取り込む前に増えた変化は、承認の一覧に無いので取り込まない
         $this->write('app/Models/Shell.php', '<?php // 怪しいもの', 27);
@@ -158,12 +158,15 @@ class FileWatchApprovalTest extends TestCase
 
         $this->actingAs($manager, 'admin')->get(route('admin.file-watch.index'))
             ->assertSee('次の51件を、通常の更新として基準に取り込みます。')
+            ->assertSee('増えたファイル（51件）')
             ->assertSee('ほか1件');
 
+        // 操作ログは、種類の見出しと50件と「ほか1件」。見出しの件数は切る前の件数
         $this->actingAs($manager, 'admin')->post(route('admin.file-watch.approve'), ['signature' => $signature]);
         $log = OperationLog::where('action', OperationLogAction::FileWatchApproval->value)->sole();
-        $this->assertCount(51, $log->detailLines());
-        $this->assertSame('ほか1件', $log->detailLines()[50]);
+        $this->assertCount(52, $log->detailLines());
+        $this->assertSame('増えたファイル（51件）', $log->detailLines()[0]);
+        $this->assertSame('ほか1件', $log->detailLines()[51]);
 
         // 目印には、全部の一覧を書く
         $this->assertCount(51, $this->watcher()->pendingApproval()['items']);

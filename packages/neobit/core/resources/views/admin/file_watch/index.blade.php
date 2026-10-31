@@ -53,10 +53,7 @@
                             <div class="modal-body">
                                 <p>次の{{ count($items) }}件を、通常の更新として基準に取り込みます。よろしいですか？</p>
                                 {{-- 多いときは決めた件数で切り、「ほか○件」にする --}}
-                                @include('neobit::admin.file_watch._list', ['entries' => array_slice($items, 0, $shownItems)])
-                                @if (count($items) > $shownItems)
-                                    <div class="ms-3 small">ほか{{ count($items) - $shownItems }}件</div>
-                                @endif
+                                @include('neobit::admin.file_watch._list', ['entries' => $items, 'limit' => $shownItems])
                                 <p class="small text-muted mt-3 mb-0">承認した人の名前と一覧は、操作ログとメールに残ります。</p>
                                 <input type="hidden" name="signature" value="{{ \Neobit\Core\Security\FileWatcher::signature($items) }}">
                             </div>

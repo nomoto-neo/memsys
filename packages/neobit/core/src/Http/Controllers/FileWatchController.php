@@ -33,11 +33,11 @@ class FileWatchController
 
     // ---- このコーナーの項目の定義 ----
 
-    /** 変化の種類の見出し */
+    /** 変化の種類ごとの見出し。画面・操作ログとも、この順に種類ごとにまとめて並べる（承認のメールと同じ） */
     private const KIND_LABELS = [
-        'changed' => '変更',
-        'added' => '追加',
-        'deleted' => '削除',
+        'changed' => '変わったファイル',
+        'added' => '増えたファイル',
+        'deleted' => '消えたファイル',
     ];
 
     /** 確かめのモーダルと操作ログに並べる件数。多いときは「ほか○件」にする。全部の一覧は承認のメールに載せる */
@@ -83,10 +83,20 @@ class FileWatchController
 
         $watcher->requestApproval($items, (string) $request->user()?->name);
 
-        // 承認した一覧を、決めた件数まで1件ずつ操作ログの補足に残す。多いときは「ほか○件」にする
+        // 承認した一覧を、種類ごとに見出しを付けて操作ログの補足に残す。「全文」のモーダルで、1項目ずつ行に分かれて出る。
+        // 決めた件数まで並べ、多いときは「ほか○件」にする。見出しの件数は、切る前の件数
         $detail = [];
-        foreach (array_slice($items, 0, self::SHOWN_ITEMS) as $index => $item) {
-            $detail['file_'.($index + 1)] = self::KIND_LABELS[$item['kind']].'：'.$item['label'];
+        $shown = 0;
+        foreach (self::KIND_LABELS as $kind => $label) {
+            $ofKind = array_values(array_filter($items, fn (array $item) => $item['kind'] === $kind));
+            if ($ofKind === [] || $shown >= self::SHOWN_ITEMS) {
+                continue;
+            }
+            $detail[$kind] = $label.'（'.count($ofKind).'件）';
+            foreach (array_slice($ofKind, 0, self::SHOWN_ITEMS - $shown) as $item) {
+                $shown++;
+                $detail['file_'.$shown] = $item['label'];
+            }
         }
         if (count($items) > self::SHOWN_ITEMS) {
             $detail['more'] = 'ほか'.(count($items) - self::SHOWN_ITEMS).'件';
