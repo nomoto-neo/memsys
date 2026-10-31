@@ -74,7 +74,8 @@ Laravel の標準の構成に、次のものを足している（各ディレク
 | `docs/entry-gate-spec.md` | 入口の見張り（IP ブロックとアクセス制限を、Laravel を起動する前に判断する `gate.php`）の仕様メモ |
 | `docs/wordpress-coexist-spec.md` | WordPress との共存（WordPress にも入口の見張りと改ざん監視を効かせる）の仕様メモ |
 | `docs/access-ip-comments-spec.md` | アクセス制限の IP アドレスのコメントと、画面の項目の名前の仕様メモ |
-| `docs/[スラッグ]-spec.md` | これから作る機能の仕様メモ。機能の実装の流れ（`CLAUDE.md`）で、実装の後に書く |
+| `docs/[スラッグ]-spec.md` | 機能ごとの仕様メモ。上の表に無いものも、この名前で置いてある。機能の実装の流れ（`CLAUDE.md`）で、実装の後に書く |
+| `docs/packaging-plan.md` | フレームワークをパッケージに分ける計画書。方針と、段階ごとの状態 |
 | `docs/prompt/` | 機能の実装プロンプト（依頼の内容）。git で管理しない |
 | `docs/security-code-check.md` | コードのセキュリティを確かめる観点と、確かめた記録 |
 | `docs/laravel-dependency.md` | Laravel の機能とパッケージへの依存の一覧。脆弱性が出たときに、影響があるかを判断するのに使う |
