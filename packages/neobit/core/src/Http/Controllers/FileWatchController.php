@@ -41,7 +41,7 @@ class FileWatchController
     ];
 
     /** 確かめのモーダルと操作ログに並べる件数。多いときは「ほか○件」にする。全部の一覧は承認のメールに載せる */
-    private const SHOWN_ITEMS = 50;
+    private const SHOWN_ITEMS = 20;
 
     // ---- 表示・承認 ----
 

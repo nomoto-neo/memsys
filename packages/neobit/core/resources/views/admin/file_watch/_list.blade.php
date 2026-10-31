@@ -24,6 +24,6 @@
         @endif
     @endforeach
     @if ($limit !== null && count($entries) > $limit)
-        <div class="ms-3 small mt-1">ほか{{ count($entries) - $limit }}件</div>
+        <div class="ms-3 small fw-bold mt-1">ほか{{ count($entries) - $limit }}件</div>
     @endif
 @endif

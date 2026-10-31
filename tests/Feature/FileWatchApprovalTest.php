@@ -148,28 +148,28 @@ class FileWatchApprovalTest extends TestCase
 
     public function test_many_items_are_cut_in_the_modal_and_the_log(): void
     {
-        // 51件の追加。確かめのモーダルと操作ログは50件で切り、「ほか1件」にする
+        // 21件の追加。確かめのモーダルと操作ログは20件で切り、「ほか1件」にする
         $manager = $this->staff();
-        for ($i = 1; $i <= 51; $i++) {
+        for ($i = 1; $i <= 21; $i++) {
             $this->write(sprintf('public/wp-content/plugins/sample/file%02d.php', $i), '<?php', 2);
         }
         $this->at(20);
         $signature = FileWatcher::signature($this->watcher()->inspect()['alerts']);
 
         $this->actingAs($manager, 'admin')->get(route('admin.file-watch.index'))
-            ->assertSee('次の51件を、通常の更新として基準に取り込みます。')
-            ->assertSee('増えたファイル（51件）')
+            ->assertSee('次の21件を、通常の更新として基準に取り込みます。')
+            ->assertSee('増えたファイル（21件）')
             ->assertSee('ほか1件');
 
-        // 操作ログは、種類の見出しと50件と「ほか1件」。見出しの件数は切る前の件数
+        // 操作ログは、種類の見出しと20件と「ほか1件」。見出しの件数は切る前の件数
         $this->actingAs($manager, 'admin')->post(route('admin.file-watch.approve'), ['signature' => $signature]);
         $log = OperationLog::where('action', OperationLogAction::FileWatchApproval->value)->sole();
-        $this->assertCount(52, $log->detailLines());
-        $this->assertSame('増えたファイル（51件）', $log->detailLines()[0]);
-        $this->assertSame('ほか1件', $log->detailLines()[51]);
+        $this->assertCount(22, $log->detailLines());
+        $this->assertSame('増えたファイル（21件）', $log->detailLines()[0]);
+        $this->assertSame('ほか1件', $log->detailLines()[21]);
 
         // 目印には、全部の一覧を書く
-        $this->assertCount(51, $this->watcher()->pendingApproval()['items']);
+        $this->assertCount(21, $this->watcher()->pendingApproval()['items']);
     }
 
     public function test_approve_without_a_request_does_nothing(): void
