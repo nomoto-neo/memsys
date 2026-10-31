@@ -150,6 +150,7 @@
 | クラス | 公開のメソッドと定数 | メモ |
 |---|---|---|
 | `CodeTable` | `get()`・`normalizeKey()` | ふつうはヘルパーから使う |
+| `FrameworkRoutes` | `codes()`・`ipBlocks()`・`accessRestriction()`・`basicAuth()`・`fileWatch()`・`seoSettings()`・`redirects()`・`operationLogs()` | フレームワークの画面のルートを1行で書く。案件の `routes/admin.php` が呼ぶ |
 | `UploadFieldDefinitions` | `of()`・`find()` | ふつうは `AjaxFileUpload` と `upload_field()` が使う |
 | `UploadFilePath` | `directory()`・`isPrivate()`・`disk()`・`url()`・`path()`・`tmpUrl()`・`previewUrl()`、定数 `TMP_DIR`・`TMP_DISK`・`TMP_SESSION_KEY`・`TMP_SESSION_MAX`・`PUBLIC_DISK`・`PRIVATE_DISK`・`SAFE_FILENAME` | |
 | `OperationRecorder` | `record()`・`loggableFields()` | |
@@ -192,7 +193,7 @@
 | `CsvImportSettings`・`CsvImportResult`・`CsvImportRow`・`CsvColumnSet` | 取り込みの設定と結果 | |
 | 検証のルール | `KatakanaRule`・`HiraganaRule`・`PhoneNumberRule`・`SameCountAsRule`・`UploadRequiredRule`・`SlugRule`・`NotReservedPathRule` | |
 | ミドルウェア | `AjaxFormResponse`・`ApplyRedirects`・`NoIndexHeader`・`NormalizeInput`・`RejectBlockedIp`・`RestrictAdminAccess`・`RestrictSiteAccess`・`RunScheduleOnRequest`・`SecurityHeaders` | |
-| コントローラー | `CodeTableController`・`IpBlockController`・`AccessRestrictionController`・`BasicAuthController`・`FileWatchController`・`SeoSettingsController`・`RedirectController`・`OperationLogController`（どれもルートは案件が書く）・`UploadedFileController`・`SitemapController`・`RobotsController`・`PublicFileController`（どの URL も受けるルートを案件が書くときは、自分のページが無ければこれに渡す） | |
+| コントローラー | `CodeTableController`・`IpBlockController`・`AccessRestrictionController`・`BasicAuthController`・`FileWatchController`・`SeoSettingsController`・`RedirectController`・`OperationLogController`（どれもルートは案件が `FrameworkRoutes` で書く）・`UploadedFileController`・`SitemapController`・`RobotsController`・`PublicFileController`（どの URL も受けるルートを案件が書くときは、自分のページが無ければこれに渡す） | |
 
 ## 7. ヘルパー
 

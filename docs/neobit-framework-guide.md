@@ -1069,12 +1069,11 @@ DBのコード表を増やすときは、`config/neobit.php` の `code_table_db`
 
 プログラムが特定のコード値を前提に処理するコード表は、`fixed` を true にします。そのコード表は、画面で並び替えと表示名の変更だけができ、コード値の変更・追加・削除はできません（サーバー側でも断ります）。
 
-項目見出し一覧の画面は、フレームワークにあります（`CodeTableController`・`neobit::admin.code_tables.index`・`code_editor.js`）。ルートはアプリが書きます。管理者だけが入れるグループの中に、「頭.index」（GET）と「頭.update」（PATCH）の組で名前を付けます。コントローラーは、呼ばれたルートの名前から組のもう一方を作るので、頭（見本のサイトでは `admin.codes`）はアプリが決めてかまいません。
+項目見出し一覧の画面は、フレームワークにあります（`CodeTableController`・`neobit::admin.code_tables.index`・`code_editor.js`）。ルートはアプリが書きます。管理者だけのグループの中に、`Neobit\Core\Routing\FrameworkRoutes` の1行を書きます。名前の頭は、渡した URL から作ります（`/codes` なら `codes.`）。
 
 ```php
 // routes/admin.php（管理者だけのグループの中）
-Route::get('/codes', [CodeTableController::class, 'index'])->name('codes.index');
-Route::patch('/codes', [CodeTableController::class, 'update'])->name('codes.update');
+FrameworkRoutes::codes('/codes');
 ```
 
 ほかのテーブルから作るコード表は、モデルに静的なメソッドを書き、`code_table_method` に載せます。画面やコントローラーで一覧を組み立てなくても、ほかのコード表と同じヘルパーで使えます。
@@ -2331,14 +2330,11 @@ OperationRecorder::record(OperationLogAction::Update, $company, ['status'], ['st
 - **一覧と検索**（`/app/admin/operation-logs`）：日付の範囲・操作・操作した人・対象・IP アドレス・補足で絞れます。補足は、中の語を部分一致で探します。空白で区切ると、全部の語を含む行に絞ります。CSV でも出せます。見るだけの画面で、登録・編集・削除はありません。
 - **どちらの画面も、管理者だけが開けます**：記録を取っていることを、スタッフの全員に見せる必要は無いためです。管理画面のトップのリンクも、管理者にだけ出ます。
 - **会員ごとの操作ログ**（`/app/admin/members/{id}/operation-logs`。会員の詳細画面の「操作ログ」のボタン）：その会員を対象にした操作と、その会員が行った操作だけを出します。本人が変えたのか、スタッフが変えたのか、誰が詳細を開いたのかが、時刻の順に並びます。問い合わせに答えるのに使います。こちらも管理者だけが開け、ボタンも管理者にだけ出ます。
-- **一覧の画面はフレームワークにあります**（`OperationLogController`・`neobit::admin.operation_logs.index`）。ルートは案件が書きます。管理者だけのグループの中に、「頭.index」（GET）・「頭.search」（POST）・「頭.csv」（GET）・「頭.day」（POST）の組で名前を付けます。日々の報告のメールに画面の URL を載せるなら、`config/neobit.php` の `operation_log_route` に「頭.index」を書きます。会員ごとの操作ログの画面は案件の画面で、表は同じ部分ビュー（`neobit::admin.operation_logs._table`）を使います。
+- **一覧の画面はフレームワークにあります**（`OperationLogController`・`neobit::admin.operation_logs.index`）。ルートは案件が書きます。管理者だけのグループの中に、`Neobit\Core\Routing\FrameworkRoutes` の1行を書きます。日々の報告のメールに画面の URL を載せるなら、`config/neobit.php` の `operation_log_route` に「頭.index」を書きます。会員ごとの操作ログの画面は案件の画面で、表は同じ部分ビュー（`neobit::admin.operation_logs._table`）を使います。
 
     ```php
     // routes/admin.php（管理者だけのグループの中）
-    Route::get('/operation-logs', [OperationLogController::class, 'index'])->name('operation-logs.index');
-    Route::post('/operation-logs', [OperationLogController::class, 'storeSearchCondition'])->name('operation-logs.search');
-    Route::get('/operation-logs/csv', [OperationLogController::class, 'csv'])->name('operation-logs.csv');
-    Route::post('/operation-logs/day', [OperationLogController::class, 'searchDay'])->name('operation-logs.day');
+    FrameworkRoutes::operationLogs('/operation-logs');
     ```
 - **CSV のダウンロードと取り込みは、対象の欄に CSV の名前を出します**（会員一覧など）。何に対する操作かを表すためです。
 - **CSV と一斉メールの送信は、補足の欄に件数を出します**：`23件`、`120行（追加 0・更新 15・変更なし 105）`、`宛先 300件（送信済み 298・失敗 2）` の形です。件数は操作ログには持たせず、CSV の記録（`csv_download_logs`・`csv_import_logs`）と送信の記録（`t_bulk_mails`）から、その都度読みます（`OperationLog::relatedRecords()`）。
@@ -2642,12 +2638,11 @@ Route::prefix('company')->name('company.')->group(function () {
 - **管理画面に入れる人**：管理画面の IP アドレス（画面と `.env` の `ADMIN_ALLOWED_IPS`）は、サイトの制限でも通します。管理画面に入れる人が、メンテナンス中のサイトを確かめたり、WordPress のブロックエディタで記事を保存したり（31章）できるようにするためです。管理画面の制限のチェックが無くても、一覧に書いた IP アドレスは通ります。一覧が空なら、サイトの制限が全員に開くことはありません。
 - **設定ファイルの分**：`.env` の `SITE_ALLOWED_IPS`・`ADMIN_ALLOWED_IPS` に書いた IP アドレスは、それぞれの一覧に足し合わせます。画面からは外せず、画面にはそれぞれの欄の下に「次のIPアドレスは、設定ファイルにより常に許可されています。」と出ます。サーバーを管理する人の事務所などを書いておくと、画面でどう設定しても締め出されません。`.env` を変えたら `php artisan config:cache` をやり直します。
 - **締め出さない**：管理画面の制限を掛けて保存するとき、今の自分の IP アドレスが管理画面の一覧に無ければ、保存させません。サイトの制限は管理画面に影響しないので、確かめません。それでも回線が変わるなどで締め出されたときは、サーバーで `php artisan app:access-denied-off` を実行します。両方の制限を外します。IP アドレスの一覧は残ります。
-- **ルート**：案件が書きます。機能を使うかどうかを、案件ごとに決めるためです。管理者だけのグループの中に、「頭.index」（GET）と「頭.update」（PATCH）の組で名前を付けます。
+- **ルート**：案件が書きます。機能を使うかどうかを、案件ごとに決めるためです。管理者だけのグループの中に、`Neobit\Core\Routing\FrameworkRoutes` の1行を書きます。
 
     ```php
     // routes/admin.php（管理者だけのグループの中）
-    Route::get('/access-restriction', [AccessRestrictionController::class, 'index'])->name('access-restriction.index');
-    Route::patch('/access-restriction', [AccessRestrictionController::class, 'update'])->name('access-restriction.update');
+    FrameworkRoutes::accessRestriction('/access-restriction');
     ```
 
 - **サイトの制限から管理画面を外す**：`bootstrap/app.php` の `RestrictSiteAccess::except()` に、管理画面の URL（見本のサイトでは `admin`・`admin/*`）を書きます。管理画面の URL の頭は案件が決めるので、案件の側で書きます。
@@ -2723,14 +2718,11 @@ Route::prefix('company')->name('company.')->group(function () {
 - **自動で止める**：応答が 404・405 になったアクセスを、IP アドレスごとに数えます。`config/neobit.php` の `ip_block_watch_minutes`（10分）の中に `ip_block_watch_count`（30回）を超えたら、`ip_block_hours`（24時間）止めます。`ip_block_auto` を false にすると数えず、管理画面からの登録だけになります。IPv6 は `/64` のまとまりで数えて止めます。
 - **止めない IP アドレス**：アクセス制限（24章）のサイトと管理画面の IP アドレスは、`.env` の分も画面の分も、自動でも手動でも止めません。管理画面からは、今の自分の IP アドレスを含むものも登録できません。管理者が自分を止めないようにするためです。
 - **管理画面**：止めている IP アドレスの一覧と、手動の登録・期限の変更・解除です。IP アドレスは1つでも、`203.0.113.0/24` のようなまとまりでも登録できます。一覧と登録の欄には、実際に止まる範囲（`203.0.113.0 ～ 203.0.113.255`）を出します。まとまりは、広すぎると関係の無い人まで止めるので、IPv4 は `/16`、IPv6 は `/32` より狭いものだけにします。
-- **ルート**：案件が書きます。機能を使うかどうかを、案件ごとに決めるためです。管理者だけのグループの中に、「頭.index」「頭.store」「頭.update」「頭.destroy」の組で名前を付けます。update・destroy の URL には `{ipBlock}` を入れます。
+- **ルート**：案件が書きます。機能を使うかどうかを、案件ごとに決めるためです。管理者だけのグループの中に、`Neobit\Core\Routing\FrameworkRoutes` の1行を書きます。
 
     ```php
     // routes/admin.php（管理者だけのグループの中）
-    Route::get('/ip-blocks', [IpBlockController::class, 'index'])->name('ip-blocks.index');
-    Route::post('/ip-blocks', [IpBlockController::class, 'store'])->name('ip-blocks.store');
-    Route::patch('/ip-blocks/{ipBlock}', [IpBlockController::class, 'update'])->name('ip-blocks.update');
-    Route::delete('/ip-blocks/{ipBlock}', [IpBlockController::class, 'destroy'])->name('ip-blocks.destroy');
+    FrameworkRoutes::ipBlocks('/ip-blocks');
     ```
 
     ミドルウェアは、ルートを書かなくても動きます。管理画面を出さない案件でも、自動で止める仕組みは働きます。`bootstrap/app.php` の全体のミドルウェアに `RejectBlockedIp` を足してあることを確かめてください。
@@ -2844,9 +2836,8 @@ use SeoFields;
 運用する人が管理画面から、サイト全体の既定（タイトルの形・説明文・シェアの画像・Google Search Console の確認タグ）と、記事を持たないページ（トップページ・一覧・お問い合わせなど）ごとのタイトル・説明文・画像・検索に出さないを変えられます。値は `settings` テーブルに持ちます。
 
 ```php
-// routes/admin.php。管理者だけが入れるグループの中に、「頭.index」「頭.update」の組で書く
-Route::get('/seo-settings', [SeoSettingsController::class, 'index'])->name('seo-settings.index');
-Route::patch('/seo-settings', [SeoSettingsController::class, 'update'])->name('seo-settings.update');
+// routes/admin.php（管理者だけのグループの中）
+FrameworkRoutes::seoSettings('/seo-settings');
 
 // config/neobit.php の seo。画面に出すページ。ルート名 => 画面に出す名前
 'page_routes' => [
@@ -2959,15 +2950,8 @@ Route::get('/{slug}', ...)->where('slug', SlugRule::NESTED_PATTERN);
 // bootstrap/app.php。ルートの無い古い URL にも当てるので、全体のミドルウェアに足す
 $middleware->append(ApplyRedirects::class);
 
-// routes/admin.php。管理者だけが入れるグループの中に、組の名前で書く。csv・csv-import は {redirect} より先に書く
-Route::get('/redirects', [RedirectController::class, 'index'])->name('redirects.index');
-Route::post('/redirects', [RedirectController::class, 'store'])->name('redirects.store');
-Route::get('/redirects/csv', [RedirectController::class, 'csv'])->name('redirects.csv');
-Route::get('/redirects/csv-import', [RedirectController::class, 'csvImport'])->name('redirects.csv-import');
-Route::post('/redirects/csv-import/confirm', [RedirectController::class, 'csvImportConfirm'])->name('redirects.csv-import.confirm');
-Route::post('/redirects/csv-import/execute', [RedirectController::class, 'csvImportExecute'])->name('redirects.csv-import.execute');
-Route::patch('/redirects/{redirect}', [RedirectController::class, 'update'])->name('redirects.update');
-Route::delete('/redirects/{redirect}', [RedirectController::class, 'destroy'])->name('redirects.destroy');
+// routes/admin.php（管理者だけのグループの中）
+FrameworkRoutes::redirects('/redirects');
 ```
 
 - **使うかどうか**：設定の `seo.redirects` を `true` にします（フレームワークの既定は `false`）。`false` のときは登録を見ずに、末尾の「/」を外す働きだけをします。キャッシュの置き場所が DB なので、一覧を読むだけでも毎回 DB を引くためです。ミドルウェアは使わないときも置いたままにします。
@@ -3079,12 +3063,11 @@ sudo -u devapp /usr/bin/php artisan app:watch-files --init
 - **承認できないもの**：許可されていないアップロードファイルと、確かめられなかったディレクトリです。ファイルを消すか、権限を直します。
 - **記録**：押したときに操作ログ（「改ざん監視の承認」）に一覧を残します。受け付けたことは、取り込まれるまで画面に「○○さんの承認を受け付けました」と出します。画面・確かめのモーダル・操作ログは、承認のメールと同じく「変わったファイル」「増えたファイル」「消えたファイル」の見出しで種類ごとにまとめます。確かめのモーダルと操作ログには全部で20件までを並べ、多いときは「ほか○件」にします。全部の一覧は承認のメールに載せます。取り込んだときに「○○さんがサイトの変更内容を承認しました」のメールを、知らせと同じ宛先へ送ります（取り込んだファイルの一覧つき）。1日1回の報告と画面には「○○さんが承認した更新」と出します。承認した覚えが無いのにメールが届いたら、侵入を疑います。
 - **二段階認証などは付けていません**：apache の権限で侵入した攻撃者は目印を真似できますが、apache はコードに書けないので、取り込ませられるのはアップロードの置き場所の `.htaccess` くらいです。それも承認のメールと翌日の報告に残るので、記録で気付ける形にしています。
-- **ルート**：案件が書きます。管理者だけのグループの中に、「頭.index」（GET）と「頭.approve」（POST）の組で名前を付けます。
+- **ルート**：案件が書きます。管理者だけのグループの中に、`Neobit\Core\Routing\FrameworkRoutes` の1行を書きます。
 
     ```php
     // routes/admin.php（管理者だけのグループの中）
-    Route::get('/file-watch', [FileWatchController::class, 'index'])->name('file-watch.index');
-    Route::post('/file-watch/approve', [FileWatchController::class, 'approve'])->name('file-watch.approve');
+    FrameworkRoutes::fileWatch('/file-watch');
     ```
 
 **知らせが来たとき**

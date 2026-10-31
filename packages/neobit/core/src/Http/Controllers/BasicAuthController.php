@@ -15,10 +15,8 @@ use Neobit\Core\Security\BasicAuth;
  * ベーシック認証の画面。訪問者画面と管理画面のそれぞれに、掛けるかと、ユーザーの追加と削除を、運用する人が管理画面から変える。
  * 掛け方と決まりは、Neobit\Core\Security\BasicAuthにある。働くのは、サーバーのVirtualHostに決まりを書いたときだけ。
  *
- * ルートはアプリが書く。機能を使うかどうかは、案件ごとに決めるため。管理者だけが入れるグループの中に、
- * 「頭.index」（GET）・「頭.update」（PATCH）・「頭.store」（POST）・「頭.destroy」（DELETE）の組で名前を付ける。
- * update・storeのURLには{area}（siteかadmin）を、destroyのURLには{basicAuthUser}を入れる。頭はアプリが決めてよい。
- * このコントローラーは、呼ばれたルートの名前から、組になるほかの名前を作る。
+ * ルートは、アプリがNeobit\Core\Routing\FrameworkRoutes::basicAuth()の1行で、管理者だけが入れるグループの中に書く。
+ * 機能を使うかどうかは、案件ごとに決めるため。このコントローラーは、呼ばれたルートの名前から、組になるほかの名前を作る。
  *
  * 入力のエラーは、範囲の名前のエラーの入れ物（site・admin）に入れる。画面の範囲ごとの枠に、その範囲のエラーだけを出すため。
  * 項目が少なく、間違えてもすぐ直せるので、確認画面は挟まない。

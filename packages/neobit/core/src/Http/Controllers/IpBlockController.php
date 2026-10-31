@@ -17,10 +17,8 @@ use Neobit\Core\Security\IpBlocker;
  * IPブロック管理の画面。止めているIPアドレスの一覧と、手動の登録・期限の変更・解除。
  * 止める仕組みと自動で止める動きは、Neobit\Core\Security\IpBlockerにある。
  *
- * ルートはアプリが書く。機能を使うかどうかは、案件ごとに決めるため。管理者だけが入れる
- * グループの中に、「頭.index」（GET）・「頭.store」（POST）・「頭.update」（PATCH）・
- * 「頭.destroy」（DELETE）の組で名前を付ける。update・destroyのURLには、{ipBlock}を入れる。
- * 頭はアプリが決めてよい。このコントローラーは、呼ばれたルートの名前から、組になるほかの名前を作る。
+ * ルートは、アプリがNeobit\Core\Routing\FrameworkRoutes::ipBlocks()の1行で、管理者だけが入れるグループの中に書く。
+ * 機能を使うかどうかは、案件ごとに決めるため。このコントローラーは、呼ばれたルートの名前から、組になるほかの名前を作る。
  *
  * 項目が少なく、間違えてもすぐ解除できるので、確認画面は挟まない。
  */

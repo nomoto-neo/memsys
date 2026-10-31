@@ -12,14 +12,7 @@ use App\Http\Controllers\Admin\NewsletterSubscriberController as AdminNewsletter
 use App\Http\Controllers\Admin\PageController as AdminPageController;
 use App\Http\Controllers\Admin\StaffController as AdminStaffController;
 use Illuminate\Support\Facades\Route;
-use Neobit\Core\Http\Controllers\AccessRestrictionController;
-use Neobit\Core\Http\Controllers\BasicAuthController;
-use Neobit\Core\Http\Controllers\FileWatchController;
-use Neobit\Core\Http\Controllers\CodeTableController;
-use Neobit\Core\Http\Controllers\IpBlockController;
-use Neobit\Core\Http\Controllers\OperationLogController;
-use Neobit\Core\Http\Controllers\RedirectController;
-use Neobit\Core\Http\Controllers\SeoSettingsController;
+use Neobit\Core\Routing\FrameworkRoutes;
 
 /**
  * 管理画面のルート。会員用の"web"ガードとは別の"admin"ガードで保護する。
@@ -194,55 +187,17 @@ Route::middleware(['auth:admin', 'auth.session', 'throttle:admin-screen'])->grou
         Route::patch('/staff/{staff}/update', [AdminStaffController::class, 'update'])->name('staff.update');
     });
 
-    // 項目見出し管理
+    // 管理者だけが使う画面
     Route::middleware('acl.manager')->group(function () {
-        // 項目見出し一覧（DBで管理するコード表 code_tables の編集。フレームワークの画面）。
-        // 名前は「頭.index」「頭.update」の組にする。コントローラーが組のもう一方を名前から作る
-        Route::get('/codes', [CodeTableController::class, 'index'])->name('codes.index');
-        Route::patch('/codes', [CodeTableController::class, 'update'])->name('codes.update');
-
-        // IPブロック管理（アクセスを止めるIPアドレスの一覧と登録。フレームワークの画面）。
-        // 名前は「頭.index」「頭.store」「頭.update」「頭.destroy」の組にする。コントローラーが組のほかの名前を作る
-        Route::get('/ip-blocks', [IpBlockController::class, 'index'])->name('ip-blocks.index');
-        Route::post('/ip-blocks', [IpBlockController::class, 'store'])->name('ip-blocks.store');
-        Route::patch('/ip-blocks/{ipBlock}', [IpBlockController::class, 'update'])->name('ip-blocks.update');
-        Route::delete('/ip-blocks/{ipBlock}', [IpBlockController::class, 'destroy'])->name('ip-blocks.destroy');
-
-        // アクセス制限（サイトと管理画面の、それぞれの制限と開けるIPアドレス。フレームワークの画面）。
-        // 名前は「頭.index」「頭.update」の組にする。コントローラーが組のもう一方の名前を作る
-        Route::get('/access-restriction', [AccessRestrictionController::class, 'index'])->name('access-restriction.index');
-        Route::patch('/access-restriction', [AccessRestrictionController::class, 'update'])->name('access-restriction.update');
-
-        // ベーシック認証（訪問者画面と管理画面のそれぞれに、掛けるかとユーザー。フレームワークの画面）。
-        // 名前は「頭.index」「頭.update」「頭.store」「頭.destroy」の組にする。コントローラーが組のほかの名前を作る。
-        // {area}はsite（訪問者画面）かadmin（管理画面）
-        Route::get('/basic-auth', [BasicAuthController::class, 'index'])->name('basic-auth.index');
-        Route::patch('/basic-auth/{area}', [BasicAuthController::class, 'update'])->whereIn('area', ['site', 'admin'])->name('basic-auth.update');
-        Route::post('/basic-auth/{area}/users', [BasicAuthController::class, 'store'])->whereIn('area', ['site', 'admin'])->name('basic-auth.store');
-        Route::delete('/basic-auth/users/{basicAuthUser}', [BasicAuthController::class, 'destroy'])->name('basic-auth.destroy');
-
-        // 改ざん監視（今の状況と、変更内容の承認。フレームワークの画面）。
-        // 名前は「頭.index」「頭.approve」の組にする。コントローラーが組のもう一方の名前を作る
-        Route::get('/file-watch', [FileWatchController::class, 'index'])->name('file-watch.index');
-        Route::post('/file-watch/approve', [FileWatchController::class, 'approve'])->name('file-watch.approve');
-
-        // SEO設定（記事を持たないページのSEOと、サイト全体の既定。フレームワークの画面）。
-        // 名前は「頭.index」「頭.update」の組にする。コントローラーが組のもう一方の名前を作る
-        Route::get('/seo-settings', [SeoSettingsController::class, 'index'])->name('seo-settings.index');
-        Route::patch('/seo-settings', [SeoSettingsController::class, 'update'])->name('seo-settings.update');
-
-        // リダイレクト（古いURLから新しいURLへの移し方の一覧・追加・編集・削除と、CSV。フレームワークの画面）。
-        // 名前は「頭.index」「頭.store」「頭.update」「頭.destroy」「頭.csv」「頭.csv-import」
-        // 「頭.csv-import.confirm」「頭.csv-import.execute」の組にする。コントローラーが組のほかの名前を作る。
-        // csvとcsv-importは、{redirect}のURLより先に書く
-        Route::get('/redirects', [RedirectController::class, 'index'])->name('redirects.index');
-        Route::post('/redirects', [RedirectController::class, 'store'])->name('redirects.store');
-        Route::get('/redirects/csv', [RedirectController::class, 'csv'])->name('redirects.csv');
-        Route::get('/redirects/csv-import', [RedirectController::class, 'csvImport'])->name('redirects.csv-import');
-        Route::post('/redirects/csv-import/confirm', [RedirectController::class, 'csvImportConfirm'])->name('redirects.csv-import.confirm');
-        Route::post('/redirects/csv-import/execute', [RedirectController::class, 'csvImportExecute'])->name('redirects.csv-import.execute');
-        Route::patch('/redirects/{redirect}', [RedirectController::class, 'update'])->name('redirects.update');
-        Route::delete('/redirects/{redirect}', [RedirectController::class, 'destroy'])->name('redirects.destroy');
+        // フレームワークの画面（Neobit\Core\Routing\FrameworkRoutes）。使わない画面は、その行を消す
+        FrameworkRoutes::codes('/codes');
+        FrameworkRoutes::ipBlocks('/ip-blocks');
+        FrameworkRoutes::accessRestriction('/access-restriction');
+        FrameworkRoutes::basicAuth('/basic-auth');
+        FrameworkRoutes::fileWatch('/file-watch');
+        FrameworkRoutes::seoSettings('/seo-settings');
+        FrameworkRoutes::redirects('/redirects');
+        FrameworkRoutes::operationLogs('/operation-logs');
 
         // 一斉メールの文面の管理
         Route::get('/bulk-mail-templates', [AdminBulkMailTemplateController::class, 'index'])->name('bulk-mail-templates.index');
@@ -268,14 +223,6 @@ Route::middleware(['auth:admin', 'auth.session', 'throttle:admin-screen'])->grou
         Route::get('/newsletter-subscribers', [AdminNewsletterSubscriberController::class, 'index'])->name('newsletter-subscribers.index');
         Route::post('/newsletter-subscribers', [AdminNewsletterSubscriberController::class, 'storeSearchCondition'])->name('newsletter-subscribers.search');
         Route::patch('/newsletter-subscribers/{subscriber}/stop', [AdminNewsletterSubscriberController::class, 'stop'])->name('newsletter-subscribers.stop');
-
-        // 操作ログの一覧・検索（Neobit\Core\Operations\OperationRecorderが書いた記録を見るだけ。フレームワークの画面）。
-        // 名前は「頭.index」「頭.search」「頭.csv」「頭.day」の組にする。コントローラーが組のほかの名前を作る
-        Route::get('/operation-logs', [OperationLogController::class, 'index'])->name('operation-logs.index');
-        Route::post('/operation-logs', [OperationLogController::class, 'storeSearchCondition'])->name('operation-logs.search');
-        Route::get('/operation-logs/csv', [OperationLogController::class, 'csv'])->name('operation-logs.csv');
-        // 1日ごとの棒を押したとき。今の検索条件のまま、その1日に絞る
-        Route::post('/operation-logs/day', [OperationLogController::class, 'searchDay'])->name('operation-logs.day');
     });
 
     // ニュースカテゴリー管理

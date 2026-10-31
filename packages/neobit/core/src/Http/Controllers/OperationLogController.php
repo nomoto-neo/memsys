@@ -23,10 +23,9 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  * 操作ログの一覧と検索。Neobit\Core\Operations\OperationRecorderが書いた記録を見るだけの画面で、
  * 登録・編集・削除は無い。記録を取っていることを全員に見せる必要は無いので、管理者だけが開けるようにする。
  *
- * ルートはアプリが書く。機能を使うかどうかは、案件ごとに決めるため。管理者だけが入れるグループの中に、
- * 「頭.index」（GET）・「頭.search」（POST。検索条件の保存）・「頭.csv」（GET）・「頭.day」（POST）の組で
- * 名前を付ける。頭はアプリが決めてよい。このコントローラーは、呼ばれたルートの名前から、組になるほかの
- * 名前を作る。日々の報告のメールに画面のURLを載せるなら、config('neobit.operation_log_route')に「頭.index」を書く。
+ * ルートは、アプリがNeobit\Core\Routing\FrameworkRoutes::operationLogs()の1行で、管理者だけが入れるグループの中に書く。
+ * 機能を使うかどうかは、案件ごとに決めるため。このコントローラーは、呼ばれたルートの名前から、組になるほかの名前を作る。
+ * 日々の報告のメールに画面のURLを載せるなら、config('neobit.operation_log_route')に「頭.index」を書く。
  */
 class OperationLogController
 {

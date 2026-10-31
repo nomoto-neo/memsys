@@ -25,11 +25,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  * 追加と編集は一覧の行の中で行い、別の画面は持たない。
  * 当て方はNeobit\Core\Seo\RedirectResolver、登録のときの確かめはNeobit\Core\Seo\RedirectChecker。
  *
- * ルートはアプリが書く。機能を使うかどうかは、案件ごとに決めるため。管理者だけが入れるグループの中に、
- * 「頭.index」（GET）・「頭.store」（POST）・「頭.update」（PATCH）・「頭.destroy」（DELETE）・
- * 「頭.csv」（GET）・「頭.csv-import」（GET）・「頭.csv-import.confirm」（POST）・「頭.csv-import.execute」（POST）の組で
- * 名前を付ける。update・destroyのURLには、{redirect}を入れる。頭はアプリが決めてよい。
- * このコントローラーは、呼ばれたルートの名前から、組になるほかの名前を作る。
+ * ルートは、アプリがNeobit\Core\Routing\FrameworkRoutes::redirects()の1行で、管理者だけが入れるグループの中に書く。
+ * 機能を使うかどうかは、案件ごとに決めるため。このコントローラーは、呼ばれたルートの名前から、組になるほかの名前を作る。
  *
  * 項目が少なく、間違えてもすぐ直せるので、追加と編集に確認画面は挟まない。
  * CSVの取り込みは、共通の取り込みの画面を、処理だけのモードで使う。古いURLを鍵に、ある行は更新し、無い行は追加する。
