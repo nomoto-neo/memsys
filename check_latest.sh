@@ -288,9 +288,9 @@ has   packages/neobit/core/src/Http/Controllers/FileWatchController.php 'class F
 has   packages/neobit/core/resources/views/admin/file_watch/index.blade.php '現在のチェック状況です'
 has   packages/neobit/core/resources/views/admin/file_watch/_list.blade.php 'kindLabels'
 has   packages/neobit/core/resources/mail-templates/file_watch_approved.blade.php 'さんがサイトの変更内容を承認しました'
-has   packages/neobit/core/src/Console/WatchFiles.php                   '{--approve'
+has   packages/neobit/core/src/Console/FileWatch.php                   '{--approve'
 has   routes/admin.php                                                  'FrameworkRoutes::fileWatch'
-has   packages/neobit/core/src/Console/WatchFiles.php                   '{--accept'
+has   packages/neobit/core/src/Console/FileWatch.php                   '{--accept'
 has   packages/neobit/core/resources/mail-templates/file_watch_alert.blade.php 'ファイルの改ざんを検知しました'
 has   packages/neobit/core/src/Operations/OperationLogReport.php       'fileUpdates'
 has   bootstrap/app.php                                                 "prefix(config('neobit.admin_path'))"
@@ -323,7 +323,7 @@ has   packages/neobit/core/src/Rules/UploadRequiredRule.php             'class U
 has   packages/neobit/core/src/Crud/FormFlow.php                        'requiredUploadRules'
 has   packages/neobit/core/resources/views/_ajax_upload_block.blade.php 'errorKey'
 has   app/Http/Controllers/Admin/NewsController.php                     "News::LIST_IMAGE_WIDTH, 'required' => true"
-has   packages/neobit/core/src/Console/WatchFiles.php                   'error_notify.handler_with.to'
+has   packages/neobit/core/src/Console/FileWatch.php                   'error_notify.handler_with.to'
 has   packages/neobit/core/src/Security/BasicAuth.php                   'InvalidArgumentException'
 has   packages/neobit/core/resources/mail-templates/file_watch_alert.blade.php '許可されていないアップロードファイル'
 has   packages/neobit/core/src/Http/PublicFiles.php                     'class PublicFiles'

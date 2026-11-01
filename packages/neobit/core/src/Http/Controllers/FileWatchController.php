@@ -15,7 +15,7 @@ use Neobit\Core\Security\FileWatcher;
  * 監視の決まりと記録は、Neobit\Core\Security\FileWatcherにある。
  *
  * 画面は、開くたびにその場でチェックし直して出す（FileWatcher::inspect()）。記録はapacheが書けないので、
- * 承認は目印を置くだけにし、毎分のcron（app:watch-files --approve）が拾って基準に取り込む。
+ * 承認は目印を置くだけにし、毎分のcron（app:file-watch --approve）が拾って基準に取り込む。
  * 承認の後に増えた変化を取り込まないよう、画面に出した一覧のしるし（FileWatcher::signature()）を送り、押したときの
  * 一覧と同じときだけ承認する。違えば、開き直してもらう。一覧そのものを送らないのは、ファイルが多いとき（WordPressの
  * 更新など）に、PHPの受け取れる数を超えて黙って一部だけになるため。

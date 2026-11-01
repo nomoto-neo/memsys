@@ -163,7 +163,7 @@ final class OperationLogReport
                 // 管理画面の「改ざん監視」で承認したとき
                 $heading = date('Y-m-d H:i', $entry['from'])." に{$entry['by']}さんが承認した更新";
             } elseif (! empty($entry['manual'])) {
-                // サーバーで app:watch-files --accept で認めたとき
+                // サーバーで app:file-watch --accept で認めたとき
                 $heading = date('Y-m-d H:i', $entry['from']).' にサーバーで認めた更新';
             } else {
                 // 鍵で取り込んだ通常の更新。期間の始めより前のファイルも入るので、終わりの時刻だけを出す

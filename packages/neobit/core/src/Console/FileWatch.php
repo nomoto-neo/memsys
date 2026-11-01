@@ -14,7 +14,7 @@ use RuntimeException;
 use Throwable;
 
 /**
- * 改ざん監視のコマンド。php artisan app:watch-filesで動く。判断はNeobit\Core\Security\FileWatcherにあり、
+ * 改ざん監視のコマンド。php artisan app:file-watchで動く。判断はNeobit\Core\Security\FileWatcherにあり、
  * このコマンドは、知らせるものがあれば通知のメールを送るだけ。
  *
  * Laravelのスケジューラー（apacheのcron）には入れず、コードを更新する利用者（webapp）のcrontabから、
@@ -32,9 +32,9 @@ use Throwable;
  *            承認の目印が無ければ、ロックも押さえずにすぐ終わる。5分ごとの回でも、目印があれば先に取り込むので、
  *            毎分の行は承認を早く取り込むためのもの。無くても5分以内には取り込む
  */
-#[Signature('app:watch-files {--init : 今の状態を基準にする} {--full : 全部のハッシュ値を比べ直し、vendor/も見る} {--accept : 今知らせているファイルを、確かめて基準に取り込む} {--approve : 管理画面で承認した変化を取り込む}')]
+#[Signature('app:file-watch {--init : 今の状態を基準にする} {--full : 全部のハッシュ値を比べ直し、vendor/も見る} {--accept : 今知らせているファイルを、確かめて基準に取り込む} {--approve : 管理画面で承認した変化を取り込む}')]
 #[Description('ファイルの改ざんを確かめ、見つけたら通知のメールを送る')]
-class WatchFiles extends Command
+class FileWatch extends Command
 {
     /** メールに並べる、種類ごとの見出し */
     private const KIND_LABELS = [
@@ -105,7 +105,7 @@ class WatchFiles extends Command
             $result = $watcher->check((bool) $this->option('full'));
         } catch (RuntimeException $e) {
             // 基準が無い。サーバーを置いた後に、--initを忘れている
-            Log::warning('WatchFiles: '.$e->getMessage());
+            Log::warning('FileWatch: '.$e->getMessage());
             $this->error($e->getMessage());
 
             return self::FAILURE;
@@ -153,7 +153,7 @@ class WatchFiles extends Command
         } elseif ($accepted === null) {
             $this->info('取り込みませんでした。');
         } else {
-            Log::info('WatchFiles: 改ざんの疑いを、手で認めて基準に取り込みました。', ['files' => array_column($accepted, 'label')]);
+            Log::info('FileWatch: 改ざんの疑いを、手で認めて基準に取り込みました。', ['files' => array_column($accepted, 'label')]);
             $this->info(count($accepted).'件を基準に取り込みました。');
         }
 
@@ -171,7 +171,7 @@ class WatchFiles extends Command
         }
 
         $labels = array_column($approval['items'], 'label');
-        Log::info("WatchFiles: {$approval['by']}さんが管理画面で承認した変更内容を、基準に取り込みました。", ['files' => $labels]);
+        Log::info("FileWatch: {$approval['by']}さんが管理画面で承認した変更内容を、基準に取り込みました。", ['files' => $labels]);
         $this->info(count($labels).'件を基準に取り込みました。');
 
         $recipients = $this->recipients();
@@ -204,7 +204,7 @@ class WatchFiles extends Command
         } catch (MailTemplateException $e) {
             throw $e;
         } catch (Throwable $e) {
-            Log::critical('WatchFiles: 管理画面の承認を取り込みましたが、承認のメールを送れませんでした。', ['message' => $e->getMessage(), 'files' => $labels]);
+            Log::critical('FileWatch: 管理画面の承認を取り込みましたが、承認のメールを送れませんでした。', ['message' => $e->getMessage(), 'files' => $labels]);
             $this->error('メールを送れませんでした。'.$e->getMessage());
 
             return self::FAILURE;
@@ -236,7 +236,7 @@ class WatchFiles extends Command
     {
         $recipients = $this->recipients();
         if ($recipients === []) {
-            Log::critical('WatchFiles: ファイルの改ざんを検知しましたが、宛先が無いのでメールを送れません。', ['files' => array_column($alerts, 'label')]);
+            Log::critical('FileWatch: ファイルの改ざんを検知しましたが、宛先が無いのでメールを送れません。', ['files' => array_column($alerts, 'label')]);
             $this->warn('宛先（file_watch.to・ERROR_NOTIFY_TO）が設定されていないので、メールは送りません。');
 
             return self::FAILURE;
@@ -268,7 +268,7 @@ class WatchFiles extends Command
             // テンプレートが無い、書き方が誤っている、は開発中の誤りなので、受け止めずに止める
             throw $e;
         } catch (Throwable $e) {
-            Log::critical('WatchFiles: ファイルの改ざんを検知しましたが、通知のメールを送れませんでした。', ['message' => $e->getMessage()]);
+            Log::critical('FileWatch: ファイルの改ざんを検知しましたが、通知のメールを送れませんでした。', ['message' => $e->getMessage()]);
             $this->error('メールを送れませんでした。'.$e->getMessage());
 
             return self::FAILURE;

@@ -300,6 +300,6 @@
 | 種類 | 名前 | メモ |
 |---|---|---|
 | `vendor:publish` のタグ | `neobit-config`・`neobit-mail-templates` | |
-| Artisan のコマンド | `app:access-denied-off`・`app:cleanup-temporary-data`・`app:gate`・`app:report-operation-logs`・`app:reset-two-factor`・`app:set-next-id`・`app:watch-files` | 頭が案件と同じ `app:`。フレームワークのものと見分けられない |
+| Artisan のコマンド | `app:access-denied-off`・`app:cleanup-temporary-data`・`app:gate`・`app:report-operation-logs`・`app:reset-two-factor`・`app:set-next-id`・`app:file-watch` | 頭が案件と同じ `app:`。フレームワークのものと見分けられない |
 | テーブル | `code_tables`・`ip_blocks`・`settings`・`operation_logs`・`csv_download_logs`・`csv_import_logs`・`trusted_devices`・`two_factor_backup_codes`・`two_factor_secrets`・`passkeys`・`team_invitations` | |
 | フレームワークが作るコード表 | `operation_log_action`・`operation_log_model` | 設定の `operation_log_actions`・`operation_log_models` の列挙型から作る |

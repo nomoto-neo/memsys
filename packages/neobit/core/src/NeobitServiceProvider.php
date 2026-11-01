@@ -9,7 +9,7 @@ use Neobit\Core\Console\CleanupTemporaryData;
 use Neobit\Core\Console\ReportOperationLogs;
 use Neobit\Core\Console\ResetTwoFactor;
 use Neobit\Core\Console\SetNextId;
-use Neobit\Core\Console\WatchFiles;
+use Neobit\Core\Console\FileWatch;
 
 /**
  * ネオビットフレームワークの共通部品を、アプリに組み込む。
@@ -76,7 +76,7 @@ class NeobitServiceProvider extends ServiceProvider
                 ReportOperationLogs::class,
                 ResetTwoFactor::class,
                 SetNextId::class,
-                WatchFiles::class,
+                FileWatch::class,
             ]);
         }
     }

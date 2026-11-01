@@ -10,7 +10,7 @@ use Neobit\Core\Security\FileWatcher;
 use Tests\TestCase;
 
 /**
- * 改ざん監視（Neobit\Core\Security\FileWatcher・app:watch-files）。
+ * 改ざん監視（Neobit\Core\Security\FileWatcher・app:file-watch）。
  * 一時のディレクトリにプロジェクトの形を作り、ctimeはテストが決める（手元のWindowsでは、ctimeが作成日時になるため）。
  */
 class FileWatchTest extends TestCase
@@ -265,7 +265,7 @@ class FileWatchTest extends TestCase
         $this->checkAt(1);
         Carbon::setTestNow(Carbon::createFromTimestamp($this->start + 20 * 60));
 
-        $this->artisan('app:watch-files --accept')
+        $this->artisan('app:file-watch --accept')
             ->expectsOutputToContain('改ざんの疑い：2件')
             ->expectsOutputToContain('変更  public/index.php（2026-10-27 10:02）')
             ->expectsOutputToContain('削除  config/app.php（2026-10-27 10:01）')
@@ -273,7 +273,7 @@ class FileWatchTest extends TestCase
             ->expectsOutputToContain('2件を基準に取り込みました。')
             ->assertSuccessful();
 
-        $this->artisan('app:watch-files --accept')->expectsOutputToContain('取り込む改ざんの疑いはありません。')->assertSuccessful();
+        $this->artisan('app:file-watch --accept')->expectsOutputToContain('取り込む改ざんの疑いはありません。')->assertSuccessful();
     }
 
     public function test_unexpected_files_in_the_upload_place_are_reported_at_once(): void
@@ -472,12 +472,12 @@ class FileWatchTest extends TestCase
     {
         // 鍵のファイルの設定が空なら、何もしない
         config(['neobit.file_watch.release_file' => '']);
-        $this->artisan('app:watch-files')->expectsOutputToContain('改ざん監視はしません')->assertSuccessful();
+        $this->artisan('app:file-watch')->expectsOutputToContain('改ざん監視はしません')->assertSuccessful();
 
         // 基準が無ければ、--initを案内して止まる（手元のプロジェクトには基準を作らない）
         config(['neobit.file_watch.release_file' => '.version']);
         if (! is_file(base_path('bootstrap/cache/file-watch.json'))) {
-            $this->artisan('app:watch-files')->expectsOutputToContain('app:watch-files --init')->assertFailed();
+            $this->artisan('app:file-watch')->expectsOutputToContain('app:file-watch --init')->assertFailed();
         }
     }
 
@@ -488,14 +488,14 @@ class FileWatchTest extends TestCase
         $this->write('.version', 'deploy', 2);
 
         // 鍵のファイルの15分後の期限を出す
-        $this->artisan('app:watch-files')
+        $this->artisan('app:file-watch')
             ->expectsOutputToContain('通常の更新として取り込む期限：'.date('Y-m-d H:i:s', $this->start + 1020))
             ->doesntExpectOutputToContain('.version')
             ->assertSuccessful();
 
         // 鍵のファイルが無ければ、そう出す
         File::delete($this->base.'/.version');
-        $this->artisan('app:watch-files')->expectsOutputToContain('鍵のファイルがありません')->assertSuccessful();
+        $this->artisan('app:file-watch')->expectsOutputToContain('鍵のファイルがありません')->assertSuccessful();
     }
 
     public function test_runs_do_not_overlap(): void
@@ -550,7 +550,7 @@ class FileWatchTest extends TestCase
         $this->write('public/index.php', '<?php // 書き換えられた入口', 2);
         Carbon::setTestNow(Carbon::createFromTimestamp($this->start + 20 * 60));
 
-        $this->artisan('app:watch-files')->assertSuccessful();
+        $this->artisan('app:file-watch')->assertSuccessful();
         Mail::assertSent(TemplatedMail::class, fn (TemplatedMail $mail) => $mail->hasTo('dev@example.com'));
     }
 }

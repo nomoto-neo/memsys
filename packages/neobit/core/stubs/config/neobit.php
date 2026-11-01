@@ -45,7 +45,7 @@ return [
     | 改ざん監視
     |--------------------------------------------------------------------
     |
-    | app:watch-files（Neobit\Core\Security\FileWatcher）が使う。コードを更新する利用者（webapp）の
+    | app:file-watch（Neobit\Core\Security\FileWatcher）が使う。コードを更新する利用者（webapp）の
     | crontabから、5分ごとと1日1回の--fullで動かす。使い方は利用ガイドの「改ざん監視」。
     | - release_file  鍵のファイル（プロジェクトの直下からのパス）。このファイルの更新の前後に変わったファイルを、
     |                 通常のサイトの更新とみなす。送るたびに中身（日時など）を変えて送る。空なら監視しない

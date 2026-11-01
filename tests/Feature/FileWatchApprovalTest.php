@@ -16,7 +16,7 @@ use Neobit\Core\Security\FileWatcher;
 use Tests\TestCase;
 
 /**
- * 管理画面の「改ざん監視」（Neobit\Core\Http\Controllers\FileWatchController）と、承認の取り込み（app:watch-files --approve）。
+ * 管理画面の「改ざん監視」（Neobit\Core\Http\Controllers\FileWatchController）と、承認の取り込み（app:file-watch --approve）。
  * 一時のディレクトリにプロジェクトの形を作り、ctimeはテストが決める（Tests\Feature\FileWatchTestと同じ）。
  */
 class FileWatchApprovalTest extends TestCase
@@ -130,7 +130,7 @@ class FileWatchApprovalTest extends TestCase
 
         // 毎分のcronが拾って取り込み、承認のメールを送る
         $this->at(28);
-        $this->artisan('app:watch-files --approve')->expectsOutputToContain('2件を基準に取り込みました。')->assertSuccessful();
+        $this->artisan('app:file-watch --approve')->expectsOutputToContain('2件を基準に取り込みました。')->assertSuccessful();
         Mail::assertSent(TemplatedMail::class, fn (TemplatedMail $mail) => $mail->hasTo('dev@example.com'));
         $this->assertNull($this->watcher()->pendingApproval());
 
@@ -175,7 +175,7 @@ class FileWatchApprovalTest extends TestCase
     public function test_approve_without_a_request_does_nothing(): void
     {
         // 目印が無ければ、何もせずすぐ終わる（毎分動くため）
-        $this->artisan('app:watch-files --approve')->doesntExpectOutputToContain('取り込みました')->assertSuccessful();
+        $this->artisan('app:file-watch --approve')->doesntExpectOutputToContain('取り込みました')->assertSuccessful();
     }
 
     public function test_list_changed_after_opening_is_not_approved(): void
@@ -211,7 +211,7 @@ class FileWatchApprovalTest extends TestCase
         $watcher = $this->watcher();
         $watcher->requestApproval($watcher->inspect()['alerts'], '野本');
 
-        $this->artisan('app:watch-files')->expectsOutputToContain('改ざんの疑い：0件')->assertSuccessful();
+        $this->artisan('app:file-watch')->expectsOutputToContain('改ざんの疑い：0件')->assertSuccessful();
         $this->assertNull($this->watcher()->pendingApproval());
         Mail::assertSent(TemplatedMail::class);
     }
