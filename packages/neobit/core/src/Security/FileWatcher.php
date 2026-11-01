@@ -262,7 +262,7 @@ final class FileWatcher
      * 1回分を確かめる。--fullなら全部のハッシュ値を比べ直し、vendor/も見る。
      * notifyがtrueなら、呼んだ側が通知のメールを送る。知らせるものがある間は毎回送るので、送信に失敗しても次の回に送り直す。
      *
-     * @return array{alerts: list<array{label: string, kind: string, time: int}>, dangers: list<array{label: string, time: int}>, unreadable: list<string>, accepted: int, pending: int, notify: bool}
+     * @return array{alerts: list<array{label: string, kind: string, time: int}>, dangers: list<array{label: string, time: int}>, unreadable: list<string>, accepted: int, pending: int, notify: bool, key_deadline: int|null}
      */
     public function check(bool $full = false): array
     {
@@ -272,6 +272,7 @@ final class FileWatcher
         $now = now()->getTimestamp();
 
         $sorted = $this->sort($state, $full, $now);
+        $key = $this->keyCtime();
 
         $dangers = $this->dangers();
         sort($this->unreadable);
@@ -288,6 +289,7 @@ final class FileWatcher
             'accepted' => $sorted['accepted'],
             'pending' => $sorted['pending'],
             'notify' => $sorted['alerts'] !== [] || $dangers !== [] || $this->unreadable !== [],
+            'key_deadline' => $key !== null ? $key + self::AFTER : null,
         ];
     }
 

@@ -111,6 +111,13 @@ class WatchFiles extends Command
             return self::FAILURE;
         }
 
+        // 通常の更新として取り込む期限。鍵と分からないよう、ファイルの名前は出さない
+        if ($result['key_deadline'] !== null) {
+            $this->info('通常の更新として取り込む期限：'.date('Y-m-d H:i:s', $result['key_deadline']));
+        } else {
+            $this->warn('鍵のファイルがありません');
+        }
+
         // 件数を1項目1行で出す。見出しの短い順に並べて、見比べやすくする
         $this->info('判断待ち：'.$result['pending'].'件');
         $this->info('通常の更新：'.$result['accepted'].'件');

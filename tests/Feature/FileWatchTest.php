@@ -481,6 +481,23 @@ class FileWatchTest extends TestCase
         }
     }
 
+    public function test_command_shows_the_key_deadline_without_its_name(): void
+    {
+        $this->app->instance(FileWatcher::class, $this->watcher());
+        Carbon::setTestNow(Carbon::createFromTimestamp($this->start + 300));
+        $this->write('.version', 'deploy', 2);
+
+        // 鍵のファイルの15分後の期限を出す
+        $this->artisan('app:watch-files')
+            ->expectsOutputToContain('通常の更新として取り込む期限：'.date('Y-m-d H:i:s', $this->start + 1020))
+            ->doesntExpectOutputToContain('.version')
+            ->assertSuccessful();
+
+        // 鍵のファイルが無ければ、そう出す
+        File::delete($this->base.'/.version');
+        $this->artisan('app:watch-files')->expectsOutputToContain('鍵のファイルがありません')->assertSuccessful();
+    }
+
     public function test_runs_do_not_overlap(): void
     {
         // 前の回がロックを押さえている間は、次の回は押さえられない
