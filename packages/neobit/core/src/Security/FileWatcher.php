@@ -8,7 +8,7 @@ use RuntimeException;
 
 /**
  * 改ざん監視。通常の運用では変わらないファイルが変わった・増えた・消えたことと、
- * 許可されていないアップロードファイルを見つける。app:watch-filesコマンドが5分ごとに呼び、見つけたら通知のメールを送る。
+ * 許可されていないアップロードファイルを見つける。app:watch-filesコマンドが5分ごとに呼び、見つけたら毎回、通知のメールを送る。
  *
  * ■ 動かす権限
  * コードを更新する利用者（webapp）のcrontabから動かす。基準などの記録（bootstrap/cache/file-watch.json）は
@@ -109,11 +109,6 @@ final class FileWatcher
 
     /** 通常の更新の記録を残す長さ。1日1回の報告に載せる分より長く */
     private const KEEP_ACCEPTED = 86400 * 8;
-
-    // ---- 通知 ----
-
-    /** 同じ顔ぶれの通知を送り直す間隔 */
-    private const ALERT_INTERVAL = 3600;
 
     // ---- 監視する場所 ----
 
@@ -256,7 +251,6 @@ final class FileWatcher
             'keys' => $key !== null ? [$key] : [],
             'deleted_seen' => [],
             'accepted' => [],
-            'last_alert' => null,
         ]);
 
         return count($files);
@@ -264,7 +258,7 @@ final class FileWatcher
 
     /**
      * 1回分を確かめる。--fullなら全部のハッシュ値を比べ直し、vendor/も見る。
-     * notifyがtrueなら、呼んだ側が通知のメールを送る（同じ顔ぶれは1時間に1回に間引く）。
+     * notifyがtrueなら、呼んだ側が通知のメールを送る。知らせるものがある間は毎回送るので、送信に失敗しても次の回に送り直す。
      *
      * @return array{alerts: list<array{label: string, kind: string, time: int}>, dangers: list<array{label: string, time: int}>, unreadable: list<string>, accepted: int, pending: int, notify: bool}
      */
@@ -279,7 +273,6 @@ final class FileWatcher
 
         $dangers = $this->dangers();
         sort($this->unreadable);
-        $notify = $this->shouldNotify($state, $sorted['alerts'], $dangers, $this->unreadable, $now);
 
         // 管理画面が、中身を読めないファイルの分類に使う
         $state['last_result'] = $this->result($sorted['alerts'], $sorted['pendingList'], $dangers, $now);
@@ -292,14 +285,14 @@ final class FileWatcher
             'unreadable' => $this->unreadable,
             'accepted' => $sorted['accepted'],
             'pending' => $sorted['pending'],
-            'notify' => $notify,
+            'notify' => $sorted['alerts'] !== [] || $dangers !== [] || $this->unreadable !== [],
         ];
     }
 
     /**
      * 今知らせるファイルを、手で認めて基準に取り込む。app:watch-files --acceptが呼ぶ。
      * その場で確かめ直し、知らせるものがあれば$confirmに一覧を渡して聞く。認められたら取り込んで、その一覧を返す。
-     * 知らせるものが無ければ空、断られたらnull。どちらも基準は変えず、通知の控えもそのままにする。
+     * 知らせるものが無ければ空、断られたらnull。どちらも基準は変えない。
      * 待っている最中の変化・許可されていないアップロードファイル・確かめられなかったディレクトリは取り込まない。
      *
      * @param  Closure(list<array{label: string, kind: string, time: int}>): bool  $confirm
@@ -327,9 +320,6 @@ final class FileWatcher
             $this->absorb($state, $label, $candidate);
         }
         $state['accepted'][] = ['manual' => true, 'by' => null, 'from' => $now, 'to' => $now, 'files' => array_column($sorted['alerts'], 'label')];
-
-        // 通知の控えを消し、次に別の疑いが出たらすぐ知らせる
-        $state['last_alert'] = null;
 
         $this->save($state);
 
@@ -456,10 +446,9 @@ final class FileWatcher
             }
         }
 
-        // 承認した人の名前と一緒に記録し、通知の控えを消して、次に別の疑いが出たらすぐ知らせる
+        // 承認した人の名前と一緒に記録する
         if ($approved !== []) {
             $state['accepted'][] = ['manual' => true, 'by' => (string) $approval['by'], 'from' => $now, 'to' => $now, 'files' => array_column($approved, 'label')];
-            $state['last_alert'] = null;
         }
 
         // 管理画面のための、この回の結果。取り込んだものは外す
@@ -701,36 +690,6 @@ final class FileWatcher
                 'hash' => $info['hash'] ?? $this->hashOf($info['path']),
             ];
         }
-    }
-
-    /**
-     * 通知のメールを送るか。知らせるものが無ければ送らず、控えを消す。顔ぶれが変わればすぐ、同じなら1時間ごとに送る
-     *
-     * @param  list<array{label: string, kind: string, time: int}>  $alerts
-     * @param  list<array{label: string, time: int}>  $dangers
-     * @param  list<string>  $unreadable
-     */
-    private function shouldNotify(array &$state, array $alerts, array $dangers, array $unreadable, int $now): bool
-    {
-        if ($alerts === [] && $dangers === [] && $unreadable === []) {
-            $state['last_alert'] = null;
-
-            return false;
-        }
-
-        $signature = hash('sha256', json_encode([
-            array_map(fn (array $alert) => $alert['kind'].':'.$alert['label'], $alerts),
-            array_column($dangers, 'label'),
-            $unreadable,
-        ]));
-        $last = $state['last_alert'];
-        if ($last !== null && $last['signature'] === $signature && $now - $last['at'] < self::ALERT_INTERVAL) {
-            return false;
-        }
-
-        $state['last_alert'] = ['signature' => $signature, 'at' => $now];
-
-        return true;
     }
 
     // ---- ファイル ----

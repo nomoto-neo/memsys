@@ -100,9 +100,8 @@ class FileWatchTest extends TestCase
         $this->assertSame([['label' => 'public/index.php', 'kind' => 'changed', 'time' => $this->start + 120]], $result['alerts']);
         $this->assertTrue($result['notify']);
 
-        // 同じ顔ぶれは1時間に1回。直るまで知らせ続ける
-        $this->assertFalse($this->checkAt(25)['notify']);
-        $this->assertTrue($this->checkAt(81)['notify']);
+        // 直るまで、回るたびに知らせ続ける
+        $this->assertTrue($this->checkAt(25)['notify']);
 
         // 元の中身に戻れば、知らせない
         $this->write('public/index.php', '<?php // 入口', 85);
@@ -244,13 +243,13 @@ class FileWatchTest extends TestCase
         $this->write('public/index.php', '<?php // 新しい入口', 2);
         $this->assertTrue($this->checkAt(20)['notify']);
 
-        // 断ったら何も取り込まず、通知の控えもそのまま（1時間に1回の間引きが続く）
+        // 断ったら何も取り込まず、知らせ続ける
         Carbon::setTestNow(Carbon::createFromTimestamp($this->start + 25 * 60));
         $this->assertNull($this->watcher()->acceptAlerts(fn () => false));
 
         $result = $this->checkAt(26);
         $this->assertSame(['public/index.php'], array_column($result['alerts'], 'label'));
-        $this->assertFalse($result['notify']);
+        $this->assertTrue($result['notify']);
 
         // 知らせるものが無ければ、聞かずに空を返す
         $this->write('public/index.php', '<?php // 入口', 30);
