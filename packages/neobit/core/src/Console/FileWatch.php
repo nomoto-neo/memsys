@@ -104,9 +104,10 @@ class FileWatch extends Command
 
             $result = $watcher->check((bool) $this->option('full'));
         } catch (RuntimeException $e) {
-            // 基準が無い。サーバーを置いた後に、--initを忘れている
+            // 基準が無いか、記録が壊れて読めない。--initの忘れか、記録を書き換えられたとき。
+            // crontabは標準出力を捨てるので、標準エラーに出してMAILTOへ届ける
             Log::warning('FileWatch: '.$e->getMessage());
-            $this->error($e->getMessage());
+            $this->output->getErrorStyle()->writeln('<error>'.$e->getMessage().'</error>');
 
             return self::FAILURE;
         }

@@ -3,10 +3,13 @@
 namespace Tests\Feature;
 
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Mail;
 use Neobit\Core\Mail\TemplatedMail;
 use Neobit\Core\Security\FileWatcher;
+use Symfony\Component\Console\Output\BufferedOutput;
+use Symfony\Component\Console\Output\ConsoleOutput;
 use Tests\TestCase;
 
 /**
@@ -496,6 +499,19 @@ class FileWatchTest extends TestCase
         // 鍵のファイルが無ければ、そう出す
         File::delete($this->base.'/.version');
         $this->artisan('app:file-watch')->expectsOutputToContain('鍵のファイルがありません')->assertSuccessful();
+    }
+
+    public function test_unreadable_record_is_reported_to_standard_error(): void
+    {
+        // 記録が壊れて読めないときは、crontabのMAILTOへ届くよう、標準エラーに出す
+        $this->app->instance(FileWatcher::class, $this->watcher());
+        file_put_contents($this->base.'/bootstrap/cache/file-watch.json', '{"files":{}} [2026-11-02] local.INFO: ログの1行');
+
+        $output = new ConsoleOutput();
+        $output->setErrorOutput($errors = new BufferedOutput());
+
+        $this->assertSame(1, Artisan::call('app:file-watch', [], $output));
+        $this->assertStringContainsString('app:file-watch --init', $errors->fetch());
     }
 
     public function test_runs_do_not_overlap(): void
