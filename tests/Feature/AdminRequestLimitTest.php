@@ -28,8 +28,8 @@ class AdminRequestLimitTest extends TestCase
         parent::setUp();
 
         config([
-            'neobit.admin_requests_per_minute' => 2,
-            'neobit.admin_requests_exceeded_message' => self::MESSAGE,
+            'neobit.security.admin_requests_per_minute' => 2,
+            'neobit.security.admin_requests_exceeded_message' => self::MESSAGE,
         ]);
 
         $this->actingAs(Staff::create([
@@ -62,7 +62,7 @@ class AdminRequestLimitTest extends TestCase
 
     public function test_zero_means_no_limit(): void
     {
-        config(['neobit.admin_requests_per_minute' => 0]);
+        config(['neobit.security.admin_requests_per_minute' => 0]);
 
         // 回数を数えないので、何回送っても処理する
         for ($i = 0; $i < 5; $i++) {
@@ -74,7 +74,7 @@ class AdminRequestLimitTest extends TestCase
 
     public function test_missing_setting_uses_the_default_count(): void
     {
-        config(['neobit.admin_requests_per_minute' => null]);
+        config(['neobit.security.admin_requests_per_minute' => null]);
 
         $limit = AdminRequestLimit::limit(Request::create('/app/admin'));
 

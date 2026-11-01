@@ -10,7 +10,7 @@ use Neobit\Core\Upload\UploadFilePath;
 
 /**
  * 残す日数を過ぎた一斉メールの送信の記録の削除。
- * 一時データの後片付け（Neobit\Core\Operations\TemporaryDataCleaner）が、config/cleanup.phpのtasksに
+ * 一時データの後片付け（Neobit\Core\Operations\TemporaryDataCleaner）が、config/neobit.phpのcleanupの節のtasksに
  * 書いた日数を渡して、1時間ごとに呼ぶ。
  * 1件ずつは操作ログに残さず、消した件数だけを返す。
  */
@@ -20,12 +20,12 @@ final class BulkMailCleanup
     private const CHUNK = 100;
 
     /**
-     * config/cleanup.phpのtasksに書いた、送信の記録を残す日数。画面に出すために読む。
+     * config/neobit.phpのcleanupの節のtasksに書いた、送信の記録を残す日数。画面に出すために読む。
      * tasksに書いていないか、日数がnullなら、消さずに残し続けるのでnullを返す。
      */
     public static function days(): ?int
     {
-        foreach ((array) config('cleanup.tasks') as $task) {
+        foreach ((array) config('neobit.cleanup.tasks') as $task) {
             if (($task['run'] ?? null) === [self::class, 'deleteOld']) {
                 return $task['days'] ?? null;
             }

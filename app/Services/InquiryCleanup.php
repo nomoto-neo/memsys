@@ -8,7 +8,7 @@ use Neobit\Core\Upload\UploadFilePath;
 
 /**
  * 残す日数を過ぎたお問い合わせの削除。個人情報を、要らなくなった後も持ち続けないようにするため。
- * 一時データの後片付け（Neobit\Core\Operations\TemporaryDataCleaner）が、config/cleanup.phpのtasksに
+ * 一時データの後片付け（Neobit\Core\Operations\TemporaryDataCleaner）が、config/neobit.phpのcleanupの節のtasksに
  * 書いた日数を渡して、1時間ごとに呼ぶ。
  * 1件ずつは操作ログに残さず、消した件数だけを返す。
  */

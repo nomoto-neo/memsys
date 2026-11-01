@@ -55,7 +55,7 @@ button.stats-chart-col:hover .stats-chart-bar {
     <a href="{{ route($routes['csv']) }}" class="btn btn-outline-secondary btn-sm">CSVダウンロード</a>
 </div>
 
-{{-- 操作ログを残す日数（config/cleanup.phpのoperation_log_days）。消えることを知らずに頼らないよう、検索の上に出す --}}
+{{-- 操作ログを残す日数（config/neobit.phpのcleanupの節のoperation_log_days）。消えることを知らずに頼らないよう、検索の上に出す --}}
 @if ($keepDays > 0)
     <p class="text-muted small">操作ログは{{ $keepDays }}日残し、過ぎたものは自動で消えます。</p>
 @else

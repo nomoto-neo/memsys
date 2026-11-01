@@ -9,7 +9,7 @@ use Neobit\Core\Models\OperationLog;
 /**
  * このサイトに固有の、操作ログの操作の種類（operation_logs.action）。
  * フレームワークの操作は、Neobit\Core\Enums\OperationLogActionにある。
- * config('neobit.operation_log_actions')に書いてあるので、操作ログの読み書きと、
+ * config('neobit.operation_log.actions')に書いてあるので、操作ログの読み書きと、
  * コード表code_table('operation_log_action')で、フレームワークの操作と一緒に扱われる。
  */
 enum AppOperationLogAction: string implements OperationLogActionType

@@ -21,7 +21,7 @@ use Symfony\Component\HttpFoundation\Response;
  * 画面はDBもセッションも使わない1枚のHTMLなので、DBを止めている間も出せる。
  * ルートが無いURLでも同じ画面を出すので、bootstrap/app.phpで、全体のミドルウェアに足している。
  *
- * 制限の間も通すパスは、bootstrap/app.phpがexcept()で渡す。管理画面（設定のneobit.admin_pathの下）は、
+ * 制限の間も通すパスは、bootstrap/app.phpがexcept()で渡す。管理画面（設定のneobit.route.admin_pathの下）は、
  * 管理画面の制限（RestrictAdminAccess）だけを掛けるので、渡さなくてもいつも通す。
  * Apacheが直接返すファイル（public/build/・public/storage/）は、ここを通らないので止まらない。
  * コマンドも通らないので、スケジューラーとキューは、制限の間も動く。

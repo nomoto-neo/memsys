@@ -58,7 +58,7 @@ class GateStateTest extends TestCase
 
     public function test_access_restriction_writes_the_screen_and_env_addresses(): void
     {
-        config(['app.site_allowed_ips' => ['192.0.2.0/24'], 'app.trusted_proxies' => ['10.0.0.5']]);
+        config(['neobit.security.site_allowed_ips' => ['192.0.2.0/24'], 'neobit.security.trusted_proxies' => ['10.0.0.5']]);
 
         AccessRestriction::save(true, '203.0.113.10', true, '192.0.2.50');
 
@@ -139,7 +139,7 @@ class GateStateTest extends TestCase
         $_SERVER['APP_CONFIG_CACHE'] = $configCache;
         try {
             touch(GateState::stateFile(), time() - 60);
-            config(['app.trusted_proxies' => ['10.0.0.9']]);
+            config(['neobit.security.trusted_proxies' => ['10.0.0.9']]);
 
             $this->get('/');
 

@@ -42,7 +42,7 @@
 - 公開ディレクトリの外（`realpath()` で確かめる。シンボリックリンクで外へ出るものも）と、`.` で始まる名前（`..` を含む）
 - 入口の `index.php`
 - `storage/`（公開のアップロードの置き場所）と `build/` の下
-- 管理画面の URL（設定の `neobit.admin_path`）の下
+- 管理画面の URL（設定の `neobit.route.admin_path`）の下
 - Laravel の本体を公開ディレクトリの中に置くサーバー（置き方 B の `app/system/`）では、本体の中
 - `.html`・`.htm`・`.php` 以外の拡張子
 
@@ -67,7 +67,7 @@
 
 - Apache の `mod_rewrite`。`.htaccess` の決まりは、Laravel の標準のものに足す形
 - 見本のサイトのように、どの URL も受けるルート（固定ページの `/{slug}`）があるときは、そのコントローラーが自分のページが無いときに `PublicFileController` へ渡す必要がある。渡さないと、1段の URL（`/about`）がフォールバックのルートまで届かない
-- 管理画面の URL は設定の `neobit.admin_path`
+- 管理画面の URL は設定の `neobit.route.admin_path`
 
 ## D. 設計判断とトレードオフ
 

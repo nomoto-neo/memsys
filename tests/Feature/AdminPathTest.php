@@ -5,7 +5,7 @@ namespace Tests\Feature;
 use Tests\TestCase;
 
 /**
- * 管理画面の頭のURL（設定のneobit.admin_path）。/adminは置かず、管理画面は検索に出さない
+ * 管理画面の頭のURL（設定のneobit.route.admin_path）。/adminは置かず、管理画面は検索に出さない
  * （Neobit\Core\Http\Middleware\NoIndexHeader）。
  */
 class AdminPathTest extends TestCase

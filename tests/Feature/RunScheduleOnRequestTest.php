@@ -25,7 +25,7 @@ class RunScheduleOnRequestTest extends TestCase
     {
         parent::setUp();
 
-        config(['cleanup.failed_job_days' => 7]);
+        config(['neobit.cleanup.failed_job_days' => 7]);
     }
 
     /** 保存期間を過ぎた、送れなかったジョブを1件入れる。片付けが動いたかを、これが消えたかで見る */
@@ -120,12 +120,12 @@ class RunScheduleOnRequestTest extends TestCase
     public function test_access_runs_the_schedule_only_without_cron(): void
     {
         // cronが動くサーバーでは、アクセスを契機に何も動かさない
-        config(['neobit.cron_enabled' => true]);
+        config(['neobit.schedule.cron_enabled' => true]);
         $this->get('/')->assertOk();
         $this->assertFalse(Cache::has('neobit_request_schedule_check'));
 
         // cronが動かないサーバーでは、応答を返した後に予定を見る
-        config(['neobit.cron_enabled' => false]);
+        config(['neobit.schedule.cron_enabled' => false]);
         $this->get('/')->assertOk();
         $this->assertTrue(Cache::has('neobit_request_schedule_check'));
     }

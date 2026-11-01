@@ -273,7 +273,7 @@ if (! function_exists('upload_field')) {
 if (! function_exists('required_mark')) {
     /**
      * 項目名の横に付ける必須マークのHTML。マークは、管理画面用と訪問者向けの画面用を
-     * config/form.phpで別々に決めている。どちらを使うかは、今の画面のルート名が
+     * config/neobit.phpのformの節で別々に決めている。どちらを使うかは、今の画面のルート名が
      * admin.で始まるかで決め、違う方を使いたいときだけ$areaで指定する。
      *
      * ふつうはrules()からrequired_fields()で組み立てる。画面に直接書くのは、
@@ -284,7 +284,7 @@ if (! function_exists('required_mark')) {
         // 指定が無ければ、管理画面か訪問者向けかを、今のルート名で決める
         $area ??= request()->routeIs('admin.*') ? 'admin' : 'public';
 
-        return config("form.required_mark.{$area}", '');
+        return config("neobit.form.required_mark.{$area}", '');
     }
 }
 

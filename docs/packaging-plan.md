@@ -68,10 +68,10 @@
 
 | 設定のキー | 読んでいる部品 | 既定の値の置き場所 |
 |---|---|---|
-| `upload.*`（5つ） | `AjaxFileUpload`・`CsvReader`・`CsvImport` | パッケージの `config/upload.php` |
-| `cleanup.operation_log_days`・`failed_job_days`・`tasks` | `TemporaryDataCleaner` | パッケージの `config/cleanup.php` |
-| `neobit.admin_requests_per_minute`・`admin_requests_exceeded_message` | `AdminRequestLimit` | パッケージの `config/neobit.php` |
-| `neobit.operation_report_to`・`operation_report_thresholds` | `ReportOperationLogs`・`OperationLogReport` | パッケージの `config/neobit.php` |
+| `upload.*`（5つ） | `AjaxFileUpload`・`CsvReader`・`CsvImport` | パッケージの `config/neobit.php` の `upload` の節 |
+| `neobit.cleanup.operation_log_days`・`failed_job_days`・`tasks` | `TemporaryDataCleaner` | パッケージの `config/neobit.php` の `cleanup` の節 |
+| `neobit.security.admin_requests_per_minute`・`security.admin_requests_exceeded_message` | `AdminRequestLimit` | パッケージの `config/neobit.php` |
+| `neobit.operation_log.report_to`・`operation_log.report_thresholds` | `ReportOperationLogs`・`OperationLogReport` | パッケージの `config/neobit.php` |
 | `app.site_name` | 画面2つ・`ErrorNotifyHandler`・`ReportOperationLogs`・`TeamInvitationManager` | プロジェクトの `config/app.php` |
 | `services.turnstile.*` | `SpamGuard`・`_spam_guard.blade.php` | プロジェクトの `config/services.php` |
 | `login.{種類の名前}.legacy_passwords` | `LegacyPasswordUserProvider` | プロジェクトの `config/login.php` |
@@ -79,12 +79,12 @@
 - パッケージの `config/` に置いたファイルを、サービスプロバイダーが `mergeConfigFrom()` で既定の値にする。プロジェクトの `config/` に同じ名前のファイルで書いたキーが優先する
 - 管理画面の回数の制限と、操作ログの報告の設定は、`config/app.php`・`config/logging.php` から `neobit.*` へ移した。フレームワークだけが読む値で、Laravel 自身の設定ファイルに間借りしたままだと、パッケージが既定の値を持てないため
 - `app.site_name`・`services.turnstile.*`・`login.*` は動かしていない。`site_name` はプロジェクトの画面も読み、`turnstile` は Laravel の習わしどおりの場所にあり、`login` は種類の名前がプロジェクトごとに違う。どれも、無ければ空として動く
-- 期限の切れた招待の片付けは、`TemporaryDataCleaner` が自分で呼ぶ。プロジェクトの `cleanup.tasks` には、業務のデータの片付けだけを書く
+- 期限の切れた招待の片付けは、`TemporaryDataCleaner` が自分で呼ぶ。プロジェクトの `neobit.cleanup.tasks` には、業務のデータの片付けだけを書く
 - `php artisan vendor:publish --tag=neobit-config` で、設定の見本をプロジェクトの `config/` へ写せる。写す元は段階1-2
 
 後の段階でも気を付けること。
 
-- `mergeConfigFrom()` が混ぜるのは、いちばん上の階層のキーだけ。配列の値（`upload.image_types`、`cleanup.tasks`、`neobit.operation_report_thresholds`）は、プロジェクトが書くと丸ごと置き換わる。中の1つだけを変えるつもりで一部だけ書くと、残りが消える
+- `mergeConfigFrom()` が混ぜるのは、いちばん上の階層のキーだけ。配列の値（`neobit.upload.image_types`、`neobit.cleanup.tasks`、`neobit.operation_log.report_thresholds`）は、プロジェクトが書くと丸ごと置き換わる。中の1つだけを変えるつもりで一部だけ書くと、残りが消える
 
 ### 段階1-2　設定の写す元
 
@@ -92,12 +92,12 @@
 
 | 役割 | 置き場所 | 中身 | 使われ方 |
 |---|---|---|---|
-| 既定の値 | パッケージの `config/upload.php` など | 値が生きている | `mergeConfigFrom()` が読む |
-| 写す元 | パッケージの `stubs/config/upload.php` など | 値に `//` を付けた見本 | `vendor:publish --tag=neobit-config` がプロジェクトの `config/` へ写す |
+| 既定の値 | パッケージの `config/neobit.php` の `upload` の節など | 値が生きている | `mergeConfigFrom()` が読む |
+| 写す元 | パッケージの `stubs/config/neobit.phpのuploadの節` など | 値に `//` を付けた見本 | `vendor:publish --tag=neobit-config` がプロジェクトの `config/` へ写す |
 
-- 見本のサイトの `config/upload.php`・`config/cleanup.php`・`config/neobit.php` も、既定と同じ値をコメントにしてある
+- 見本のサイトの `config/neobit.php` の `upload` の節・`config/neobit.php` の `cleanup` の節・`config/neobit.php` も、既定と同じ値をコメントにしてある
 - 既定の値と写す元は別のファイルなので、ずれる。写す元の `//` を外した結果が既定の値と一致することを、テスト（`ConfigStubTest`）で確かめている
-- `neobit` の設定のキーは、全部に既定の値がある。`code_table_db`・`code_table_method` は空の配列、`operation_log_actions` はフレームワークの操作の種類だけ、`operation_log_route` は `null`
+- `neobit` の設定のキーは、全部に既定の値がある。`code_table.db`・`code_table.method` は空の配列、`operation_log.actions` はフレームワークの操作の種類だけ、`operation_log.route` は `null`
 - 写す元では、値の行を「`//` の後ろが `'`・`[`・`]`・`\` で始まる行」と決めている。テストがこの決まりで `//` を外すので、説明のコメントをこれらの文字で始めない
 
 ### 段階2　メールのテンプレート
@@ -142,14 +142,14 @@
 
 ### 段階4　`CodeTable` の名前空間
 
-済み。`CodeTable` は、列挙型のコード表を探すプロジェクトの名前空間を、`config('neobit.code_table_enum_namespaces')` から読む。既定は `App\Enums\` で、書いた順に探す。フレームワークの `Neobit\Core\Enums\` は `CodeTable` が自分で持ち、最後に探す。フレームワークのコードに、プロジェクトの名前空間を書いた所は残っていない。
+済み。`CodeTable` は、列挙型のコード表を探すプロジェクトの名前空間を、`config('neobit.code_table.enum_namespaces')` から読む。既定は `App\Enums\` で、書いた順に探す。フレームワークの `Neobit\Core\Enums\` は `CodeTable` が自分で持ち、最後に探す。フレームワークのコードに、プロジェクトの名前空間を書いた所は残っていない。
 
 ### 段階4-2　項目見出し一覧
 
 済み。2026-10-14 に、コード表のテーブル（`code_tables`）をフレームワークのものにしたのに合わせて足した段階。
 
 - コントローラー（`CodeTableController`）・画面（`neobit::admin.code_tables.index`）・スクリプト（`code_editor.js`）を、パッケージへ移した
-- 編集できるコード表の一覧は、`config('neobit.code_table_db')` に、コード名 => 名前と「コード値を固定するか」で書く。プロジェクトの列挙型（`CodeType`）と、設定の `db_code_types` は無くした
+- 編集できるコード表の一覧は、`config('neobit.code_table.db')` に、コード名 => 名前と「コード値を固定するか」で書く。プロジェクトの列挙型（`CodeType`）と、設定の `db_code_types` は無くした
 - ルートはプロジェクトが書く。管理者だけのグループの中に、「頭.index」「頭.update」の組で名前を付ける。コントローラーは、呼ばれたルートの名前から組のもう一方を作る
 - 初期データ（`CodeSeeder`）と、メニューのリンクは、プロジェクトに残した
 
@@ -159,21 +159,21 @@
 
 | 設定 | 中身 |
 |---|---|
-| `code_table_db` | DB の `code_tables` テーブルのコード表。コード名 => 名前と「コード値を固定するか」。もとの `code_tables` から改めた。ヘルパーの `code_table()` と1文字違いで紛らわしかったため |
-| `code_table_method` | プログラムで作るコード表。コード名 => `[クラス, 静的メソッドの名前]` |
-| `code_table_enum_namespaces` | 列挙型のコード表を探す名前空間。値の中身がほかの2つと違うので、名前はそろえずに残した |
+| `code_table.db` | DB の `code_tables` テーブルのコード表。コード名 => 名前と「コード値を固定するか」。もとの `code_tables` から改めた。ヘルパーの `code_table()` と1文字違いで紛らわしかったため |
+| `code_table.method` | プログラムで作るコード表。コード名 => `[クラス, 静的メソッドの名前]` |
+| `code_table.enum_namespaces` | 列挙型のコード表を探す名前空間。値の中身がほかの2つと違うので、名前はそろえずに残した |
 
 - 設定には関数ではなく、クラスとメソッドの名前を書く。`config:cache` で固められるようにするため。メソッドの名前まで書くので、モデルに静的なメソッドを書くだけで済む
 - モデルは無いメソッドの呼び出しもクエリへ回すので、`is_callable()` では見分けられない。メソッドがあって public かつ static であることを、`CodeTable` が確かめてから呼ぶ
 - 論理削除した行を、名前には出し、選択肢には出さないときは、メソッドを分けてコード表を2つにする。見本のサイトの `staff`（削除したスタッフも含む）と `active_staff`（今いるスタッフだけ）
-- `code_table_merge` は無くした。使っていたのは操作ログの操作のコード表だけで、`operation_log_actions` と同じ一覧を二重に書いていた。今は `CodeTable` が、`OperationLog::actionOptions()` を自分で持つメソッドのコード表として、設定に書かなくても先に見る。設定の既定の値に入れないのは、`mergeConfigFrom()` が1段目しか混ぜず、プロジェクトが `code_table_method` を書くと消えてしまうため
+- `code_table_merge` は無くした。使っていたのは操作ログの操作のコード表だけで、`operation_log.actions` と同じ一覧を二重に書いていた。今は `CodeTable` が、`OperationLog::actionOptions()` を自分で持つメソッドのコード表として、設定に書かなくても先に見る。設定の既定の値に入れないのは、`mergeConfigFrom()` が1段目しか混ぜず、プロジェクトが `code_table.method` を書くと消えてしまうため
 
 ### 段階4-4　アップロードの保存先の規則
 
 済み。2026-10-15 に足した段階。保存先のディレクトリの組み立て方は、プロジェクトによって希望が違うので、差し替えられるようにした。
 
 - 規則は、`UploadDirectoryRule` を実装したクラスが決める。メソッドの名前は `directory()` に決めた。1つのサイトで使う規則は1つなので、名前を自由にすると、かえってエンジニアが迷うため
-- 使うクラスは `config('upload.directory_rule')` に書く。既定は `DefaultUploadDirectory`（`news/000/000012`）で、元の `UploadFilePath::directory()` の規則をそのまま移した
+- 使うクラスは `config('neobit.upload.directory_rule')` に書く。既定は `DefaultUploadDirectory`（`news/000/000012`）で、元の `UploadFilePath::directory()` の規則をそのまま移した
 - `UploadFilePath::directory()` は、設定のクラスを呼んで確かめるだけにした。保存・URL・削除・非公開のファイルの配信は、どれもここを通るので、呼ぶ側は変えていない
 - 規則が受け取るのは、モデルのクラス名と id だけ。レコードの中身（登録した日など）は使えない
 - 設定のクラスが約束を実装していないときと、`..` や先頭・末尾の `/` を含むディレクトリを返したときは、例外にする
@@ -224,10 +224,10 @@
 
 | キー | 既定 | 中身 |
 |---|---|---|
-| `ip_block_auto` | `true` | 自動で止めるか。`false` なら手動の登録だけ |
-| `ip_block_watch_minutes` | `10` | 数える時間（分） |
-| `ip_block_watch_count` | `30` | その時間に、応答が 404・405 になったアクセスが何回あったら止めるか |
-| `ip_block_hours` | `24` | 自動で止める時間 |
+| `security.ip_block_auto` | `true` | 自動で止めるか。`false` なら手動の登録だけ |
+| `security.ip_block_watch_minutes` | `10` | 数える時間（分） |
+| `security.ip_block_watch_count` | `30` | その時間に、応答が 404・405 になったアクセスが何回あったら止めるか |
+| `security.ip_block_hours` | `24` | 自動で止める時間 |
 
 ふつうの人が10分に30回も存在しないページを開くことは無く、BOT は数秒で数十回叩くので、その間に置いた。
 
@@ -482,34 +482,12 @@ WordPress のプラグインなどを、お客さんが今までどおり画面�
 
 ### 段階4-7　設定ファイルの分け方
 
-未着手。2026-10-16 に、今の状態だけを書き留めた。後で整理する。
+済み（2026-11-02。設計は `docs/config-split-spec.md`。同じ日に開発サーバーで確かめた）。
 
-フレームワークが読む設定の、今の置き場所。
-
-| 置き場所 | 中身 | パッケージに既定の値があるか |
-|---|---|---|
-| `neobit.php` | レイアウト、コード表、操作ログ（種類・名前・画面のルート）、操作ログの報告、管理画面の回数の制限、IPブロック管理 | ある |
-| `upload.php` | アップロードの種類・大きさ、CSV の大きさ、保存先の規則 | ある |
-| `cleanup.php` | 操作ログなどを残す日数、案件の片付け | ある |
-| `form.php`（案件） | 必須マークの HTML（`required_mark()` が読む） | 無い。案件にこのファイルが無いと動かない |
-| `app.php`（Laravel） | サイトの名前、アクセス制限の `.env` の IP アドレス、信頼するプロキシ | 無い |
-| `login.php`（案件） | 古い方式のパスワード（種類ごと） | 無い（無ければ使わない） |
-| `logging.php`（Laravel） | エラーの通知（`error_notify` のチャンネル） | 無い |
-| `services.php`（Laravel） | Cloudflare Turnstile | 無い（Laravel の習わしの置き場所） |
-
-混沌としている理由。
-
-1. 分け方の決まりが無い。`neobit.php` に機能ごとの節がたくさん入っている一方で、アップロードと片付けは別のファイル
-2. フレームワークの設定が、案件や Laravel のファイルに散っている（必須マークは `form.php`、アクセス制限の IP アドレスは `app.php`）
-3. パッケージに既定の値が無いものがある（`form.php`）
-
-`mergeConfigFrom()` は1段目しか混ぜないので、1つのファイルに全部を入れると、節ごとの配列が使えず、キーを `upload_max_kb` のように平らにすることになる。機能ごとにファイルを分けているのは、そのため。
-
-話に出た案。まだ決めていない。
-
-- A：機能ごとのファイルにし、名前の頭を `neobit_` にそろえる。`neobit.php`（画面と共通：レイアウト・必須マーク・コード表）・`neobit_upload.php`・`neobit_cleanup.php`・`neobit_operation_log.php`（操作ログと報告）・`neobit_security.php`（回数の制限・IPブロック管理・アクセス制限の IP アドレス）。どれもパッケージに既定の値を持つ。Laravel の決まった置き場所のもの（`app.site_name`・`mail.from`・`services.turnstile`・`logging` のチャンネル・`auth`）は、Laravel のファイルのまま
-- B：今のファイル名のまま、中身だけ寄せる（必須マークとアクセス制限の IP アドレスを `neobit.php` へ）
-- 決めること：A か B か。A なら分け方。`login.php` をフレームワークの側へ移すか
+- 既定の値は、パッケージの `config/neobit/` に機能ごとのファイルで持つ。キーは `neobit.機能.xxx`
+- 案件は `config/neobit.php` の1ファイルに、変える値だけを機能ごとの節で書く。パッケージの更新で足した既定の値が案件のファイルを直さずに効き、案件が何を変えたかが1つのファイルで分かるようにするため
+- `config/upload.php`・`cleanup.php`・`form.php` は無くした。`app.php` の許す IP と信頼するプロキシは `neobit.security` へ移した
+- `login.php`・`contact.php` は案件のファイルのまま
 
 ### 段階5　配布の形
 

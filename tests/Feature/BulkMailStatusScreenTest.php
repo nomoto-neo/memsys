@@ -173,7 +173,7 @@ class BulkMailStatusScreenTest extends TestCase
 
     public function test_failed_days_are_hidden_when_failed_jobs_are_kept(): void
     {
-        config(['cleanup.failed_job_days' => 0]);
+        config(['neobit.cleanup.failed_job_days' => 0]);
         $bulkMail = $this->finishedWithFailures(['山田 太郎' => 'yamada@example.com']);
 
         $this->actingAs($this->manager(), 'admin')->get(route('admin.bulk-mails.show', $bulkMail))
@@ -211,7 +211,7 @@ class BulkMailStatusScreenTest extends TestCase
             ->assertSee('送信の記録は、消さずに残します。');
 
         // 日数を決めれば、その日数を出す
-        config(['cleanup.tasks.保存期間を過ぎた一斉メールの記録.days' => 365]);
+        config(['neobit.cleanup.tasks.保存期間を過ぎた一斉メールの記録.days' => 365]);
         $this->actingAs($staff, 'admin')->get(route('admin.bulk-mails.index'))
             ->assertSee('送信の記録は365日残し、過ぎたものは自動で消えます。');
     }

@@ -25,7 +25,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  *
  * ルートは、アプリがNeobit\Core\Routing\FrameworkRoutes::operationLogs()の1行で、管理者だけが入れるグループの中に書く。
  * 機能を使うかどうかは、案件ごとに決めるため。このコントローラーは、呼ばれたルートの名前から、組になるほかの名前を作る。
- * 日々の報告のメールに画面のURLを載せるなら、config('neobit.operation_log_route')に「頭.index」を書く。
+ * 日々の報告のメールに画面のURLを載せるなら、config('neobit.operation_log.route')に「頭.index」を書く。
  */
 class OperationLogController
 {
@@ -105,8 +105,8 @@ class OperationLogController
             'orderOptions' => $result['orderOptions'],
             'selectedOrder' => $result['selectedOrder'],
             'routes' => $this->routeNames(),
-            // 操作ログを残す日数。0なら操作ログを取らない（config/cleanup.phpのoperation_log_days）
-            'keepDays' => (int) config('cleanup.operation_log_days'),
+            // 操作ログを残す日数。0なら操作ログを取らない（config/neobit.phpのcleanupの節のoperation_log_days）
+            'keepDays' => (int) config('neobit.cleanup.operation_log_days'),
         ]);
     }
 

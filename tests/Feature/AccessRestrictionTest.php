@@ -50,7 +50,7 @@ class AccessRestrictionTest extends TestCase
     public function test_nothing_is_restricted_unless_checked(): void
     {
         // .envにIPアドレスがあっても、画面でチェックを入れなければ、どちらも制限しない
-        config(['app.site_allowed_ips' => [self::OFFICE_IP], 'app.admin_allowed_ips' => [self::ADMIN_IP]]);
+        config(['neobit.security.site_allowed_ips' => [self::OFFICE_IP], 'neobit.security.admin_allowed_ips' => [self::ADMIN_IP]]);
 
         $this->fromIp(self::OTHER_IP)->get('/')->assertOk()->assertDontSee('メンテナンス中');
         $this->fromIp(self::OTHER_IP)->get('/app/admin/login')->assertOk();
@@ -81,7 +81,7 @@ class AccessRestrictionTest extends TestCase
 
     public function test_site_lets_in_env_addresses_and_ranges(): void
     {
-        config(['app.site_allowed_ips' => ['203.0.113.0/24']]);
+        config(['neobit.security.site_allowed_ips' => ['203.0.113.0/24']]);
         AccessRestriction::save(true, '', true, self::ADMIN_IP);
 
         $this->fromIp(self::OFFICE_IP)->get('/')->assertOk();
@@ -92,7 +92,7 @@ class AccessRestrictionTest extends TestCase
     public function test_admin_addresses_also_open_the_restricted_site(): void
     {
         // 管理画面に入れる人は、メンテナンス中のサイトも開ける。管理画面の制限をしていなくても、一覧に書いた人だけ
-        config(['app.admin_allowed_ips' => ['192.0.2.60']]);
+        config(['neobit.security.admin_allowed_ips' => ['192.0.2.60']]);
         AccessRestriction::save(true, self::OFFICE_IP, false, self::ADMIN_IP);
 
         $this->fromIp(self::ADMIN_IP)->get('/')->assertOk();
@@ -113,7 +113,7 @@ class AccessRestrictionTest extends TestCase
 
     public function test_admin_is_hidden_from_other_addresses(): void
     {
-        config(['app.admin_allowed_ips' => [self::OFFICE_IP]]);
+        config(['neobit.security.admin_allowed_ips' => [self::OFFICE_IP]]);
         AccessRestriction::save(false, '', true, '');
 
         // ログイン画面も、ログインの要る画面も、404にする。ログイン画面へは回さない
@@ -135,7 +135,7 @@ class AccessRestrictionTest extends TestCase
     public function test_manager_saves_the_settings_from_the_screen(): void
     {
         // 設定ファイルで管理画面を開けるIPアドレスから操作する
-        config(['app.admin_allowed_ips' => ['192.0.2.99']]);
+        config(['neobit.security.admin_allowed_ips' => ['192.0.2.99']]);
         $manager = $this->manager();
 
         // 設定ファイルで常に許可しているIPアドレスを、欄の上に出す

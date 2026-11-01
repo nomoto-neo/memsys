@@ -127,7 +127,7 @@ class Staff extends Authenticatable implements LoginAccount, OperationLogNamedMo
     }
 
     /**
-     * コード表 staff（config('neobit.code_table_method')）。スタッフの id => 氏名を、登録の古い順に返す。
+     * コード表 staff（config('neobit.code_table.method')）。スタッフの id => 氏名を、登録の古い順に返す。
      * 過去のデータの名前を出すために使うので、論理削除したスタッフも含む。
      */
     public static function nameOptions(): array

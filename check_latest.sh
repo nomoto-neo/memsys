@@ -163,7 +163,7 @@ has   packages/neobit/core/src/Mail/MailTemplate.php                    'private
 has   packages/neobit/core/src/NeobitServiceProvider.php                'neobit-mail-templates'
 has   packages/neobit/core/src/Code/CodeTable.php                       "'operation_log_action' => [OperationLog::class, 'actionOptions']"
 has   packages/neobit/core/src/Models/OperationLog.php                  'public static function actionOptions('
-has   packages/neobit/core/src/Http/Controllers/CodeTableController.php "config('neobit.code_table_db'"
+has   packages/neobit/core/src/Http/Controllers/CodeTableController.php "config('neobit.code_table.db'"
 has   packages/neobit/core/src/Security/IpBlocker.php                   'final class IpBlocker'
 has   packages/neobit/core/src/Security/AccessRestriction.php           'final class AccessRestriction'
 has   packages/neobit/core/src/Http/Controllers/OperationLogController.php 'private function indexRoute()'
@@ -175,12 +175,12 @@ has   packages/neobit/core/src/Http/Middleware/RunScheduleOnRequest.php 'class R
 has   packages/neobit/core/src/Operations/RequestScheduler.php          'final class RequestScheduler'
 has   packages/neobit/core/src/Operations/TemporaryDataCleaner.php      'public static function allExclusively('
 has   packages/neobit/core/src/Operations/TemporaryDataCleaner.php      'public static function oldJobBatches('
-has   packages/neobit/core/config/neobit.php                            "'cron_enabled'"
+has   packages/neobit/core/config/neobit/schedule.php                   "'cron_enabled'"
 has   app/Http/Controllers/Admin/NewsController.php                     "'attach.*.file' => ['type' => UploadType::File]"
 has   packages/neobit/core/database/migrations/2026_10_16_000000_create_settings_table.php "Schema::create('settings'"
 has   packages/neobit/core/database/migrations/2026_10_15_000000_create_ip_blocks_table.php "Schema::create('ip_blocks'"
-has   packages/neobit/core/config/neobit.php                            "'code_table_enum_namespaces'"
-has   packages/neobit/core/stubs/config/neobit.php                      "// 'code_table_method'"
+has   packages/neobit/core/config/neobit/code_table.php                 "'enum_namespaces'"
+has   packages/neobit/core/stubs/config/neobit.php                      "// 'code_table' => "
 has   packages/neobit/core/resources/mail-templates/verification_code.blade.php '【{!! $site_name !!}】'
 has   packages/neobit/core/resources/js/global.js                       'ajax_submit'
 has   packages/neobit/core/resources/css/global.css                     '.invalid-feedback:not(:empty)'
@@ -195,11 +195,11 @@ has   routes/admin.php                                                  'Framewo
 has   routes/admin.php                                                  'FrameworkRoutes::accessRestriction'
 has   resources/pdf-sheets/resume_a4.pdf                                '%PDF'
 has   routes/admin.php                                                  'FrameworkRoutes::operationLogs'
-has   config/neobit.php                                                 "'operation_log_models' => ["
+has   config/neobit.php                                                 "'operation_log' => ["
 has   resources/views/layouts/admin.blade.php                           'vendor/neobit/core/resources/css/global.css'
 has   resources/views/layouts/app.blade.php                             'vendor/neobit/core/resources/css/global.css'
 has   resources/views/layouts/company.blade.php                         'vendor/neobit/core/resources/css/global.css'
-has   config/neobit.php                                                 "'code_table_method' => ["
+has   config/neobit.php                                                 "'code_table' => ["
 lacks config/neobit.php                                                 'code_table_merge'
 has   app/Models/Staff.php                                              'public static function nameOptions('
 lacks config/app.php                                                    'admin_requests_per_minute'
@@ -207,7 +207,7 @@ lacks config/logging.php                                                'operati
 has   resources/mail-templates/member_verification_code.blade.php       '【{!! $site_name !!}】'
 has   routes/admin.php                                                  'FrameworkRoutes::codes'
 has   app/Http/Controllers/ContactController.php                        'catch (MailTemplateException'
-has   config/cleanup.php                                                'BulkMailCleanup::class'
+has   config/neobit.php                                                 'BulkMailCleanup::class'
 has   routes/admin.php                                                  'bulk-mails.failedCsv'
 has   app/Rules/MailDomainRule.php                                      'class MailDomainRule'
 has   config/mail.php                                                   "'bulk_check_domain'"
@@ -262,7 +262,7 @@ has   packages/neobit/core/resources/views/_seo_head.blade.php          'applica
 has   resources/views/layouts/app.blade.php                             "@include('neobit::_breadcrumbs')"
 has   app/Models/News.php                                               'implements SeoArticle'
 has   app/Http/Controllers/PageController.php                           '$parentSlugs'
-has   config/neobit.php                                                 "'organization_logo'"
+has   packages/neobit/core/config/neobit/seo.php                        "'organization_logo'"
 has   packages/neobit/core/database/migrations/2026_10_27_000000_create_redirects_table.php "Schema::create('redirects'"
 has   packages/neobit/core/src/Seo/RedirectResolver.php                 'final class RedirectResolver'
 has   packages/neobit/core/src/Seo/RedirectChecker.php                  'final class RedirectChecker'
@@ -293,7 +293,7 @@ has   routes/admin.php                                                  'Framewo
 has   packages/neobit/core/src/Console/FileWatch.php                   '{--accept'
 has   packages/neobit/core/resources/mail-templates/file_watch_alert.blade.php 'ファイルの改ざんを検知しました'
 has   packages/neobit/core/src/Operations/OperationLogReport.php       'fileUpdates'
-has   bootstrap/app.php                                                 "prefix(config('neobit.admin_path'))"
+has   bootstrap/app.php                                                 "prefix(config('neobit.route.admin_path'))"
 lacks bootstrap/app.php                                                 "'admin/*'"
 lacks config/neobit.php                                                 "'robots_disallow' => ['/admin'"
 # 末尾の/を外す働きは、ミドルウェア（ApplyRedirects）へ移した。残っていると、末尾が/の古いURLに当たらない
@@ -348,8 +348,8 @@ has   packages/neobit/core/resources/views/admin/access_restriction/index.blade.
 has   packages/neobit/core/src/Http/Middleware/RejectBlockedIp.php      'GateState::watchWordPress'
 has   packages/neobit/core/src/Http/Middleware/RestrictSiteAccess.php   'Gate::opensSite'
 has   public/index.php                                                  'is_file($gate'
-has   packages/neobit/core/config/neobit.php                            "'wordpress' => null"
-has   packages/neobit/core/stubs/config/neobit.php                      "// 'wordpress' => null"
+has   packages/neobit/core/src/NeobitServiceProvider.php                'config/neobit/{$section}.php'
+has   packages/neobit/core/stubs/config/neobit.php                      "// 'wordpress' => ["
 
 echo
 if [ $ng -eq 0 ]; then

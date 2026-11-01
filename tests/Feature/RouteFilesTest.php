@@ -21,7 +21,7 @@ class RouteFilesTest extends TestCase
     public function test_other_screens_are_matched_before_the_page_route(): void
     {
         // 固定ページのルートは/を含むURLも受けるので、ほかの画面のルートが先に当たること
-        $admin = config('neobit.admin_path');
+        $admin = config('neobit.route.admin_path');
 
         $this->assertSame('mypage', $this->routeNameOf('/mypage'));
         $this->assertSame('company.login', $this->routeNameOf('/company/login'));
@@ -44,7 +44,7 @@ class RouteFilesTest extends TestCase
         $this->assertContains('web', $company->gatherMiddleware());
 
         $admin = Route::getRoutes()->getByName('admin.login');
-        $this->assertSame(config('neobit.admin_path').'/login', $admin->uri());
+        $this->assertSame(config('neobit.route.admin_path').'/login', $admin->uri());
         $this->assertContains('web', $admin->gatherMiddleware());
         $this->assertContains('admin.ip', $admin->gatherMiddleware());
 
@@ -78,7 +78,7 @@ class RouteFilesTest extends TestCase
 
         foreach ($screens as $screen) {
             $route = Route::getRoutes()->getByName('admin.'.$screen.'.index');
-            $this->assertSame(config('neobit.admin_path').'/'.$screen, $route->uri());
+            $this->assertSame(config('neobit.route.admin_path').'/'.$screen, $route->uri());
             $this->assertContains('acl.manager', $route->gatherMiddleware());
         }
     }

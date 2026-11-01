@@ -36,7 +36,7 @@ return Application::configure(basePath: dirname(__DIR__))
             // 管理画面を開けるIPアドレス（管理画面の「アクセス制限」と.envのADMIN_ALLOWED_IPS）を決めていれば、
             // それに無いIPアドレスには、ログイン画面も含めて404を返す
             Route::middleware(['web', 'admin.ip', NoIndexHeader::class])
-                ->prefix(config('neobit.admin_path'))
+                ->prefix(config('neobit.route.admin_path'))
                 ->name('admin.')
                 ->group(base_path('routes/admin.php'));
 
@@ -87,7 +87,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // サイト（訪問者画面）を、管理画面の「アクセス制限」で決めたIPアドレスからだけ開けるようにする
         // （Neobit\Core\Http\Middleware\RestrictSiteAccess）。メンテナンス中の画面にもヘッダーが付くよう、
         // SecurityHeadersの後ろに足す。制限の間も通すのは、死活監視と、お知らせメールの配信停止。
-        // 止めている間に届いたメールからも、停止できるようにするため。管理画面（設定のneobit.admin_path）は、
+        // 止めている間に届いたメールからも、停止できるようにするため。管理画面（設定のneobit.route.admin_path）は、
         // RestrictSiteAccessがいつも通す。管理画面の制限（RestrictAdminAccess）だけを掛け、互いに影響しないようにするため
         $middleware->append(RestrictSiteAccess::class);
         RestrictSiteAccess::except([

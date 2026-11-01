@@ -18,13 +18,13 @@ use ReflectionMethod;
  * コード名から次の4つを探す。2つ以上にあれば、1つにするよう例外を投げる。
  * 1. 列挙型：コード名をクラス名の形にした列挙型。CodeTableEnumを実装していれば
  *    全部の値と名前の一覧にする。スタッフの権限のように、プログラムが値で動きを変えるもの。
- *    アプリの名前空間（config('neobit.code_table_enum_namespaces')。既定はApp\Enums\）を
+ *    アプリの名前空間（config('neobit.code_table.enum_namespaces')。既定はApp\Enums\）を
  *    書いた順に探し、無ければフレームワークのNeobit\Core\Enums\を探す
  * 2. CSV：code/<コード名>.csv。都道府県のように選択肢として並べるだけのもの。
  *    ファイルを直すだけで項目を増やせる
- * 3. DB：config('neobit.code_table_db')に載せたコード名なら、code_tablesテーブルを表示順に読む。CSVと同じく
+ * 3. DB：config('neobit.code_table.db')に載せたコード名なら、code_tablesテーブルを表示順に読む。CSVと同じく
  *    並べるだけのもので、管理画面の項目見出し一覧から書き換えられる。値と名称の扱いはCSVと同じ
- * 4. メソッド：config('neobit.code_table_method')に、コード名 => [クラス, 静的メソッドの名前]で
+ * 4. メソッド：config('neobit.code_table.method')に、コード名 => [クラス, 静的メソッドの名前]で
  *    書いたもの。そのメソッドが返す「値 => 名称」の配列をそのまま使う。スタッフの一覧のように、
  *    ほかのテーブルから作るもの。設定に関数ではなく名前を書くのは、config:cacheで固められるようにするため
  *
@@ -64,15 +64,15 @@ class CodeTable
 
     /**
      * フレームワークの列挙型を置く名前空間。列挙型のコード表は、アプリの名前空間
-     * （config('neobit.code_table_enum_namespaces')）を先に探し、最後にここを探す。
+     * （config('neobit.code_table.enum_namespaces')）を先に探し、最後にここを探す。
      */
     private const CORE_ENUM_NAMESPACE = 'Neobit\\Core\\Enums\\';
 
     /**
      * フレームワークが自分で持つ、メソッドのコード表。コード名 => [クラス, 静的メソッドの名前]。
      * operation_log_actionは、フレームワークの操作とサイトの操作を合わせたもの
-     * （config('neobit.operation_log_actions')の列挙型）。operation_log_modelは、操作ログに出てくる
-     * モデルの種類の名前（config('neobit.operation_log_models')の列挙型）。
+     * （config('neobit.operation_log.actions')の列挙型）。operation_log_modelは、操作ログに出てくる
+     * モデルの種類の名前（config('neobit.operation_log.models')の列挙型）。
      */
     private const CORE_METHODS = [
         'operation_log_action' => [OperationLog::class, 'actionOptions'],
@@ -102,7 +102,7 @@ class CodeTable
         }
 
         // 4つの出どころのどこにあるかを調べ、2つ以上にあればエラー
-        $enumNamespaces = [...(array) config('neobit.code_table_enum_namespaces', []), self::CORE_ENUM_NAMESPACE];
+        $enumNamespaces = [...(array) config('neobit.code_table.enum_namespaces', []), self::CORE_ENUM_NAMESPACE];
         $enumClass = $enumNamespaces[0].Str::studly($codeName);
         $isEnum = false;
         foreach ($enumNamespaces as $namespace) {
@@ -117,14 +117,14 @@ class CodeTable
             }
         }
         $path = base_path(self::DIRECTORY.'/'.$codeName.'.csv');
-        $isDb = array_key_exists($codeName, (array) config('neobit.code_table_db', []));
-        $method = ((array) config('neobit.code_table_method', []))[$codeName] ?? null;
+        $isDb = array_key_exists($codeName, (array) config('neobit.code_table.db', []));
+        $method = ((array) config('neobit.code_table.method', []))[$codeName] ?? null;
 
         $sources = array_keys(array_filter([
             "列挙型（{$enumClass}）" => $isEnum,
             "CSV（{$path}）" => is_file($path),
-            'DB（neobit.code_table_db）' => $isDb,
-            'メソッド（neobit.code_table_method）' => $method !== null,
+            'DB（neobit.code_table.db）' => $isDb,
+            'メソッド（neobit.code_table.method）' => $method !== null,
         ]));
 
         if (count($sources) > 1) {
@@ -142,7 +142,7 @@ class CodeTable
                 && (new ReflectionMethod($method[0], $method[1]))->isStatic();
 
             if (! $callable) {
-                throw new CodeTableException("コード表（{$codeName}）を作るメソッドが呼べません。config('neobit.code_table_method')に、[クラス, 静的メソッドの名前]で書いてください: ".json_encode($method, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+                throw new CodeTableException("コード表（{$codeName}）を作るメソッドが呼べません。config('neobit.code_table.method')に、[クラス, 静的メソッドの名前]で書いてください: ".json_encode($method, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
             }
 
             return self::$cache[$codeName] = $method();

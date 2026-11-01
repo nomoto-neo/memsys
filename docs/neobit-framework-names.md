@@ -217,17 +217,19 @@
 | ファイル | キー | メモ |
 |---|---|---|
 | `neobit` | `layouts` | |
-| `neobit` | `admin_path` | 管理画面の頭の URL。既定は `app/admin` |
-| `neobit` | `file_watch`（`release_file`・`to`） | 配列なので、アプリで書くときは全部のキーを書く |
-| `neobit` | `code_table_db`・`code_table_method`・`code_table_enum_namespaces` | |
-| `neobit` | `operation_log_actions`・`operation_log_models`・`operation_log_route` | |
-| `neobit` | `admin_requests_per_minute`・`admin_requests_exceeded_message` | |
-| `neobit` | `ip_block_auto`・`ip_block_watch_minutes`・`ip_block_watch_count`・`ip_block_hours` | |
-| `neobit` | `operation_report_to`・`operation_report_thresholds` | 操作ログの設定は `operation_log_〜`、報告は `operation_report_〜` |
-| `neobit` | `cron_enabled` | `.env` は `CRON_ENABLED` |
+| `neobit` | `route.admin_path` | 管理画面の頭の URL。既定は `app/admin` |
+| `neobit` | `file_watch`（`release_file`・`to`・`public_upload_extra`） | |
+| `neobit` | `code_table.db`・`code_table.method`・`code_table.enum_namespaces` | |
+| `neobit` | `operation_log.actions`・`operation_log.models`・`operation_log.route` | |
+| `neobit` | `security.admin_requests_per_minute`・`security.admin_requests_exceeded_message` | |
+| `neobit` | `security.ip_block_auto`・`security.ip_block_watch_minutes`・`security.ip_block_watch_count`・`security.ip_block_hours` | |
+| `neobit` | `operation_log.report_to`・`operation_log.report_thresholds` | |
+| `neobit` | `schedule.cron_enabled` | `.env` は `CRON_ENABLED` |
 | `neobit` | `seo`（`title_format`・`description`・`description_length`・`image`・`organization_name`・`organization_logo`・`noindex_routes`・`sitemap_routes`・`sitemap_models`・`robots_disallow`・`page_routes`・`redirects`） | 配列なので、アプリで書くときは全部のキーを書く |
-| `upload` | `image_types`・`attach_types`・`max_kb`・`max_image_pixels`・`csv_max_kb`・`directory_rule` | |
-| `cleanup` | `operation_log_days`・`failed_job_days`・`tasks` | |
+| `neobit` | `upload`（`image_types`・`attach_types`・`max_kb`・`max_image_pixels`・`csv_max_kb`・`directory_rule`） | |
+| `neobit` | `cleanup`（`operation_log_days`・`failed_job_days`・`tasks`） | |
+| `neobit` | `form.required_mark`（`admin`・`public`） | |
+| `neobit` | `security.trusted_proxies`・`security.site_allowed_ips`・`security.admin_allowed_ips` | `.env` は `TRUSTED_PROXIES`・`SITE_ALLOWED_IPS`・`ADMIN_ALLOWED_IPS` |
 
 ## 9. 画面と、渡す変数
 
@@ -302,4 +304,4 @@
 | `vendor:publish` のタグ | `neobit-config`・`neobit-mail-templates` | |
 | Artisan のコマンド | `app:access-denied-off`・`app:cleanup-temporary-data`・`app:gate`・`app:report-operation-logs`・`app:reset-two-factor`・`app:set-next-id`・`app:file-watch` | 頭が案件と同じ `app:`。フレームワークのものと見分けられない |
 | テーブル | `code_tables`・`ip_blocks`・`settings`・`operation_logs`・`csv_download_logs`・`csv_import_logs`・`trusted_devices`・`two_factor_backup_codes`・`two_factor_secrets`・`passkeys`・`team_invitations` | |
-| フレームワークが作るコード表 | `operation_log_action`・`operation_log_model` | 設定の `operation_log_actions`・`operation_log_models` の列挙型から作る |
+| フレームワークが作るコード表 | `operation_log_action`・`operation_log_model` | 設定の `operation_log.actions`・`operation_log.models` の列挙型から作る |

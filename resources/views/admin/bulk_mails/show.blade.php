@@ -116,7 +116,7 @@
                     <p class="small">ほか{{ number_format($failedRecipientCount - count($failedRecipients)) }}件は、CSVダウンロードで見られます。</p>
                 @endif
 
-                {{-- 送れなかった分を残す日数（config/cleanup.phpのfailed_job_days）。0なら片付けで消さないので出さない --}}
+                {{-- 送れなかった分を残す日数（config/neobit.phpのcleanupの節のfailed_job_days）。0なら片付けで消さないので出さない --}}
                 @if ($failedJobDays > 0)
                     <p class="text-muted small mb-0">送れなかった分は、{{ $failedJobDays }}日たつと消え、宛先もこの一覧から消えます。</p>
                 @endif

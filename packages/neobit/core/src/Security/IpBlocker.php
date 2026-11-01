@@ -24,8 +24,8 @@ use Symfony\Component\HttpFoundation\Response;
  *
  * ■ 自動で止める
  * 応答が404・405になったアクセスを、IPアドレスごとに数える（countMiss()）。
- * config('neobit.ip_block_watch_minutes')の分の中に、config('neobit.ip_block_watch_count')回を
- * 超えたら、config('neobit.ip_block_hours')の時間止める。config('neobit.ip_block_auto')がfalseなら
+ * config('neobit.security.ip_block_watch_minutes')の分の中に、config('neobit.security.ip_block_watch_count')回を
+ * 超えたら、config('neobit.security.ip_block_hours')の時間止める。config('neobit.security.ip_block_auto')がfalseなら
  * 数えず、管理画面からの登録だけになる。IPv6は、1人の契約者に/64が割り当てられることが多いので、
  * /64のまとまりで数えて止める。
  *
@@ -101,7 +101,7 @@ final class IpBlocker
      */
     public static function countMiss(Request $request, Response $response): void
     {
-        if (! config('neobit.ip_block_auto', self::DEFAULT_AUTO) || ! in_array($response->getStatusCode(), self::MISS_STATUSES, true)) {
+        if (! config('neobit.security.ip_block_auto', self::DEFAULT_AUTO) || ! in_array($response->getStatusCode(), self::MISS_STATUSES, true)) {
             return;
         }
 
@@ -111,9 +111,9 @@ final class IpBlocker
         }
 
         $range = self::autoRange($ip);
-        $minutes = (int) config('neobit.ip_block_watch_minutes') ?: self::DEFAULT_WATCH_MINUTES;
-        $count = (int) config('neobit.ip_block_watch_count') ?: self::DEFAULT_WATCH_COUNT;
-        $hours = (int) config('neobit.ip_block_hours') ?: self::DEFAULT_HOURS;
+        $minutes = (int) config('neobit.security.ip_block_watch_minutes') ?: self::DEFAULT_WATCH_MINUTES;
+        $count = (int) config('neobit.security.ip_block_watch_count') ?: self::DEFAULT_WATCH_COUNT;
+        $hours = (int) config('neobit.security.ip_block_hours') ?: self::DEFAULT_HOURS;
 
         // 数える時間の中のアクセスの回数。目安に届かなければ、ここまで
         $hits = RateLimiter::hit(self::MISS_KEY.$range, $minutes * 60);

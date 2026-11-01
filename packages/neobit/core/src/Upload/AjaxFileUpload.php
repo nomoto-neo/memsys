@@ -36,7 +36,7 @@ use Neobit\Core\Rules\UploadRequiredRule;
  *   受け取り（uploadAjaxFile()）と一時ファイルの移し方はこのトレイトのものを使い、行への書き込みと
  *   使わなくなったファイルの削除は組の部品が受け持つ
  *
- * 使える拡張子と大きさの上限は、サイト全体のセキュリティの方針なので、設定で決める（config/upload.php）。
+ * 使える拡張子と大きさの上限は、サイト全体のセキュリティの方針なので、設定で決める（config/neobit.phpのuploadの節）。
  * コーナーごとには変えさせない。
  *
  * ■ エディタの欄の画像
@@ -109,7 +109,7 @@ trait AjaxFileUpload
             return response()->json(['message' => 'アップロードに失敗しました。'], 422);
         }
 
-        // 受け付ける拡張子は、サイト全体の方針として種類ごとに設定で決める（config/upload.php）
+        // 受け付ける拡張子は、サイト全体の方針として種類ごとに設定で決める（config/neobit.phpのuploadの節）
         $isImage = $definition['type'] === UploadType::Image;
         $width = (int) $definition['width'];
         $allowTypes = $definition['type']->allowedExtensions();
@@ -133,7 +133,7 @@ trait AjaxFileUpload
         // 種類はLaravelのmimesで確かめる。拡張子だけでなくファイルの中身から見た種類も確かめる
         $validator = Validator::make(
             ['file' => $file],
-            ['file' => ['required', 'file', 'mimes:'.implode(',', $allowTypes), 'max:'.config('upload.max_kb')]]
+            ['file' => ['required', 'file', 'mimes:'.implode(',', $allowTypes), 'max:'.config('neobit.upload.max_kb')]]
         );
 
         if ($validator->fails()) {
@@ -201,7 +201,7 @@ trait AjaxFileUpload
      * メモリを取ろうとしてmemory_limitを超え、処理が止まる。getimagesize()はファイルの先頭の寸法を
      * 読むだけで展開しないので、その前に断れる。
      *
-     * 1. 画素数の上限（config/upload.phpのmax_image_pixels）を超えていたら、メモリに関係なく断る
+     * 1. 画素数の上限（config/neobit.phpのuploadの節のmax_image_pixels）を超えていたら、メモリに関係なく断る
      * 2. 展開に要るメモリの見込みが残りのメモリに収まらなければ断る。縦向きに撮った写真は
      *    回転を直すときに同じ大きさの画像をもう1枚作るので、見込みは2枚分にする。
      *    memory_limitが無制限なら確かめない
@@ -229,12 +229,12 @@ trait AjaxFileUpload
             $imageHeight
         );
 
-        // 1. 画素数の上限（config/upload.php）
-        if ($pixels > config('upload.max_image_pixels')) {
+        // 1. 画素数の上限（config/neobit.phpのuploadの節）
+        if ($pixels > config('neobit.upload.max_image_pixels')) {
             Log::warning('AjaxFileUpload: 画像の画素数が上限を超えています。', [
                 'field' => $field,
                 'pixels' => $pixels,
-                'max_pixels' => config('upload.max_image_pixels'),
+                'max_pixels' => config('neobit.upload.max_image_pixels'),
             ]);
 
             return $message;
@@ -683,7 +683,7 @@ trait AjaxFileUpload
 
         $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
 
-        if (! in_array($extension, config('upload.image_types'), true)) {
+        if (! in_array($extension, config('neobit.upload.image_types'), true)) {
             return null;
         }
 

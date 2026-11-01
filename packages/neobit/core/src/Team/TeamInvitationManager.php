@@ -34,7 +34,7 @@ use Neobit\Core\Operations\OperationRecorder;
  * ■ 期限と片付け
  * 招待はVALID_DAYSの日数だけ有効。登録が済んだ招待と、取り消した招待は、行を消す。
  * 期限の切れた招待は使われず、一時データの後片付けがdeleteExpired()を呼んで消す
- * （config/cleanup.phpのtasks）。
+ * （config/neobit.phpのcleanupの節のtasks）。
  *
  * ■ 招待した人
  * 招待を作ったときに、その画面でログインしている人を、招待した人として行に残す。仲間のことも、

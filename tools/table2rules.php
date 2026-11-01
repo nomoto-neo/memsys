@@ -513,8 +513,8 @@ final class TableDraft
 
             $exists = (enum_exists($enumClass) && is_subclass_of($enumClass, CodeTableEnum::class))
                 || is_file(base_path("code/{$candidate}.csv"))
-                || isset(config('neobit.code_table_db')[$candidate])
-                || isset(config('neobit.code_table_method')[$candidate]);
+                || isset(config('neobit.code_table.db')[$candidate])
+                || isset(config('neobit.code_table.method')[$candidate]);
 
             if ($exists) {
                 return $candidate;

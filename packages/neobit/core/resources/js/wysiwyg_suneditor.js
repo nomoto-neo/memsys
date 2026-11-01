@@ -76,7 +76,7 @@ const TOOLBAR = [
 ];
 
 // エディタで選べる画像の種類。サーバー側の許可
-// (config/upload.phpのimage_types)に合わせている。最終的な判定は
+// (config/neobit.phpのuploadの節のimage_types)に合わせている。最終的な判定は
 // サーバー側で行うので、ここは利用者が無駄にアップロードしないための
 // 案内にすぎない。
 const ACCEPT_IMAGE_TYPES = 'image/jpeg,image/png,image/webp';

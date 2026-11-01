@@ -9,7 +9,7 @@ use Tests\TestCase;
 
 /**
  * アップロードしたファイルの保存先のディレクトリ（UploadFilePath::directory()）。
- * 規則のクラスはconfig('upload.directory_rule')で差し替えられる。
+ * 規則のクラスはconfig('neobit.upload.directory_rule')で差し替えられる。
  */
 class UploadDirectoryTest extends TestCase
 {
@@ -21,7 +21,7 @@ class UploadDirectoryTest extends TestCase
 
     public function test_rule_in_the_config_is_used_for_directories_and_paths(): void
     {
-        config(['upload.directory_rule' => TestFlatUploadDirectory::class]);
+        config(['neobit.upload.directory_rule' => TestFlatUploadDirectory::class]);
 
         $this->assertSame('news/12', UploadFilePath::directory(News::class, 12));
 
@@ -32,7 +32,7 @@ class UploadDirectoryTest extends TestCase
 
     public function test_class_without_the_rule_interface_is_rejected(): void
     {
-        config(['upload.directory_rule' => News::class]);
+        config(['neobit.upload.directory_rule' => News::class]);
 
         $this->expectException(\LogicException::class);
         $this->expectExceptionMessage('UploadDirectoryRule');
@@ -42,7 +42,7 @@ class UploadDirectoryTest extends TestCase
 
     public function test_directory_outside_the_disk_is_rejected(): void
     {
-        config(['upload.directory_rule' => TestEscapingUploadDirectory::class]);
+        config(['neobit.upload.directory_rule' => TestEscapingUploadDirectory::class]);
 
         $this->expectException(\LogicException::class);
         $this->expectExceptionMessage('../secret');

@@ -15,7 +15,7 @@ use Tests\TestCase;
 
 /**
  * 操作ログの画面（Neobit\Core\Http\Controllers\OperationLogController）。フレームワークの画面で、
- * ルートの名前はアプリが付ける。種類の名前は、config('neobit.operation_log_models')の列挙型から出す。
+ * ルートの名前はアプリが付ける。種類の名前は、config('neobit.operation_log.models')の列挙型から出す。
  */
 class OperationLogScreenTest extends TestCase
 {
@@ -40,7 +40,7 @@ class OperationLogScreenTest extends TestCase
             ->assertSee('操作ログは365日残し、過ぎたものは自動で消えます。');
 
         // 0なら操作ログを取らない
-        config(['cleanup.operation_log_days' => 0]);
+        config(['neobit.cleanup.operation_log_days' => 0]);
         $this->actingAs($manager, 'admin')->get(route('admin.operation-logs.index'))
             ->assertSee('操作ログは取っていません。それまでに残したものは消えずに残ります。');
     }
@@ -111,7 +111,7 @@ class OperationLogScreenTest extends TestCase
     {
         // 設定に列挙型が無くても、例外にせず、種類の名前のまま出す。コード表は1つのプロセスの中で
         // 使い回すので、前のテストで作った一覧を消してから確かめる
-        config(['neobit.operation_log_models' => []]);
+        config(['neobit.operation_log.models' => []]);
         (new \ReflectionProperty(CodeTable::class, 'cache'))->setValue(null, []);
         $manager = $this->manager();
         OperationLog::create(['operator_type' => 'staff', 'operator_id' => $manager->id, 'action' => OperationLogAction::Login]);

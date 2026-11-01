@@ -107,7 +107,7 @@ class FormHelpersTest extends TestCase
         }
 
         // 設定に名前空間を足すと、そこの列挙型がコード表になる
-        config(['neobit.code_table_enum_namespaces' => ['App\\Enums\\', 'Tests\\Feature\\']]);
+        config(['neobit.code_table.enum_namespaces' => ['App\\Enums\\', 'Tests\\Feature\\']]);
 
         $this->assertSame(['apple' => 'りんご', 'orange' => 'みかん'], code_table('test_fruit'));
 

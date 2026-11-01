@@ -166,14 +166,14 @@ MAIL_FROM_NAME="${SITE_NAME}"
 
 ### 管理画面の URL（admin_path）
 
-管理画面の頭の URL は、`config/neobit.php` の `admin_path` で決めます。既定は `app/admin`（`/app/admin/login` など）です。`/admin` は URL を順に叩く攻撃で真っ先に狙われるので、既定でも `/admin` には置きません。
+管理画面の頭の URL は、`config/neobit.php` の `route.admin_path` で決めます。既定は `app/admin`（`/app/admin/login` など）です。`/admin` は URL を順に叩く攻撃で真っ先に狙われるので、既定でも `/admin` には置きません。
 
-- `bootstrap/app.php` は、管理画面のルートのファイルを `->prefix(config('neobit.admin_path'))` で読みます。ルートの名前（`admin.*`）は URL に関係なく同じなので、画面とコントローラーは直しません。
-- サイトのアクセス制限（24章）は、`admin_path` の下をいつも制限の外にします。`bootstrap/app.php` に書く必要はありません。
+- `bootstrap/app.php` は、管理画面のルートのファイルを `->prefix(config('neobit.route.admin_path'))` で読みます。ルートの名前（`admin.*`）は URL に関係なく同じなので、画面とコントローラーは直しません。
+- サイトのアクセス制限（24章）は、`route.admin_path` の下をいつも制限の外にします。`bootstrap/app.php` に書く必要はありません。
 - **robots.txt には書きません**。robots.txt は誰でも読めるので、隠した URL を教えることになるためです。管理画面のルートのグループには `NoIndexHeader` を付け、全部の応答に `X-Robots-Tag: noindex, nofollow` を付けて、検索に出ないようにします。
 - **前の `/admin` は 404 にします**。新しい URL へ移すと、移した先を教えることになるためです。
 - **変えたら合わせて直すもの**：ベーシック認証の VirtualHost の決まり（25章）の `m#^/app/admin#`。
-- Laravel を公開ディレクトリの外に置けないサーバー（付録）では、`app/system/` に本体を置くので、`admin_path` の最初の区切りを `app` 以外にしても、本体の場所とは重なりません。
+- Laravel を公開ディレクトリの外に置けないサーバー（付録）では、`app/system/` に本体を置くので、`route.admin_path` の最初の区切りを `app` 以外にしても、本体の場所とは重なりません。
 
 ### サーバーの前にプロキシを置くとき（TRUSTED_PROXIES）
 
@@ -280,7 +280,7 @@ GRANT ALL PRIVILEGES ON memsys_testing.* TO 'memsys'@'localhost';
 | `ChildTables`・`_repeatable_group` | `packages/neobit/core/src/Crud/`・`packages/neobit/core/resources/views/` | 1:多の子テーブルを、親と同じ画面で入力して保存する（画面の部品は `_repeatable_group`） | 5 |
 | `admin/csv_import/` | `packages/neobit/core/resources/views/` | CSV 取り込みの画面（全コーナー共通） | 10 |
 | `_passkeys` | `packages/neobit/core/resources/views/` | パスキーの一覧・本人確認・登録の画面の中身 | 14 |
-| `TemporaryDataCleaner` | `packages/neobit/core/src/Operations/` | 一時データの後片付け（一時ファイル・期限の切れたキャッシュと信頼済み端末・古い操作ログ）。プロジェクトの片付けは `config/cleanup.php` に足す | 19 |
+| `TemporaryDataCleaner` | `packages/neobit/core/src/Operations/` | 一時データの後片付け（一時ファイル・期限の切れたキャッシュと信頼済み端末・古い操作ログ）。プロジェクトの片付けは `config/neobit.php` の `cleanup` の節に足す | 19 |
 | `app:cleanup-temporary-data` | `packages/neobit/core/src/Console/` | 一時データの後片付けのコマンド（スケジューラーから1時間ごと） | 19 |
 | `app:reset-two-factor` | `packages/neobit/core/src/Console/` | 2段階認証の登録を解除するコマンド（画面から解除できる人がいないときに使う） | 14 |
 | `app:set-next-id` | `packages/neobit/core/src/Console/` | 新しく登録する行の id の始まりを決めるコマンド（サイトを開ける前に使う） | 16 |
@@ -356,7 +356,9 @@ class NewsController extends Controller
 - **データ項目の仕様はモデルの定数に持つ**：画像の横幅のように、どの画面から登録しても変わらない仕様はモデルの定数にし、コントローラーや画面はそれを参照します（例：`News::LIST_IMAGE_WIDTH`）。
 - **選択肢のように決まった種類の値は列挙型にする**：`app/Enums/`。区分表として一覧を使うときは、出どころに関係なく `code_table()` 系のヘルパーを通します（8章）。
 - **テンプレートは細かく部品化しない**：デザイナーが触れる HTML のまま保ちます。コーナーの入力欄は `_fields.blade.php` 1つにまとめ、4つの画面から呼びます（5章）。Blade にコントローラー名は書きません。
-- **設定の既定の値は、フレームワークが持つ**：`neobit`・`upload`・`cleanup` の設定は、`packages/neobit/core/config/` に既定の値があります。アプリの `config/` に同じ名前のファイルで書いたキーが、それに優先します。優先するのは、いちばん上の階層のキーごとです。配列の値（`upload.image_types`・`neobit.operation_report_thresholds` など）は、アプリが書くと丸ごと置き換わるので、変えない要素も全部書きます。アプリの設定ファイルでは、既定と同じ値は頭に `//` を付けて見本として残し、変える値だけ `//` を外して書き換えます。生きている行が、そのプロジェクトで変えた値です。`php artisan vendor:publish --tag=neobit-config` で、全部の値に `//` を付けた見本（`packages/neobit/core/stubs/config/`）を `config/` へ写せます。既定の値を変えたり足したりしたら、見本も合わせます。合っているかは、テスト（`ConfigStubTest`）が確かめます。
+- **設定の既定の値は、フレームワークが持つ**：既定の値は、`vendor/neobit/core/config/neobit/` に機能ごとのファイルで持ちます（`route`・`layouts`・`form`・`code_table`・`operation_log`・`security`・`file_watch`・`seo`・`schedule`・`upload`・`cleanup`）。
+- **案件は `config/neobit.php` の1ファイルに、変える値だけを書く**：機能ごとの節で書きます（例：`'seo' => ['redirects' => true]`）。書いたキーが既定に優先し、書いていないキーは既定の値になります。こうしておくと、案件が何を変えたかが1つのファイルで分かり、パッケージの更新で足した既定の値が、案件のファイルを直さずに効きます。節の中の配列（`neobit.upload.image_types`・`neobit.operation_log.report_thresholds` など）は丸ごと置き換わるので、変えない要素も一緒に書きます。その部分は、パッケージの更新が効かなくなるので、更新のときに見比べます。`php artisan vendor:publish --tag=neobit-config` で、見本（`packages/neobit/core/stubs/config/neobit.php`）を `config/` へ写せます。
+- **フレームワークの設定を変えるために、`config/` にファイルを増やさない**：案件の機能の設定（`contact.php` など）は、今までどおり `config/` に置きます。
 - **Blade のコメントは `{{-- --}}` で書く**：`<style>` や `<script>` の中でも同じです。`/* */`・`//`・`<!-- -->` は HTML のソースに出て、訪問者に見えるので使いません。
 - **コメント**：今のコードが何をしていて、なぜそうなっているかだけを書きます。試行錯誤の経緯は書きません。書き方は 1-5 にまとめてあります。
 
@@ -660,7 +662,7 @@ Route::patch('/news/{news}/update', ...'update')->name('news.update');
 - **`$input` には、`rules()` にある項目のキーが必ず入っています**。値の無い項目は null です。画面では `{{ $input['title'] }}` のように、`?? ''` を付けずに書けます。チェックの無いチェックボックスのように、送られてこない項目も同じです。一覧の検索条件の `$filters`（3章）も、検索の項目のキーが必ず入っています。`rules()` に無い項目（`password_confirmation` など）と、`FormFlow` を通さずに組み立てた `$input`（会員登録の `old()` など）には、`??` が要ります。
 - **確認画面**：`_fields` を読み取り専用で表示し、「戻る」「登録する」の2つのフォームに `@include('neobit::_confirm_hidden', ['input' => $input])` で hidden を入れます。項目が増えても確認画面は直さずに済みます。
 - **パスワード**：確認画面の「戻る」側は `'exclude' => ['password', 'password_confirmation']` で hidden から外します。`rules()` に無い `password_confirmation` は、確認画面の `$input` に足して持ち回ります。入力画面に戻したときは、`Arr::except(old(), [...])` で再表示しません（実例：スタッフ）。
-- **必須マーク**：`requiredFields($record, ['password_confirmation'])` の第2引数で、`rules()` に `required` が無いが必須にしたい項目を足せます（`accepted` の同意チェックなど）。マークの HTML は `config/form.php` の `required_mark`（管理画面と訪問者向けで別）にあります。
+- **必須マーク**：`requiredFields($record, ['password_confirmation'])` の第2引数で、`rules()` に `required` が無いが必須にしたい項目を足せます（`accepted` の同意チェックなど）。マークの HTML は `config/neobit.php` の `form` の節の `required_mark`（管理画面と訪問者向けで別）にあります。
 - 入力画面では、必須マークの付いた欄に JavaScript が `required` 属性を付け、ブラウザの入力チェックの結果も同じエラー欄に出します（17章）。
 
 ### トランザクション
@@ -859,7 +861,7 @@ private function prepareInput(array $validated): array
     | `width` | 画像なら必ず書く。この横幅を超えたら縮小する。添付ファイルには書かない |
     | `required` | 省略できる。`true` なら必須（下の「必須の欄」） |
 
-    受け付ける拡張子は、種類ごとに `config/upload.php` の `image_types`・`attach_types` を使います。
+    受け付ける拡張子は、種類ごとに `config/neobit.php` の `upload` の節の `image_types`・`attach_types` を使います。
 - **必須の欄**：`'required' => true` の欄は、新しいファイル（一時ファイルが今ある）か、消していない今のファイルが無いと、確認画面へ進めず、保存もできません。今のファイルは、hidden の値をそのまま信じず、編集しているレコードの今の値と照らします。組の中の欄では、空でない行のどれにもファイルを求めます（今のファイルは、その行の今の値と照らします）。「少なくとも1つ」は、組の `'min' => 1` で決めます。
     - エラーの文は、通常の項目と同じ `validation.required` です。エラーは欄の名前（組の中の欄は `photos_image.0` のように行ごと）に付き、`_ajax_upload_block` が自分で `invalid-feedback` を出します。
     - 必須マークは `requiredFields()` が付けます。画面では `{!! $required['list_image'] ?? '' !!}` と書きます。
@@ -870,7 +872,7 @@ private function prepareInput(array $validated): array
 - ルートにアップロード先を1本足します：`Route::post('/news/ajax-upload', [AdminNewsController::class, 'uploadAjaxFile'])->name('news.ajaxUpload');`（訪問者向けは `throttle` を付ける）。
 - **単数のフィールド**（`list_image`）：テーブルに `list_image`（保存ファイル名）と `list_image_origin`（元のファイル名）のカラムを作り、モデルの `$fillable` に入れます。
 - **組の中のフィールド**（`attach.*.file`）：子テーブルに、列（`file`）と、列の名前に `_origin` を付けた表示名の列（`file_origin`。NULL可）を作り、組の名前と同じ HasMany リレーション（`News::attach()`）を用意します。
-- 許可する拡張子・大きさの上限は、サイト全体の方針として `config/upload.php` で決めます。コーナーごとには変えません。画像の種類を変えたら、エディタでファイルを選ぶときの絞り込み（`wysiwyg_suneditor.js`・`wysiwyg_summernote.js` の `ACCEPT_IMAGE_TYPES`）も合わせます。CSV の取り込みの大きさの上限（`csv_max_kb`）も、ここにあります。
+- 許可する拡張子・大きさの上限は、サイト全体の方針として `config/neobit.php` の `upload` の節で決めます。コーナーごとには変えません。画像の種類を変えたら、エディタでファイルを選ぶときの絞り込み（`wysiwyg_suneditor.js`・`wysiwyg_summernote.js` の `ACCEPT_IMAGE_TYPES`）も合わせます。CSV の取り込みの大きさの上限（`csv_max_kb`）も、ここにあります。
 - **保存先**：モデルのクラス名と id から、保存先の規則が決めます（既定の例：`news/000/000012/xxxx.jpg`。規則の差し替えは下の「保存先の規則を変えるとき」）。1件分のファイルはフィールドに関係なく1つのディレクトリに入ります。表示の URL は `UploadFilePath::url(クラス, id, フィールド, ファイル名)` で作り、モデルのアクセサにしておきます（例：`News::list_image_url`、`NewsAttachment::url`）。
 
 ### 画面
@@ -1007,7 +1009,7 @@ public function viewFiles(Member|Staff|null $user, News $news, string $field): b
 
 ### 保存先の規則を変えるとき
 
-保存先のディレクトリは、`config/upload.php` の `directory_rule` に書いたクラスが決めます。既定は `DefaultUploadDirectory`（`news/000/000012`）です。プロジェクトで変えたいときは、`UploadDirectoryRule` を実装したクラスを書き、設定にその名前を書きます。メソッドの名前は `directory()` に決まっています。
+保存先のディレクトリは、`config/neobit.php` の `upload` の節の `directory_rule` に書いたクラスが決めます。既定は `DefaultUploadDirectory`（`news/000/000012`）です。プロジェクトで変えたいときは、`UploadDirectoryRule` を実装したクラスを書き、設定にその名前を書きます。メソッドの名前は `directory()` に決まっています。
 
 ```php
 // app/Services/AppUploadDirectory.php：id をそのまま1階層にする例（news/12）
@@ -1019,7 +1021,7 @@ final class AppUploadDirectory implements UploadDirectoryRule
     }
 }
 
-// config/upload.php
+// config/neobit.php の upload の節
 'directory_rule' => App\Services\AppUploadDirectory::class,
 ```
 
@@ -1041,7 +1043,7 @@ final class AppUploadDirectory implements UploadDirectoryRule
 
 <p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
 
-**ファイル**：`packages/neobit/core/src/Code/CodeTable.php`・`packages/neobit/core/src/helpers.php`・`app/Enums/`・`code/*.csv`・`config/neobit.php` の `code_table_db`・`code_table_method`・`packages/neobit/core/src/Http/Controllers/CodeTableController.php`（項目見出し一覧）
+**ファイル**：`packages/neobit/core/src/Code/CodeTable.php`・`packages/neobit/core/src/helpers.php`・`app/Enums/`・`code/*.csv`・`config/neobit.php` の `code_table.db`・`code_table.method`・`packages/neobit/core/src/Http/Controllers/CodeTableController.php`（項目見出し一覧）
 
 区分表（値と名称の組）は、出どころに関係なく次のヘルパーで使います。
 
@@ -1055,16 +1057,16 @@ final class AppUploadDirectory implements UploadDirectoryRule
 
 出どころは4種類で、`CodeTable` がコード名から自動で探します（2つ以上にあればエラー）。
 
-- **列挙型**（`App\Enums\<コード名の StudlyCase>`、`CodeTableEnum` を実装し `label()` を持つ）：プログラムが値によって動きを変えるもの（スタッフの権限 `StaffAcl` など）。モデルの `$casts` や判定では列挙型を直接使います。列挙型を探す名前空間は、`config/neobit.php` の `code_table_enum_namespaces` に書きます。既定は `App\Enums\` で、書いた順に探します。フレームワークの列挙型（`Neobit\Core\Enums\`）は、書かなくても最後に探します。
+- **列挙型**（`App\Enums\<コード名の StudlyCase>`、`CodeTableEnum` を実装し `label()` を持つ）：プログラムが値によって動きを変えるもの（スタッフの権限 `StaffAcl` など）。モデルの `$casts` や判定では列挙型を直接使います。列挙型を探す名前空間は、`config/neobit.php` の `code_table.enum_namespaces` に書きます。既定は `App\Enums\` で、書いた順に探します。フレームワークの列挙型（`Neobit\Core\Enums\`）は、書かなくても最後に探します。
 - **CSV**（`code/<コード名>.csv`、「値,名称」を1行1件、`#` はコメント）：選択肢として並べるだけのもの（都道府県など）。
-- **DB**（`code_tables` テーブル。コード名を `config/neobit.php` の `code_table_db` に載せる）：CSVと同じ扱いのもの（性別・連絡方法など）を、管理画面の「項目見出し一覧」から書き換えたいとき。値・名称の扱い（数字だけの値は int、名称の `\n` は改行）も CSV と同じです。
-- **メソッド**（コード名を `config/neobit.php` の `code_table_method` に、`[クラス, 静的メソッドの名前]` で載せる）：スタッフの一覧のように、ほかのテーブルから作るもの。メソッドが返した「値 => 名称」の配列を、そのまま使います。
+- **DB**（`code_tables` テーブル。コード名を `config/neobit.php` の `code_table.db` に載せる）：CSVと同じ扱いのもの（性別・連絡方法など）を、管理画面の「項目見出し一覧」から書き換えたいとき。値・名称の扱い（数字だけの値は int、名称の `\n` は改行）も CSV と同じです。
+- **メソッド**（コード名を `config/neobit.php` の `code_table.method` に、`[クラス, 静的メソッドの名前]` で載せる）：スタッフの一覧のように、ほかのテーブルから作るもの。メソッドが返した「値 => 名称」の配列を、そのまま使います。
 
-DBのコード表を増やすときは、`config/neobit.php` の `code_table_db` に1行足し、必要なら `CodeSeeder` に初期データを書きます。
+DBのコード表を増やすときは、`config/neobit.php` の `code_table.db` に1行足し、必要なら `CodeSeeder` に初期データを書きます。
 
 ```php
-// config/neobit.php
-'code_table_db' => [
+// config/neobit.php の code_table の節
+'db' => [
     'gender' => ['label' => '性別', 'fixed' => true],          // label：項目見出し一覧に出す名前
     'contact' => ['label' => '連絡方法', 'fixed' => false],
 ],
@@ -1079,11 +1081,11 @@ DBのコード表を増やすときは、`config/neobit.php` の `code_table_db`
 FrameworkRoutes::codes('/codes');
 ```
 
-ほかのテーブルから作るコード表は、モデルに静的なメソッドを書き、`code_table_method` に載せます。画面やコントローラーで一覧を組み立てなくても、ほかのコード表と同じヘルパーで使えます。
+ほかのテーブルから作るコード表は、モデルに静的なメソッドを書き、`code_table.method` に載せます。画面やコントローラーで一覧を組み立てなくても、ほかのコード表と同じヘルパーで使えます。
 
 ```php
-// config/neobit.php
-'code_table_method' => [
+// config/neobit.php の code_table の節
+'method' => [
     // 過去のデータの名前を出す用。削除したスタッフも含む
     'staff' => [Staff::class, 'nameOptions'],
     // 担当者を選ぶプルダウンの用。今いるスタッフだけ
@@ -1101,7 +1103,7 @@ public static function nameOptions(): array
 - メソッドは public で static にします。無いときや呼べないときは、最初に使った画面で `CodeTableException` になります。
 - 論理削除した行を、名前には出し、選択肢には出さないときは、上の例のようにメソッドを分けて、コード表を2つにします。
 - 1回作った一覧は、同じリクエストの中で使い回します。1つの画面で何度 `code_label()` を呼んでも、問い合わせは1回です。
-- 操作ログの操作のコード表（`operation_log_action`）は、フレームワークが自分で持つメソッドのコード表です。`config/neobit.php` の `operation_log_actions` の列挙型を、書いた順に合わせて作ります。設定の `code_table_method` に書く必要はありません。
+- 操作ログの操作のコード表（`operation_log_action`）は、フレームワークが自分で持つメソッドのコード表です。`config/neobit.php` の `operation_log.actions` の列挙型を、書いた順に合わせて作ります。設定の `code_table.method` に書く必要はありません。
 
 列挙型の値ごとの名前や設定は、`match` でメソッドの中に書かず、冒頭の定数に1行ずつまとめ、メソッドはそれを引くだけにします。キーは `case` の値を参照します（PHP 8.2から使える書き方）。
 
@@ -1401,7 +1403,7 @@ if ($spam === SpamCheckResult::Failed) {
 - **回数の制限**：確認画面へ進むたびに Cloudflare に問い合わせるので、そのルートにも `throttle` を付けます（`throttle:20,1,contact-confirm`）。
 - **プライバシーポリシー**：Turnstile は、利用者のブラウザの情報を Cloudflare に送ります。外部送信規律（電気通信事業法）に合わせて、外部のサービスに情報を送っていることを、プライバシーポリシーなどで示しておきます。
 
-必須マークは `config/form.php` の `public` が使われます。
+必須マークは `config/neobit.php` の `form` の節の `public` が使われます。
 
 ## 13. 権限
 
@@ -1982,7 +1984,7 @@ Schedule::command(CleanupTemporaryData::class)->hourly()->withoutOverlapping();
 
 ### 一時データの後片付け（TemporaryDataCleaner）
 
-**ファイル**：`packages/neobit/core/src/Operations/TemporaryDataCleaner.php`（冒頭のコメント）・`config/cleanup.php`（残す日数と、プロジェクトの片付け）
+**ファイル**：`packages/neobit/core/src/Operations/TemporaryDataCleaner.php`（冒頭のコメント）・`config/neobit.php` の `cleanup` の節（残す日数と、プロジェクトの片付け）
 
 フレームワークが片付けるものは、次のとおりです。
 
@@ -1992,12 +1994,12 @@ Schedule::command(CleanupTemporaryData::class)->hourly()->withoutOverlapping();
 | CSV 取り込みの作業用ファイル | `storage/app/private/csv_import` | 24時間より古いファイル |
 | 試行制限の回数などのキャッシュ | `cache`・`cache_locks` テーブル | 期限の切れた行（キャッシュを database に置いているときだけ） |
 | 「この端末を信頼する」の記録 | `trusted_devices` テーブル | 期限（`expires_at`）の切れた行 |
-| 操作ログ（22章） | `operation_logs` テーブル | `config/cleanup.php` の `operation_log_days`（365日）より古い行 |
-| 送れなかったキューのジョブ（21章） | `failed_jobs` テーブル | `config/cleanup.php` の `failed_job_days`（7日）より古い行 |
+| 操作ログ（22章） | `operation_logs` テーブル | `config/neobit.php` の `cleanup` の節の `operation_log_days`（365日）より古い行 |
+| 送れなかったキューのジョブ（21章） | `failed_jobs` テーブル | `config/neobit.php` の `cleanup` の節の `failed_job_days`（7日）より古い行 |
 | 終わったジョブのバッチ（21章） | `job_batches` テーブル | 終わってから `failed_job_days`（7日）を過ぎた行。送り直せる間だけ残す |
 | 招待（23章） | `team_invitations` テーブル | 期限（`expires_at`）の切れた行（`TeamInvitationManager::deleteExpired()`） |
 
-業務のデータの片付けは、`TemporaryDataCleaner` には書かず、`config/cleanup.php` の `tasks` に足します。フレームワークの片付けの後に、同じ1時間ごとの片付けの中で呼ばれます。サンプルサイトでは、お問い合わせと一斉メールの記録の片付けを足しています。
+業務のデータの片付けは、`TemporaryDataCleaner` には書かず、`config/neobit.php` の `cleanup` の節の `tasks` に足します。フレームワークの片付けの後に、同じ1時間ごとの片付けの中で呼ばれます。サンプルサイトでは、お問い合わせと一斉メールの記録の片付けを足しています。
 
 | 片付け | 置き場所 | 消すもの |
 |---|---|---|
@@ -2005,7 +2007,7 @@ Schedule::command(CleanupTemporaryData::class)->hourly()->withoutOverlapping();
 | 一斉メールの記録（21章） | `t_bulk_mails` テーブルと添付ファイル | 送り終えてから `tasks` の `days` に書いた日数を過ぎた記録と、その添付ファイル・バッチの行。`null` なら消さない。日数は送信の履歴の画面にも出る（`App\Services\BulkMailCleanup`） |
 
 ```php
-// config/cleanup.php
+// config/neobit.php の cleanup の節
 'tasks' => [
     '保存期間を過ぎたお問い合わせ' => [
         'run' => [InquiryCleanup::class, 'deleteOld'],                // 呼ぶメソッド。消した件数を返す
@@ -2015,9 +2017,9 @@ Schedule::command(CleanupTemporaryData::class)->hourly()->withoutOverlapping();
 ```
 
 - 一時ファイルは、アップロードと CSV 取り込みのたびにも同じ処理で消します。サーバーの cron が動いていなくても溜まり続けないようにするための控えです。
-- **お問い合わせは、日数を決めたサイトだけ消します**。`config/cleanup.php` の `tasks` の `days` に残す日数を書くと、過ぎた行と添付ファイルを消します。`null` なら、消さずに残し続けます。個人情報を、要らなくなった後も持ち続けないようにするためです。日数は、サイトの運用で決めます。1件ずつは操作ログに残さず、消した件数だけをログ（`laravel.log`）に残します。スタッフに届いたお問い合わせのメールは、消えません。
+- **お問い合わせは、日数を決めたサイトだけ消します**。`config/neobit.php` の `cleanup` の節の `tasks` の `days` に残す日数を書くと、過ぎた行と添付ファイルを消します。`null` なら、消さずに残し続けます。個人情報を、要らなくなった後も持ち続けないようにするためです。日数は、サイトの運用で決めます。1件ずつは操作ログに残さず、消した件数だけをログ（`laravel.log`）に残します。スタッフに届いたお問い合わせのメールは、消えません。
 - 何かを消したときだけログに残し、何もしなかった回は残しません。同じ行が1時間ごとに並ばないようにするためです。
-- 新しい片付けを足すときは、消した件数を返すメソッドを `app/Services/` のクラスなどに書き、`config/cleanup.php` の `tasks` に1つ足します。残す日数があるものは `days` に書くと、メソッドに引数で渡されます。名前は、片付けのコマンドの表とログに出ます。
+- 新しい片付けを足すときは、消した件数を返すメソッドを `app/Services/` のクラスなどに書き、`config/neobit.php` の `cleanup` の節の `tasks` に1つ足します。残す日数があるものは `days` に書くと、メソッドに引数で渡されます。名前は、片付けのコマンドの表とログに出ます。
 
 ### サーバーの設定（cron）
 
@@ -2269,7 +2271,7 @@ Mail::send(new TemplatedMail('bulk_mail', [
 | `ip`・`device` | IP アドレスと、端末の種類（`UserAgentLabel`。例：iPhone・Safari） |
 
 - **氏名などの個人情報と、変更の前後の値は残しません**：操作ログが個人情報の写しにならないようにするためです。前の値までスタッフが知っていることは、会員の不信感にもつながります。画面では、id から今の氏名を引いて出します。
-- **種類の名前**は、`AppServiceProvider` の `Relation::enforceMorphMap()` に書いた名前です。画面やメールでは、`config/neobit.php` の `operation_log_models` に書いた列挙型（見本のサイトでは `App\Enums\AppOperationLogModel`）から、「会員」のような名前にします。操作の種類（`operation_log_actions`）と同じく、フレームワークがコード表 `operation_log_model` を作ります。列挙型に無い種類は、種類の名前のまま出ます。操作ログに残すモデルを増やしたら、`enforceMorphMap()` と列挙型の両方に足します。
+- **種類の名前**は、`AppServiceProvider` の `Relation::enforceMorphMap()` に書いた名前です。画面やメールでは、`config/neobit.php` の `operation_log.models` に書いた列挙型（見本のサイトでは `App\Enums\AppOperationLogModel`）から、「会員」のような名前にします。操作の種類（`operation_log.actions`）と同じく、フレームワークがコード表 `operation_log_model` を作ります。列挙型に無い種類は、種類の名前のまま出ます。操作ログに残すモデルを増やしたら、`enforceMorphMap()` と列挙型の両方に足します。
 
 ### 記録するところ
 
@@ -2312,7 +2314,7 @@ OperationRecorder::record(OperationLogAction::Update, $company, ['status'], ['st
 - **変わった列は、本体のテーブルの列だけです**：多対多のような関連のテーブルの変更は、列の名前には出ません。「更新した」ことは残ります。
 - **変わった項目は、列の名前のまま出します**（`phone`・`disp_flg` など）。日本語の名前の対応表は持ちません。画面を足すたびに対応表も足すことになり、CSV の見出しなどと二重に持つことになるためです。
 - **`detail` に個人情報と入力値を入れません**。ログインの失敗のログイン ID は、どのアカウントが狙われたかを調べるために残しています。お知らせメールの配信停止は、そのアドレスの会員がいないときだけ、どのアドレスへの操作かが分かるようにメールアドレスを残しています（21章）。例外は、この2つだけです。
-- **残す期間**：`config/cleanup.php` の `operation_log_days`（365日）。過ぎた行は、一時データの後片付け（19章）が消します。日数は、操作ログの一覧の上にも出します。
+- **残す期間**：`config/neobit.php` の `cleanup` の節の `operation_log_days`（365日）。過ぎた行は、一時データの後片付け（19章）が消します。日数は、操作ログの一覧の上にも出します。
 - **取らないとき**：`operation_log_days` を `0` にすると、操作ログを取りません。操作ログを求められない案件のためです。それまでに溜まった行は、片付けでは消さずに残ります。日々の報告のメールも、気になる点が出ないので届きません。IPブロック管理が自動で止めたことは、`warning` のログとエラーの通知のメール（20章）で分かります。
 
 ### 管理画面の回数の制限（AdminRequestLimit）
@@ -2321,9 +2323,9 @@ OperationRecorder::record(OperationLogAction::Update, $company, ['status'], ['st
 
 ログイン後の管理画面の全体に、スタッフごとの回数の制限を掛けています。一覧や詳細を、プログラムで続けて開いてデータを取り出す動きを止めるためです。
 
-- **回数**：`config/neobit.php` の `admin_requests_per_minute`（1分に120回）。人が普通に使って届かない数にします。画面の表示のほか、アップロードや、送信中の画面の読み直しも1回に数えます。`0` にすると、制限を掛けません。
+- **回数**：`config/neobit.php` の `security.admin_requests_per_minute`（1分に120回）。人が普通に使って届かない数にします。画面の表示のほか、アップロードや、送信中の画面の読み直しも1回に数えます。`0` にすると、制限を掛けません。
 - **数える単位**：操作しているスタッフの id です。同じ事務所から複数の人が使っても、互いに影響しません。
-- **超えたとき**：その回は処理せず、少し待つよう案内する画面（`admin/too_many_requests.blade.php`）を返します。案内の文は、`config/neobit.php` の `admin_requests_exceeded_message` に書きます。アップロードのような JavaScript からの送信には、同じ文を JSON で返します。操作ログに「回数の制限」を残し、`warning` のログも書きます。`ERROR_NOTIFY_LEVEL` が `warning` なら、エラーの通知のメール（20章）が届きます。件名は `【要確認：サイト名】WARNING：管理画面の操作が上限を超えました（スタッフID:3）` です。
+- **超えたとき**：その回は処理せず、少し待つよう案内する画面（`admin/too_many_requests.blade.php`）を返します。案内の文は、`config/neobit.php` の `security.admin_requests_exceeded_message` に書きます。アップロードのような JavaScript からの送信には、同じ文を JSON で返します。操作ログに「回数の制限」を残し、`warning` のログも書きます。`ERROR_NOTIFY_LEVEL` が `warning` なら、エラーの通知のメール（20章）が届きます。件名は `【要確認：サイト名】WARNING：管理画面の操作が上限を超えました（スタッフID:3）` です。
 - **記録は、スタッフごとに1分に1回まで**：続けて取り出そうとすると、超えた回数だけ記録が増えてしまうためです。
 - **管理画面のルートを足すとき**：`auth:admin` のグループの内側に書けば、この制限が掛かります。足すものはありません。
 - **止められないもの**：上限より遅く、時間をかけて取る動きは止まりません。そちらは、詳細の閲覧や CSV のダウンロードの記録から調べます。
@@ -2333,7 +2335,7 @@ OperationRecorder::record(OperationLogAction::Update, $company, ['status'], ['st
 - **一覧と検索**（`/app/admin/operation-logs`）：日付の範囲・操作・操作した人・対象・IP アドレス・補足で絞れます。補足は、中の語を部分一致で探します。空白で区切ると、全部の語を含む行に絞ります。CSV でも出せます。見るだけの画面で、登録・編集・削除はありません。
 - **どちらの画面も、管理者だけが開けます**：記録を取っていることを、スタッフの全員に見せる必要は無いためです。管理画面のトップのリンクも、管理者にだけ出ます。
 - **会員ごとの操作ログ**（`/app/admin/members/{id}/operation-logs`。会員の詳細画面の「操作ログ」のボタン）：その会員を対象にした操作と、その会員が行った操作だけを出します。本人が変えたのか、スタッフが変えたのか、誰が詳細を開いたのかが、時刻の順に並びます。問い合わせに答えるのに使います。こちらも管理者だけが開け、ボタンも管理者にだけ出ます。
-- **一覧の画面はフレームワークにあります**（`OperationLogController`・`neobit::admin.operation_logs.index`）。ルートは案件が書きます。管理者だけのグループの中に、`Neobit\Core\Routing\FrameworkRoutes` の1行を書きます。日々の報告のメールに画面の URL を載せるなら、`config/neobit.php` の `operation_log_route` に「頭.index」を書きます。会員ごとの操作ログの画面は案件の画面で、表は同じ部分ビュー（`neobit::admin.operation_logs._table`）を使います。
+- **一覧の画面はフレームワークにあります**（`OperationLogController`・`neobit::admin.operation_logs.index`）。ルートは案件が書きます。管理者だけのグループの中に、`Neobit\Core\Routing\FrameworkRoutes` の1行を書きます。日々の報告のメールに画面の URL を載せるなら、`config/neobit.php` の `operation_log.route` に「頭.index」を書きます。会員ごとの操作ログの画面は案件の画面で、表は同じ部分ビュー（`neobit::admin.operation_logs._table`）を使います。
 
     ```php
     // routes/admin.php（管理者だけのグループの中）
@@ -2367,7 +2369,7 @@ OperationRecorder::record(OperationLogAction::Update, $company, ['status'], ['st
 
 毎朝8時に、前の日の操作ログの報告を管理者へ送ります（`routes/console.php`）。**気になる点があった日だけ**送ります。毎日届くと読まれなくなり、肝心の日に埋もれるためです。
 
-| 気になる点 | 目安（`config/neobit.php` の `operation_report_thresholds`） |
+| 気になる点 | 目安（`config/neobit.php` の `operation_log.report_thresholds`） |
 |---|---|
 | 1人が、1時間に詳細を開いた件数 | 50件以上（`views_per_hour`） |
 | 1人が、1日に CSV をダウンロードした回数 | 5回以上（`csv_downloads_per_day`） |
@@ -2378,7 +2380,7 @@ OperationRecorder::record(OperationLogAction::Update, $company, ['status'], ['st
 - **件名**：`【要確認：サイト名】操作ログの報告（日付）`。頭は、エラーの通知と同じです。
 - **載せるもの**：気になる点、操作の種類ごとの件数、操作の多い人です。操作ログと同じく、氏名のほかの個人情報は載せません。
 - **手で動かす**：`php artisan app:report-operation-logs --date=2026-10-04 --always`。`--date` を書かなければ前の日、`--always` を付けると気になる点が無くても送ります。文面や宛先を確かめるときに使います。
-- 目安の数は、サイトの規模（スタッフや会員の数、1日の操作の量）に合わせて、`config/neobit.php` の `operation_report_thresholds` で決めます。0 にすると、その項目は見ません。
+- 目安の数は、サイトの規模（スタッフや会員の数、1日の操作の量）に合わせて、`config/neobit.php` の `operation_log.report_thresholds` で決めます。0 にすると、その項目は見ません。
 
 ### 会員情報が変わったときのお知らせメール（LoginProfileNotice）
 
@@ -2655,7 +2657,7 @@ Route::prefix('company')->name('company.')->group(function () {
 - **プロキシを前に置くときは、`TRUSTED_PROXIES` を先に書きます**。書かないと、全員がプロキシの IP アドレスに見えるので、全員が通るか、全員が止まります。
 - **メンテナンス中の画面**は、レイアウトを継承しない1枚の HTML です。DB もセッションも使わないので、DB を止めている間も出せます。文言は、アプリの `resources/views/vendor/neobit/maintenance.blade.php` に同じ名前で置いて上書きします。デモの運用のときも、この画面が出ます。
 - **503 で返す**のは、一時的に止めていることを検索エンジンに伝えて、登録を消されないようにするためです。
-- **制限の間も通すパス**は、`bootstrap/app.php` の `RestrictSiteAccess::except()` に書きます。今は、死活監視（`/up`）と、お知らせメールの配信停止（`/mail/unsubscribe`）です。止めている間に届いたメールからも、停止できるようにするためです。管理画面（設定の `admin_path` の下）は、書かなくてもいつも通します。
+- **制限の間も通すパス**は、`bootstrap/app.php` の `RestrictSiteAccess::except()` に書きます。今は、死活監視（`/up`）と、お知らせメールの配信停止（`/mail/unsubscribe`）です。止めている間に届いたメールからも、停止できるようにするためです。管理画面（設定の `route.admin_path` の下）は、書かなくてもいつも通します。
 - **管理画面を 404 にする**のは、そこに管理画面があることを知らせないためです。止めたアクセスは、操作ログに残しません。
 - **Apache が直接返すファイルは止まりません**。`public/build/` の中と、公開のアップロードファイル（`public/storage/`）は、Laravel を通らないためです。そこまで止めるときは、Apache の設定で絞ります。
 - **コマンドは止まりません**。スケジューラー（19章）とキュー（21章）は、制限の間も動きます。メンテナンスの間に一斉メールを送りたくないときは、送信が終わってから止めます。
@@ -2718,7 +2720,7 @@ Route::prefix('company')->name('company.')->group(function () {
 不正な URL を続けて叩く BOT を、IP アドレスで止めます。Cloudflare などの WAF や fail2ban を入れられない環境で、PHP の側で身を守るためのものです。止めた IP アドレスからのアクセスには、どのページも 404 を返します。
 
 - **止める場所**：全体のミドルウェア `RejectBlockedIp` です。ルートの無い URL（`/.env`・`/wp-login.php` など）も、ルートを探す前にここを通ります。止めている一覧はキャッシュに置き、毎回 DB は読みません。403 ではなく 404 にし、画面もルートの無い URL を開いたときと同じ 404 の画面にします。止められていることを、相手に気付かせないためです。Apache が PHP を通さずに返すファイル（画像・CSS など）は止まりません。
-- **自動で止める**：応答が 404・405 になったアクセスを、IP アドレスごとに数えます。`config/neobit.php` の `ip_block_watch_minutes`（10分）の中に `ip_block_watch_count`（30回）を超えたら、`ip_block_hours`（24時間）止めます。`ip_block_auto` を false にすると数えず、管理画面からの登録だけになります。IPv6 は `/64` のまとまりで数えて止めます。
+- **自動で止める**：応答が 404・405 になったアクセスを、IP アドレスごとに数えます。`config/neobit.php` の `security.ip_block_watch_minutes`（10分）の中に `security.ip_block_watch_count`（30回）を超えたら、`security.ip_block_hours`（24時間）止めます。`security.ip_block_auto` を false にすると数えず、管理画面からの登録だけになります。IPv6 は `/64` のまとまりで数えて止めます。
 - **止めない IP アドレス**：アクセス制限（24章）のサイトと管理画面の IP アドレスは、`.env` の分も画面の分も、自動でも手動でも止めません。管理画面からは、今の自分の IP アドレスを含むものも登録できません。管理者が自分を止めないようにするためです。
 - **管理画面**：止めている IP アドレスの一覧と、手動の登録・期限の変更・解除です。IP アドレスは1つでも、`203.0.113.0/24` のようなまとまりでも登録できます。一覧と登録の欄には、実際に止まる範囲（`203.0.113.0 ～ 203.0.113.255`）を出します。まとまりは、広すぎると関係の無い人まで止めるので、IPv4 は `/16`、IPv6 は `/32` より狭いものだけにします。
 - **ルート**：案件が書きます。機能を使うかどうかを、案件ごとに決めるためです。管理者だけのグループの中に、`Neobit\Core\Routing\FrameworkRoutes` の1行を書きます。
@@ -2842,7 +2844,7 @@ use SeoFields;
 // routes/admin.php（管理者だけのグループの中）
 FrameworkRoutes::seoSettings('/seo-settings');
 
-// config/neobit.php の seo。画面に出すページ。ルート名 => 画面に出す名前
+// config/neobit.php の seo の節。画面に出すページ。ルート名 => 画面に出す名前
 'page_routes' => [
     'top' => 'トップページ',
     'news.index' => 'お知らせの一覧',
@@ -2880,7 +2882,7 @@ FrameworkRoutes::seoSettings('/seo-settings');
     }
     ```
 - **robots.txt**（`/robots.txt`。フレームワークのルート `seo.robots`）：本番（`APP_ENV=production`）では、設定の `seo.robots_disallow` の場所を巡回させず、サイトマップの絶対の URL を伝えます。本番以外（開発サーバーなど）では、全部を巡回させません（`Disallow: /`）。`public/robots.txt` があると Apache がそちらを返すので、置きません。管理画面は、隠した URL を教えないよう `robots_disallow` に書かず、`X-Robots-Tag` のヘッダーで検索に出さないようにします（0章「管理画面の URL」）。
-- **設定を書くとき**：`seo` は配列のキーなので、アプリの `config/neobit.php` で書くときは、全部のキーを書きます（見本のサイトの `config/neobit.php` を参照）。
+- **設定を書くとき**：アプリの `config/neobit.php` の `seo` の節には、変えるキーだけを書きます（見本のサイトの `config/neobit.php` を参照）。
 
 ### パンくずリストと構造化データ（JSON-LD）
 
@@ -3041,7 +3043,7 @@ sudo -u devapp /usr/bin/php artisan app:file-watch --init
     - 外すのは、この監視の記録とロックのファイル、鍵のファイル、サーバーでテストを動かしたときにできる `.phpunit.cache`・`.phpunit.result.cache` です
 - 公開のアップロードの置き場所（`storage/app/public`。`/storage/` の URL で外から開ける）の、許可されていないアップロードファイル。アップロードのたびにファイルが増えるので、基準とは比べずに、毎回次のものを探し、待たずにすぐ知らせます。
     - PHP として動く拡張子のファイル（`.php`・`.phtml`・`.phar` など）
-    - アップロードの設定（`upload.image_types`・`attach_types`）と、`file_watch.public_upload_extra` に無い拡張子のもの。JavaScript・CSS・HTML・SVG などを、一覧に書かずに全部拾います。画面からのアップロードでは置かれ得ないので、あれば改ざんの疑いが強いためです。
+    - アップロードの設定（`neobit.upload.image_types`・`attach_types`）と、`file_watch.public_upload_extra` に無い拡張子のもの。JavaScript・CSS・HTML・SVG などを、一覧に書かずに全部拾います。画面からのアップロードでは置かれ得ないので、あれば改ざんの疑いが強いためです。
 - アップロードの置き場所の `.htaccess`・`.user.ini` は、置かれると PHP を動かす設定にされるので、ほかのコードと同じく基準と比べます。増えた・変わった・消えたら、鍵のファイルの期間に入らなければ改ざんとして知らせます。プラグインなどが置く正しいものもあるので、種類の確かめのようにすぐ知らせ続けることはしません。動いている途中でプラグインが作ったものは1回知らせるので、中身を確かめて `--accept` で取り込みます。前の版の基準には入っていないので、新しい版にした最初の回だけは、今あるものを知らせずに取り込みます。
 - WordPress を置く案件（31章）では、WordPress のアップロードの置き場所（設定の `wordpress.upload_path`。既定は `public/wp-content/uploads`）も、`storage/app/public` と同じに扱います。公開ディレクトリの中ですが、`.htaccess`・`.user.ini` のほかは基準と比べず、ファイルの種類だけを確かめます。比べると、画像を上げるたびに追加として知らされるためです。設定の `wordpress.watch_exclude` の場所（キャッシュのプラグインが書く場所など）は、何も見ません。WordPress の本体・プラグイン・テーマは、apache が書けないので、ほかのファイルと同じく基準と比べます。お客さんが画面から更新する案件（31章）でも同じで、変わったファイルは管理画面の承認で取り込みます。
 - `watch_exclude` の場所は、PHP の権限で書けて、中身の書き換えに気付けません。キャッシュのプラグインが書く HTML・JavaScript を書き換えられると、消えるまでそのままページに出ます。キャッシュはどこに置いても（Redis などのメモリでも）PHP から書けるので、改ざん監視では見られません。キャッシュの書き換えに気付くには、外から定期的にページを取得して比べる外部の監視サービスを使います（付録「サイトの改ざんを見つける仕組みの重ね方」）。
@@ -3225,7 +3227,7 @@ RewriteRule ^$ wordpress.php [L]
 
 **設定**
 
-WordPress を置く案件だけが、アプリの `config/neobit.php` に `wordpress` の節を書きます。全部のキーを書きます。
+WordPress を置く案件だけが、アプリの `config/neobit.php` に `wordpress` の節を書きます。この節は既定の値を持たないので、全部のキーを書きます。
 
 ```php
     'wordpress' => [

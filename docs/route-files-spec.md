@@ -35,7 +35,7 @@
 |---|---|---|---|
 | 1 | `routes/web.php` | 訪問者と個人会員 | `web`（Laravel が付ける） |
 | 2 | `routes/company.php` | 企業会員 | `web`、`/company`、`company.` |
-| 3 | `routes/admin.php` | 管理画面 | `web`・`admin.ip`・`NoIndexHeader`、設定の `neobit.admin_path`、`admin.` |
+| 3 | `routes/admin.php` | 管理画面 | `web`・`admin.ip`・`NoIndexHeader`、設定の `neobit.route.admin_path`、`admin.` |
 | 4 | `routes/pages.php` | 固定ページ | `web` |
 
 2〜4は `withRouting()` の `then:` で読む。`then:` は `web:` の後に動く。

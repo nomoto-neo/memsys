@@ -54,7 +54,7 @@ use RuntimeException;
  * アップロードのたびにファイルが増えるので、基準とは比べない。代わりに毎回、公開の置き場所（storage/app/public。
  * /storage/のURLで外から開ける）に、次のファイルが無いかを確かめ、見つけたら待たずに知らせる。
  * - PHPとして動く拡張子のもの
- * - アップロードの設定（upload.image_types・attach_types）と、設定のfile_watch.public_upload_extraに無い拡張子のもの。
+ * - アップロードの設定（neobit.upload.image_types・attach_types）と、設定のfile_watch.public_upload_extraに無い拡張子のもの。
  *   JavaScript・HTML・SVGなどを、一覧に書かずに全部拾うため。画面からのアップロードでは置かれ得ないので、あれば
  *   改ざんの疑いが強い
  * .htaccess・.user.ini（置かれるとPHPを動かす設定にされるもの）だけは、ほかのコードと同じく基準と比べる。
@@ -857,8 +857,8 @@ final class FileWatcher
     {
         // 公開の置き場所で受け付ける拡張子。アップロードの設定と、運用で置く分
         $allowed = array_map('strtolower', [
-            ...(array) config('upload.image_types'),
-            ...(array) config('upload.attach_types'),
+            ...(array) config('neobit.upload.image_types'),
+            ...(array) config('neobit.upload.attach_types'),
             ...(array) config('neobit.file_watch.public_upload_extra'),
         ]);
 

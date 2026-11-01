@@ -4,7 +4,7 @@ namespace Neobit\Core\Upload;
 
 /**
  * アップロードしたファイルの保存先のディレクトリを決める規則。使う規則のクラスは、
- * config('upload.directory_rule')に書く。既定はDefaultUploadDirectory。
+ * config('neobit.upload.directory_rule')に書く。既定はDefaultUploadDirectory。
  * 保存・URL・削除・非公開のファイルの配信は、どれもUploadFilePath::directory()を通して
  * ここを呼ぶので、規則を差し替えれば全部が新しい保存先で動く。
  *

@@ -10,7 +10,7 @@ use Throwable;
 
 /**
  * cronの動かないサーバーで、サイトへのアクセスを契機にスケジューラーの予定を動かすミドルウェア。
- * config('neobit.cron_enabled')がfalseのときだけ、Neobit\Core\Operations\RequestSchedulerを呼ぶ。
+ * config('neobit.schedule.cron_enabled')がfalseのときだけ、Neobit\Core\Operations\RequestSchedulerを呼ぶ。
  *
  * 予定は、応答を返した後（terminate）に動かす。PHP-FPMでは、応答を送り終えてから動くので、
  * アクセスした人を待たせない。どのURLへのアクセスでも動くよう、bootstrap/app.phpで全体の
@@ -27,7 +27,7 @@ class RunScheduleOnRequest
     public function terminate(Request $request, Response $response): void
     {
         // cronが動くサーバーでは、cronのschedule:runに任せる
-        if (config('neobit.cron_enabled')) {
+        if (config('neobit.schedule.cron_enabled')) {
             return;
         }
 

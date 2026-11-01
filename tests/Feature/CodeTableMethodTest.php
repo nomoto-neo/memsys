@@ -12,7 +12,7 @@ use Neobit\Core\Enums\OperationLogAction;
 use Tests\TestCase;
 
 /**
- * プログラムで作るコード表（config('neobit.code_table_method')）。書いた静的メソッドが返す
+ * プログラムで作るコード表（config('neobit.code_table.method')）。書いた静的メソッドが返す
  * 「値 => 名称」の配列を、ほかのコード表と同じヘルパーで引ける。
  * コード表は1リクエストの中で使い回すので、テストごとに違うコード名を使う。
  */
@@ -57,8 +57,8 @@ class CodeTableMethodTest extends TestCase
     public function test_code_name_in_two_sources_is_rejected(): void
     {
         config([
-            'neobit.code_table_db' => ['_test_both' => ['label' => '重なり', 'fixed' => false]],
-            'neobit.code_table_method' => ['_test_both' => [Staff::class, 'nameOptions']],
+            'neobit.code_table.db' => ['_test_both' => ['label' => '重なり', 'fixed' => false]],
+            'neobit.code_table.method' => ['_test_both' => [Staff::class, 'nameOptions']],
         ]);
 
         $this->expectException(CodeTableException::class);
@@ -69,7 +69,7 @@ class CodeTableMethodTest extends TestCase
 
     public function test_method_that_cannot_be_called_is_rejected(): void
     {
-        config(['neobit.code_table_method' => ['_test_missing' => [Staff::class, 'noSuchOptions']]]);
+        config(['neobit.code_table.method' => ['_test_missing' => [Staff::class, 'noSuchOptions']]]);
 
         $this->expectException(CodeTableException::class);
         $this->expectExceptionMessage('noSuchOptions');

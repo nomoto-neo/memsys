@@ -64,9 +64,9 @@ final class AccessRestriction
     private const ADMIN_TEXT_KEY = 'access.admin_allowed_ips_text';
 
     /** 設定ファイルの一覧のある設定の名前。config/app.phpが.envから作る */
-    private const ENV_SITE_IPS = 'app.site_allowed_ips';
+    private const ENV_SITE_IPS = 'neobit.security.site_allowed_ips';
 
-    private const ENV_ADMIN_IPS = 'app.admin_allowed_ips';
+    private const ENV_ADMIN_IPS = 'neobit.security.admin_allowed_ips';
 
     // ---- 判断 ----
 

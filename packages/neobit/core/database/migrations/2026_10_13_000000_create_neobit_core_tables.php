@@ -91,7 +91,7 @@ return new class extends Migration
             // 操作した人。ログインの失敗のように誰か分からないときは空
             $table->string('operator_type', 30)->nullable();
             $table->unsignedBigInteger('operator_id')->nullable();
-            // 操作の種類（config('neobit.operation_log_actions')の列挙型の値）
+            // 操作の種類（config('neobit.operation_log.actions')の列挙型の値）
             $table->string('action', 30);
             // 操作の対象。CSVのダウンロードのように対象が1件に決まらないときは空
             $table->string('target_type', 30)->nullable();

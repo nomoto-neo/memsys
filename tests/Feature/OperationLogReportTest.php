@@ -12,7 +12,7 @@ use Tests\TestCase;
 
 /**
  * 操作ログの1日ぶんの報告（Neobit\Core\Operations\OperationLogReport）の、気になる点。
- * 目安の数は、設定（config/neobit.phpのoperation_report_thresholds）で決める。
+ * 目安の数は、設定（config/neobit.phpのoperation_logの節のreport_thresholds）で決める。
  */
 class OperationLogReportTest extends TestCase
 {
@@ -37,7 +37,7 @@ class OperationLogReportTest extends TestCase
 
     public function test_thresholds_come_from_config(): void
     {
-        config(['neobit.operation_report_thresholds' => [
+        config(['neobit.operation_log.report_thresholds' => [
             'views_per_hour' => 3,
             'csv_downloads_per_day' => 2,
             'login_failures_per_day' => 4,
@@ -57,7 +57,7 @@ class OperationLogReportTest extends TestCase
 
     public function test_counts_under_the_thresholds_are_not_notable(): void
     {
-        config(['neobit.operation_report_thresholds' => [
+        config(['neobit.operation_log.report_thresholds' => [
             'views_per_hour' => 4,
             'csv_downloads_per_day' => 3,
             'login_failures_per_day' => 5,
@@ -73,7 +73,7 @@ class OperationLogReportTest extends TestCase
 
     public function test_a_threshold_of_zero_is_not_checked(): void
     {
-        config(['neobit.operation_report_thresholds' => [
+        config(['neobit.operation_log.report_thresholds' => [
             'views_per_hour' => 0,
             'csv_downloads_per_day' => 0,
             'login_failures_per_day' => 0,
@@ -93,7 +93,7 @@ class OperationLogReportTest extends TestCase
         $path = resource_path('mail-templates/operation_log_report.blade.php');
         $this->assertFileDoesNotExist($path);
 
-        config(['neobit.operation_report_to' => 'admin@example.com']);
+        config(['neobit.operation_log.report_to' => 'admin@example.com']);
 
         try {
             file_put_contents($path, "FROM_NAME: サイト\nTO: {!! \$to !!}\nSUBJECT: 件名\n\n本文\n");

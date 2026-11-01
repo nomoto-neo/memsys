@@ -42,7 +42,7 @@ class ReportOperationLogs extends Command
             return self::SUCCESS;
         }
 
-        $recipients = array_filter(array_map('trim', explode(',', (string) config('neobit.operation_report_to'))));
+        $recipients = array_filter(array_map('trim', explode(',', (string) config('neobit.operation_log.report_to'))));
 
         if ($recipients === []) {
             $this->warn('宛先（OPERATION_REPORT_TO）が設定されていないので、メールは送りません。');
@@ -77,7 +77,7 @@ class ReportOperationLogs extends Command
     /** 報告のメールに載せる、操作ログの画面のURL。ルートの名前は設定で渡す。無ければ空にする */
     private function operationLogUrl(): string
     {
-        $route = config('neobit.operation_log_route');
+        $route = config('neobit.operation_log.route');
 
         return $route !== null && Route::has($route) ? route($route) : '';
     }

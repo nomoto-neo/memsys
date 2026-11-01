@@ -239,7 +239,7 @@ class BulkMailController extends Controller
 
         return view('admin.bulk_mails.index', [
             'records' => $result['records'],
-            // 送信の記録を残す日数。nullなら消さずに残す（config/cleanup.phpのtasks）
+            // 送信の記録を残す日数。nullなら消さずに残す（config/neobit.phpのcleanupの節のtasks）
             'keepDays' => BulkMailCleanup::days(),
         ]);
     }
@@ -256,8 +256,8 @@ class BulkMailController extends Controller
             'bulkMail' => $bulkMail,
             'counts' => $this->sendCounts($bulkMail),
             'refreshSeconds' => $bulkMail->status === BulkMailStatus::Sending ? self::REFRESH_SECONDS : null,
-            // 送れなかった分を残す日数。0なら片付けで消さない（config/cleanup.phpのfailed_job_days）
-            'failedJobDays' => (int) config('cleanup.failed_job_days'),
+            // 送れなかった分を残す日数。0なら片付けで消さない（config/neobit.phpのcleanupの節のfailed_job_days）
+            'failedJobDays' => (int) config('neobit.cleanup.failed_job_days'),
         ]);
     }
 

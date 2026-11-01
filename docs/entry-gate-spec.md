@@ -36,7 +36,7 @@ IP ブロックとアクセス制限は、Laravel の全体のミドルウェア
 | 1 | 止めている IP アドレス（期限が今より後か、期限なし） | 404 |
 | 2 | WordPress のいつも隠す URL（`wordpress.hidden`。WordPress を置くときだけ） | 404 |
 | 3 | WordPress のいつも通す URL（`wordpress.open`） | 通す |
-| 4 | 管理画面の URL（`admin_path` か、その下）と、WordPress の管理画面とログイン（`wordpress.admin`） | 管理画面の制限の外なら 404。中なら通す |
+| 4 | 管理画面の URL（`route.admin_path` か、その下）と、WordPress の管理画面とログイン（`wordpress.admin`） | 管理画面の制限の外なら 404。中なら通す |
 | 5 | サイトの制限を掛けない URL（`site_except`）か、サイトの制限の中か、管理画面の許す IP アドレス | 通す |
 | 6 | それ以外 | 503（メンテナンス中の画面） |
 
@@ -48,9 +48,9 @@ WordPress の分と、5 の管理画面の許す IP アドレスは、2026-10-29
 |---|---|---|
 | `blocks` | `[IP アドレスかまとまり, 期限の UNIX 時刻か null]` の並び | `IpBlocker::blockedList()`（DB。キャッシュ） |
 | `site`・`admin` | `restricted` と `ips`（画面と `.env` を足したもの） | `AccessRestriction`（画面の分はキャッシュ、`.env` の分は毎回設定から） |
-| `admin_path` | 管理画面の URL の頭 | 設定の `neobit.admin_path` |
+| `route.admin_path` | 管理画面の URL の頭 | 設定の `neobit.route.admin_path` |
 | `site_except` | サイトの制限を掛けない URL | `RestrictSiteAccess::exceptPaths()`（`bootstrap/app.php` の `except()` と管理画面の下） |
-| `trusted_proxies` | 信頼するプロキシ | 設定の `app.trusted_proxies`（`.env` の `TRUSTED_PROXIES`） |
+| `trusted_proxies` | 信頼するプロキシ | 設定の `neobit.security.trusted_proxies`（`.env` の `TRUSTED_PROXIES`） |
 
 **書き出し**（`GateState::export()`）
 

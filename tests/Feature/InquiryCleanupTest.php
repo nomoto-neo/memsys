@@ -12,7 +12,7 @@ use Tests\TestCase;
 
 /**
  * お問い合わせの自動の削除（App\Services\InquiryCleanup）。一時データの後片付け
- * （Neobit\Core\Operations\TemporaryDataCleaner）が、config/cleanup.phpのtasksに書いた日数を渡して呼ぶ。
+ * （Neobit\Core\Operations\TemporaryDataCleaner）が、config/neobit.phpのcleanupの節のtasksに書いた日数を渡して呼ぶ。
  * 日数を決めたときだけ、過ぎた行と添付ファイルを消す。
  */
 class InquiryCleanupTest extends TestCase
@@ -68,12 +68,12 @@ class InquiryCleanupTest extends TestCase
         $this->assertSame(0, TemporaryDataCleaner::all()['保存期間を過ぎたお問い合わせ']);
 
         // 日数を書くと、その日数がメソッドに渡って、過ぎた行が消える
-        config(['cleanup.tasks.保存期間を過ぎたお問い合わせ.days' => 30]);
+        config(['neobit.cleanup.tasks.保存期間を過ぎたお問い合わせ.days' => 30]);
         $this->assertSame(1, TemporaryDataCleaner::all()['保存期間を過ぎたお問い合わせ']);
         $this->assertSame(0, Inquiry::count());
 
         // tasksから外した片付けは、呼ばれない
-        config(['cleanup.tasks' => []]);
+        config(['neobit.cleanup.tasks' => []]);
         $this->assertArrayNotHasKey('保存期間を過ぎたお問い合わせ', TemporaryDataCleaner::all());
     }
 }

@@ -78,7 +78,7 @@ class IpBlockTest extends TestCase
 
     public function test_many_missing_pages_block_the_ip_automatically(): void
     {
-        config(['neobit.ip_block_watch_count' => 3, 'neobit.ip_block_hours' => 5]);
+        config(['neobit.security.ip_block_watch_count' => 3, 'neobit.security.ip_block_hours' => 5]);
 
         foreach (range(1, 3) as $i) {
             $this->fromIp(self::ATTACKER)->get('/no-such-page-'.$i)->assertNotFound();
@@ -100,7 +100,7 @@ class IpBlockTest extends TestCase
     public function test_ip_is_blocked_automatically_even_without_the_setting(): void
     {
         // 設定のキャッシュが古く、ip_block_autoがまだ無いときも、自動で止める
-        config(['neobit.ip_block_watch_count' => 2]);
+        config(['neobit.security.ip_block_watch_count' => 2]);
         $settings = config('neobit');
         unset($settings['ip_block_auto']);
         config(['neobit' => $settings]);
@@ -113,7 +113,7 @@ class IpBlockTest extends TestCase
 
     public function test_ipv6_is_blocked_by_its_64_bit_range(): void
     {
-        config(['neobit.ip_block_watch_count' => 2]);
+        config(['neobit.security.ip_block_watch_count' => 2]);
 
         $this->fromIp('2001:db8:1:2::10')->get('/no-such-page');
         $this->fromIp('2001:db8:1:2::20')->get('/no-such-page');
@@ -125,7 +125,7 @@ class IpBlockTest extends TestCase
 
     public function test_allowed_ip_and_disabled_setting_are_not_blocked(): void
     {
-        config(['neobit.ip_block_watch_count' => 2, 'app.admin_allowed_ips' => [self::ATTACKER]]);
+        config(['neobit.security.ip_block_watch_count' => 2, 'neobit.security.admin_allowed_ips' => [self::ATTACKER]]);
 
         // 入ってよいIPアドレスは、自動で止めない。.envの分も、アクセス制限の画面で入れた分も
         $this->fromIp(self::ATTACKER)->get('/no-such-page');
@@ -136,7 +136,7 @@ class IpBlockTest extends TestCase
         $this->assertSame(0, IpBlock::count());
 
         // 自動で止める設定を止めれば、数えない
-        config(['neobit.ip_block_auto' => false]);
+        config(['neobit.security.ip_block_auto' => false]);
         $this->fromIp(self::VISITOR)->get('/no-such-page');
         $this->fromIp(self::VISITOR)->get('/no-such-page');
         $this->assertSame(0, IpBlock::count());

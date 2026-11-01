@@ -90,7 +90,7 @@ class BulkMail extends Model implements OperationLogRelatedRecord
     /**
      * 送れなかった宛先。試し直しても送れなかったジョブ（failed_jobs）の中から、氏名とメールアドレスを読み出す。
      * 宛先は送信の記録に保存しないので、送れなかったジョブが残っている間だけ読める
-     * （config/cleanup.phpのfailed_job_days）。送れなかった日時の順に、$limitの件数まで返す。nullなら全件。
+     * （config/neobit.phpのcleanupの節のfailed_job_days）。送れなかった日時の順に、$limitの件数まで返す。nullなら全件。
      *
      * @return list<array{name: string, email: string, reason: string, failed_at: Carbon}>
      */

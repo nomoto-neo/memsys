@@ -44,13 +44,13 @@ class OperationLog extends Model
 
     /**
      * コード表 operation_log_action（Neobit\Core\Code\CodeTableが自分で持つ）。操作の値 => 名前。
-     * config('neobit.operation_log_actions')の列挙型を書いた順に合わせ、フレームワークの操作と
+     * config('neobit.operation_log.actions')の列挙型を書いた順に合わせ、フレームワークの操作と
      * サイトの操作を、1つの選択肢の一覧にする。
      */
     public static function actionOptions(): array
     {
         $options = [];
-        foreach (config('neobit.operation_log_actions', []) as $class) {
+        foreach (config('neobit.operation_log.actions', []) as $class) {
             foreach ($class::cases() as $case) {
                 $options[$case->value] = $case->label();
             }
@@ -62,13 +62,13 @@ class OperationLog extends Model
     /**
      * コード表 operation_log_model（Neobit\Core\Code\CodeTableが自分で持つ）。モデルの種類の名前 => 画面の名前。
      * 操作した人と対象の種類（operator_type・target_type）を、画面やメールで名前にするのに使う。
-     * config('neobit.operation_log_models')の列挙型を書いた順に合わせる。値はenforceMorphMap()の名前と同じにする。
+     * config('neobit.operation_log.models')の列挙型を書いた順に合わせる。値はenforceMorphMap()の名前と同じにする。
      * 書いていない種類は一覧に無いので、code_label()が種類の名前のまま出す。
      */
     public static function modelOptions(): array
     {
         $options = [];
-        foreach (config('neobit.operation_log_models', []) as $class) {
+        foreach (config('neobit.operation_log.models', []) as $class) {
             foreach ($class::cases() as $case) {
                 $options[$case->value] = $case->label();
             }

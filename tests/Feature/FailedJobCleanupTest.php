@@ -12,7 +12,7 @@ use Tests\TestCase;
 
 /**
  * 送れなかったキューのジョブの自動の削除（Neobit\Core\Operations\TemporaryDataCleaner::oldFailedJobs()）。
- * failed_jobsの行のうち、config/cleanup.phpのfailed_job_daysの日数を過ぎたものを消す。
+ * failed_jobsの行のうち、config/neobit.phpのcleanupの節のfailed_job_daysの日数を過ぎたものを消す。
  */
 class FailedJobCleanupTest extends TestCase
 {
@@ -36,7 +36,7 @@ class FailedJobCleanupTest extends TestCase
 
     public function test_old_failed_jobs_are_deleted(): void
     {
-        config(['cleanup.failed_job_days' => 7]);
+        config(['neobit.cleanup.failed_job_days' => 7]);
 
         $old = $this->failedJob(daysAgo: 8);
         $new = $this->failedJob(daysAgo: 6);
@@ -51,7 +51,7 @@ class FailedJobCleanupTest extends TestCase
     public function test_nothing_is_deleted_without_the_days_in_config(): void
     {
         // 設定のキャッシュが古くて、日数の項目がまだ無いとき。全部を消してしまわない
-        config(['cleanup.failed_job_days' => null, 'cleanup.operation_log_days' => null]);
+        config(['neobit.cleanup.failed_job_days' => null, 'neobit.cleanup.operation_log_days' => null]);
 
         $this->failedJob(daysAgo: 100);
         $log = new OperationLog(['action' => OperationLogAction::Login]);

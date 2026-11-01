@@ -10,7 +10,7 @@ use ValueError;
 
 /**
  * 操作ログの操作の種類（operation_logs.action）を、列挙型として読み書きする。
- * 列挙型は、config('neobit.operation_log_actions')に書いたものを順に試し、最初に値が合うものを使う。
+ * 列挙型は、config('neobit.operation_log.actions')に書いたものを順に試し、最初に値が合うものを使う。
  */
 class OperationLogActionCast implements CastsAttributes
 {
@@ -22,7 +22,7 @@ class OperationLogActionCast implements CastsAttributes
         }
 
         // 設定に書いた列挙型を順に試す
-        foreach (config('neobit.operation_log_actions', []) as $class) {
+        foreach (config('neobit.operation_log.actions', []) as $class) {
             $case = $class::tryFrom($value);
 
             if ($case !== null) {

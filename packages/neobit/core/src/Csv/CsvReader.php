@@ -44,10 +44,10 @@ use Neobit\Core\Operations\TemporaryDataCleaner;
  */
 trait CsvReader
 {
-    /** CSVファイルの欄の検証ルール。大きさの上限は、設定で決める（config/upload.php） */
+    /** CSVファイルの欄の検証ルール。大きさの上限は、設定で決める（config/neobit.phpのuploadの節） */
     private function csvFileRules(): array
     {
-        return ['required', 'file', 'extensions:csv,txt', 'max:'.config('upload.csv_max_kb')];
+        return ['required', 'file', 'extensions:csv,txt', 'max:'.config('neobit.upload.csv_max_kb')];
     }
 
     // ---- 確認画面から実行まで ----

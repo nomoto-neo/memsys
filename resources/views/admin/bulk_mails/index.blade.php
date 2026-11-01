@@ -9,7 +9,7 @@
     </div>
 </div>
 
-{{-- 送信の記録を残す日数（config/cleanup.phpのtasks）。消えることを知らずに頼らないよう、一覧の上に出す --}}
+{{-- 送信の記録を残す日数（config/neobit.phpのcleanupの節のtasks）。消えることを知らずに頼らないよう、一覧の上に出す --}}
 @if ($keepDays === null)
     <p class="text-muted small">送信の記録は、消さずに残します。</p>
 @else

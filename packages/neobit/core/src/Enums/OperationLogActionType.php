@@ -7,7 +7,7 @@ use Neobit\Core\Models\OperationLog;
 /**
  * 操作ログの操作の種類（operation_logs.action）にする列挙型の印。
  * フレームワークの操作はNeobit\Core\Enums\OperationLogActionが持ち、サイトに固有の操作は、
- * サイトの列挙型が、これを実装して足す。足した列挙型は、config('neobit.operation_log_actions')に書く。
+ * サイトの列挙型が、これを実装して足す。足した列挙型は、config('neobit.operation_log.actions')に書く。
  */
 interface OperationLogActionType extends CodeTableEnum
 {

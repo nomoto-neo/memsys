@@ -17,24 +17,31 @@ use Neobit\Core\Console\FileWatch;
  */
 class NeobitServiceProvider extends ServiceProvider
 {
-    /**
-     * 既定値を持つ設定の名前。config/ の同じ名前のファイルが既定値になる。
-     * stubs/config/ の同じ名前のファイルが、アプリへ写す見本になる。
-     */
-    private const CONFIG_NAMES = [
-        'neobit',
+    /** 既定値を持つ設定の節の名前。config/neobit/ の同じ名前のファイルが既定値になる */
+    private const CONFIG_SECTIONS = [
+        'route',
+        'layouts',
+        'form',
+        'code_table',
+        'operation_log',
+        'security',
+        'file_watch',
+        'seo',
+        'schedule',
         'upload',
         'cleanup',
     ];
 
     /**
-     * 設定の既定値を登録する。アプリの config/ に同じ名前のファイルで書いたキーが、これに優先する。
-     * 混ぜるのは、いちばん上の階層のキーだけ。配列の値は、アプリが書くと丸ごと置き換わる。
+     * 設定の既定値を、節ごとに登録する。アプリの config/neobit.php の節に書いたキーが、これに優先する。
+     * アプリは変える値だけを書くので、パッケージの更新で足した既定の値が、アプリのファイルを直さずに効く。
+     * 混ぜるのは節の中の1段目のキーだけで、その中の配列は、アプリが書くと丸ごと置き換わる。
+     * wordpressは既定値を持たない。アプリに節があることが、WordPressを置く印になるため。
      */
     public function register(): void
     {
-        foreach (self::CONFIG_NAMES as $name) {
-            $this->mergeConfigFrom(__DIR__."/../config/{$name}.php", $name);
+        foreach (self::CONFIG_SECTIONS as $section) {
+            $this->mergeConfigFrom(__DIR__."/../config/neobit/{$section}.php", "neobit.{$section}");
         }
     }
 
@@ -52,13 +59,9 @@ class NeobitServiceProvider extends ServiceProvider
         $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
 
         if ($this->app->runningInConsole()) {
-            // 設定の見本を、アプリの config/ へ写す（php artisan vendor:publish --tag=neobit-config）。
-            // 写す元は stubs/config/ で、既定値と同じ値に // を付けてある
+            // 設定の見本を、アプリの config/ へ写す（php artisan vendor:publish --tag=neobit-config）
             $this->publishes(
-                array_combine(
-                    array_map(fn (string $name) => __DIR__."/../stubs/config/{$name}.php", self::CONFIG_NAMES),
-                    array_map(fn (string $name) => config_path("{$name}.php"), self::CONFIG_NAMES),
-                ),
+                [__DIR__.'/../stubs/config/neobit.php' => config_path('neobit.php')],
                 'neobit-config',
             );
 

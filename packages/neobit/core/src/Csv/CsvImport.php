@@ -113,7 +113,7 @@ trait CsvImport
                 CsvEncoding::Utf8Bom => 'UTF-8',
                 CsvEncoding::Sjis => 'Shift_JIS',
             },
-            'maxKb' => config('upload.csv_max_kb'),
+            'maxKb' => config('neobit.upload.csv_max_kb'),
             'backUrl' => $this->csvImportBackUrl(),
         ]);
     }

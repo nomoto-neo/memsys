@@ -18,7 +18,7 @@ class OperationRecorderTest extends TestCase
 
     public function test_records_when_days_are_set(): void
     {
-        config(['cleanup.operation_log_days' => 365]);
+        config(['neobit.cleanup.operation_log_days' => 365]);
 
         OperationRecorder::record(OperationLogAction::CsvDownload);
 
@@ -27,7 +27,7 @@ class OperationRecorderTest extends TestCase
 
     public function test_does_not_record_when_days_are_zero(): void
     {
-        config(['cleanup.operation_log_days' => 0]);
+        config(['neobit.cleanup.operation_log_days' => 0]);
 
         OperationRecorder::record(OperationLogAction::CsvDownload);
 
@@ -37,7 +37,7 @@ class OperationRecorderTest extends TestCase
     public function test_records_when_days_are_missing(): void
     {
         // 設定のキャッシュが古くて項目がまだ無いときも、記録は止めない
-        config(['cleanup.operation_log_days' => null]);
+        config(['neobit.cleanup.operation_log_days' => null]);
 
         OperationRecorder::record(OperationLogAction::CsvDownload);
 

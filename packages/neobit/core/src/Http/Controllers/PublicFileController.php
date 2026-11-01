@@ -23,7 +23,7 @@ class PublicFileController
         $path = rawurldecode($request->getPathInfo());
 
         // 管理画面のURLの下は、Laravelのルートだけ
-        $admin = trim((string) config('neobit.admin_path'), '/');
+        $admin = trim((string) config('neobit.route.admin_path'), '/');
         $relative = trim($path, '/');
         if ($admin !== '' && ($relative === $admin || str_starts_with($relative, $admin.'/'))) {
             abort(404);

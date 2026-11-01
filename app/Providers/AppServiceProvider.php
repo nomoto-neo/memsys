@@ -92,8 +92,8 @@ class AppServiceProvider extends ServiceProvider
         // ほかから届いたものは使わない。書いていなければ、直接つないできた相手のIPアドレスを使う
         // 設定のキャッシュが古くてこの項目がまだ無いとき（デプロイの直後、config:cacheをやり直す前）も、
         // 書いていないものとして扱う
-        if (! empty(config('app.trusted_proxies'))) {
-            TrustProxies::at(config('app.trusted_proxies'));
+        if (! empty(config('neobit.security.trusted_proxies'))) {
+            TrustProxies::at(config('neobit.security.trusted_proxies'));
         }
 
         // ログイン後の管理画面の全体に掛ける、スタッフごとの回数の制限。

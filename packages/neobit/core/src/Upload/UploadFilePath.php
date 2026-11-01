@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Storage;
  * モデルのURLのアクセサ、画面のupload_preview_url()。
  *
  * ■ 保存先の規則
- * 「規則が決めたディレクトリ / ファイル名」。ディレクトリの規則は、config('upload.directory_rule')の
+ * 「規則が決めたディレクトリ / ファイル名」。ディレクトリの規則は、config('neobit.upload.directory_rule')の
  * クラスが決める（UploadDirectoryRule）。既定はDefaultUploadDirectoryで、例：news/000/000012/xxxx.jpg
  *
  * ■ ログインした人だけが見られる非公開のファイル
@@ -83,7 +83,7 @@ final class UploadFilePath
     /**
      * 保存先のディレクトリを組み立てる。例：news/000/000012
      * $ownerClassはファイルを持っているモデルのクラス名で、$ownerKeyはそのid。
-     * 組み立てるのはconfig('upload.directory_rule')の規則のクラスで、ここは呼んで確かめるだけ。
+     * 組み立てるのはconfig('neobit.upload.directory_rule')の規則のクラスで、ここは呼んで確かめるだけ。
      *
      * モデルではなくクラス名とidを受け取るのは、NewsAttachmentのように親のidは手元にあるが
      * 親のモデルは読み込んでいない場面でも、余計なSQLを出さずに使えるようにするため。
@@ -91,9 +91,9 @@ final class UploadFilePath
     public static function directory(string $ownerClass, int|string $ownerKey): string
     {
         // 規則のクラスがUploadDirectoryRuleを実装していなければ、設定の誤り
-        $rule = config('upload.directory_rule', DefaultUploadDirectory::class);
+        $rule = config('neobit.upload.directory_rule', DefaultUploadDirectory::class);
         if (! is_string($rule) || ! is_subclass_of($rule, UploadDirectoryRule::class)) {
-            throw new \LogicException("config('upload.directory_rule')には、".UploadDirectoryRule::class.'を実装したクラスを書いてください: '.json_encode($rule, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+            throw new \LogicException("config('neobit.upload.directory_rule')には、".UploadDirectoryRule::class.'を実装したクラスを書いてください: '.json_encode($rule, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
         }
 
         $directory = $rule::directory($ownerClass, $ownerKey);

@@ -94,17 +94,17 @@ class BulkMailCleanupTest extends TestCase
     {
         $this->assertNull(BulkMailCleanup::days());
 
-        config(['cleanup.tasks.保存期間を過ぎた一斉メールの記録.days' => 365]);
+        config(['neobit.cleanup.tasks.保存期間を過ぎた一斉メールの記録.days' => 365]);
         $this->assertSame(365, BulkMailCleanup::days());
 
         // tasksに書いていなければ、消さないのと同じ
-        config(['cleanup.tasks' => []]);
+        config(['neobit.cleanup.tasks' => []]);
         $this->assertNull(BulkMailCleanup::days());
     }
 
     public function test_finished_batches_are_deleted_after_the_failed_job_days(): void
     {
-        config(['cleanup.failed_job_days' => 7]);
+        config(['neobit.cleanup.failed_job_days' => 7]);
         $old = $this->batch(finishedDaysAgo: 8);
         $new = $this->batch(finishedDaysAgo: 6);
         $sending = $this->batch(finishedDaysAgo: null);

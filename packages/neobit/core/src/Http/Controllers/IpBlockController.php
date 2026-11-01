@@ -62,10 +62,10 @@ class IpBlockController
             'bounds' => $blocks->mapWithKeys(fn (IpBlock $block) => [$block->id => IpBlocker::rangeBounds($block->ip)])->all(),
             'daysOptions' => self::DAYS_OPTIONS,
             'currentIp' => (string) $request->ip(),
-            'auto' => (bool) config('neobit.ip_block_auto'),
-            'watchMinutes' => (int) config('neobit.ip_block_watch_minutes'),
-            'watchCount' => (int) config('neobit.ip_block_watch_count'),
-            'hours' => (int) config('neobit.ip_block_hours'),
+            'auto' => (bool) config('neobit.security.ip_block_auto'),
+            'watchMinutes' => (int) config('neobit.security.ip_block_watch_minutes'),
+            'watchCount' => (int) config('neobit.security.ip_block_watch_count'),
+            'hours' => (int) config('neobit.security.ip_block_hours'),
             'routes' => $this->routeNames($request),
         ]);
     }

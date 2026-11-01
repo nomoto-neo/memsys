@@ -13,7 +13,7 @@
 
 | 範囲 | 内容 |
 |---|---|
-| フレームワーク | 設定の `admin_path`（既定 `app/admin`）、`RestrictSiteAccess` が管理画面を自分で外す、新しいミドルウェア `NoIndexHeader`、`robots_disallow` の既定を空に |
+| フレームワーク | 設定の `route.admin_path`（既定 `app/admin`）、`RestrictSiteAccess` が管理画面を自分で外す、新しいミドルウェア `NoIndexHeader`、`robots_disallow` の既定を空に |
 | 見本のサイト | `bootstrap/app.php` の管理画面のルートの `prefix` と `NoIndexHeader`、`bootstrap/app.php` の `except()` から管理画面を外した、`robots_disallow` から `/admin` を外した、コメントの中の URL |
 | テスト | `/admin/…` の文字を `/app/admin/…` に直した。slug の予約の名前を `admin` から `app` に直した。新しく `AdminPathTest` |
 | サーバー | 管理画面の URL が `/app/admin` に変わる。ベーシック認証の VirtualHost の決まりを直す |
@@ -22,14 +22,14 @@
 
 **設定**（`config/neobit.php`）
 
-- `admin_path`：管理画面の頭の URL。先頭と末尾の `/` は付けない。フレームワークの既定も `app/admin`。
+- `route.admin_path`：管理画面の頭の URL。先頭と末尾の `/` は付けない。フレームワークの既定も `app/admin`。
 
 **使うところ**
 
 | 部品 | 使い方 |
 |---|---|
-| `bootstrap/app.php` | `Route::middleware(['web', 'admin.ip', NoIndexHeader::class])->prefix(config('neobit.admin_path'))->name('admin.')` |
-| `RestrictSiteAccess` | `except()` で渡されたパスに、`admin_path` と `admin_path/*` を足して、制限の外にする |
+| `bootstrap/app.php` | `Route::middleware(['web', 'admin.ip', NoIndexHeader::class])->prefix(config('neobit.route.admin_path'))->name('admin.')` |
+| `RestrictSiteAccess` | `except()` で渡されたパスに、`route.admin_path` と `admin_path/*` を足して、制限の外にする |
 | `NoIndexHeader` | 応答に `X-Robots-Tag: noindex, nofollow` を付ける。管理画面のグループに付ける |
 
 - ルートの名前（`admin.*`）は変えない。画面・コントローラー・管理画面の制限（`RestrictAdminAccess`）・回数の制限（`AdminRequestLimit`）は、ルートの名前とグループで動くので直していない。
@@ -62,7 +62,7 @@
 | 重要度 | 内容 |
 |---|---|
 | 中 | URL を隠すのは、攻撃の数を減らすためで、守りの本体ではない。ログイン・2段階認証・アクセス制限・ベーシック認証は、今までどおり要る |
-| 低 | `admin_path` を変えたら、ベーシック認証の VirtualHost の決まりも手で直す必要がある（利用ガイドに書いた） |
+| 低 | `route.admin_path` を変えたら、ベーシック認証の VirtualHost の決まりも手で直す必要がある（利用ガイドに書いた） |
 | 低 | B の置き方は、サーバーで試していない |
 
 ## F. セキュリティ・権限・データ整合性の注意

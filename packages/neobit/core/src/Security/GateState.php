@@ -94,7 +94,7 @@ class GateState
             ],
             'admin_path' => self::adminPath(),
             'site_except' => self::siteExcept(),
-            'trusted_proxies' => array_values((array) config('app.trusted_proxies', [])),
+            'trusted_proxies' => array_values((array) config('neobit.security.trusted_proxies', [])),
             'wordpress' => self::wordpressPaths(),
         ];
     }
@@ -121,7 +121,7 @@ class GateState
     /** 管理画面のURLの頭。app/admin の形 */
     public static function adminPath(): string
     {
-        return trim((string) config('neobit.admin_path'), '/');
+        return trim((string) config('neobit.route.admin_path'), '/');
     }
 
     // ---- 書き出し ----

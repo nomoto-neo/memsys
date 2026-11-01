@@ -32,13 +32,13 @@ use Neobit\Core\Upload\UploadFilePath;
  *   消すもの：期限の切れた行
  *
  * 操作ログ（operation_logsテーブル）
- *   消すもの：config('cleanup.operation_log_days')の日数より古い行
+ *   消すもの：config('neobit.cleanup.operation_log_days')の日数より古い行
  *
  * 送れなかったキューのジョブ（failed_jobsテーブル）
- *   消すもの：config('cleanup.failed_job_days')の日数より古い行
+ *   消すもの：config('neobit.cleanup.failed_job_days')の日数より古い行
  *
  * 終わったジョブのバッチ（job_batchesテーブル）
- *   消すもの：終わってからconfig('cleanup.failed_job_days')の日数より古い行
+ *   消すもの：終わってからconfig('neobit.cleanup.failed_job_days')の日数より古い行
  *
  * 招待（team_invitationsテーブル。Neobit\Core\Team\TeamInvitationManager）
  *   消すもの：期限の切れた行
@@ -47,14 +47,14 @@ use Neobit\Core\Upload\UploadFilePath;
  *   消すもの：期限の過ぎた行
  *
  * ■ プロジェクトの片付け
- * 業務のデータの片付けは、このクラスには書かない。config/cleanup.phpのtasksに、
+ * 業務のデータの片付けは、このクラスには書かない。config/neobit.phpのcleanupの節のtasksに、
  * 名前と呼ぶメソッドを書くと、all()が上の片付けの後に呼ぶ。お問い合わせが
  * これに当たる。残す日数（days）を書いた片付けには、その日数を引数で渡す。
  *
  * ■ 呼ぶところ
  * - スケジューラーから1時間ごとに、app:cleanup-temporary-dataコマンドがallExclusively()を呼ぶ。
  *   これが本来の片付け
- * - cronの動かないサーバー（config('neobit.cron_enabled')がfalse）では、同じ予定を、サイトへのアクセスを
+ * - cronの動かないサーバー（config('neobit.schedule.cron_enabled')がfalse）では、同じ予定を、サイトへのアクセスを
  *   契機にNeobit\Core\Operations\RequestSchedulerが動かす
  * - 一時ファイルはアップロードとCSV取り込みのたびにも消す。サーバーのcronが動いていなくても
  *   溜まり続けないようにするための控え
@@ -122,7 +122,7 @@ final class TemporaryDataCleaner
         ];
 
         // プロジェクトの片付け。残す日数を書いた片付けには、その日数を渡す
-        foreach ((array) config('cleanup.tasks') as $name => $task) {
+        foreach ((array) config('neobit.cleanup.tasks') as $name => $task) {
             $arguments = array_key_exists('days', $task) ? [$task['days']] : [];
 
             $counts[$name] = (int) call_user_func_array($task['run'], $arguments);
@@ -171,13 +171,13 @@ final class TemporaryDataCleaner
     }
 
     /**
-     * 操作ログ（Neobit\Core\Operations\OperationRecorder）のうち、config('cleanup.operation_log_days')の日数を過ぎた行。
+     * 操作ログ（Neobit\Core\Operations\OperationRecorder）のうち、config('neobit.cleanup.operation_log_days')の日数を過ぎた行。
      * 日数が設定に無いときは何もしない。設定のキャッシュが古くて項目がまだ無いときに、
      * 全部の行を消してしまわないようにするため。
      */
     public static function oldOperationLogs(): int
     {
-        $days = (int) config('cleanup.operation_log_days');
+        $days = (int) config('neobit.cleanup.operation_log_days');
 
         if ($days <= 0) {
             return 0;
@@ -190,14 +190,14 @@ final class TemporaryDataCleaner
 
     /**
      * 試し直しても送れなかったキューのジョブ（failed_jobsテーブル）のうち、
-     * config('cleanup.failed_job_days')の日数を過ぎた行。
+     * config('neobit.cleanup.failed_job_days')の日数を過ぎた行。
      * 失敗したジョブをDB以外に置いているときと、日数が設定に無いときは何もしない。
      */
     public static function oldFailedJobs(): int
     {
         $failed = config('queue.failed');
 
-        $days = (int) config('cleanup.failed_job_days');
+        $days = (int) config('neobit.cleanup.failed_job_days');
 
         if ($days <= 0 || ! str_starts_with((string) ($failed['driver'] ?? ''), 'database')) {
             return 0;
@@ -210,13 +210,13 @@ final class TemporaryDataCleaner
     }
 
     /**
-     * ジョブのバッチ（job_batchesテーブル）のうち、終わってからconfig('cleanup.failed_job_days')の日数を過ぎた行。
+     * ジョブのバッチ（job_batchesテーブル）のうち、終わってからconfig('neobit.cleanup.failed_job_days')の日数を過ぎた行。
      * バッチの行は、送っている間の進み具合と、送れなかったジョブを送り直す間だけ使うので、
      * 送り直せる日数と同じだけ残す。バッチをDB以外に置いているときと、日数が設定に無いときは何もしない。
      */
     public static function oldJobBatches(): int
     {
-        $days = (int) config('cleanup.failed_job_days');
+        $days = (int) config('neobit.cleanup.failed_job_days');
         $repository = app(BatchRepository::class);
 
         if ($days <= 0 || ! $repository instanceof PrunableBatchRepository) {

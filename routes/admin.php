@@ -16,7 +16,7 @@ use Neobit\Core\Routing\FrameworkRoutes;
 
 /**
  * 管理画面のルート。会員用の"web"ガードとは別の"admin"ガードで保護する。
- * URLの頭（設定のneobit.admin_path）と名前の頭のadmin.、接続元のIPアドレスの制限（admin.ip）は、
+ * URLの頭（設定のneobit.route.admin_path）と名前の頭のadmin.、接続元のIPアドレスの制限（admin.ip）は、
  * bootstrap/app.phpが付ける。
  */
 Route::middleware('guest:admin')->group(function () {
