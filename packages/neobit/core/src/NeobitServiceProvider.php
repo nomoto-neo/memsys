@@ -41,8 +41,9 @@ class NeobitServiceProvider extends ServiceProvider
     /** 画面（neobit::）・マイグレーション・ルートと、設定を写す手段・共通部品のArtisanコマンドを登録する */
     public function boot(): void
     {
-        // アプリは、resources/views/vendor/neobit/ に同じ名前で置いて、画面を上書きする
-        $this->loadViewsFrom(__DIR__.'/../resources/views', 'neobit');
+        // アプリは、resources/views/vendor/neobit/ に同じ名前で置いて、画面を上書きする。
+        // パスに..を入れない。view:cacheは実際のパスでコンパイルするので、..があると別のファイルとみなされ、画面を開くときに作り直そうとする
+        $this->loadViewsFrom(dirname(__DIR__).'/resources/views', 'neobit');
 
         // 共通のテーブルのマイグレーション（php artisan migrate で、アプリのものと一緒に流れる）
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');

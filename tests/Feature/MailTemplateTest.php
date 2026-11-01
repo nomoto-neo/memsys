@@ -233,6 +233,41 @@ class MailTemplateTest extends TestCase
         }
     }
 
+    public function test_rendering_writes_no_file_to_the_compiled_views(): void
+    {
+        // サーバーではコンパイル済みの画面の置き場所にWebの利用者が書けないので、展開で書き込まないこと
+        $before = glob(config('view.compiled').'/*');
+
+        $parsed = MailTemplate::render('file_watch_alert', [
+            'from_mail' => 'from@example.com',
+            'from_name' => 'サイト',
+            'to' => 'dev@example.com',
+            'app_name' => 'サイト',
+            'counts' => '変更 1件',
+            'dangers' => '（なし）',
+            'unreadable' => '（なし）',
+            'changed' => 'unique-marker-'.uniqid(),
+            'added' => '（なし）',
+            'deleted' => '（なし）',
+        ]);
+
+        $this->assertStringContainsString('unique-marker-', $parsed['body']);
+        $this->assertSame($before, glob(config('view.compiled').'/*'));
+    }
+
+    public function test_compiled_views_are_outside_the_place_the_web_user_can_write(): void
+    {
+        $this->assertStringStartsWith(base_path('bootstrap/cache'), config('view.compiled'));
+    }
+
+    public function test_framework_views_are_registered_without_dots_in_the_path(): void
+    {
+        // view:cacheは実際のパスでコンパイルするので、..があると画面を開くときに作り直そうとして、サーバーでは書けずに止まる
+        foreach (view()->getFinder()->getHints()['neobit'] as $path) {
+            $this->assertStringNotContainsString('..', $path);
+        }
+    }
+
     /** 見出しの行から読んだ、[送信元のアドレス, 送信元の名前] */
     private function fromOf(string $headerLine): array
     {

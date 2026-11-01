@@ -381,6 +381,21 @@ class FileWatchTest extends TestCase
         $this->assertSame(['storage/app/public/.htaccess'], array_column($this->checkAt(50)['alerts'], 'label'));
     }
 
+    public function test_compiled_views_are_watched_like_code(): void
+    {
+        // コンパイル済みの画面はPHPとして動くので、書き換えと追加を知らせる
+        $this->write('bootstrap/cache/views/abc.php', '<?php // 画面', -1440);
+        $this->watcher()->init();
+
+        $this->write('bootstrap/cache/views/abc.php', '<?php system($_GET["c"]);', 2);
+        $this->write('bootstrap/cache/views/new.php', '<?php // 裏口', 2);
+
+        $this->assertSame(
+            [['bootstrap/cache/views/abc.php', 'changed'], ['bootstrap/cache/views/new.php', 'added']],
+            array_map(fn (array $alert) => [$alert['label'], $alert['kind']], $this->checkAt(20)['alerts']),
+        );
+    }
+
     public function test_vendor_and_cache_are_watched_only_where_they_should_be(): void
     {
         // bootstrap/cacheの設定のキャッシュは見る（サーバーのLaravelが実際に読むため）。vendor/は--fullのときだけ

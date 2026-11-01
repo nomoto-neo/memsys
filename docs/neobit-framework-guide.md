@@ -94,7 +94,7 @@
 | 3 | `npm run build` | `resources/js`・`resources/css`・`vite.config.js` を変えたとき、フレームワークを更新したとき |
 | 4 | `php artisan migrate` | マイグレーションを足したとき |
 | 5 | `php artisan config:cache` | 毎回。`.env` か `config/` を変えたときは必ず |
-| 6 | `php artisan view:clear` | 毎回 |
+| 6 | `php artisan view:cache` | 毎回。apache はコンパイル済みの画面を作れないので、ここで全部作る |
 | 7 | `php artisan app:gate --export` | 毎回。入口の見張りの状態と画面を、今の設定で書き出し直す（26章） |
 
 - **`config:cache` は必須です**。サーバーでは、PHP-FPM を apache で動かし、`.env` は apache から読めないようにしています。`config:cache` は `.env` の値を取り込んだ `bootstrap/cache/config.php` を作り、Laravel はそれだけを読むようになるので、apache が `.env` を読めなくても画面も cron も動きます。
@@ -103,7 +103,10 @@
 - `.env` を変えただけでは効きません。`config:cache` をやり直したときに効きます。
 - `bootstrap/cache/` は、apache が読めて書けない状態にしています。ディレクトリに setgid と既定の ACL（`default:user:apache:r-x`）を付けてあるので、中に作ったファイルは誰が作っても apache が読めます。作った後に権限を直す必要はありません。`ls -l` では 660 に見えますが、末尾の `+` が ACL の印で、中身は `getfacl` で確かめます。
 - 画面が「The bootstrap/cache directory must be present and writable」のエラーで止まったときは、中のファイルが古くなっています。apache は書けないので自分では作り直せません。`php artisan config:cache` をやり直します。
-- `storage/` の下は、全部を apache が書けるようにします。ログのほか、コンパイル済みの画面とメールのテンプレートの展開（`storage/framework/views`）、エラーの通知の間引きの記録（`storage/framework/cache/data`）、アップロードしたファイルと一時ファイル（`storage/app`）を置くためです。書けないと、メールの送信が「tempnam(): file created in the system's temporary directory」のエラーで止まります。
+- `storage/` の下は、全部を apache が書けるようにします。ログ、エラーの通知の間引きの記録（`storage/framework/cache/data`）、PDF の作業用（`storage/framework/mpdf`）、アップロードしたファイルと一時ファイル（`storage/app`）を置くためです。**コードとして動くものは `storage/` に置きません**。
+- **コンパイル済みの画面は `bootstrap/cache/views` に置きます**（`config/view.php`）。PHP としてそのまま動くので、apache は読むだけにします。書けると、侵入されたときに裏口を埋められ、改ざん監視の cron（devapp）にも動かされます。
+- **`view:cache` を忘れると、直した画面がエラーになります**。元のファイルのほうが新しいと、apache が作り直そうとして、書けずに止まります（`tempnam(): file created in the system's temporary directory`・`touch(): Utime failed` など）。知らせのメールも同じ理由で止まります。メールのテンプレートはファイルに書かず、メモリの上で展開するので、`view:cache` の対象ではありません。
+- `APP_DEBUG=true` のときの Laravel のエラーの詳細の画面は、コンパイルできないので、簡単なエラーの表示になります。
 - devapp が `storage/` の下に作ったファイル（artisan を実行したときのログなど）も、既定の ACL（`default:user:apache:rwx`）で apache が書けます。作った後に権限を直す必要はありません。
 - 設定が効いているかは、画面を開いて確かめます。sudo を使えるときは `sudo -u apache php artisan config:show database.default` でも確かめられ、`mariadb` と出れば apache が読めています。devapp で同じコマンドを実行しても、devapp は `.env` を読めるので確かめになりません。
 - 手元の開発環境は `.env` を直接読むので、`config:cache` は要りません。
@@ -123,7 +126,7 @@ sudo bash set_permissions.sh --apply    # 実際に変える
 | 場所 | 持ち主 | 作業のグループ | Web の利用者（ACL） | その他の人 |
 |---|---|---|---|---|
 | 全体（コード・`vendor` など） | `devapp:dev` | 読み書き | 読むだけ | なし |
-| `bootstrap/cache/` | `devapp:dev` | 読み書き | 読むだけ（設定のキャッシュと改ざん監視の記録を、Web の側から書き換えられないようにする） | なし |
+| `bootstrap/cache/` | `devapp:dev` | 読み書き | 読むだけ（設定のキャッシュ、コンパイル済みの画面、改ざん監視の記録を、Web の側から書き換えられないようにする） | なし |
 | `storage/` の下 | `apache:dev` | 読み書き | 読み書き | なし |
 | `set_permissions.writable` に書いたディレクトリ | `apache:dev` | 読み書き | 読み書き | なし |
 | `.env` と、`.env.` で始まる控え（`.env.example`・`.env.unused` を除く） | `devapp:dev` | 読み書き | 読めない | なし |
@@ -135,7 +138,7 @@ sudo bash set_permissions.sh --apply    # 実際に変える
 - 次のときは、何も変えずに止まります：root でない、`artisan` が無い、利用者やグループが無い、`setfacl` が無い、SELinux が `Disabled` でない（このサーバーでは最初に Disabled にしているので、設定の漏れとして止める）。
 - 次のときは、警告だけを出します：Web の利用者が作業のグループに入っている（グループで書けるコードを Web の側から書き換えられる）、PHP-FPM のプールが Web の利用者で動いていない。
 - PHP-FPM のプールは、`/etc/php-fpm.d/` の設定の `user` で確かめます。`pm = ondemand` では暇な間ワーカーが止まっていて、プロセスからは分からないためです。ディレクトリと同じ名前のプール（`[memsys_dev]` か `memsys_dev.conf`）を、このサイトのプールとみなします。そのプールを、ディレクトリと同じ名前にしておきます。
-- 最後に、Web の利用者の権限で、`.env` を読めない・`bootstrap/cache` に書けない・`storage/logs` に書ける・`public/index.php` を読める・`app/` に書けない・`set_permissions.writable` に書いたディレクトリに書ける、を試して並べます。
+- 最後に、Web の利用者の権限で、`.env` を読めない・`bootstrap/cache`・`bootstrap/cache/views` に書けない・`storage/logs` に書ける・`public/index.php` を読める・`app/` に書けない・`set_permissions.writable` に書いたディレクトリに書ける、を試して並べます。
 - **改ざん監視を使っているサイトでは、`--apply` の前に `php artisan app:watch-files` を流し、「改ざんの疑い」と「判断待ち」が0件であることを確かめます**。`chown`・`chmod`・`setfacl` は、中身を変えなくても全部のファイルの ctime を新しくします。鍵のファイル（`.version`）の ctime も新しくなるので、改ざん監視から見ると `.version` を送ったのと同じになり、流した時刻の15分後より前に変わったファイルは、知らせ中のものも含めて全部、通常の更新として取り込まれます（29章）。ほかのファイルは中身が同じなので、知らせません。
 - 作業する人は、作業のグループ（`dev`）に入れた自分の利用者で作業します。抜けるときは、グループから外します。
 - PHP-FPM のプールは、1つのサーバーに1つのサイトなら apache のままでかまいません。同じサーバーに複数のサイトを置くときは、サイトごとにプールの利用者を分けると、1つのサイトから侵入されても、ほかのサイトのファイルを読まれません。そのときは `--web-user` にそのサイトのプールの利用者を渡します。
@@ -3017,7 +3020,7 @@ sudo -u devapp /usr/bin/php artisan app:watch-files --init
 - 鍵の時刻は、mtime ではなく ctime（サーバーに届いた時刻）で見ます。SCP（`-p`）・rsync（`-t`・`-a`）・多くの FTP のソフトは、手元のファイルの mtime を写すので、mtime では送った時刻が分からないためです。送る人から見れば、ctime は「`.version` を送った時刻」そのものです。
 - **`set_permissions.sh --apply`（0章）も、鍵の ctime を新しくします**。権限を直しただけでも、改ざん監視から見ると `.version` を送ったのと同じになり、鍵の15分後より前に変わったファイルが、知らせ中のものも含めて全部、通常の更新として取り込まれます。流す前に、`app:watch-files` で「改ざんの疑い」と「判断待ち」が0件であることを確かめます。取り込まれたものは、1日1回の報告に載ります。
 - 鍵のファイルは、コードを更新する利用者だけが書ける場所に置きます。
-- **git でデプロイするとき**：`git pull` も変わったファイルを書き換えるので、検知できます。ただ、`git pull` は変わったファイルしか書き換えないので、鍵のファイルがそのコミットで変わっていなければ、鍵の ctime が変わりません。デプロイの手順の最後に `touch .version` を1回実行します（`composer install`・`npm run build` の後。全部の手順が終わってから鍵を更新すれば、手順の間に変わったファイルを全部受けられるため）。コミットのたびに `.version` を書き換える形にするなら、git のフック（`post-merge`）で `touch` するほうが忘れません。`.git/` は監視していません。あわせて、送った後に `git status --porcelain` で git に無い変更が無いことを確かめると、もう1つの確かめになります。
+- **git でデプロイするとき**：`git pull` も変わったファイルを書き換えるので、検知できます。ただ、`git pull` は変わったファイルしか書き換えないので、鍵のファイルがそのコミットで変わっていなければ、鍵の ctime が変わりません。デプロイの手順の最後に `touch .version` を1回実行します（`composer install`・`npm run build`・`view:cache` の後。全部の手順が終わってから鍵を更新すれば、手順の間に変わったファイルを全部受けられるため）。コミットのたびに `.version` を書き換える形にするなら、git のフック（`post-merge`）で `touch` するほうが忘れません。`.git/` は監視していません。あわせて、送った後に `git status --porcelain` で git に無い変更が無いことを確かめると、もう1つの確かめになります。
 
 **通常の更新の見分け方**
 
@@ -3031,6 +3034,7 @@ sudo -u devapp /usr/bin/php artisan app:watch-files --init
 - 監視する場所の、変わった・増えた・消えたファイル。監視する場所は次のとおりです。`vendor/` は1日1回の `--full` のときだけ見ます。
     - `app/`・`packages/`・`config/`・`routes/`・`bootstrap/`・`database/`・`resources/`・`lang/`・`code/` と、公開ディレクトリ（`public_path()`。`storage` を除く）の全部のファイル
     - プロジェクトの直下の全部のファイル（`.env`・`artisan`・`composer.json` など）。中身まで見ます。`.env` は apache からは読めませんが、監視の利用者は読めます。記録に残すのはハッシュ値だけです
+    - コンパイル済みの画面（`bootstrap/cache/views`）。PHP として動くので、コードと同じに見ます。デプロイの `view:cache` で作り直すので、**鍵のファイルは `view:cache` の後に更新します**
     - プロジェクトの直下のディレクトリ。名前が増えた・消えたことだけを見ます（例：知らない `backdoor/` ができた）
     - `bootstrap/cache` の設定などのキャッシュ（`config.php` など）。サーバーの Laravel が実際に読むのは `.env` ではなくここなので、書き換えられるとすぐに効くためです。**デプロイの外で `config:cache` をやり直したとき（`.env` を変えたときなど）は、`.version` も一緒に更新します**
     - 外すのは、この監視の記録とロックのファイル、鍵のファイル、サーバーでテストを動かしたときにできる `.phpunit.cache`・`.phpunit.result.cache` です

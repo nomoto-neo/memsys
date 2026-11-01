@@ -7,7 +7,7 @@
 #
 # そろえる形。何度流しても同じ状態になる。
 # - 全体：持ち主:作業のグループ。作業のグループは読み書き、Web の利用者は ACL で読むだけ、その他の人はなし
-# - bootstrap/cache：全体と同じ。Web の利用者が書けないので、設定のキャッシュと改ざん監視の記録を Web の側から書き換えられない
+# - bootstrap/cache：全体と同じ。Web の利用者が書けないので、設定のキャッシュ・コンパイル済みの画面・改ざん監視の記録を Web の側から書き換えられない
 # - storage の下：持ち主は Web の利用者。Web の利用者も ACL で読み書きできる
 # - set_permissions.writable に書いたディレクトリ：storage と同じ。無ければ作る（WordPress のアップロードの置き場所など）
 # - .env と .env. で始まる控え（.env.example・.env.unused を除く）：Web の利用者は読めない
@@ -152,6 +152,9 @@ for path in "${writable[@]}"; do
     [ -d "$dir/$path" ] || run mkdir -p "$dir/$path"
 done
 
+# コンパイル済みの画面の置き場所。無いと view:cache が止まる。サーバーへ送らないので、ここで作る
+run mkdir -p "$dir/bootstrap/cache/views"
+
 # 持ち主。シンボリックリンク（public/storage）は辿らず、リンクそのものを変える
 run chown -hR "$owner:$group" "$dir"
 run chown -hR "$web:$group" "$dir/storage"
@@ -201,6 +204,7 @@ can() {  # can 期待（yes・no） 説明 test の引数 … Web の利用者�
 
 can no  '.env を読めない'              -r "$dir/.env"
 can no  'bootstrap/cache に書けない'   -w "$dir/bootstrap/cache"
+can no  'bootstrap/cache/views に書けない' -w "$dir/bootstrap/cache/views"
 can yes 'storage/logs に書ける'        -w "$dir/storage/logs"
 can yes 'public/index.php を読める'    -r "$dir/public/index.php"
 can no  'app/ に書けない'              -w "$dir/app"

@@ -3,6 +3,7 @@
 namespace Neobit\Core\Mail;
 
 use Illuminate\Support\Facades\Blade;
+use Throwable;
 
 /**
  * メールのテンプレートを1つ読み込み、変数を展開して、見出しと本文に分ける。
@@ -69,7 +70,7 @@ final class MailTemplate
         $raw = self::readFile($mainPath);
         [$headerRaw, $bodyRaw] = self::splitHeaderLines($raw);
 
-        $expanded = Blade::render($headerRaw, self::withoutLineBreaks($vars)).Blade::render($bodyRaw, $vars);
+        $expanded = self::expand($headerRaw, self::withoutLineBreaks($vars)).self::expand($bodyRaw, $vars);
 
         $parsed = MailTemplateParser::parse($expanded);
 
@@ -124,7 +125,30 @@ final class MailTemplate
             return null;
         }
 
-        return Blade::render(self::readFile($path), $vars);
+        return self::expand(self::readFile($path), $vars);
+    }
+
+    /**
+     * テンプレートの文字列を、ファイルに書かずにメモリの上で展開する。
+     * Blade::render()はコンパイル済みの画面の置き場所に書くが、サーバーではそこをWebの利用者が書けないため。
+     */
+    private static function expand(string $__template, array $__data): string
+    {
+        $__env = view();
+        extract($__env->getShared(), EXTR_SKIP);
+        extract($__data, EXTR_SKIP);
+
+        // 途中で例外になったら、出力を捨てて止める
+        ob_start();
+        try {
+            eval('?>'.Blade::compileString($__template));
+        } catch (Throwable $e) {
+            ob_end_clean();
+
+            throw $e;
+        }
+
+        return (string) ob_get_clean();
     }
 
     /**

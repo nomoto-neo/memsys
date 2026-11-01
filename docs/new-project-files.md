@@ -94,7 +94,7 @@ WordPress を置く案件では、`config/neobit.php` に `wordpress` の節を�
 プロジェクトのファイルのうち、サーバーへ送ってはいけないものです。サーバーごとに作るためです。
 
 - `public/build`（サーバーで `npm run build` して作る）
-- `bootstrap/cache/*.php`（サーバーで作る。`bootstrap/app.php` などは送ってよい）
+- `bootstrap/cache/*.php` と `bootstrap/cache/views/`（サーバーで作る。`bootstrap/app.php` などは送ってよい）
 - `.env`（サーバーごとに別）
 
 サーバーへ送った後に実行するコマンドは、利用ガイド（`neobit-framework-guide.md`）の0章にあります。

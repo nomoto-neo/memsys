@@ -32,7 +32,7 @@
 **監視する場所**
 
 - `basePath` の下：`app`・`packages`・`config`・`routes`・`bootstrap`・`database`・`resources`・`lang`・`code`。`--full` のときは `vendor` も。
-- `bootstrap/cache` の設定などのキャッシュ（`config.php` など）も見る。この監視の記録とロックのファイル（`file-watch.json`・`.tmp`・`file-watch.lock`）は外す。
+- `bootstrap/cache` の設定などのキャッシュ（`config.php` など）とコンパイル済みの画面（`views/`）も見る。この監視の記録とロックのファイル（`file-watch.json`・`.tmp`・`file-watch.lock`）は外す。
 - プロジェクトの直下の全部のファイル（`.env` を含む）。中身まで見る。鍵のファイルと `.phpunit.cache`・`.phpunit.result.cache` は外す。
 - プロジェクトの直下のディレクトリは、名前の一覧（記録の `root_dirs`）と比べ、増えた・消えたことだけを見る。名前は末尾に `/` を付ける。前の版の基準に一覧が無ければ、最初の回で知らせずに作る。
 - 公開ディレクトリ（`public_path()`）の下。`storage`（アップロードへのリンク）と `hot` を除く。名前は `public/…`。
