@@ -104,10 +104,9 @@ class FileWatch extends Command
 
             $result = $watcher->check((bool) $this->option('full'));
         } catch (RuntimeException $e) {
-            // 基準が無いか、記録が壊れて読めない。--initの忘れか、記録を書き換えられたとき。
-            // crontabは標準出力を捨てるので、標準エラーに出してMAILTOへ届ける
+            // 基準が無いか、記録が壊れて読めない。--initの忘れか、記録を書き換えられたとき
             Log::warning('FileWatch: '.$e->getMessage());
-            $this->output->getErrorStyle()->writeln('<error>'.$e->getMessage().'</error>');
+            $this->errorToCron($e->getMessage());
 
             return self::FAILURE;
         }
@@ -206,12 +205,21 @@ class FileWatch extends Command
             throw $e;
         } catch (Throwable $e) {
             Log::critical('FileWatch: 管理画面の承認を取り込みましたが、承認のメールを送れませんでした。', ['message' => $e->getMessage(), 'files' => $labels]);
-            $this->error('メールを送れませんでした。'.$e->getMessage());
+            $this->errorToCron('承認のメールを送れませんでした。'.$e->getMessage());
 
             return self::FAILURE;
         }
 
         return self::SUCCESS;
+    }
+
+    /**
+     * 標準エラーに出す。crontabは標準出力を捨てるので、ここに出すとMAILTOへ届く。
+     * メールの部品が壊れていても知らせが届くよう、Laravelのメールを通らない道を残すため
+     */
+    private function errorToCron(string $message): void
+    {
+        $this->output->getErrorStyle()->writeln('<error>'.$message.'</error>');
     }
 
     /**
@@ -238,7 +246,7 @@ class FileWatch extends Command
         $recipients = $this->recipients();
         if ($recipients === []) {
             Log::critical('FileWatch: ファイルの改ざんを検知しましたが、宛先が無いのでメールを送れません。', ['files' => array_column($alerts, 'label')]);
-            $this->warn('宛先（file_watch.to・ERROR_NOTIFY_TO）が設定されていないので、メールは送りません。');
+            $this->errorToCron('ファイルの改ざんを検知しましたが、宛先（file_watch.to・ERROR_NOTIFY_TO）が設定されていないので、メールを送れません。');
 
             return self::FAILURE;
         }
@@ -270,7 +278,7 @@ class FileWatch extends Command
             throw $e;
         } catch (Throwable $e) {
             Log::critical('FileWatch: ファイルの改ざんを検知しましたが、通知のメールを送れませんでした。', ['message' => $e->getMessage()]);
-            $this->error('メールを送れませんでした。'.$e->getMessage());
+            $this->errorToCron('ファイルの改ざんを検知しましたが、通知のメールを送れませんでした。'.$e->getMessage());
 
             return self::FAILURE;
         }

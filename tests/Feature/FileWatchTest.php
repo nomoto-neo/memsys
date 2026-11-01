@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Mail;
 use Neobit\Core\Mail\TemplatedMail;
 use Neobit\Core\Security\FileWatcher;
+use RuntimeException;
 use Symfony\Component\Console\Output\BufferedOutput;
 use Symfony\Component\Console\Output\ConsoleOutput;
 use Tests\TestCase;
@@ -512,6 +513,22 @@ class FileWatchTest extends TestCase
 
         $this->assertSame(1, Artisan::call('app:file-watch', [], $output));
         $this->assertStringContainsString('app:file-watch --init', $errors->fetch());
+    }
+
+    public function test_failing_to_send_the_alert_is_reported_to_standard_error(): void
+    {
+        // 知らせのメールを送れないときは、crontabのMAILTOへ届くよう、標準エラーに出す
+        Mail::shouldReceive('send')->once()->andThrow(new RuntimeException('送信できません'));
+        config(['neobit.file_watch.to' => 'dev@example.com']);
+        $this->app->instance(FileWatcher::class, $this->watcher());
+        $this->write('public/index.php', '<?php // 書き換えられた入口', 2);
+        Carbon::setTestNow(Carbon::createFromTimestamp($this->start + 20 * 60));
+
+        $output = new ConsoleOutput();
+        $output->setErrorOutput($errors = new BufferedOutput());
+
+        $this->assertSame(1, Artisan::call('app:file-watch', [], $output));
+        $this->assertStringContainsString('通知のメールを送れませんでした。送信できません', $errors->fetch());
     }
 
     public function test_runs_do_not_overlap(): void
