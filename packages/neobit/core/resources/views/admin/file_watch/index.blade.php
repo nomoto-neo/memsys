@@ -96,7 +96,7 @@
                         @elseif (! empty($entry['manual']))
                             {{ date('Y-m-d H:i', $entry['from']) }} にサーバーで認めた更新（{{ count($files) }}件）
                         @else
-                            {{ date('Y-m-d H:i', $entry['from']) }}〜{{ date('H:i', $entry['to']) }} の更新（{{ count($files) }}件）
+                            {{ date('Y-m-d H:i', $entry['to']) }} までの更新（{{ count($files) }}件）
                         @endif
                     </summary>
                     @foreach ($files as $file)

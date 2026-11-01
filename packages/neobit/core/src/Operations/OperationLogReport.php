@@ -166,8 +166,8 @@ final class OperationLogReport
                 // サーバーで app:watch-files --accept で認めたとき
                 $heading = date('Y-m-d H:i', $entry['from']).' にサーバーで認めた更新';
             } else {
-                // 鍵の前後の、通常の更新の期間
-                $heading = date('Y-m-d H:i', $entry['from']).'〜'.date('H:i', $entry['to']).' の更新';
+                // 鍵で取り込んだ通常の更新。期間の始めより前のファイルも入るので、終わりの時刻だけを出す
+                $heading = date('Y-m-d H:i', $entry['to']).' までの更新';
             }
             $lines = [$heading.'（'.count($files).'件）'];
             foreach (array_slice($files, 0, self::FILE_UPDATE_LINES) as $file) {

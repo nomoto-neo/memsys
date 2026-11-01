@@ -112,7 +112,7 @@ class FileWatchTest extends TestCase
 
     public function test_changes_around_the_key_are_normal_updates(): void
     {
-        // 鍵の更新の20分前から15分後までに変わったものは、通常の更新
+        // 鍵の更新の前と、15分後までに変わったものは、通常の更新
         $this->write('app/Models/News.php', '<?php // 新しいニュース', 2);
         $this->write('config/app.php', '<?php return [1];', 21);
         $this->write('.version', '2026-10-27 10:22', 22);
@@ -135,6 +135,37 @@ class FileWatchTest extends TestCase
         $result = $this->checkAt(70);
         $this->assertSame('app/Models/Shell.php', $result['alerts'][0]['label']);
         $this->assertSame('added', $result['alerts'][0]['kind']);
+    }
+
+    public function test_a_later_key_takes_in_everything_before_it(): void
+    {
+        // 鍵を送り忘れた更新。書き換えと削除を知らせ続けている
+        $this->write('public/index.php', '<?php // 新しい入口', 2);
+        File::delete($this->base.'/config/app.php');
+        $this->checkAt(5);
+        $this->assertSame(['public/index.php', 'config/app.php'], array_column($this->checkAt(20)['alerts'], 'label'));
+
+        // 危ないアップロードは、鍵を送っても取り込まない。鍵の15分後より後の変化も取り込まない
+        $this->write('storage/app/public/shell.php', '<?php', 3);
+
+        // 次の日に鍵を送ると、前の日の変化も全部、通常の更新として取り込む。何時間前のものでも同じ
+        $this->write('.version', 'deploy', 1500);
+        $this->write('app/Models/Late.php', '<?php // 鍵の後のもの', 1520);
+        $result = $this->checkAt(1525);
+        $this->assertSame(2, $result['accepted']);
+        $this->assertSame([], $result['alerts']);
+        $this->assertSame(1, $result['pending']);
+        $this->assertSame(['storage/app/public/shell.php'], array_column($result['dangers'], 'label'));
+
+        // 基準に取り込んだので、次の回は何も出ない
+        $this->assertSame(0, $this->checkAt(1526)['accepted']);
+
+        // 報告の記録に載る
+        $entries = $this->watcher()->acceptedOn(Carbon::parse('2026-10-28'));
+        $this->assertSame(['public/index.php', 'config/app.php'], $entries[0]['files']);
+
+        // 鍵の15分後より後の変化は、鍵が来なければ知らせる
+        $this->assertSame(['app/Models/Late.php'], array_column($this->checkAt(1540)['alerts'], 'label'));
     }
 
     public function test_continuous_updates_with_unseen_keys_are_one_period(): void
@@ -398,18 +429,17 @@ class FileWatchTest extends TestCase
             $this->checkAt(20)['alerts'],
         );
 
-        // 鍵の前後に増えたものは、通常の更新として一覧に取り込む
+        // 鍵のファイルそのものと、テストでできるものは見ない
+        $this->write('.phpunit.result.cache', '{}', 22);
+        File::ensureDirectoryExists($this->base.'/.phpunit.cache');
+        $this->assertSame(['backdoor/'], array_column($this->checkAt(23)['alerts'], 'label'));
+
+        // 後から鍵を更新すると、知らせていたものも、鍵の前に増えたものも、通常の更新として一覧に取り込む
         File::ensureDirectoryExists($this->base.'/node_modules');
         $this->ctimes[$this->base.'/node_modules'] = $this->start + 1500;
         $this->write('.version', 'deploy', 26);
         $result = $this->checkAt(30);
-        $this->assertSame(1, $result['accepted']);
-        $this->assertNotContains('node_modules/', array_column($result['alerts'], 'label'));
-
-        // 鍵のファイルそのものと、テストでできるものは見ない
-        $this->write('.phpunit.result.cache', '{}', 40);
-        File::ensureDirectoryExists($this->base.'/.phpunit.cache');
-        $this->assertSame(['backdoor/'], array_column($this->checkAt(60)['alerts'], 'label'));
+        $this->assertSame([2, []], [$result['accepted'], $result['alerts']]);
     }
 
     public function test_old_baseline_without_the_root_list_is_completed_quietly(): void
