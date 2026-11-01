@@ -84,7 +84,9 @@
 - `FileWatchTest`：コンパイル済みの画面の書き換えと追加を知らせること
 - 手元で `view:cache` を流し、画面の場所ごとに、実際のパスで全部コンパイルされていることを確かめた。本体の画面116件・`neobit` 33件・`errors` 10件・`pagination` 9件・`notifications` 1件のすべて
 - 登録のパスと実際のパスの比較で、`..` が残るのは `laravel-exceptions`・`laravel-exceptions-renderer`・`mcp` だけ。`laravel-exceptions` は `errors` と同じファイルで、表示には `errors` の登録を使う。`mcp` は開発用
-- 手元の Windows ではパスの区切り文字が違うので、画面を開いたときにコンパイル済みファイルが使われることは確かめられない。apache が書けない状態での動作は、開発サーバーで確かめる
+- 手元の Windows ではパスの区切り文字が違うので、画面を開いたときにコンパイル済みファイルが使われることは確かめられない
+- 開発サーバー（apache が書けない状態）で、次を確かめた。画面、存在しない URL の 404、お問い合わせのメール、PDF、改ざんの知らせのメール（5分ごとに届く）、`.version` での取り込み、`app:gate --export`
+- 開発サーバーで、`packages/` を送ったのに `NeobitServiceProvider.php` の変更が反映されていないとみられる状態で `neobit::` の画面が `tempnam` のエラーになり、`packages/` を送り直して `view:cache` を流すと直った（OPcache の可能性は確かめていない）
 
 ## H. 今後の改善提案・TODO
 
