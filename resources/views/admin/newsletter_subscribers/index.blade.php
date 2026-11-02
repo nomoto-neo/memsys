@@ -11,7 +11,7 @@
 <p class="text-muted small">会員登録をしていない人の、お知らせメール（メルマガ）の登録と配信停止です。会員の設定は、会員の管理画面で確かめてください。</p>
 
 {{--
-    name属性は検索対象のカラム名のまま。NewsletterSubscriberController::srchRules()に載っている項目だけが
+    name属性は検索対象のカラム名のまま。NewsletterSubscriberController::searchRules()に載っている項目だけが
     検索条件として保存される。
 
     - q：フリーワード（対象の列はNewsletterSubscriberController::FREE_WORD_COLUMNS）

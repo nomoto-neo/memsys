@@ -208,7 +208,7 @@ class BulkMailController extends Controller
      * 操作ログに残す操作の種類。送信の記録を1件作るのが、送信の始まりなので、
      * 「登録」ではなく「一斉メールの送信」として残す。
      */
-    private function savedLogAction(bool $created): OperationLogActionType
+    private function operationLogActionType(bool $created): OperationLogActionType
     {
         return AppOperationLogAction::BulkMailSend;
     }
@@ -216,7 +216,7 @@ class BulkMailController extends Controller
     // ---- 履歴 ----
 
     /** 履歴の検索の項目の検証ルール（SearchableListが要求する）。履歴は検索しない */
-    private function srchRules(): array
+    private function searchRules(): array
     {
         return [];
     }

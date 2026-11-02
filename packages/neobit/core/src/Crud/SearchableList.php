@@ -21,7 +21,7 @@ use Illuminate\Validation\Rules\In;
  * - PER_PAGE           1ページの件数
  * - ORDER_OPTIONS      並び順の選択肢。書き方はAdmin\StaffControllerを参照
  * メソッド
- * - srchRules()          検索の項目の検証ルール
+ * - searchRules()        検索の項目の検証ルール
  * - applyCustomSearch()  列と直接比べられない項目の処理
  * - indexRoute()         要るときだけ。一覧画面のルート名をINDEX_ROUTEで決められないとき（ルートの名前を
  *                        案件が付けるフレームワークの画面など）に書く。書けばINDEX_ROUTEは要らない
@@ -32,10 +32,10 @@ use Illuminate\Validation\Rules\In;
  * 続いてしまう。取り出すときにも通すのは、ルールを変える前の条件が残っていることがあるため。
  * 検証に落ちた項目とルールに無い項目は、エラーにせずに捨てる。普通の操作では起きないので
  * 利用者に説明する必要が無く、何を弾いたかを返さない方が安全でもあるため。
- * qとorderbyのルールはこのトレイトが自動で足すので、srchRules()には書かない。
+ * qとorderbyのルールはこのトレイトが自動で足すので、searchRules()には書かない。
  *
  * ■ 完全一致か部分一致か
- * srchRules()のルールから自動で決める。
+ * searchRules()のルールから自動で決める。
  * - integer・boolean・Rule::inか'in:...'・Rule::enumのどれかがあれば完全一致
  * - どれも無ければ部分一致。メールアドレスのように一部で探したい文字列のため
  * - 値が配列ならどちらでもIN()にする。配列の項目は'.*'のルールも見る
@@ -47,7 +47,7 @@ use Illuminate\Validation\Rules\In;
  * falseを返して自動の判定に任せる。多対多の絞り込みや日付から年を取り出す比較のように、
  * 列と直接比べられない項目だけを書く。ニュースのcategory_idのように型だけでは自動で探せるか
  * 分からない項目があるので、処理を書いた側から名乗り出てもらう形にしている。
- * ここで処理する項目もsrchRules()には必ず書く。書かないと検証で捨てられて届かない。
+ * ここで処理する項目もsearchRules()には必ず書く。書かないと検証で捨てられて届かない。
  */
 trait SearchableList
 {
@@ -56,7 +56,7 @@ trait SearchableList
      * 列と直接比べられない項目はapplyCustomSearch()で処理する。
      * qとorderbyはこのトレイトが使う名前なので使えない。
      */
-    abstract private function srchRules(): array;
+    abstract private function searchRules(): array;
 
     /**
      * 列と直接比べられない検索条件の処理。自分で処理したらtrue、自動の判定に任せるならfalse。
@@ -117,7 +117,7 @@ trait SearchableList
         // 画面に渡す検索条件には、指定されなかった項目もnullで入れておく。
         // 画面で$filters['email']のように、?? ''を付けずに書けるようにするため
         $emptyFilters = [];
-        foreach (array_keys($this->commonSearchRules() + $this->srchRules()) as $key) {
+        foreach (array_keys($this->commonSearchRules() + $this->searchRules()) as $key) {
             // '.*'は配列の要素のルールなので、項目としては扱わない
             if (! str_contains($key, '.')) {
                 $emptyFilters[$key] = null;
@@ -169,7 +169,7 @@ trait SearchableList
 
     /**
      * フリーワードのqと並び順のorderbyの検証ルール。このトレイトの仕組みなので、
-     * srchRules()には書かせずにここで足す。フリーワードを使わないコーナーではqのルールを
+     * searchRules()には書かせずにここで足す。フリーワードを使わないコーナーではqのルールを
      * 足さないので、送られてきても捨てられる。
      */
     private function commonSearchRules(): array
@@ -194,7 +194,7 @@ trait SearchableList
      */
     private function sanitizeFilters(array $raw): array
     {
-        $rules = $this->commonSearchRules() + $this->srchRules();
+        $rules = $this->commonSearchRules() + $this->searchRules();
 
         $validator = Validator::make($raw, $rules);
         $validator->passes();
@@ -222,12 +222,12 @@ trait SearchableList
     }
 
     /**
-     * その項目を完全一致で探すかを、srchRules()のルールから決める。判定の決まりは
+     * その項目を完全一致で探すかを、searchRules()のルールから決める。判定の決まりは
      * このファイルの冒頭にある。配列の項目は'.*'のルールも見る。
      */
     private function isEqualSearch(string $key): bool
     {
-        $rules = $this->srchRules();
+        $rules = $this->searchRules();
 
         // ルールが文字列1本やオブジェクト1つで書かれていても、配列にそろえて調べる。
         // (array)を使わないのは、オブジェクトのプロパティが配列に展開されてしまうため
@@ -278,11 +278,11 @@ trait SearchableList
             }
         }
 
-        $srchRules = $this->srchRules();
+        $searchRules = $this->searchRules();
 
         foreach ($filters as $column => $value) {
-            // SQLの列の名前になるので、srchRules()にある項目だけを扱う。検証で絞ってあるが、念のため
-            if (! array_key_exists($column, $srchRules)) {
+            // SQLの列の名前になるので、searchRules()にある項目だけを扱う。検証で絞ってあるが、念のため
+            if (! array_key_exists($column, $searchRules)) {
                 continue;
             }
 

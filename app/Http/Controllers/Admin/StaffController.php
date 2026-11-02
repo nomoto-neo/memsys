@@ -36,7 +36,7 @@ class StaffController extends Controller
     // ---- 共通処理（トレイト） ----
 
     // 一覧・検索まわりの共通処理はSearchableListトレイトが提供する。
-    // クラス側は必要な定数と srchRules() applyCustomSearch() だけ用意する。
+    // クラス側は必要な定数と searchRules() applyCustomSearch() だけ用意する。
     use SearchableList;
 
     // 入力→確認→保存の共通処理はFormFlowトレイトが提供する。
@@ -199,7 +199,7 @@ class StaffController extends Controller
      * 検索対象項目の検証ルール（SearchableListが要求する）。
      * integer・boolean・Rule::inのどれかがあれば完全一致、無ければ部分一致、配列ならIN()条件
      */
-    private function srchRules(): array
+    private function searchRules(): array
     {
         return [
             'email' => ['nullable', 'string', 'max:255'],

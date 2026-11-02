@@ -7,7 +7,7 @@
 </div>
 
 {{--
-    name属性は検索対象のカラム名のまま。StaffController::srchRules()に載っている項目だけが
+    name属性は検索対象のカラム名のまま。StaffController::searchRules()に載っている項目だけが
     検索条件として保存される。
 
     - q：フリーワード（対象はname）

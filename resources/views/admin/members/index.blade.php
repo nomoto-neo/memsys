@@ -14,7 +14,7 @@
 </div>
 
 {{--
-    name属性は検索対象のカラム名のまま。MemberController::srchRules()に載っている項目だけが
+    name属性は検索対象のカラム名のまま。MemberController::searchRules()に載っている項目だけが
     検索条件として保存される。
 
     - q：フリーワード。空白区切りで複数語に分解し、設定された項目のどれかに

@@ -90,7 +90,7 @@ class NewsController extends Controller
      * （多対多の絞り込み・日付からの年抽出）ため、applyCustomSearch()で
      * 個別に処理する。
      */
-    private function srchRules(): array
+    private function searchRules(): array
     {
         return [
             'category_id' => ['nullable', 'integer'],

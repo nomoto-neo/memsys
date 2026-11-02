@@ -42,7 +42,7 @@ grep -rnE "selectRaw|whereRaw|orderByRaw|havingRaw|groupByRaw|DB::raw|DB::statem
 ```
 
 - **見るところ**：入力の値を、`?` のバインドで渡していること。SQL の文字として埋め込んでいるのが、プログラムの中の固定の値だけであること。
-- 一覧の並び順と検索の列は、`SearchableList` が `ORDER_OPTIONS` と `srchRules()` にあるものだけを使います。
+- 一覧の並び順と検索の列は、`SearchableList` が `ORDER_OPTIONS` と `searchRules()` にあるものだけを使います。
 
 ### 4. 危険な関数と、デバッグの残り
 

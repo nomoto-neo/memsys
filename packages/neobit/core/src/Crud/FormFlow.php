@@ -35,7 +35,7 @@ use Neobit\Core\Operations\OperationRecorder;
  *                                     保存の直後の処理。例：関連テーブルのsync()。$changedFieldsは
  *                                     更新で値が変わった列で、列の名前 => 変わる前の値。使わなければ
  *                                     引数に書かなくてよい。新規登録とCSV取り込みでは空
- * - savedLogAction($created)          操作ログに残す操作の種類。登録・更新とは別の名前で残したい
+ * - operationLogActionType($created)  操作ログに残す操作の種類。登録・更新とは別の名前で残したい
  *                                     コーナーで書く。例：一斉メールの送信
  * - beforeDelete($record)             削除の直前の処理。例：関連テーブルのdetach()
  * 何もしない版がこのトレイトにあり、コントローラーに同じ名前で書けばそちらが使われる。
@@ -248,7 +248,7 @@ trait FormFlow
         // 操作ログ。列の名前だけを残し、値は残さない。
         // CSV取り込みは、取り込み全体で1行をCsvImportが書くので、1件ずつは書かない
         if (! $fromImport) {
-            OperationRecorder::record($this->savedLogAction($created), $record, array_keys($changed));
+            OperationRecorder::record($this->operationLogActionType($created), $record, array_keys($changed));
         }
     }
 
@@ -304,7 +304,7 @@ trait FormFlow
     }
 
     /** 操作ログに残す操作の種類。$createdは新規登録ならtrue */
-    private function savedLogAction(bool $created): OperationLogActionType
+    private function operationLogActionType(bool $created): OperationLogActionType
     {
         return $created ? OperationLogAction::Create : OperationLogAction::Update;
     }

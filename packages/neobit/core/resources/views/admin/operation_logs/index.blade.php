@@ -63,7 +63,7 @@ button.stats-chart-col:hover .stats-chart-bar {
 @endif
 
 {{--
-    name属性は検索対象のカラム名のまま。OperationLogController::srchRules()に載っている項目だけが
+    name属性は検索対象のカラム名のまま。OperationLogController::searchRules()に載っている項目だけが
     検索条件として保存される。
 
     - date_from・date_to：日付の範囲（OperationLogController::applyCustomSearch()で処理）

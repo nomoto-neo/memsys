@@ -323,7 +323,7 @@ class NewsController extends Controller
 
     // ---- 一覧・検索 ----
     public function index(...) { ... }
-    private function srchRules(): array { ... }
+    private function searchRules(): array { ... }
     private function applyCustomSearch(...): bool { ... }
 
     // ---- CSVダウンロード ----  ---- CSV取り込み ----
@@ -417,7 +417,7 @@ class NewsController extends Controller
 1. **テーブル**：マイグレーションを作る。業務で参照・削除するテーブルは `t_` を付ける（16章）。
 2. **モデル**：`$table`・`$fillable`・`$casts`、リレーション、データ項目の仕様の定数（画像の横幅など）、表示用のアクセサ（ファイルの URL など）。
 3. **コントローラー**：1-3 の並びで書く。
-   - `use SearchableList;` と一覧の定数、`srchRules()`・`applyCustomSearch()`（3章）
+   - `use SearchableList;` と一覧の定数、`searchRules()`・`applyCustomSearch()`（3章）
    - `use FormFlow;` と `rules()`・`formValues()`・`saveValues()`（5章）
    - アップロードがあれば `use AjaxFileUpload;` と `UPLOAD_FILES`（7章）
    - 入口：`index`・`create`・`confirmForStore`・`backToCreate`・`store`・`show`・`edit`・`confirmForUpdate`・`backToEdit`・`update`・`destroy`
@@ -468,7 +468,7 @@ public function index(Request $request): View|RedirectResponse
 }
 
 /** 検索項目の検証ルール。キーはフォームの name で、そのまま検索するカラム名になる */
-private function srchRules(): array
+private function searchRules(): array
 {
     return [
         'email' => ['nullable', 'string', 'max:255'],                       // 部分一致
@@ -495,9 +495,9 @@ Route::post('/members', [AdminMemberController::class, 'storeSearchCondition'])-
 
 ### 決まりごと
 
-- **完全一致か部分一致か**は、`srchRules()` のルールから自動で決まります。`integer`・`boolean`・`Rule::in`・`Rule::enum` のどれかがあれば完全一致、無ければ部分一致、値が配列なら `IN()`。コードやフラグに型のルールを付け忘れると部分一致になるので注意します。
+- **完全一致か部分一致か**は、`searchRules()` のルールから自動で決まります。`integer`・`boolean`・`Rule::in`・`Rule::enum` のどれかがあれば完全一致、無ければ部分一致、値が配列なら `IN()`。コードやフラグに型のルールを付け忘れると部分一致になるので注意します。
 - `q`（フリーワード）と `orderby`（並び順）はトレイトが使う名前なので、検索項目の名前には使えません。
-- `srchRules()` に書いていない項目は捨てられます。`applyCustomSearch()` で処理する項目も、`srchRules()` には必ず書きます。
+- `searchRules()` に書いていない項目は捨てられます。`applyCustomSearch()` で処理する項目も、`searchRules()` には必ず書きます。
 - 例：多対多の絞り込み（ニュースのカテゴリー）は `whereHas()`、「削除済みも含める」（スタッフ）は `withTrashed()` を `applyCustomSearch()` で書いています。
 - 検索条件・ページ番号はセッションに保存されます。メニューから入ると（`?page` が無いと）検索条件は消えます。
 - **一覧へ戻る**：詳細・編集・登録の後は `route(self::INDEX_ROUTE, ['back'])` に戻します。`?back` が付いていると、保存してあったページ番号へリダイレクトし、検索条件もそのまま戻ります。画面の「一覧へ戻る」「キャンセル」も `route('admin.xxx.index', ['back'])` にします。
@@ -558,7 +558,7 @@ public function show(News $news): View
 | `defaultValues()` | | 新規登録の初期値 |
 | `prepareInput($validated)` | | 検証の後、確認画面と保存の前の整形（例：`safe_html()`、郵便番号の整形） |
 | `afterSave($record, $validated, $changedFields)` | | 保存の直後（例：多対多の `sync()`）。`$changedFields` は更新で値が変わった列で、`列の名前 => 変わる前の値`。使わなければ引数に書かなくてよい。新規登録と CSV 取り込みでは空 |
-| `savedLogAction($created)` | | 操作ログ（22章）に残す操作の種類。登録・更新とは別の名前で残したいコーナーで書く（例：一斉メールの送信） |
+| `operationLogActionType($created)` | | 操作ログ（22章）に残す操作の種類。登録・更新とは別の名前で残したいコーナーで書く（例：一斉メールの送信） |
 | `beforeDelete($record)` | | 削除の直前（6章） |
 
 アップロード項目は `saveValues()` に入れません（`commitUploads()` が保存します）。多対多は `afterSave()` で保存します。
@@ -2277,7 +2277,7 @@ Mail::send(new TemplatedMail('bulk_mail', [
 
 | 操作 | 記録するところ | コーナーに書くもの |
 |---|---|---|
-| 登録・更新・削除 | `FormFlow` の `saveData()`・`deleteData()` | 無い（別の名前で残すときだけ `savedLogAction()`） |
+| 登録・更新・削除 | `FormFlow` の `saveData()`・`deleteData()` | 無い（別の名前で残すときだけ `operationLogActionType()`） |
 | ログイン・ログアウト | `AppServiceProvider`（Laravel のログイン・ログアウトのイベント） | 無い |
 | ログインの失敗 | ログインのコントローラー（試行制限の回数を足すところ） | 無い |
 | パスワードの変更 | `PasswordChange::resetAndNotify()` | 無い |
@@ -2307,7 +2307,7 @@ OperationRecorder::record(OperationLogAction::Update, $company, ['status'], ['st
 - **操作した人**：渡さなければ、その画面のガードでログインしている人です。管理画面ならスタッフ、マイページなら会員になります。2段階目の途中や、ログアウトした後のように、ログインはしていないが誰か分かっている操作は、`operator:` で渡します。
 - **訪問者の操作も残します**：お問い合わせの送信やログインの失敗のように、誰もログインしていない操作は、操作した人を空にして残します。IP アドレスは残るので、回数の制限をすり抜けるような大量の操作があったときに、後から調べられます。
 - **ログインの失敗は、対象にログインの種類を残します**：パスワードやパスキーの照合に失敗したときは、誰の失敗かが分からないので、対象の欄に種類だけ（個人会員・企業の担当者・スタッフ）を残します。どのログイン画面が狙われたかを、一覧の「対象」の検索で絞れます。種類だけを残すときは、`OperationRecorder::record()` に `targetClass:` でモデルのクラスを渡します。
-- **登録・更新とは別の名前で残す**：コントローラーに `savedLogAction()` を書きます。一斉メールは、送信の記録を1件作るのが送信の始まりなので、「登録」ではなく「一斉メールの送信」として残しています。
+- **登録・更新とは別の名前で残す**：コントローラーに `operationLogActionType()` を書きます。一斉メールは、送信の記録を1件作るのが送信の始まりなので、「登録」ではなく「一斉メールの送信」として残しています。
 - **一覧の表示と検索は記録しません**：1ページに出る件数が限られているためです。機械的に続けて取る動きは、下の「管理画面の回数の制限」で止めて記録します。
 - **CSV 取り込みは、取り込み全体で1行です**：1件ずつの更新は記録しません。件数の内訳は取り込みの記録（`csv_import_logs`）が持ち、`detail` の id でつながります。CSV のダウンロードも同じです。
 - **変わった列に数えない列**：`created_at`・`updated_at` などの保存のたびに変わる列と、アップロードの元のファイル名の列（`〇〇_origin`）は数えません。最後に更新したスタッフの id のように、入力とは関係なく変わる列は、モデルの定数 `OPERATION_LOG_IGNORE` に書きます（例：`Member`）。
