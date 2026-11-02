@@ -161,7 +161,7 @@ class GateStateTest extends TestCase
 
         IpBlocker::release($block);
 
-        Log::shouldHaveReceived('error')->withArgs(fn (string $message) => str_contains($message, 'app:gate --export'))->once();
+        Log::shouldHaveReceived('error')->withArgs(fn (string $message) => str_contains($message, 'neobit:gate --export'))->once();
     }
 
     public function test_state_is_written_even_when_the_pages_cannot_be_drawn(): void
@@ -228,12 +228,12 @@ class GateStateTest extends TestCase
         GateState::watchWordPress();
         Log::shouldHaveReceived('critical')->withArgs(fn (string $message) => str_contains($message, 'WORDPRESS_GATE'))->once();
 
-        $this->artisan('app:gate')->expectsOutputToContain('.env の WORDPRESS_GATE がありません')->assertFailed();
+        $this->artisan('neobit:gate')->expectsOutputToContain('.env の WORDPRESS_GATE がありません')->assertFailed();
 
         // WordPressを置かない案件では、何も言わない
         config(['neobit.wordpress' => null]);
         GateState::export();
-        $this->artisan('app:gate')->doesntExpectOutputToContain('WordPress')->assertSuccessful();
+        $this->artisan('neobit:gate')->doesntExpectOutputToContain('WordPress')->assertSuccessful();
     }
 
     public function test_prepend_is_checked_on_web_requests(): void
@@ -243,17 +243,17 @@ class GateStateTest extends TestCase
         Log::spy();
 
         // コマンドからは分からないので、Webの要求で見るまでは確かめていない。送った直後の手順を失敗にしないよう、警告だけ
-        $this->artisan('app:gate')->expectsOutputToContain('まだ Web の要求で確かめていません')->assertSuccessful();
+        $this->artisan('neobit:gate')->expectsOutputToContain('まだ Web の要求で確かめていません')->assertSuccessful();
 
         // auto_prepend_fileが見張りを指していなければ、変わったときに1回知らせる
         GateState::watchWordPress('');
         GateState::watchWordPress('');
         Log::shouldHaveReceived('critical')->withArgs(fn (string $message) => str_contains($message, 'auto_prepend_file'))->once();
-        $this->artisan('app:gate')->expectsOutputToContain('gate.php が設定されていません')->assertFailed();
+        $this->artisan('neobit:gate')->expectsOutputToContain('gate.php が設定されていません')->assertFailed();
 
         // 指していれば、確かめた時刻を出す
         GateState::watchWordPress(base_path('packages/neobit/core/gate.php'));
-        $this->artisan('app:gate')->expectsOutputToContain('WordPress の保護機能：prepend（')->assertSuccessful();
+        $this->artisan('neobit:gate')->expectsOutputToContain('WordPress の保護機能：prepend（')->assertSuccessful();
     }
 
     public function test_wp_config_gate_is_checked_in_the_file(): void
@@ -266,14 +266,14 @@ class GateStateTest extends TestCase
 
         try {
             File::put(base_path($wpConfig), "<?php\ndefine('DB_NAME', 'wp');\n");
-            $this->artisan('app:gate')->expectsOutputToContain('gate.php の require がありません')->assertFailed();
+            $this->artisan('neobit:gate')->expectsOutputToContain('gate.php の require がありません')->assertFailed();
 
             // コメントにした行は数えない
             File::put(base_path($wpConfig), "<?php\n// require __DIR__.'/vendor/neobit/core/gate.php';\n  # require 'gate.php';\n");
-            $this->artisan('app:gate')->expectsOutputToContain('gate.php の require がありません')->assertFailed();
+            $this->artisan('neobit:gate')->expectsOutputToContain('gate.php の require がありません')->assertFailed();
 
             File::put(base_path($wpConfig), "<?php\nrequire __DIR__.'/vendor/neobit/core/gate.php';\ndefine('DB_NAME', 'wp');\n");
-            $this->artisan('app:gate')->expectsOutputToContain('WordPress の保護機能：wp-config')->assertSuccessful();
+            $this->artisan('neobit:gate')->expectsOutputToContain('WordPress の保護機能：wp-config')->assertSuccessful();
         } finally {
             File::delete(base_path($wpConfig));
         }
@@ -284,7 +284,7 @@ class GateStateTest extends TestCase
         AccessRestriction::save(false, '', true, '192.0.2.50');
         IpBlocker::block(self::ATTACKER, null, 'テスト');
 
-        $this->artisan('app:gate')
+        $this->artisan('neobit:gate')
             ->expectsOutputToContain('止めている IP：1件')
             ->expectsOutputToContain('サイトの制限：しない')
             ->expectsOutputToContain('管理画面の制限：する（許す IP：1件）')
@@ -294,8 +294,8 @@ class GateStateTest extends TestCase
         IpBlock::query()->delete();
         cache()->flush();
 
-        $this->artisan('app:gate')->expectsOutputToContain('食い違っています')->assertFailed();
-        $this->artisan('app:gate --export')
+        $this->artisan('neobit:gate')->expectsOutputToContain('食い違っています')->assertFailed();
+        $this->artisan('neobit:gate --export')
             ->expectsOutputToContain('状態のファイルを書き出しました。')
             ->expectsOutputToContain('止めている IP：0件')
             ->assertSuccessful();

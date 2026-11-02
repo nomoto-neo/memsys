@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * テーブルの、次に登録する行のid（連番の始まり）を決めるコマンド。
- * php artisan app:set-next-id t_members 100001 で動く。
+ * php artisan neobit:set-next-id t_members 100001 で動く。
  *
  * サイトを開ける前に、新しく登録する会員などのidを、区切りのよい番号から始めたいときに使う。
  * 既存のシステムのデータを元のidのまま取り込んだ後、新しい登録を別の範囲の番号にすれば、
@@ -29,7 +29,7 @@ use Illuminate\Support\Facades\Schema;
  * - DBが覚える値なので、サーバーごとに実行する。開発サーバーで設定しても、本番には引き継がれない
  * - MariaDBとMySQLだけで使える
  */
-#[Signature('app:set-next-id {table : テーブルの名前} {id? : 次に登録する行のid（書かなければ今の状態を出すだけ）} {--force : 確かめずに設定する}')]
+#[Signature('neobit:set-next-id {table : テーブルの名前} {id? : 次に登録する行のid（書かなければ今の状態を出すだけ）} {--force : 確かめずに設定する}')]
 #[Description('テーブルの、次に登録する行のid（連番の始まり）を決める')]
 class SetNextId extends Command
 {

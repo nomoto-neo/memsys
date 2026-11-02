@@ -95,7 +95,7 @@
 | 4 | `php artisan migrate` | マイグレーションを足したとき |
 | 5 | `php artisan config:cache` | 毎回。`.env` か `config/` を変えたときは必ず |
 | 6 | `php artisan view:cache` | 毎回。apache はコンパイル済みの画面を作れないので、ここで全部作る |
-| 7 | `php artisan app:gate --export` | 毎回。入口の見張りの状態と画面を、今の設定で書き出し直す（26章） |
+| 7 | `php artisan neobit:gate --export` | 毎回。入口の見張りの状態と画面を、今の設定で書き出し直す（26章） |
 
 - **`config:cache` は必須です**。サーバーでは、PHP-FPM を apache で動かし、`.env` は apache から読めないようにしています。`config:cache` は `.env` の値を取り込んだ `bootstrap/cache/config.php` を作り、Laravel はそれだけを読むようになるので、apache が `.env` を読めなくても画面も cron も動きます。
 - **composer のコマンドの後は、`config:cache` をやり直します**。`composer install`・`composer dump-autoload`・`composer update` は、Laravel の決まり（`post-autoload-dump`）で `bootstrap/cache/config.php` を消します。やり直さないと、下の `config:clear` と同じく DB が SQLite になって止まります。
@@ -111,7 +111,7 @@
 - 設定が効いているかは、画面を開いて確かめます。sudo を使えるときは `sudo -u apache php artisan config:show database.default` でも確かめられ、`mariadb` と出れば apache が読めています。devapp で同じコマンドを実行しても、devapp は `.env` を読めるので確かめになりません。
 - 手元の開発環境は `.env` を直接読むので、`config:cache` は要りません。
 - フレームワークを更新して、見本のサイトの `public/index.php`・`public/.htaccess` が変わったときは、それも案件のサーバーへ写します（26章の入口の見張り、30章）。
-- WordPress を置くサイトは、`php artisan app:gate` で `WordPress の保護機能：` の行も確かめます（31章）。`prepend` の段は、Laravel のページ（管理画面など）を1回開いてから確かめます。WordPress のページは Laravel を通らないので、確かめになりません。
+- WordPress を置くサイトは、`php artisan neobit:gate` で `WordPress の保護機能：` の行も確かめます（31章）。`prepend` の段は、Laravel のページ（管理画面など）を1回開いてから確かめます。WordPress のページは Laravel を通らないので、確かめになりません。
 - **改ざん監視を使っているサイトは、ファイルを送るときに鍵のファイル（既定は `.version`）も、中身を変えて送ります**（29章）。送り忘れると、更新したファイルが改ざんとして知らされます。
 
 ### サーバーの権限（set_permissions.sh）
@@ -139,7 +139,7 @@ sudo bash set_permissions.sh --apply    # 実際に変える
 - 次のときは、警告だけを出します：Web の利用者が作業のグループに入っている（グループで書けるコードを Web の側から書き換えられる）、PHP-FPM のプールが Web の利用者で動いていない。
 - PHP-FPM のプールは、`/etc/php-fpm.d/` の設定の `user` で確かめます。`pm = ondemand` では暇な間ワーカーが止まっていて、プロセスからは分からないためです。ディレクトリと同じ名前のプール（`[memsys_dev]` か `memsys_dev.conf`）を、このサイトのプールとみなします。そのプールを、ディレクトリと同じ名前にしておきます。
 - 最後に、Web の利用者の権限で、`.env` を読めない・`bootstrap/cache`・`bootstrap/cache/views` に書けない・`storage/logs` に書ける・`public/index.php` を読める・`app/` に書けない・`set_permissions.writable` に書いたディレクトリに書ける、を試して並べます。
-- **改ざん監視を使っているサイトでは、`--apply` の前に `php artisan app:file-watch` を流し、「改ざんの疑い」と「判断待ち」が0件であることを確かめます**。`chown`・`chmod`・`setfacl` は、中身を変えなくても全部のファイルの ctime を新しくします。鍵のファイル（`.version`）の ctime も新しくなるので、改ざん監視から見ると `.version` を送ったのと同じになり、流した時刻の15分後より前に変わったファイルは、知らせ中のものも含めて全部、通常の更新として取り込まれます（29章）。ほかのファイルは中身が同じなので、知らせません。
+- **改ざん監視を使っているサイトでは、`--apply` の前に `php artisan neobit:file-watch` を流し、「改ざんの疑い」と「判断待ち」が0件であることを確かめます**。`chown`・`chmod`・`setfacl` は、中身を変えなくても全部のファイルの ctime を新しくします。鍵のファイル（`.version`）の ctime も新しくなるので、改ざん監視から見ると `.version` を送ったのと同じになり、流した時刻の15分後より前に変わったファイルは、知らせ中のものも含めて全部、通常の更新として取り込まれます（29章）。ほかのファイルは中身が同じなので、知らせません。
 - 作業する人は、作業のグループ（`dev`）に入れた自分の利用者で作業します。抜けるときは、グループから外します。
 - PHP-FPM のプールは、1つのサーバーに1つのサイトなら apache のままでかまいません。同じサーバーに複数のサイトを置くときは、サイトごとにプールの利用者を分けると、1つのサイトから侵入されても、ほかのサイトのファイルを読まれません。そのときは `--web-user` にそのサイトのプールの利用者を渡します。
 
@@ -281,13 +281,13 @@ GRANT ALL PRIVILEGES ON memsys_testing.* TO 'memsys'@'localhost';
 | `admin/csv_import/` | `packages/neobit/core/resources/views/` | CSV 取り込みの画面（全コーナー共通） | 10 |
 | `_passkeys` | `packages/neobit/core/resources/views/` | パスキーの一覧・本人確認・登録の画面の中身 | 14 |
 | `TemporaryDataCleaner` | `packages/neobit/core/src/Operations/` | 一時データの後片付け（一時ファイル・期限の切れたキャッシュと信頼済み端末・古い操作ログ）。プロジェクトの片付けは `config/neobit.php` の `cleanup` の節に足す | 19 |
-| `app:cleanup-temporary-data` | `packages/neobit/core/src/Console/` | 一時データの後片付けのコマンド（スケジューラーから1時間ごと） | 19 |
-| `app:reset-two-factor` | `packages/neobit/core/src/Console/` | 2段階認証の登録を解除するコマンド（画面から解除できる人がいないときに使う） | 14 |
-| `app:set-next-id` | `packages/neobit/core/src/Console/` | 新しく登録する行の id の始まりを決めるコマンド（サイトを開ける前に使う） | 16 |
+| `neobit:cleanup-temporary-data` | `packages/neobit/core/src/Console/` | 一時データの後片付けのコマンド（スケジューラーから1時間ごと） | 19 |
+| `neobit:reset-two-factor` | `packages/neobit/core/src/Console/` | 2段階認証の登録を解除するコマンド（画面から解除できる人がいないときに使う） | 14 |
+| `neobit:set-next-id` | `packages/neobit/core/src/Console/` | 新しく登録する行の id の始まりを決めるコマンド（サイトを開ける前に使う） | 16 |
 | `ErrorNotifyHandler` | `packages/neobit/core/src/Operations/` | ログに書いたエラーを開発者にメールで知らせる（レベル・宛先は .env、間隔は `config/logging.php`） | 20 |
 | `OperationRecorder` | `packages/neobit/core/src/Operations/` | 操作ログ（誰が・いつ・どこから・何に・何をしたか）を書く | 22 |
 | `OperationLogStats`・`OperationLogReport` | `packages/neobit/core/src/Operations/` | 操作ログの件数の集計（一覧の上のグラフと表）と、1日ぶんの報告 | 22 |
-| `app:report-operation-logs` | `packages/neobit/core/src/Console/` | 操作ログの報告のコマンド（スケジューラーから毎朝。気になる点があった日だけメールを送る） | 22 |
+| `neobit:report-operation-logs` | `packages/neobit/core/src/Console/` | 操作ログの報告のコマンド（スケジューラーから毎朝。気になる点があった日だけメールを送る） | 22 |
 | `AdminRequestLimit` | `packages/neobit/core/src/Security/` | ログイン後の管理画面の全体に掛ける、スタッフごとの回数の制限 | 22 |
 | `LoginProfileNotice` | `packages/neobit/core/src/Auth/` | 会員情報が変わったことを、本人へメールで知らせる | 22 |
 | `SpamGuard`・`_spam_guard` | `packages/neobit/core/src/Security/`・`packages/neobit/core/resources/views/` | 訪問者向けフォームのスパム対策（ハニーポット・送信までの時間・Cloudflare Turnstile） | 12 |
@@ -1557,12 +1557,12 @@ private function twoFactorHomeUrl(): string                                     
 - **解除すると、バックアップコード・信頼済み端末・パスキーも消えます**（`$account->resetTwoFactor()`）。パスキーでのログインは2段階目を求めないので、残すと登録し直さないまま使えてしまうためです。
 - **端末を無くし、バックアップコードも無い人は、運営が解除します**。管理画面の詳細に `@include('neobit::_two_factor_reset', ['twoFactorAccount' => $member, 'twoFactorResetUrl' => route(...)])` を置き、コントローラーで `$member->resetTwoFactor()` を呼びます。ボタンは、方式が `Totp` で登録が済んでいるときだけ出ます。
 
-#### サーバーからの解除（app:reset-two-factor）
+#### サーバーからの解除（neobit:reset-two-factor）
 
 画面から解除できる人がいないときに、サーバーで実行します。スタッフが1人だけのサイトで、その人が端末を無くしたときなどです。
 
 ```
-php artisan app:reset-two-factor staff yamada
+php artisan neobit:reset-two-factor staff yamada
 ```
 
 1つ目は種類の名前（`staff`・`member`・`company_user`）、2つ目はログインに使う値です。企業の担当者は `企業ID/ログインID` と書きます。対象の人を出して、確かめてから解除します。消えるものは、画面からの解除と同じです。
@@ -1769,7 +1769,7 @@ private const PASSKEY_VIEW = 'mypage.passkeys';                // 一覧画面�
 - **モデル**：データ項目の仕様（画像の横幅など）は定数、表示用の値（ファイルの URL など）はアクセサにします。日付は `date`、フラグは `boolean`、列挙型は列挙型のクラスで `$casts` に書きます。
 - 論理削除が要るものは `SoftDeletes`（`deleted_at`）を使います。
 
-### 新しく登録する行の id の始まり（app:set-next-id）
+### 新しく登録する行の id の始まり（neobit:set-next-id）
 
 **ファイル**：`packages/neobit/core/src/Console/SetNextId.php`（冒頭のコメント）
 
@@ -1777,10 +1777,10 @@ private const PASSKEY_VIEW = 'mypage.passkeys';                // 一覧画面�
 
 ```bash
 # 今の状態（いちばん大きい id と、次に振る id）を見る
-php artisan app:set-next-id t_members
+php artisan neobit:set-next-id t_members
 
 # 次に登録する会員の id を、100001 にする
-php artisan app:set-next-id t_members 100001
+php artisan neobit:set-next-id t_members 100001
 ```
 
 - **今のいちばん大きい id より大きい番号にします**。小さい番号を DB に直接指定すると、DB は黙って「いちばん大きい id の次」から振るので、効いたように見えて効きません。このコマンドは、小さい番号を断ります。設定した後は、実際に効いたかを DB から読み直して確かめます。
@@ -1960,7 +1960,7 @@ return $this->downloadPdfOnSheet(
 
 ```php
 // packages/neobit/core/src/Console/CleanupTemporaryData.php（php artisan make:command で作る）
-#[Signature('app:cleanup-temporary-data')]
+#[Signature('neobit:cleanup-temporary-data')]
 #[Description('一時ファイル・期限の切れたキャッシュなどの一時データを消す')]
 class CleanupTemporaryData extends Command
 {
@@ -1980,7 +1980,7 @@ Schedule::command(CleanupTemporaryData::class)->hourly()->withoutOverlapping();
 
 - コマンドからしか呼ばない処理は、`app/Console/Commands/` のコマンドのクラスの中に書きます。画面からも呼ぶ処理は、`app/Services/` のクラスに置いて、コマンドは呼ぶだけにします。同じ処理を2か所に書かないためです。フレームワークの部品は `packages/neobit/core/src/Operations/` にあり、上の例の `TemporaryDataCleaner` は、アップロードのついでの片付けからも呼んでいます。
 - `withoutOverlapping()` で、前の回が終わっていなければ重ねて動かしません。
-- 登録した一覧と次に動く時刻は `php artisan schedule:list`、すぐに動かすときは `php artisan app:cleanup-temporary-data` のようにコマンドを直接実行します。
+- 登録した一覧と次に動く時刻は `php artisan schedule:list`、すぐに動かすときは `php artisan neobit:cleanup-temporary-data` のようにコマンドを直接実行します。
 
 ### 一時データの後片付け（TemporaryDataCleaner）
 
@@ -2379,7 +2379,7 @@ OperationRecorder::record(OperationLogAction::Update, $company, ['status'], ['st
 - **宛先**：`.env` の `OPERATION_REPORT_TO`（カンマ区切りで複数書けます）。空なら送りません。エラーの通知（`ERROR_NOTIFY_TO`）は開発者、こちらは管理者と、読む人が違うので分けています。
 - **件名**：`【要確認：サイト名】操作ログの報告（日付）`。頭は、エラーの通知と同じです。
 - **載せるもの**：気になる点、操作の種類ごとの件数、操作の多い人です。操作ログと同じく、氏名のほかの個人情報は載せません。
-- **手で動かす**：`php artisan app:report-operation-logs --date=2026-10-04 --always`。`--date` を書かなければ前の日、`--always` を付けると気になる点が無くても送ります。文面や宛先を確かめるときに使います。
+- **手で動かす**：`php artisan neobit:report-operation-logs --date=2026-10-04 --always`。`--date` を書かなければ前の日、`--always` を付けると気になる点が無くても送ります。文面や宛先を確かめるときに使います。
 - 目安の数は、サイトの規模（スタッフや会員の数、1日の操作の量）に合わせて、`config/neobit.php` の `operation_log.report_thresholds` で決めます。0 にすると、その項目は見ません。
 
 ### 会員情報が変わったときのお知らせメール（LoginProfileNotice）
@@ -2516,7 +2516,7 @@ Route::prefix('company')->name('company.')->group(function () {
 ### 企業会員の決まりごと
 
 - **企業と担当者に分かれます**。企業（`Company`）は情報を持つだけで、ログインするのは担当者（`CompanyUser`）です。担当者に権限の区別は無く、どの担当者も同じことができます。誰が行ったかは、操作ログ（22章）で追います。
-- **企業ID**（`t_companies.code`）は、新しく登録した企業では id と同じ番号が自動で入ります。始まりの番号は `app:set-next-id`（16章）で決めます。既存のシステムから移した企業には、今までのログインID を入れます。
+- **企業ID**（`t_companies.code`）は、新しく登録した企業では id と同じ番号が自動で入ります。始まりの番号は `neobit:set-next-id`（16章）で決めます。既存のシステムから移した企業には、今までのログインID を入れます。
 - **担当者ID**（`t_company_users.login_id`）は、企業の中でだけ重ならなければよい値です。使える文字は `CompanyUser::LOGIN_ID_PATTERN` です。**メールアドレスも、同じ企業の担当者どうしで重ならないようにします**。確認コードとパスワードの再設定のメールが、本人だけに届くようにするためです。画面からの登録・変更では検証のルール（`CompanyUser::uniqueEmailInCompany()`）で確かめ、DB にも同じ内容の制約があります。別の企業の担当者と同じアドレスは、使えます。既存のシステムのデータに、同じ企業で同じアドレスの担当者がいるときは、持ち込む前に直します。1人を残して、ほかの人の分を空にしておけば、その人たちは初回のログインで自分のアドレスを登録します。
 - **状態**（`CompanyStatus`）は、申請中・承認済み・停止の3つです。ログインできるのは、承認済みの企業の担当者だけです。企業の側が登録した企業は申請中、運営が管理画面で登録した企業は承認済みで作られます。
 - **企業の側に、退会の画面はありません**。退会の連絡を受けたら、運営が管理画面で停止してから削除します。削除できるのは、停止の企業だけです。承認済みの企業を、押し間違いで消さないようにするためです。削除すると、企業・担当者・招待の行と、担当者の信頼済み端末・パスキーが消えます。
@@ -2642,7 +2642,7 @@ Route::prefix('company')->name('company.')->group(function () {
 - **チェックを入れたときだけ掛かる**：IP アドレスを書いただけでは、制限は掛かりません。
 - **管理画面に入れる人**：管理画面の IP アドレス（画面と `.env` の `ADMIN_ALLOWED_IPS`）は、サイトの制限でも通します。管理画面に入れる人が、メンテナンス中のサイトを確かめたり、WordPress のブロックエディタで記事を保存したり（31章）できるようにするためです。管理画面の制限のチェックが無くても、一覧に書いた IP アドレスは通ります。一覧が空なら、サイトの制限が全員に開くことはありません。
 - **設定ファイルの分**：`.env` の `SITE_ALLOWED_IPS`・`ADMIN_ALLOWED_IPS` に書いた IP アドレスは、それぞれの一覧に足し合わせます。画面からは外せず、画面にはそれぞれの欄の下に「次のIPアドレスは、設定ファイルにより常に許可されています。」と出ます。サーバーを管理する人の事務所などを書いておくと、画面でどう設定しても締め出されません。`.env` を変えたら `php artisan config:cache` をやり直します。
-- **締め出さない**：管理画面の制限を掛けて保存するとき、今の自分の IP アドレスが管理画面の一覧に無ければ、保存させません。サイトの制限は管理画面に影響しないので、確かめません。それでも回線が変わるなどで締め出されたときは、サーバーで `php artisan app:access-denied-off` を実行します。両方の制限を外します。IP アドレスの一覧は残ります。
+- **締め出さない**：管理画面の制限を掛けて保存するとき、今の自分の IP アドレスが管理画面の一覧に無ければ、保存させません。サイトの制限は管理画面に影響しないので、確かめません。それでも回線が変わるなどで締め出されたときは、サーバーで `php artisan neobit:access-denied-off` を実行します。両方の制限を外します。IP アドレスの一覧は残ります。
 - **ルート**：案件が書きます。機能を使うかどうかを、案件ごとに決めるためです。管理者だけのグループの中に、`Neobit\Core\Routing\FrameworkRoutes` の1行を書きます。
 
     ```php
@@ -2653,7 +2653,7 @@ Route::prefix('company')->name('company.')->group(function () {
 - **サイトの制限から管理画面を外す**：`bootstrap/app.php` の `RestrictSiteAccess::except()` に、管理画面の URL（見本のサイトでは `admin`・`admin/*`）を書きます。管理画面の URL の頭は案件が決めるので、案件の側で書きます。
 - **設定の置き場所**：DB の `settings` テーブルです。毎回のアクセスで読むので、キャッシュに置き、保存のたびに作り直します。変えた内容は、使う IP アドレスとコメント（`203.0.113.10（事務所）` の形）を並べて、操作ログに「アクセス制限の変更」として残ります。
 - **IPブロック管理との関係**：2つの一覧にある IP アドレスは、IPブロック管理で止めません（26章）。
-- **入口の見張り**：アクセス制限も、IPブロック管理と同じく、Laravel を起動する前の見張りが先に判断します（26章の「入口の見張り」）。メンテナンス中の画面を変えたとき（`resources/views/vendor/neobit/maintenance.blade.php`）は、`php artisan app:gate --export` で見張りの画面も作り直します。
+- **入口の見張り**：アクセス制限も、IPブロック管理と同じく、Laravel を起動する前の見張りが先に判断します（26章の「入口の見張り」）。メンテナンス中の画面を変えたとき（`resources/views/vendor/neobit/maintenance.blade.php`）は、`php artisan neobit:gate --export` で見張りの画面も作り直します。
 - **プロキシを前に置くときは、`TRUSTED_PROXIES` を先に書きます**。書かないと、全員がプロキシの IP アドレスに見えるので、全員が通るか、全員が止まります。
 - **メンテナンス中の画面**は、レイアウトを継承しない1枚の HTML です。DB もセッションも使わないので、DB を止めている間も出せます。文言は、アプリの `resources/views/vendor/neobit/maintenance.blade.php` に同じ名前で置いて上書きします。デモの運用のときも、この画面が出ます。
 - **503 で返す**のは、一時的に止めていることを検索エンジンに伝えて、登録を消されないようにするためです。
@@ -2754,9 +2754,9 @@ IP ブロックとアクセス制限（24章）の判断を、Laravel を起動�
 - **判断は1つ**：見張りと、Laravel のミドルウェア（`RejectBlockedIp`・`RestrictSiteAccess`・`RestrictAdminAccess`）は、同じ判断のクラス `Gate` を使います。見張りが掛かっていない環境（`php artisan serve`・テスト）や、見張りの状態が古いときは、ミドルウェアが同じ判断をします。
 - **状態のファイル**：見張りは Laravel を読み込まないので、Laravel が書き出した `storage/app/gate/state.json` を読みます。中身は、止めている IP アドレスと期限、サイトと管理画面の制限と許す IP アドレス（`.env` の分も）、管理画面の URL の頭、サイトの制限を掛けない URL、信頼するプロキシと、WordPress を置く案件では WordPress の URL の決まり（31章）です。IP ブロックとアクセス制限を変えたときに、書き出し直します。JSON にしているのは、apache が書ける場所のファイルを、どの要求でも PHP のコードとして動かさないためです。
 - **応答**：今までと同じです。止めている IP アドレスと管理画面の制限は 404、サイトの制限は 503 です。画面も、Laravel が返すものと同じ HTML を、書き出しのときに作って置いてあります（`404.html`・`maintenance.html`）。止められていることに、相手に気付かせないためです。
-- **`.env` を変えたとき**：許す IP アドレスや `TRUSTED_PROXIES` を変えて `config:cache` をやり直したら、`php artisan app:gate --export` で書き出し直します（0章の表）。忘れても、設定のキャッシュより状態のファイルが古ければ、次のアクセスで Laravel が書き出し直します。
-- **確かめ**：`php artisan app:gate` で、書き出した日時・止めている IP アドレスの数・制限の状態を出します。状態のファイルが無いときや、今の状態と食い違っているときは、知らせて失敗で終わります。
-- **書き出せないとき**：解除などで書き出しに失敗すると、エラーのログを書きます（エラーの通知のメールが届きます）。古い状態のままだと、見張りが解除した IP アドレスを止め続けるためです。`storage/app/gate/` に書けるかを確かめて、`php artisan app:gate --export` を実行します。状態のファイルを読めないときと、`gate.php` が無いとき（送り忘れなど）は、見張りは何もせずに通し、ミドルウェアが判断します。画面だけを作れないとき（案件が足したエラーの画面がコマンドから描けないなど）は、状態は書き出し、エラーのログを書きます。見張りは、画面の代わりに短い文を返します。
+- **`.env` を変えたとき**：許す IP アドレスや `TRUSTED_PROXIES` を変えて `config:cache` をやり直したら、`php artisan neobit:gate --export` で書き出し直します（0章の表）。忘れても、設定のキャッシュより状態のファイルが古ければ、次のアクセスで Laravel が書き出し直します。
+- **確かめ**：`php artisan neobit:gate` で、書き出した日時・止めている IP アドレスの数・制限の状態を出します。状態のファイルが無いときや、今の状態と食い違っているときは、知らせて失敗で終わります。
+- **書き出せないとき**：解除などで書き出しに失敗すると、エラーのログを書きます（エラーの通知のメールが届きます）。古い状態のままだと、見張りが解除した IP アドレスを止め続けるためです。`storage/app/gate/` に書けるかを確かめて、`php artisan neobit:gate --export` を実行します。状態のファイルを読めないときと、`gate.php` が無いとき（送り忘れなど）は、見張りは何もせずに通し、ミドルウェアが判断します。画面だけを作れないとき（案件が足したエラーの画面がコマンドから描けないなど）は、状態は書き出し、エラーのログを書きます。見張りは、画面の代わりに短い文を返します。
 - **プロキシの後ろ**：見張りも、`TRUSTED_PROXIES` に書いたプロキシから届いたときだけ `X-Forwarded-For` を読みます。求め方は Laravel と同じです。
 - **WordPress**：`index.php` を通らない WordPress には、PHP の `auto_prepend_file` か `wp-config.php` で見張りを掛けます（31章）。
 
@@ -2999,9 +2999,9 @@ Apache の `Redirect` は、書かなくても前方一致で当たり、残り�
 
 ```
 MAILTO=dev@example.com
-*/5 * * * * devapp cd /var/www/memsys_dev && /usr/bin/php artisan app:file-watch > /dev/null
-32  7 * * * devapp cd /var/www/memsys_dev && /usr/bin/php artisan app:file-watch --full > /dev/null
-*   * * * * devapp cd /var/www/memsys_dev && /usr/bin/php artisan app:file-watch --approve > /dev/null
+*/5 * * * * devapp cd /var/www/memsys_dev && /usr/bin/php artisan neobit:file-watch > /dev/null
+32  7 * * * devapp cd /var/www/memsys_dev && /usr/bin/php artisan neobit:file-watch --full > /dev/null
+*   * * * * devapp cd /var/www/memsys_dev && /usr/bin/php artisan neobit:file-watch --approve > /dev/null
 ```
 
 - **エラーの出力は捨てず、`MAILTO` を書きます**。改ざん監視も Laravel の上で動くので、Laravel が動かなくなる改ざんをされると、監視も止まり、メールも送れません。エラーの出力（`2>&1` の分）を捨てずにおけば、コマンドが例外で止まったときに、cron がその出力を `MAILTO` へメールで送ります。Laravel の外（cron とサーバーのメールの送信）で届くので、Laravel が動かなくても知らせが来ます。サーバーからメールを送れる設定が要ります。
@@ -3010,19 +3010,19 @@ MAILTO=dev@example.com
 書いたら、同じ利用者で1回だけ基準を作ります。
 
 ```bash
-sudo -u devapp /usr/bin/php artisan app:file-watch --init
+sudo -u devapp /usr/bin/php artisan neobit:file-watch --init
 ```
 
-5分ほど待ってから同じ利用者で `app:file-watch` を手で1回動かし、「改ざんの疑い：0件」と出れば動いています。
+5分ほど待ってから同じ利用者で `neobit:file-watch` を手で1回動かし、「改ざんの疑い：0件」と出れば動いています。
 
 **鍵のファイル**（サイトを更新するたび）
 
 - 鍵のファイル（`config/neobit.php` の `file_watch.release_file`。既定はプロジェクトの直下の `.version`）の更新の15分後より前に変わったファイルは、通常のサイトの更新とみなし、知らせずに基準へ取り込みます。
 - **サイトを更新するときは、鍵のファイルも送ります**。監視が見るのは鍵の ctime だけなので中身は何でもよいのですが、FTP の同期や `rsync` は中身が同じファイルを送らずに飛ばすので、送るたびに日時などを書いて中身を変えます。サーバーで `touch .version` を実行しても同じです。
 - 鍵の時刻は、mtime ではなく ctime（サーバーに届いた時刻）で見ます。SCP（`-p`）・rsync（`-t`・`-a`）・多くの FTP のソフトは、手元のファイルの mtime を写すので、mtime では送った時刻が分からないためです。送る人から見れば、ctime は「`.version` を送った時刻」そのものです。
-- **`set_permissions.sh --apply`（0章）も、鍵の ctime を新しくします**。権限を直しただけでも、改ざん監視から見ると `.version` を送ったのと同じになり、鍵の15分後より前に変わったファイルが、知らせ中のものも含めて全部、通常の更新として取り込まれます。流す前に、`app:file-watch` で「改ざんの疑い」と「判断待ち」が0件であることを確かめます。取り込まれたものは、1日1回の報告に載ります。
+- **`set_permissions.sh --apply`（0章）も、鍵の ctime を新しくします**。権限を直しただけでも、改ざん監視から見ると `.version` を送ったのと同じになり、鍵の15分後より前に変わったファイルが、知らせ中のものも含めて全部、通常の更新として取り込まれます。流す前に、`neobit:file-watch` で「改ざんの疑い」と「判断待ち」が0件であることを確かめます。取り込まれたものは、1日1回の報告に載ります。
 - 鍵のファイルは、コードを更新する利用者だけが書ける場所に置きます。
-- `php artisan app:file-watch` を手で動かすと、通常の更新として取り込む期限（鍵のファイルの更新の15分後）が出ます。鍵のファイルの名前は出しません。
+- `php artisan neobit:file-watch` を手で動かすと、通常の更新として取り込む期限（鍵のファイルの更新の15分後）が出ます。鍵のファイルの名前は出しません。
 - **git でデプロイするとき**：`git pull` も変わったファイルを書き換えるので、検知できます。ただ、`git pull` は変わったファイルしか書き換えないので、鍵のファイルがそのコミットで変わっていなければ、鍵の ctime が変わりません。デプロイの手順の最後に `touch .version` を1回実行します（`composer install`・`npm run build`・`view:cache` の後。全部の手順が終わってから鍵を更新すれば、手順の間に変わったファイルを全部受けられるため）。コミットのたびに `.version` を書き換える形にするなら、git のフック（`post-merge`）で `touch` するほうが忘れません。`.git/` は監視していません。あわせて、送った後に `git status --porcelain` で git に無い変更が無いことを確かめると、もう1つの確かめになります。
 
 **通常の更新の見分け方**
@@ -3066,7 +3066,7 @@ sudo -u devapp /usr/bin/php artisan app:file-watch --init
 改ざん監視の今の状況を見て、`.version` を書き換える正規のメンテナンスのほかで更新した内容（WordPress の画面からの更新など）を、管理画面から承認できます。
 
 - **画面**：開くたびに、その場でチェックし直して「〇〇〇〇-〇〇-〇〇 〇〇:〇〇:〇〇 現在のチェック状況です。」と出します。改ざんの疑い・判断待ち・許可されていないアップロードファイル・確かめられなかったディレクトリ・最近取り込んだ更新（記録にある8日分。開くとファイルの一覧）を並べます。画面は apache で動くので、記録は書きません。apache が中身を読めないファイル（`.env` など）は、最後の cron の結果を使います。
-- **承認**：改ざんの疑いと判断待ちを、まとめて承認します。自分で更新したと分かっていれば、15分の知らせを待たずに承認できます。確かめのモーダルで一覧を見てから「承認する」を押すと、承認の目印（`storage/app/file-watch/approval.json`）を置きます。毎分の cron（`app:file-watch --approve`。無ければ5分ごとの回）が拾い、一覧のうち、今も疑いか判断待ちのものだけを基準に取り込みます。押した後に増えた変化と、一覧に無い変化は取り込みません。画面を開いてから押すまでの間に一覧が変わったら、承認せずに「開き直した一覧を確かめてから、承認してください」と出します。画面からは一覧そのものではなく、一覧のしるし（ハッシュ値）を送ります。WordPress の更新のようにファイルが多いと、一覧を送ると PHP が受け取れる数（`max_input_vars`、既定1000）を超えて、黙って一部だけになるためです。
+- **承認**：改ざんの疑いと判断待ちを、まとめて承認します。自分で更新したと分かっていれば、15分の知らせを待たずに承認できます。確かめのモーダルで一覧を見てから「承認する」を押すと、承認の目印（`storage/app/file-watch/approval.json`）を置きます。毎分の cron（`neobit:file-watch --approve`。無ければ5分ごとの回）が拾い、一覧のうち、今も疑いか判断待ちのものだけを基準に取り込みます。押した後に増えた変化と、一覧に無い変化は取り込みません。画面を開いてから押すまでの間に一覧が変わったら、承認せずに「開き直した一覧を確かめてから、承認してください」と出します。画面からは一覧そのものではなく、一覧のしるし（ハッシュ値）を送ります。WordPress の更新のようにファイルが多いと、一覧を送ると PHP が受け取れる数（`max_input_vars`、既定1000）を超えて、黙って一部だけになるためです。
 - **承認できないもの**：許可されていないアップロードファイルと、確かめられなかったディレクトリです。ファイルを消すか、権限を直します。
 - **記録**：押したときに操作ログ（「改ざん監視の承認」）に一覧を残します。受け付けたことは、取り込まれるまで画面に「○○さんの承認を受け付けました」と出します。画面・確かめのモーダル・操作ログは、承認のメールと同じく「変わったファイル」「増えたファイル」「消えたファイル」の見出しで種類ごとにまとめます。確かめのモーダルと操作ログには全部で20件までを並べ、多いときは「ほか○件」にします。全部の一覧は承認のメールに載せます。取り込んだときに「○○さんがサイトの変更内容を承認しました」のメールを、知らせと同じ宛先へ送ります（取り込んだファイルの一覧つき）。1日1回の報告と画面には「○○さんが承認した更新」と出します。承認した覚えが無いのにメールが届いたら、侵入を疑います。
 - **二段階認証などは付けていません**：apache の権限で侵入した攻撃者は目印を真似できますが、apache はコードに書けないので、取り込ませられるのはアップロードの置き場所の `.htaccess` くらいです。それも承認のメールと翌日の報告に残るので、記録で気付ける形にしています。
@@ -3083,7 +3083,7 @@ sudo -u devapp /usr/bin/php artisan app:file-watch --init
 - 管理画面の「改ざん監視」で承認しても取り込めます。サーバーに入れる人は、監視の利用者で `--accept` を実行しても取り込めます。そのとき知らせるファイルの一覧が出るので、自分の更新だと確かめて `yes` と答えると、基準に取り込みます。取り込んだものは、1日1回の報告に「サーバーで認めた更新」として載ります。
 
 ```bash
-sudo -u devapp /usr/bin/php artisan app:file-watch --accept
+sudo -u devapp /usr/bin/php artisan neobit:file-watch --accept
 ```
 
 - `--accept` は、待っている最中の変化（15分たっていないもの）と、許可されていないアップロードファイル・確かめられなかったディレクトリは取り込みません。後の2つは、ファイルを消すか権限を直すまで知らせ続けます。
@@ -3267,7 +3267,7 @@ WordPress を置く案件だけが、アプリの `config/neobit.php` に `wordp
 - URL は、先頭の `/` を付けずに書き、`*` で下を全部にします（サイトの制限を掛けない URL と同じ書き方です）。
 - `admin-post.php` は、表のフォームの送り先にするプラグインがあるときだけ `open_paths` に足します。足さずに管理画面の制限を掛けると、訪問者のフォームが 404 になります。
 - `wp-json`（REST API）は、どこにも書きません。表の URL と同じくサイトの制限が掛かります。ブロックエディタの保存も `wp-json` を通りますが、管理画面の許す IP はサイトの制限でも許す（24章）ので、メンテナンス中も記事を保存できます。表のフォーム（Contact Form 7 など）が `wp-json` を使っていても、管理画面の制限には掛かりません。
-- 設定を変えたら、`php artisan config:cache` と `php artisan app:gate --export` を実行します。
+- 設定を変えたら、`php artisan config:cache` と `php artisan neobit:gate --export` を実行します。
 
 **見張りの掛け方**
 
@@ -3293,7 +3293,7 @@ require __DIR__.'/vendor/neobit/core/gate.php';
 ```
 
 - **プールはサイトごとに分けます**。`php_admin_value` はプールの全部のスクリプトに効くので、ほかのサイトと同じプールに書くと、ほかのサイトにもこのサイトの止める IP が掛かります。書き換えたら、`systemctl reload php-fpm` で読み直します（root の作業です）。
-- **`.user.ini` は、効くまで5分ほどかかります**。PHP-FPM が読み直す間隔（`user_ini.cache_ttl`、既定で5分）のためです。置いた直後の `app:gate` は「掛かっていない」と出ることがあります。
+- **`.user.ini` は、効くまで5分ほどかかります**。PHP-FPM が読み直す間隔（`user_ini.cache_ttl`、既定で5分）のためです。置いた直後の `neobit:gate` は「掛かっていない」と出ることがあります。
 - `prepend` の2つは、`public/index.php` にも掛かります。`index.php` の `require` と両方で掛かっても、2回目は何もしません。
 - **`wp-config.php` の段の弱いところ**：WordPress が PHP で返すもの（表のページ・`wp-login.php`・`wp-admin/` の下・`wp-json/`・`xmlrpc.php`・`wp-cron.php`）は全部 `wp-config.php` を読むので、見張りが掛かります。プラグインの `.php` を URL で直に開かれたときは掛からないので、`.htaccess` で `wp-content/` の下の `.php` を直に開けないようにして補います。動かなくなるプラグインが無いかは、案件ごとに確かめます。この行は、WordPress のファイルを Apache に直に返させる行（`wp-admin|wp-includes|wp-content`）より**上**に置きます。下に置くと、上の行で書き換えが終わり、この行まで届きません。
 
@@ -3306,10 +3306,10 @@ require __DIR__.'/vendor/neobit/core/gate.php';
     ```
 
 - 画像・CSS などの静的なファイルには、どの段でも見張りは掛かりません（Laravel の側と同じです）。
-- **掛かっているかの確かめ**：`php artisan app:gate` が、`WordPress の保護機能：` の行で知らせます。
-    - `prepend` は、コマンドの PHP の設定が Web と別なので、コマンドからは分かりません。Laravel が Web の要求の中で `auto_prepend_file` を見て、結果を控えておき、`app:gate` はそれを出します。Laravel のページ（管理画面など）を1回も開いていなければ「まだ確かめていません」と警告を出します（送った直後の手順を失敗に見せないよう、失敗にはしません）。
+- **掛かっているかの確かめ**：`php artisan neobit:gate` が、`WordPress の保護機能：` の行で知らせます。
+    - `prepend` は、コマンドの PHP の設定が Web と別なので、コマンドからは分かりません。Laravel が Web の要求の中で `auto_prepend_file` を見て、結果を控えておき、`neobit:gate` はそれを出します。Laravel のページ（管理画面など）を1回も開いていなければ「まだ確かめていません」と警告を出します（送った直後の手順を失敗に見せないよう、失敗にはしません）。
     - `wp-config` は、`wp-config.php` に `gate.php` の `require` があるかを見ます。
-    - 掛かっていないときは、`app:gate` は失敗で終わります。
+    - 掛かっていないときは、`neobit:gate` は失敗で終わります。
     - `wp-config` の確かめでは、コメントにした行（`//`・`#`・`*` で始まる行）は数えません。
 - **書き忘れたとき**：`wordpress` の節があるのに `.env` の `WORDPRESS_GATE` が空なら、WordPress が守られていないので、critical のログを書きます（エラーの通知のメールが届きます。1時間に1回まで）。`prepend` なのに `auto_prepend_file` が見張りを指していないと分かったときも、critical のログを書きます。
 

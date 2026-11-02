@@ -15,7 +15,7 @@
 
 | 範囲 | 内容 |
 |---|---|
-| フレームワーク | `AccessRestriction`（書き方の読み取り・入力した文の保存・操作ログ・締め出さないための知らせ）、`AccessRestrictionController`、アクセス制限の画面、`app:access-denied-off` の文言 |
+| フレームワーク | `AccessRestriction`（書き方の読み取り・入力した文の保存・操作ログ・締め出さないための知らせ）、`AccessRestrictionController`、アクセス制限の画面、`neobit:access-denied-off` の文言 |
 | データ | settings テーブルに、入力した文のキーを2つ足した（`access.site_allowed_ips_text`・`access.admin_allowed_ips_text`）。マイグレーションは要らない |
 | 変わらないもの | 判断（`Gate`）と入口の見張りの状態のファイル（IP アドレスの一覧だけ）、`.env` の `SITE_ALLOWED_IPS`・`ADMIN_ALLOWED_IPS`（カンマ区切りのまま）、IP ブロックの画面 |
 

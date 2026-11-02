@@ -18,4 +18,4 @@ SUBJECT: 【{!! $site_name !!}】{!! $by !!}さんがサイトの変更内容を
 取り込んだ時刻：{!! $accepted_at !!}
 
 --
-このメールは、改ざん監視（app:file-watch）による自動送信です。
+このメールは、改ざん監視（neobit:file-watch）による自動送信です。

@@ -1,7 +1,7 @@
 <?php
 
 /**
- * 改ざん監視（app:file-watch。Neobit\Core\Security\FileWatcher）の既定の値。
+ * 改ざん監視（neobit:file-watch。Neobit\Core\Security\FileWatcher）の既定の値。
  * アプリのconfig/neobit.phpのfile_watchの節に書いたキーが、これに優先する。
  * コードを更新する利用者（webapp）のcrontabから、5分ごとと1日1回の--fullで動かす。使い方は利用ガイドの「改ざん監視」。
  */

@@ -8,13 +8,13 @@ use Illuminate\Console\Command;
 use Neobit\Core\Operations\TemporaryDataCleaner;
 
 /**
- * 一時データの後片付けのコマンド。php artisan app:cleanup-temporary-dataで動く。
+ * 一時データの後片付けのコマンド。php artisan neobit:cleanup-temporary-dataで動く。
  *
  * 片付けの中身はNeobit\Core\Operations\TemporaryDataCleanerにあり、このコマンドはそれを呼んで、
  * 消した件数を画面に出すだけ。ログにはTemporaryDataCleanerが残す。スケジューラーから1時間ごとに
  * 呼ばれるほか、手で動かしてもよい。
  */
-#[Signature('app:cleanup-temporary-data')]
+#[Signature('neobit:cleanup-temporary-data')]
 #[Description('一時ファイル・期限の切れたキャッシュなどの一時データを消す')]
 class CleanupTemporaryData extends Command
 {

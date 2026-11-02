@@ -3,7 +3,7 @@
 /**
  * 一時データの後片付けの既定の値。アプリのconfig/neobit.phpのcleanupの節に書いたキーが、これに優先する。
  * 使い終わった後も残り続けるものを、何日残すかと、プロジェクトで足す片付け。
- * 片付けは、スケジューラーから1時間ごとに動く（app:cleanup-temporary-data。Neobit\Core\Operations\TemporaryDataCleaner）。
+ * 片付けは、スケジューラーから1時間ごとに動く（neobit:cleanup-temporary-data。Neobit\Core\Operations\TemporaryDataCleaner）。
  */
 return [
 

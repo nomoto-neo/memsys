@@ -9,13 +9,13 @@ use Illuminate\Support\Facades\Log;
 use Neobit\Core\Security\AccessRestriction;
 
 /**
- * アクセス制限で締め出されたときの非常口のコマンド。php artisan app:access-denied-offで動く。
+ * アクセス制限で締め出されたときの非常口のコマンド。php artisan neobit:access-denied-offで動く。
  *
  * サイトと管理画面の制限を、両方外す。IPアドレスの一覧は残す
  * （Neobit\Core\Security\AccessRestriction::turnOff()）。回線が変わってIPアドレスが変わったときなど、
  * 管理画面を開けなくなったときに、サーバーで実行する。
  */
-#[Signature('app:access-denied-off')]
+#[Signature('neobit:access-denied-off')]
 #[Description('アクセス制限を外す（メンテナンス画面を止め、管理画面の存在を隠すのもやめる）')]
 class AccessDeniedOff extends Command
 {

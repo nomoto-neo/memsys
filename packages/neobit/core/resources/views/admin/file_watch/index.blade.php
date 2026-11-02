@@ -15,7 +15,7 @@
     <p>改ざん監視は使っていません（設定の file_watch.release_file が空です）。</p>
 @elseif ($status === null)
     {{-- 基準がまだ無い --}}
-    <p>改ざん監視の基準がまだありません。サーバーで php artisan app:file-watch --init を実行してください。</p>
+    <p>改ざん監視の基準がまだありません。サーバーで php artisan neobit:file-watch --init を実行してください。</p>
 @else
     <p class="mb-4">{{ date('Y-m-d H:i:s', $status['at']) }} 現在のチェック状況です。</p>
 

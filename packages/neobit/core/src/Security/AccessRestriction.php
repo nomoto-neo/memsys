@@ -27,7 +27,7 @@ use Neobit\Core\Operations\OperationRecorder;
  *
  * ■ 締め出さない
  * 管理画面の制限を掛けて保存するとき、今の自分のIPアドレスが管理画面の一覧に無ければ、保存させない
- * （lockoutMessage()）。それでも回線が変わるなどで締め出されたときは、サーバーでapp:access-denied-offを
+ * （lockoutMessage()）。それでも回線が変わるなどで締め出されたときは、サーバーでneobit:access-denied-offを
  * 実行すると、両方の制限を外す（turnOff()）。
  *
  * ■ 速さ
@@ -198,7 +198,7 @@ final class AccessRestriction
 
     /**
      * 締め出されたときの非常口。サイトと管理画面の制限を、両方外す。
-     * IPアドレスの一覧は、次に制限を掛けるときのために残す。app:access-denied-offが呼ぶ。
+     * IPアドレスの一覧は、次に制限を掛けるときのために残す。neobit:access-denied-offが呼ぶ。
      */
     public static function turnOff(): void
     {

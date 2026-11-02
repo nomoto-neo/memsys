@@ -13,7 +13,7 @@ use PragmaRX\Google2FA\Google2FA;
 use Tests\TestCase;
 
 /**
- * 2段階認証の登録を解除するコマンド（php artisan app:reset-two-factor）。
+ * 2段階認証の登録を解除するコマンド（php artisan neobit:reset-two-factor）。
  * 画面から解除できる人がいないときの、サーバーからの逃げ道。
  */
 class ResetTwoFactorCommandTest extends TestCase
@@ -39,7 +39,7 @@ class ResetTwoFactorCommandTest extends TestCase
     {
         $staff = $this->registeredStaff();
 
-        $this->artisan('app:reset-two-factor', ['type' => 'staff', 'login' => 'hanako'])
+        $this->artisan('neobit:reset-two-factor', ['type' => 'staff', 'login' => 'hanako'])
             ->expectsConfirmation('この人の2段階認証の登録を解除します。よろしいですか？', 'yes')
             ->assertSuccessful();
 
@@ -54,7 +54,7 @@ class ResetTwoFactorCommandTest extends TestCase
     {
         $staff = $this->registeredStaff();
 
-        $this->artisan('app:reset-two-factor', ['type' => 'staff', 'login' => 'hanako'])
+        $this->artisan('neobit:reset-two-factor', ['type' => 'staff', 'login' => 'hanako'])
             ->expectsConfirmation('この人の2段階認証の登録を解除します。よろしいですか？', 'no')
             ->assertSuccessful();
 
@@ -65,8 +65,8 @@ class ResetTwoFactorCommandTest extends TestCase
     {
         $staff = $this->registeredStaff();
 
-        $this->artisan('app:reset-two-factor', ['type' => 'nobody', 'login' => 'hanako'])->assertFailed();
-        $this->artisan('app:reset-two-factor', ['type' => 'staff', 'login' => 'taro'])->assertFailed();
+        $this->artisan('neobit:reset-two-factor', ['type' => 'nobody', 'login' => 'hanako'])->assertFailed();
+        $this->artisan('neobit:reset-two-factor', ['type' => 'staff', 'login' => 'taro'])->assertFailed();
 
         $this->assertTrue($staff->refresh()->hasTwoFactorConfirmed());
     }

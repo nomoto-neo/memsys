@@ -52,7 +52,7 @@ use Neobit\Core\Upload\UploadFilePath;
  * これに当たる。残す日数（days）を書いた片付けには、その日数を引数で渡す。
  *
  * ■ 呼ぶところ
- * - スケジューラーから1時間ごとに、app:cleanup-temporary-dataコマンドがallExclusively()を呼ぶ。
+ * - スケジューラーから1時間ごとに、neobit:cleanup-temporary-dataコマンドがallExclusively()を呼ぶ。
  *   これが本来の片付け
  * - cronの動かないサーバー（config('neobit.schedule.cron_enabled')がfalse）では、同じ予定を、サイトへのアクセスを
  *   契機にNeobit\Core\Operations\RequestSchedulerが動かす

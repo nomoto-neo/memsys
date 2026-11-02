@@ -9,7 +9,7 @@ use Illuminate\Support\Str;
 use Neobit\Core\Security\GateState;
 
 /**
- * 入口の見張りの状態を確かめるコマンド。php artisan app:gate で動く。
+ * 入口の見張りの状態を確かめるコマンド。php artisan neobit:gate で動く。
  *
  * オプションが無ければ、書き出した状態（storage/app/gate/state.json）を出す。写しが無いときと、今の状態と
  * 食い違っているときは、知らせて失敗で終わる。--export は、状態と見張りが返す画面を書き出し直してから、状態を出す。
@@ -17,7 +17,7 @@ use Neobit\Core\Security\GateState;
  * WordPressを置く案件（設定のneobit.wordpressがある）では、WordPressの見張りが掛かっているかも出し、
  * 掛かっていなければ失敗で終わる。
  */
-#[Signature('app:gate {--export : 状態のファイルを書き出し直す}')]
+#[Signature('neobit:gate {--export : 状態のファイルを書き出し直す}')]
 #[Description('入口の見張りの状態を出す（--export で書き出し直す）')]
 class CheckGate extends Command
 {
@@ -39,7 +39,7 @@ class CheckGate extends Command
         $state = GateState::read();
         if ($state === null) {
             $this->error("状態のファイルがありません：{$file}");
-            $this->line('php artisan app:gate --export で書き出してください。');
+            $this->line('php artisan neobit:gate --export で書き出してください。');
 
             return self::FAILURE;
         }
@@ -63,7 +63,7 @@ class CheckGate extends Command
 
         // 写しが古いと、見張りが解除したIPアドレスを止め続けるので、知らせる
         if (! GateState::isCurrent()) {
-            $this->error('状態のファイルが、今の状態と食い違っています。php artisan app:gate --export で書き出し直してください。');
+            $this->error('状態のファイルが、今の状態と食い違っています。php artisan neobit:gate --export で書き出し直してください。');
 
             return self::FAILURE;
         }

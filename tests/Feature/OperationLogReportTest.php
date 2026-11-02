@@ -101,7 +101,7 @@ class OperationLogReportTest extends TestCase
             // 送信の失敗はログに残して続けるが、テンプレートの誤りは、受け止めずに止める
             $this->expectException(MailTemplateException::class);
 
-            $this->artisan('app:report-operation-logs', ['--always' => true])->run();
+            $this->artisan('neobit:report-operation-logs', ['--always' => true])->run();
         } finally {
             @unlink($path);
         }

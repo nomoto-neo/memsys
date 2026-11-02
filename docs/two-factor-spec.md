@@ -134,7 +134,7 @@
 | `Neobit\Core\Auth\TwoFactorChallenge` | クラス | その人の方式で「確かめる」。コードの送信と照合、試行制限 |
 | `Neobit\Core\Auth\TwoFactorLogin` | コントローラーのトレイト | パスワードを確かめた後の流れ（1.2）と、2段階目の画面 |
 | `Neobit\Core\Auth\TwoFactorManagement` | コントローラーのトレイト | ログイン中の本人による、バックアップコードの発行と TOTP の解除 |
-| `app:reset-two-factor` | コマンド | サーバーからの解除（3.5） |
+| `neobit:reset-two-factor` | コマンド | サーバーからの解除（3.5） |
 | `packages/neobit/core/resources/views/_two_factor.blade.php` | 部分ビュー | 2段階目の画面の中身。方式と状態で、コードの入力か QR コードの登録かを出し分ける |
 
 ### 3.1 モデルに書くもの
@@ -199,12 +199,12 @@ URL は、どの種類も `…/login/verify` にそろえる。管理画面は `
 
 管理画面の、個人会員・企業の担当者・スタッフの詳細に「2段階認証の登録を解除する」を出す。方式が `Totp` で、登録が済んでいる人にだけ出る。会員と担当者のボタンは、共通の部分ビュー `_two_factor_reset` にある。スタッフは、管理者だけが、自分以外のスタッフを解除できる。
 
-### 3.5 サーバーからの解除（app:reset-two-factor）
+### 3.5 サーバーからの解除（neobit:reset-two-factor）
 
 画面から解除できる人がいないときに、サーバーで実行する。スタッフが1人だけのサイトで、その人が端末を無くしたときなど。
 
 ```
-php artisan app:reset-two-factor staff yamada
+php artisan neobit:reset-two-factor staff yamada
 ```
 
 1つ目は種類の名前（`staff`・`member`・`company_user`）、2つ目はログインに使う値（`loginId()` の値。企業の担当者は `企業ID/ログインID`）。対象の人を出して、確かめてから解除する。`--force` を付けると確かめずに解除する。消えるものは、画面からの解除と同じ。操作ログには、操作した人が空の行として残る。

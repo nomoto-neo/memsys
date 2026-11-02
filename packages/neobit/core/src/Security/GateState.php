@@ -27,14 +27,14 @@ use Throwable;
  * 仮のファイルに書いてから名前を変え、読みかけの見張りに半端な中身を見せない。
  * IPブロックとアクセス制限を変えたときに書き出す（IpBlocker・AccessRestriction）。.envを変えたときは、
  * 設定のキャッシュより古くなったことにRejectBlockedIpが気付いて、書き出し直す（refreshIfStale()）。
- * 手で作り直すのは php artisan app:gate --export。
+ * 手で作り直すのは php artisan neobit:gate --export。
  *
  * ■ WordPressの見張り
  * WordPressを置く案件（設定のneobit.wordpressがある）では、WordPressの入口にも見張りを掛ける。掛ける段は
  * サーバーで決まるので.envのWORDPRESS_GATEに書く（prependかwp-config）。書き忘れていたり、prependなのに
  * PHPのauto_prepend_fileがgate.phpを指していなかったりすると、WordPressが守られないので、critical のログで
  * 知らせる（watchWordPress()。RejectBlockedIpが毎回のアクセスで呼ぶ）。auto_prepend_fileはWebとコマンドで
- * PHPの設定が違い、コマンドからは分からないので、Webの要求で見た結果をキャッシュに控え、app:gateが出す。
+ * PHPの設定が違い、コマンドからは分からないので、Webの要求で見た結果をキャッシュに控え、neobit:gateが出す。
  */
 class GateState
 {
@@ -176,7 +176,7 @@ class GateState
     {
         $error = self::export();
         if ($error !== null) {
-            Log::error("GateState: 入口の見張りの状態を書き出せませんでした。php artisan app:gate --export で書き出し直してください。{$error}");
+            Log::error("GateState: 入口の見張りの状態を書き出せませんでした。php artisan neobit:gate --export で書き出し直してください。{$error}");
         }
     }
 
@@ -205,7 +205,7 @@ class GateState
         $error = self::export(withPages: $stateTime !== false);
         if ($error !== null) {
             Cache::put(self::FAILED_KEY, true, self::FAILED_SECONDS);
-            Log::error("GateState: 入口の見張りの状態を書き出せませんでした。php artisan app:gate --export で書き出し直してください。{$error}");
+            Log::error("GateState: 入口の見張りの状態を書き出せませんでした。php artisan neobit:gate --export で書き出し直してください。{$error}");
         }
     }
 

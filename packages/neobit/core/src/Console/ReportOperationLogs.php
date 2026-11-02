@@ -15,7 +15,7 @@ use Neobit\Core\Operations\OperationLogReport;
 use Throwable;
 
 /**
- * 操作ログの報告のコマンド。php artisan app:report-operation-logsで動く。
+ * 操作ログの報告のコマンド。php artisan neobit:report-operation-logsで動く。
  *
  * 報告の中身はNeobit\Core\Operations\OperationLogReportにあり、このコマンドはそれをメールで送るだけ。
  * スケジューラーから毎朝呼ばれ、前の日の分を、気になる点があったときだけ送る。
@@ -25,7 +25,7 @@ use Throwable;
  * --date=2026-10-04  その日の分を作る。書かなければ前の日
  * --always           気になる点が無くても送る。文面や宛先を確かめるときに使う
  */
-#[Signature('app:report-operation-logs {--date= : 報告する日（書かなければ前の日）} {--always : 気になる点が無くても送る}')]
+#[Signature('neobit:report-operation-logs {--date= : 報告する日（書かなければ前の日）} {--always : 気になる点が無くても送る}')]
 #[Description('操作ログの1日ぶんの報告を、気になる点があればメールで送る')]
 class ReportOperationLogs extends Command
 {

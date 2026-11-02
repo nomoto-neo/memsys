@@ -14,7 +14,7 @@ use RuntimeException;
 use Throwable;
 
 /**
- * 改ざん監視のコマンド。php artisan app:file-watchで動く。判断はNeobit\Core\Security\FileWatcherにあり、
+ * 改ざん監視のコマンド。php artisan neobit:file-watchで動く。判断はNeobit\Core\Security\FileWatcherにあり、
  * このコマンドは、知らせるものがあれば通知のメールを送るだけ。
  *
  * Laravelのスケジューラー（apacheのcron）には入れず、コードを更新する利用者（webapp）のcrontabから、
@@ -32,7 +32,7 @@ use Throwable;
  *            承認の目印が無ければ、ロックも押さえずにすぐ終わる。5分ごとの回でも、目印があれば先に取り込むので、
  *            毎分の行は承認を早く取り込むためのもの。無くても5分以内には取り込む
  */
-#[Signature('app:file-watch {--init : 今の状態を基準にする} {--full : 全部のハッシュ値を比べ直し、vendor/も見る} {--accept : 今知らせているファイルを、確かめて基準に取り込む} {--approve : 管理画面で承認した変化を取り込む}')]
+#[Signature('neobit:file-watch {--init : 今の状態を基準にする} {--full : 全部のハッシュ値を比べ直し、vendor/も見る} {--accept : 今知らせているファイルを、確かめて基準に取り込む} {--approve : 管理画面で承認した変化を取り込む}')]
 #[Description('ファイルの改ざんを確かめ、見つけたら通知のメールを送る')]
 class FileWatch extends Command
 {

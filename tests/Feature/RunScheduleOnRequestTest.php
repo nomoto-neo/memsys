@@ -149,7 +149,7 @@ class RunScheduleOnRequestTest extends TestCase
         $this->oldFailedJob();
 
         Cache::lock('neobit_temporary_data_cleanup', 60)->get(function () {
-            $this->artisan('app:cleanup-temporary-data')
+            $this->artisan('neobit:cleanup-temporary-data')
                 ->expectsOutput('ほかの片付けが動いているので、今回は取りやめました。')
                 ->assertSuccessful();
         });

@@ -12,7 +12,7 @@ use Neobit\Core\Operations\OperationRecorder;
 
 /**
  * 2段階認証の登録を解除するコマンド。
- * php artisan app:reset-two-factor staff yamada で動く。
+ * php artisan neobit:reset-two-factor staff yamada で動く。
  *
  * 2段階目を通れなくなった人を、画面から解除できる人がいないときに使う。スタッフが1人だけのサイトで、
  * その人が認証アプリの入った端末を無くしたときなど。ふだんは、管理画面の詳細から解除する。
@@ -27,7 +27,7 @@ use Neobit\Core\Operations\OperationRecorder;
  * バックアップコード・信頼済みの端末・パスキー。認証アプリの方式の人は、次のログインで
  * QRコードから登録し直す。操作ログにも残る。
  */
-#[Signature('app:reset-two-factor {type : 種類の名前。例：staff・member・company_user} {login : ログインに使う値} {--force : 確かめずに解除する}')]
+#[Signature('neobit:reset-two-factor {type : 種類の名前。例：staff・member・company_user} {login : ログインに使う値} {--force : 確かめずに解除する}')]
 #[Description('2段階認証の登録を解除する')]
 class ResetTwoFactor extends Command
 {

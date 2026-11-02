@@ -219,7 +219,7 @@ class AccessRestrictionTest extends TestCase
     {
         AccessRestriction::save(true, self::OFFICE_IP, true, self::ADMIN_IP.' # 制作会社');
 
-        $this->artisan('app:access-denied-off')->assertSuccessful();
+        $this->artisan('neobit:access-denied-off')->assertSuccessful();
 
         // 両方の制限を外し、IPアドレスの一覧とコメントは、次に制限を掛けるときのために残す
         $settings = AccessRestriction::settings();

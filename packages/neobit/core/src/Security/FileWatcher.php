@@ -8,7 +8,7 @@ use RuntimeException;
 
 /**
  * 改ざん監視。通常の運用では変わらないファイルが変わった・増えた・消えたことと、
- * 許可されていないアップロードファイルを見つける。app:file-watchコマンドが5分ごとに呼び、見つけたら毎回、通知のメールを送る。
+ * 許可されていないアップロードファイルを見つける。neobit:file-watchコマンドが5分ごとに呼び、見つけたら毎回、通知のメールを送る。
  *
  * ■ 動かす権限
  * コードを更新する利用者（webapp）のcrontabから動かす。基準などの記録（bootstrap/cache/file-watch.json）は
@@ -39,7 +39,7 @@ use RuntimeException;
  * 外すのは、この監視の記録とロックのファイル、鍵のファイル、テストでできるファイル。
  *
  * ■ 手で認める
- * 鍵を更新せずに取り込むときは、中身を確かめた人がacceptAlerts()（app:file-watch --accept）で認める。
+ * 鍵を更新せずに取り込むときは、中身を確かめた人がacceptAlerts()（neobit:file-watch --accept）で認める。
  * そのとき知らせるファイルだけを基準に取り込み、「手で認めた更新」として記録に残す。待っている最中の変化は
  * 取り込まない。init()で基準を作り直すと、それも黙って取り込み、通常の更新の記録も消えるため。
  *
@@ -47,7 +47,7 @@ use RuntimeException;
  * 管理画面は、開くたびにinspect()でその場の状況を出す。apache（Web）で動くので記録は書かず、中身を読めない
  * ファイル（.envなど）は、最後のcronの結果（記録のlast_result）を使う。
  * 承認を押すと、承認の目印（storageの下のapproval.json）を置く（requestApproval()）。記録はapacheが書けないので、
- * 毎分のcron（app:file-watch --approve）がapplyApproval()で拾い、目印の一覧のうち、まだ疑いか判断待ちのものだけを
+ * 毎分のcron（neobit:file-watch --approve）がapplyApproval()で拾い、目印の一覧のうち、まだ疑いか判断待ちのものだけを
  * 基準に取り込む。承認した人の名前は、通常の更新の記録に残し、1日1回の報告と画面に出す。
  *
  * ■ アップロードの置き場所
@@ -294,7 +294,7 @@ final class FileWatcher
     }
 
     /**
-     * 今知らせるファイルを、手で認めて基準に取り込む。app:file-watch --acceptが呼ぶ。
+     * 今知らせるファイルを、手で認めて基準に取り込む。neobit:file-watch --acceptが呼ぶ。
      * その場で確かめ直し、知らせるものがあれば$confirmに一覧を渡して聞く。認められたら取り込んで、その一覧を返す。
      * 知らせるものが無ければ空、断られたらnull。どちらも基準は変えない。
      * 待っている最中の変化・許可されていないアップロードファイル・確かめられなかったディレクトリは取り込まない。
@@ -421,7 +421,7 @@ final class FileWatcher
     }
 
     /**
-     * 承認の目印を拾って、基準に取り込む。app:file-watch --approveが毎分呼ぶ。目印が無ければnull。
+     * 承認の目印を拾って、基準に取り込む。neobit:file-watch --approveが毎分呼ぶ。目印が無ければnull。
      * 目印の一覧のうち、今も同じ種類の改ざんの疑いか判断待ちのものだけを取り込む。承認の後に増えた変化や、
      * 一覧に無い変化は取り込まない。取り込んだら目印を消し、取り込んだ一覧と承認した人を返す。
      *
@@ -1005,7 +1005,7 @@ final class FileWatcher
     /** 確かめに使う記録を読む。まだ基準が無ければ、--initを案内する例外 */
     private function loadBaseline(): array
     {
-        return $this->load() ?? throw new RuntimeException('改ざん監視の基準がありません。先に php artisan app:file-watch --init を実行してください。');
+        return $this->load() ?? throw new RuntimeException('改ざん監視の基準がありません。先に php artisan neobit:file-watch --init を実行してください。');
     }
 
     /** 記録を書く。読んでいる途中に半端なファイルを読まないよう、隣に書いてから置き換える */

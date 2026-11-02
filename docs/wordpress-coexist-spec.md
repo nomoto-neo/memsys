@@ -14,7 +14,7 @@
 
 | 範囲 | 内容 |
 |---|---|
-| フレームワーク | 判断（`Gate`）に WordPress の URL と「管理画面の許す IP はサイトの制限でも許す」、状態（`GateState`）に `wordpress` と見張りが掛かっているかの確かめ、`app:gate` に WordPress の行、改ざん監視（`FileWatcher`）に WordPress のアップロードの置き場所と見ない場所、設定 `neobit.wordpress`（既定は null）、アクセス制限の画面の説明 |
+| フレームワーク | 判断（`Gate`）に WordPress の URL と「管理画面の許す IP はサイトの制限でも許す」、状態（`GateState`）に `wordpress` と見張りが掛かっているかの確かめ、`neobit:gate` に WordPress の行、改ざん監視（`FileWatcher`）に WordPress のアップロードの置き場所と見ない場所、設定 `neobit.wordpress`（既定は null）、アクセス制限の画面の説明 |
 | 見本のサイト | `config/neobit.php` に `wordpress` の見本（コメント）、`.env.example` に `WORDPRESS_GATE` |
 | 案件のサーバー | WordPress を置く案件だけ。`.env` の `WORDPRESS_GATE` と、PHP-FPM のプールの設定か `.user.ini` か `wp-config.php` |
 | WordPress を置かない案件 | 管理画面の許す IP が、サイトの制限でも通るようになることだけ |
@@ -42,7 +42,7 @@
 
 - 節があって `gate` が空：critical のログ「.env の WORDPRESS_GATE がありません」。キャッシュの `Cache::add` で1時間に1回まで。
 - `gate` が `prepend`：`ini_get('auto_prepend_file')` と `gate.php` を `realpath()` で比べる。結果と時刻をキャッシュ（`neobit-gate-prepend`）に控える。書くのは結果が変わったときと1時間ごとだけ。掛かっていない状態に変わったときに、critical のログを1回。
-- `app:gate`：WordPress の行を出す。`prepend` は控えを出し、掛かっていなければ失敗。控えが無いとき（送った直後でまだ Web の要求が無い）は警告だけにする（0章の手順の `app:gate --export` を失敗に見せないため）。`wp-config` は `wp-config.php` に `gate.php` を読む `require` があるかを見て、無ければ失敗。コメントにした行は数えない。節があって `gate` が空なら失敗。値が正しくなければ失敗。
+- `neobit:gate`：WordPress の行を出す。`prepend` は控えを出し、掛かっていなければ失敗。控えが無いとき（送った直後でまだ Web の要求が無い）は警告だけにする（0章の手順の `neobit:gate --export` を失敗に見せないため）。`wp-config` は `wp-config.php` に `gate.php` を読む `require` があるかを見て、無ければ失敗。コメントにした行は数えない。節があって `gate` が空なら失敗。値が正しくなければ失敗。
 
 **改ざん監視**
 
@@ -68,7 +68,7 @@
 |---|---|---|
 | 見張りを掛ける段の置き場所 | `.env`（サーバーで決まる） | `config/neobit.php`：同じ案件でも開発サーバーと本番で段が変わり得る |
 | WordPress を置くかの印 | `config/neobit.php` に `wordpress` の節があるか | `WORDPRESS_GATE` が空かどうか：書き忘れと「置かない」の見分けが付かず、守られないまま気付けない |
-| 書き忘れの知らせ | critical のログ（1時間に1回）と `app:gate` の失敗 | 何もしない：WordPress が守られないまま気付けない |
+| 書き忘れの知らせ | critical のログ（1時間に1回）と `neobit:gate` の失敗 | 何もしない：WordPress が守られないまま気付けない |
 | WordPress の URL の決まり | 設定の `admin_paths`・`open_paths`・`hidden_paths` | 決め打ち：ログインの URL を変えるプラグインや、`admin-post.php` を表で使う案件に合わせられない |
 | 使わない入口の名前 | `hidden_paths`（404 で無いことにする） | `closed_paths`：意味が通じにくい。`blocked`・`deny`：IP ブロックや 403 と紛れる |
 | `wp-json` | どこにも書かず、表の URL と同じくサイトの制限に任せる | `open_paths`：公開前のサイトを隠しているときも、公開済みの記事を API で読める。`admin_paths`：管理画面の制限を掛けると、表のフォーム（Contact Form 7）が送れない |
@@ -105,15 +105,15 @@
 **実施済み**
 
 - `tests/Unit/GateTest.php`：管理画面の許す IP はサイトの制限でも通る（管理画面の制限が無くても、一覧の IP だけ）。WordPress の `hidden` は誰にも 404、`open` は制限なしで止めている IP だけ 404、管理画面とログインは管理画面の制限だけ、記事と `wp-json` はサイトの制限で管理画面の許す IP は通る、WordPress を置かなければふつうの URL
-- `tests/Feature/GateStateTest.php`：段があれば WordPress の決まりを書き出し、見張りを別の PHP で動かして `xmlrpc.php`・`wp-login.php` が Laravel と同じ 404、`wp-cron.php` と管理画面の許す IP の `wp-admin`・`wp-json` は通る。段が空なら書き出さない。書き忘れは1時間に1回の critical と `app:gate` の失敗。置かない案件では何も言わない。`prepend` は Web で見るまで「まだ確かめていません」の警告（失敗にしない）、外れていれば1回だけ critical、掛かっていれば時刻を出す。`wp-config` は `require` の有無を見て、コメントにした行は数えない
+- `tests/Feature/GateStateTest.php`：段があれば WordPress の決まりを書き出し、見張りを別の PHP で動かして `xmlrpc.php`・`wp-login.php` が Laravel と同じ 404、`wp-cron.php` と管理画面の許す IP の `wp-admin`・`wp-json` は通る。段が空なら書き出さない。書き忘れは1時間に1回の critical と `neobit:gate` の失敗。置かない案件では何も言わない。`prepend` は Web で見るまで「まだ確かめていません」の警告（失敗にしない）、外れていれば1回だけ critical、掛かっていれば時刻を出す。`wp-config` は `require` の有無を見て、コメントにした行は数えない
 - `tests/Feature/AccessRestrictionTest.php`：Laravel の側でも、管理画面の許す IP（画面と `.env`）はメンテナンス中のサイトを開ける
 - `tests/Feature/FileWatchTest.php`：WordPress のアップロードの画像とキャッシュは知らせず、前の基準のものも消えたものにしない。アップロードの `.php` はすぐ知らせる。テーマの書き換えは知らせる。アップロードの置き場所の `.htaccess` は、鍵と一緒なら通常の更新、鍵の無い追加と書き換えは両方の置き場所で改ざんとして知らせる。前の版の基準からは、最初の回だけ知らせずに取り込む
 - 全体で 513件（成功 512件、飛ばし 1件）
 
 **開発サーバーで確かめたこと**（2026-10-29〜30。dev.neobit.jp。仮の WordPress に `/column/`・`/topics/`・`/info/`。止める IP には、サーバーの中から `curl --resolve dev.neobit.jp:443:127.0.0.1` で開いた 127.0.0.1 を使った）
 
-- 段の書き忘れ：`wordpress` の節を書いて `WORDPRESS_GATE` が空のとき、`app:gate` が知らせて失敗で終わる
-- `prepend`：PHP-FPM のプールの設定に `php_admin_value[auto_prepend_file]` を書き、`.env` に `WORDPRESS_GATE=prepend`。管理画面を1回開いた後の `app:gate` で、掛かっていることを確かめた。開く前は警告だけ
+- 段の書き忘れ：`wordpress` の節を書いて `WORDPRESS_GATE` が空のとき、`neobit:gate` が知らせて失敗で終わる
+- `prepend`：PHP-FPM のプールの設定に `php_admin_value[auto_prepend_file]` を書き、`.env` に `WORDPRESS_GATE=prepend`。管理画面を1回開いた後の `neobit:gate` で、掛かっていることを確かめた。開く前は警告だけ
 - IP ブロック：127.0.0.1 を止めると、`/column/1/`・`/wp-login.php`・`/xmlrpc.php` が全部 404。WordPress のヘッダー（`Expires: 1984` など）が無く、WordPress を動かす前に見張りが返している
 - 解除した後：`/column/1/` はサイトの制限で 503、`/wp-login.php` は管理画面の扱いで 200、`/xmlrpc.php` はいつも隠す URL で 404
 - アップロード：WordPress で画像を上げても、改ざん監視は知らせない。アップロードの置き場所は、`set_permissions.writable` に書いて `set_permissions.sh --apply` でそろえるまで apache が書けず、画像の保存が「ディレクトリを作成できません」で止まった
