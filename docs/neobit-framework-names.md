@@ -2,7 +2,7 @@
 
 案件のコードが、名前で頼っているフレームワークの部品の一覧。ここにある名前を変えると、配った後は全案件のコードを直すことになる。名前を変えるときは、この一覧も直す。
 
-2026-10-15 にコードから集めた。見直しの進み具合は、計画書（`docs/packaging-plan.md`）の段階4-5 にある。「メモ」の列は、集めたときに気付いた見直しの候補。
+2026-11-02 に、段階4-5 の総点検で見直した。決めた内容は `docs/name-review-spec.md` にある。「メモ」の列は、使うときの補足。
 
 ## 1. コントローラーが書くメソッド
 
@@ -17,8 +17,8 @@
 | `FormFlow` | `prepareInput($validated)` | | 検証の後、確認画面と保存の前の整形 | |
 | `FormFlow` | `afterSave($record, $validated, $changedFields)` | | 保存の直後の処理 | |
 | `FormFlow` | `beforeDelete($record)` | | 削除の直前の処理 | |
-| `FormFlow` | `savedLogAction($created)` | | 操作ログに残す操作の種類 | 名前から中身が読み取りにくい |
-| `SearchableList` | `srchRules()` | ○ | 検索項目の検証ルール | `srch` だけ略している |
+| `FormFlow` | `operationLogActionType($created)` | | 操作ログに残す操作の種類 | |
+| `SearchableList` | `searchRules()` | ○ | 検索項目の検証ルール | |
 | `SearchableList` | `applyCustomSearch($query, $key, $value)` | ○ | 列と直接比べられない検索条件 | |
 | `SearchableList` | `indexRoute()` | | 一覧のルートの名前。`INDEX_ROUTE` で決められないとき（ルートの名前を案件が付けるフレームワークの画面）に書く | |
 | `CsvDownload` | `csvColumns()` | ○ | CSV の項目の定義 | |
@@ -53,8 +53,8 @@
 | `SearchableList` | `storeSearchCondition($request)` | 入口。検索条件を保存する | |
 | `CsvDownload` | `downloadCsv(...)` | CSV のダウンロード | |
 | `CsvImport` | `csvImport()`・`csvImportConfirm()`・`csvImportExecute()` | 入口。取り込みの画面・確認・実行 | |
-| `CsvReader` | `readCsv(...)` | CSV を読んで検証する | トレイトなのに「〜er」 |
-| `AjaxFileUpload` | `uploadAjaxFile($request)` | 入口。アップロードを受け取る | ほかは `ajaxUpload〜` の語順 |
+| `CsvRead` | `readCsv(...)` | CSV を読んで検証する | |
+| `AjaxFileUpload` | `uploadAjaxFile($request)` | 入口。アップロードを受け取る | |
 | `AjaxFileUpload` | `ajaxUploadRules()` | アップロードの欄の検証ルール | |
 | `ChildTables` | `childTableRules()` | 子テーブルの検証ルール | |
 | `SeoFields` | `seoRules()` | 記事ごとの SEO の欄の検証ルール | |
@@ -89,13 +89,13 @@
 
 | トレイト | 定数 | 中身 | メモ |
 |---|---|---|---|
-| `SearchableList`・`CsvImport` | `INDEX_ROUTE` | 一覧のルートの名前 | ほかのトレイトの定数は頭に機能の名前が付くが、一覧の定数には付かない |
-| `SearchableList` | `PER_PAGE` | 1ページの件数 | 同じ |
-| `SearchableList` | `ORDER_OPTIONS` | 並び順の選択肢 | 同じ |
-| `SearchableList` | `FREE_WORD_COLUMNS` | フリーワード検索の対象の列 | 同じ |
-| `AjaxFileUpload` | `UPLOAD_FILES` | アップロードの欄。欄の名前 => `type`・`width`・`required`（書き方は `UploadFieldDefinitions`）。いくつでも足せる欄は、子テーブルの中の欄 `組.*.列` で書く | 同じ |
-| `ChildTables` | `CHILD_TABLES` | 子テーブル。組の名前 => `relation`・`fields`・`order`・`delete_insert`・`max`・`fixed`・`initial`・`min`（書き方は `ChildTableDefinitions`） | 同じ |
-| `AjaxFileUpload` | `WYSIWYG_IMAGE_FIELDS` | エディタの欄と、入れた画像を縮小する横幅 | 同じ |
+| `SearchableList`・`CsvImport` | `INDEX_ROUTE` | 一覧のルートの名前 | |
+| `SearchableList` | `PER_PAGE` | 1ページの件数 | |
+| `SearchableList` | `ORDER_OPTIONS` | 並び順の選択肢 | |
+| `SearchableList` | `FREE_WORD_COLUMNS` | フリーワード検索の対象の列 | |
+| `AjaxFileUpload` | `UPLOAD_FILES` | アップロードの欄。欄の名前 => `type`・`width`・`required`（書き方は `UploadFieldDefinitions`）。いくつでも足せる欄は、子テーブルの中の欄 `組.*.列` で書く | |
+| `ChildTables` | `CHILD_TABLES` | 子テーブル。組の名前 => `relation`・`fields`・`order`・`delete_insert`・`max`・`fixed`・`initial`・`min`（書き方は `ChildTableDefinitions`） | |
+| `AjaxFileUpload` | `WYSIWYG_IMAGE_FIELDS` | エディタの欄と、入れた画像を縮小する横幅 | |
 | `InputNormalizer` | `RAW_INPUT_FIELDS` | 全角と半角をそろえない項目 | |
 | `TwoFactorLogin` | `LOGIN_ACCOUNT` | ログインする人のモデル | |
 | `TwoFactorLogin` | `TWO_FACTOR_VIEW` | 2段階認証の画面 | |
@@ -141,8 +141,8 @@
 | モデルのトレイト | `HasSeoMeta` | 記事ごとの SEO の欄（`seoMeta()`）を持つ | |
 | モデル | `IpBlock` | IPブロック管理の1行 | |
 | モデル | `Setting` | 管理画面から変えられる設定の1行（キーと値） | |
-| モデルのトレイト | `IsLoginAccount`・`HasTwoFactor`・`HasPasskeys`・`TeamInvitationRelation` | ログイン・2段階認証・パスキー・招待 | `TeamInvitationRelation` だけ `Has〜`・`Is〜` の形でない |
-| コントローラーのトレイト | `FormFlow`・`SearchableList`・`AjaxFileUpload`・`ChildTables`・`SeoFields`・`CsvDownload`・`CsvImport`・`CsvReader`・`PdfDownload`・`EmailChange`・`TwoFactorLogin`・`TwoFactorManagement`・`PasskeyLogin`・`PasskeyManagement` | | `CsvReader` だけ「〜er」 |
+| モデルのトレイト | `IsLoginAccount`・`HasTwoFactor`・`HasPasskeys`・`HasTeamInvitations` | ログイン・2段階認証・パスキー・招待 | |
+| コントローラーのトレイト | `FormFlow`・`SearchableList`・`AjaxFileUpload`・`ChildTables`・`SeoFields`・`CsvDownload`・`CsvImport`・`CsvRead`・`PdfDownload`・`EmailChange`・`TwoFactorLogin`・`TwoFactorManagement`・`PasskeyLogin`・`PasskeyManagement` | | |
 | 列挙型 | `UploadType`（`Image`・`File`）・`SheetPaging`（`Once`・`Sequential`・`Cycle`）・`OperationLogAction`（`ip_block`・`ip_unblock`・`access_restriction_change`・`seo_settings_change`・`basic_auth_change`・`basic_auth_user_add`・`basic_auth_user_delete` を含む）・`TwoFactorMethod`・`LoginIdType`・`CsvEncoding`・`CsvImportMode`・`SpamCheckResult` | | |
 
 ## 6. 案件が呼ぶクラスと、その公開のメソッド
@@ -169,7 +169,7 @@
 | `MailTemplateParser` | `parse()` | |
 | `PasswordChange` | `resetAndNotify()` | |
 | `LoginProfileNotice` | `send()` | |
-| `LoginVerificationCode` | `issue()`・`issueForAddress()`（引数 `purposeLabel:` は省略可）・`hasPending()`・`verify()`・`verifyForAddress()`、定数 `PURPOSE_〜` | コンストラクタの引数の名前が `$memberClass`（会員以外も渡す） |
+| `LoginVerificationCode` | `issue()`・`issueForAddress()`（引数 `purposeLabel:` は省略可）・`hasPending()`・`verify()`・`verifyForAddress()`、定数 `PURPOSE_〜` | |
 | `LoginThrottle` | `isBlocked()`・`availableIn()`・`blockedMessage()`・`hit()`・`clear()` | |
 | `LoginRedirect` | `remember()`・`for()` | |
 | `LoginSession` | `logout()` | |
@@ -203,7 +203,7 @@
 | `code_keys($codeName)` | コード表の値の一覧 | |
 | `code_label($codeName, $value, $default, $separator)` | 値の名前 | |
 | `code_options($options, $selected)` | プルダウンの `<option>` | |
-| `hit($value, $key)` | 入力値が選択肢に当たっているか | 名前から中身が読み取りにくい |
+| `is_match($value, $key)` | 入力値が、選択肢の値に当たっているか。`@checked()`・`@selected()` に渡す | |
 | `safe_html($html)` | エディタの HTML を安全にする | |
 | `upload_input_value($input, $key, $idx)` | アップロードの欄の値 | |
 | `upload_preview_url($model, $input, $field, $idx)` | アップロードの欄に出す URL | |
@@ -225,7 +225,7 @@
 | `neobit` | `security.ip_block_auto`・`security.ip_block_watch_minutes`・`security.ip_block_watch_count`・`security.ip_block_hours` | |
 | `neobit` | `operation_log.report_to`・`operation_log.report_thresholds` | |
 | `neobit` | `schedule.cron_enabled` | `.env` は `CRON_ENABLED` |
-| `neobit` | `seo`（`title_format`・`description`・`description_length`・`image`・`organization_name`・`organization_logo`・`noindex_routes`・`sitemap_routes`・`sitemap_models`・`robots_disallow`・`page_routes`・`redirects`） | 配列なので、アプリで書くときは全部のキーを書く |
+| `neobit` | `seo`（`title_format`・`description`・`description_length`・`image`・`organization_name`・`organization_logo`・`noindex_routes`・`sitemap_routes`・`sitemap_models`・`robots_disallow`・`page_routes`・`redirects`） | |
 | `neobit` | `upload`（`image_types`・`attach_types`・`max_kb`・`max_image_pixels`・`csv_max_kb`・`directory_rule`） | |
 | `neobit` | `cleanup`（`operation_log_days`・`failed_job_days`・`tasks`） | |
 | `neobit` | `form.required_mark`（`admin`・`public`） | |
@@ -280,12 +280,12 @@
 
 | テンプレート | 変数 | メモ |
 |---|---|---|
-| `verification_code` | `$code`・`$member_name`・`$purpose_label`・`$site_name`・`$to_mail`・`$from_mail`・`$from_name` | 宛先の名前がここだけ `$member_name`（ほかは `$name`） |
+| `verification_code` | `$code`・`$name`・`$purpose_label`・`$site_name`・`$to_mail`・`$from_mail`・`$from_name` | |
 | `password_changed` | `$name`・`$changed_at`・`$changed_by_other`・`$passkeys_deleted`・`$reset_url`・`$site_name`・`$to_mail`・`$from_mail`・`$from_name` | |
 | `profile_changed` | `$name`・`$changed_at`・`$reset_url`・`$site_name`・`$to_mail`・`$from_mail`・`$from_name` | |
 | `invitation` | `$inviter_name`・`$url`・`$expires_at`・`$site_name`・`$to_mail`・`$from_mail`・`$from_name` | |
-| `error_notify` | `$title`・`$level`・`$message`・`$exception_class`・`$location`・`$where`・`$context`・`$trace`・`$suppressed`・`$datetime`・`$app_env`・`$app_name`・`$to`・`$from_mail`・`$from_name` | 宛先が `$to`（ほかは `$to_mail`）。サイトの名前が `$app_name`（ほかは `$site_name`） |
-| `operation_log_report` | `$date`・`$counts`・`$notable`・`$operators`・`$url`・`$app_name`・`$to`・`$from_mail`・`$from_name` | 同じ |
+| `error_notify` | `$title`・`$level`・`$message`・`$exception_class`・`$location`・`$where`・`$context`・`$trace`・`$suppressed`・`$datetime`・`$app_env`・`$site_name`・`$to_mail`・`$from_mail`・`$from_name` | |
+| `operation_log_report` | `$date`・`$counts`・`$notable`・`$operators`・`$url`・`$site_name`・`$to_mail`・`$from_mail`・`$from_name` | |
 
 ## 12. JavaScript・CSS
 
@@ -293,7 +293,7 @@
 |---|---|---|
 | ファイル | `global.js`・`global.css`・`ajax_upload.js`・`repeatable_group.js`・`upload_request.js`・`passkeys.js`・`code_editor.js`・`ip_block.js`・`wysiwyg_suneditor.js`・`wysiwyg_suneditor_content.css`・`wysiwyg_summernote.js` | |
 | 短い名前 | `@neobit`（`vite.config.js` の alias） | |
-| 動かすクラス名 | `ajax_submit`・`wysiwyg`・`ajax_upload_block`・`ajax_file_input`・`ajax_file_link`・`ajax_image_block`・`ajax_noimage_block`・`ajax_origin`・`ajax_tmp`・`ajax_del`・`ajax_cancel`・`repeatable_group`・`repeatable_rows`・`repeatable_row`・`repeatable_inline`・`repeatable_add`・`repeatable_remove`・`repeatable_template`・`ajax_submit_message`・`passkey_login`・`passkey_register`・`passkey_message`・`passkey_supported`・`passkey_unsupported`・`required-mark` | `required-mark` だけハイフン区切り |
+| 動かすクラス名 | `ajax_submit`・`wysiwyg`・`ajax_upload_block`・`ajax_file_input`・`ajax_file_link`・`ajax_image_block`・`ajax_noimage_block`・`ajax_origin`・`ajax_tmp`・`ajax_del`・`ajax_cancel`・`repeatable_group`・`repeatable_rows`・`repeatable_row`・`repeatable_inline`・`repeatable_add`・`repeatable_remove`・`repeatable_template`・`ajax_submit_message`・`passkey_login`・`passkey_register`・`passkey_message`・`passkey_supported`・`passkey_unsupported`・`required-mark` | |
 | `data-` 属性 | `data-confirm`・`data-item`・`data-field`・`data-group`・`data-files-only`・`data-fixed`・`data-is-image`・`data-upload-url`・`data-submit-url`・`data-options-url`・`data-remember`・`data-current`・`data-unsaved`・`data-switch-answer`・`data-remove-row` | |
 | イベント | `repeatable:add-row`・`repeatable:remove-row` | `ajax_upload.js` が出し、`repeatable_group.js` が受ける |
 
@@ -302,6 +302,6 @@
 | 種類 | 名前 | メモ |
 |---|---|---|
 | `vendor:publish` のタグ | `neobit-config`・`neobit-mail-templates` | |
-| Artisan のコマンド | `app:access-denied-off`・`app:cleanup-temporary-data`・`app:gate`・`app:report-operation-logs`・`app:reset-two-factor`・`app:set-next-id`・`app:file-watch` | 頭が案件と同じ `app:`。フレームワークのものと見分けられない |
+| Artisan のコマンド | `neobit:access-denied-off`・`neobit:cleanup-temporary-data`・`neobit:gate`・`neobit:report-operation-logs`・`neobit:reset-two-factor`・`neobit:set-next-id`・`neobit:file-watch` | |
 | テーブル | `code_tables`・`ip_blocks`・`settings`・`operation_logs`・`csv_download_logs`・`csv_import_logs`・`trusted_devices`・`two_factor_backup_codes`・`two_factor_secrets`・`passkeys`・`team_invitations` | |
 | フレームワークが作るコード表 | `operation_log_action`・`operation_log_model` | 設定の `operation_log.actions`・`operation_log.models` の列挙型から作る |

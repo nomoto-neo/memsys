@@ -74,6 +74,7 @@ Laravel の標準の構成に、次のものを足している（各ディレク
 | `docs/repeatable-group-spec.md` | 子テーブル（1:多の子テーブルを、親と同じ画面で行を増減しながら入力して保存する部品。`ChildTables`）の仕様メモ |
 | `docs/entry-gate-spec.md` | 入口の見張り（IP ブロックとアクセス制限を、Laravel を起動する前に判断する `gate.php`）の仕様メモ |
 | `docs/wordpress-coexist-spec.md` | WordPress との共存（WordPress にも入口の見張りと改ざん監視を効かせる）の仕様メモ |
+| `docs/name-review-spec.md` | 配る前に、案件が頼る名前を総点検した結果の仕様メモ |
 | `docs/config-split-spec.md` | フレームワークの設定を機能ごとに分け、案件を `config/neobit.php` の1ファイルにする形の仕様メモ |
 | `docs/compiled-views-spec.md` | コンパイル済みの画面を Web の利用者から守る置き場所の仕様メモ |
 | `docs/route-files-spec.md` | ルートのファイル分けと、フレームワークの画面を1行で書く `FrameworkRoutes` の仕様メモ |
