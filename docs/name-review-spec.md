@@ -23,6 +23,7 @@
 | メールの変数 `$to_mail`・`$site_name` | `$to`・`$app_name` | 同じ |
 | `LoginVerificationCode` の `$accountClass` | `$memberClass` | 会員以外のモデルも渡す |
 | コマンドの頭 `neobit:` | `app:` | 案件のコマンドと見分ける |
+| `Gatekeeper` と、その関連の名前（下の表） | `Gate` | 名前が広すぎるうえ、Laravel の権限の部品 `Gate` と同じ名前で、`allows()` まで同じだった |
 
 **変更したファイル**
 
@@ -37,7 +38,20 @@
 
 **コマンド**
 
-`neobit:access-denied-off`・`neobit:cleanup-temporary-data`・`neobit:file-watch`・`neobit:gate`・`neobit:report-operation-logs`・`neobit:reset-two-factor`・`neobit:set-next-id` の7つ。引数とオプションは変えていない。
+`neobit:access-denied-off`・`neobit:cleanup-temporary-data`・`neobit:file-watch`・`neobit:gatekeeper`・`neobit:report-operation-logs`・`neobit:reset-two-factor`・`neobit:set-next-id` の7つ。引数とオプションは変えていない。
+
+**入口の見張り**
+
+| 今の名前 | 前の名前 |
+|---|---|
+| `neobit:gatekeeper` | `neobit:gate` |
+| `Gatekeeper`・`GatekeeperState`・`CheckGatekeeper` | `Gate`・`GateState`・`CheckGate` |
+| `packages/neobit/core/gatekeeper.php` | `packages/neobit/core/gate.php` |
+| `NEOBIT_GATEKEEPER_STATE`・`NEOBIT_GATEKEEPER_DONE` | `NEOBIT_GATE_STATE`・`NEOBIT_GATE_DONE` |
+| `storage/app/gatekeeper/` | `storage/app/gate/` |
+| 設定 `neobit.wordpress.gatekeeper`、`.env` の `WORDPRESS_GATEKEEPER` | `neobit.wordpress.gate`、`WORDPRESS_GATE` |
+
+画面とコメントの言葉「入口の見張り」は変えていない。
 
 **ヘルパー**
 
@@ -63,6 +77,9 @@
 | 一覧の定数（`INDEX_ROUTE`・`PER_PAGE`・`ORDER_OPTIONS`・`FREE_WORD_COLUMNS` など） | 変えない | 機能の名前を頭に付ける：意味は分かる名前で、長くなるだけ |
 | `required-mark`、`code_tables` と `code_table()` | 変えない | CSS のクラスとテーブルは使う場所が重ならず、設定のキーは `code_table.db` に変わって紛れなくなった |
 | `FrameworkRoutes` とそのメソッド | 変えない | 見直しの候補に挙げていない。何をするクラスかが名前で分かる |
+| 入口の見張りの名前 | `Gatekeeper` | `EntryGate`：判断する役より場所の名前に読める。`EntryGuard`：Laravel のガードと紛れる。`EntryFilter`：`filter` は「外す」と逆に読まれやすい |
+| 入口の見張りの範囲 | クラス・ファイル・定数・設定まで全部 | コマンドだけ：中身の `Gate` の紛らわしさが残る |
+| `IpBlocker` | 変えない | 404 の連発を数えて止める一覧に足す部品で、名前のとおりの働き。見張りは止める一覧を見るだけ |
 | コマンドの頭 | 今変える | 変えない：配った後は全部のサーバーの cron を直すことになる |
 
 ## E. 課題・懸念点
@@ -70,7 +87,8 @@
 | 重要度 | 内容 |
 |---|---|
 | 中 | サーバーの cron の `app:` を `neobit:` に書き換える必要がある。送るのと同時に行わないと、コマンドが無いというエラーが MAILTO へ届く |
-| 低 | サーバーに `CsvReader.php`・`TeamInvitationRelation.php` が残る。読み込まれないが、消しておく |
+| 中 | 送った後、`neobit:gatekeeper --export` を流すまでは、新しい場所に状態のファイルが無く、入口の見張りが全部を通す。送った直後に流す |
+| 低 | サーバーに `CsvReader.php`・`TeamInvitationRelation.php`・`gate.php`・`Gate.php`・`GateState.php`・`CheckGate.php`・`storage/app/gate/` が残る。読み込まれないが、消しておく |
 
 ## F. セキュリティ・権限・データ整合性の注意
 

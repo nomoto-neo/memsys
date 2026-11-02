@@ -6,26 +6,26 @@ use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 use Illuminate\Support\Str;
-use Neobit\Core\Security\GateState;
+use Neobit\Core\Security\GatekeeperState;
 
 /**
- * 入口の見張りの状態を確かめるコマンド。php artisan neobit:gate で動く。
+ * 入口の見張りの状態を確かめるコマンド。php artisan neobit:gatekeeper で動く。
  *
- * オプションが無ければ、書き出した状態（storage/app/gate/state.json）を出す。写しが無いときと、今の状態と
+ * オプションが無ければ、書き出した状態（storage/app/gatekeeper/state.json）を出す。写しが無いときと、今の状態と
  * 食い違っているときは、知らせて失敗で終わる。--export は、状態と見張りが返す画面を書き出し直してから、状態を出す。
  * サーバーで.envを変えてconfig:cacheをやり直した後に流す。
  * WordPressを置く案件（設定のneobit.wordpressがある）では、WordPressの見張りが掛かっているかも出し、
  * 掛かっていなければ失敗で終わる。
  */
-#[Signature('neobit:gate {--export : 状態のファイルを書き出し直す}')]
+#[Signature('neobit:gatekeeper {--export : 状態のファイルを書き出し直す}')]
 #[Description('入口の見張りの状態を出す（--export で書き出し直す）')]
-class CheckGate extends Command
+class CheckGatekeeper extends Command
 {
     public function handle(): int
     {
         // 書き出し直す。見張りが返す画面も作り直す
         if ($this->option('export')) {
-            $error = GateState::export(withPages: true);
+            $error = GatekeeperState::export(withPages: true);
             if ($error !== null) {
                 $this->error("状態のファイルを書き出せませんでした。{$error}");
 
@@ -35,11 +35,11 @@ class CheckGate extends Command
         }
 
         // 状態のファイルを、プロジェクトのルートからのパスで見せる
-        $file = ltrim(str_replace('\\', '/', Str::after(GateState::stateFile(), base_path())), '/');
-        $state = GateState::read();
+        $file = ltrim(str_replace('\\', '/', Str::after(GatekeeperState::stateFile(), base_path())), '/');
+        $state = GatekeeperState::read();
         if ($state === null) {
             $this->error("状態のファイルがありません：{$file}");
-            $this->line('php artisan neobit:gate --export で書き出してください。');
+            $this->line('php artisan neobit:gatekeeper --export で書き出してください。');
 
             return self::FAILURE;
         }
@@ -62,8 +62,8 @@ class CheckGate extends Command
         }
 
         // 写しが古いと、見張りが解除したIPアドレスを止め続けるので、知らせる
-        if (! GateState::isCurrent()) {
-            $this->error('状態のファイルが、今の状態と食い違っています。php artisan neobit:gate --export で書き出し直してください。');
+        if (! GatekeeperState::isCurrent()) {
+            $this->error('状態のファイルが、今の状態と食い違っています。php artisan neobit:gatekeeper --export で書き出し直してください。');
 
             return self::FAILURE;
         }
@@ -82,10 +82,10 @@ class CheckGate extends Command
             return null;
         }
 
-        $gate = (string) ($config['gate'] ?? '');
-        if ($gate === GateState::WORDPRESS_PREPEND) {
+        $gatekeeper = (string) ($config['gatekeeper'] ?? '');
+        if ($gatekeeper === GatekeeperState::WORDPRESS_PREPEND) {
             // auto_prepend_fileは、コマンドからは分からないので、Webの要求で見た控えを出す
-            $seen = GateState::prependSeen();
+            $seen = GatekeeperState::prependSeen();
             if ($seen === null) {
                 // 送った直後は、まだWebの要求が無い。デプロイの手順を失敗に見せないよう、警告だけにする
                 $this->warn('WordPress の保護機能：prepend ですが、まだ Web の要求で確かめていません。Laravel のページ（管理画面など）を1回開いてから、もう一度実行してください。');
@@ -93,14 +93,14 @@ class CheckGate extends Command
                 return null;
             }
             if (! $seen['attached']) {
-                return 'prepend なのに、Web の要求で auto_prepend_file に gate.php が設定されていません（'.date('Y-m-d H:i', $seen['at']).' に確かめた）。';
+                return 'prepend なのに、Web の要求で auto_prepend_file に gatekeeper.php が設定されていません（'.date('Y-m-d H:i', $seen['at']).' に確かめた）。';
             }
             $this->line('WordPress の保護機能：prepend（'.date('Y-m-d H:i', $seen['at']).' までの Web の要求で、掛かっていることを確かめた）');
 
             return null;
         }
 
-        if ($gate === GateState::WORDPRESS_WP_CONFIG) {
+        if ($gatekeeper === GatekeeperState::WORDPRESS_WP_CONFIG) {
             // wp-config.phpで、見張りをrequireしているか。コメントにした行は数えない
             $name = (string) ($config['wp_config'] ?? 'wp-config.php');
             $lines = @file(base_path($name));
@@ -108,20 +108,20 @@ class CheckGate extends Command
                 return "{$name} がありません。";
             }
             $required = array_filter($lines, fn (string $line) => ! preg_match('#^\s*(//|\#|\*|/\*)#', $line)
-                && preg_match('/\brequire(_once)?\b[^;]*gate\.php/', $line) === 1);
+                && preg_match('/\brequire(_once)?\b[^;]*gatekeeper\.php/', $line) === 1);
             if ($required === []) {
-                return "{$name} に gate.php の require がありません。";
+                return "{$name} に gatekeeper.php の require がありません。";
             }
             $this->line("WordPress の保護機能：wp-config（{$name} で読んでいる）");
 
             return null;
         }
 
-        if ($gate === '') {
-            return 'config/neobit.php に wordpress の節があるのに、.env の WORDPRESS_GATE がありません。';
+        if ($gatekeeper === '') {
+            return 'config/neobit.php に wordpress の節があるのに、.env の WORDPRESS_GATEKEEPER がありません。';
         }
 
-        return "WORDPRESS_GATE の値（{$gate}）が正しくありません。prepend か wp-config を書いてください。";
+        return "WORDPRESS_GATEKEEPER の値（{$gatekeeper}）が正しくありません。prepend か wp-config を書いてください。";
     }
 
     /** 制限の範囲の状態を、1行の文にする */

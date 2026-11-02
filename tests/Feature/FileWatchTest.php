@@ -322,7 +322,7 @@ class FileWatchTest extends TestCase
         $this->watcher()->init();
 
         config(['neobit.wordpress' => [
-            'gate' => 'prepend',
+            'gatekeeper' => 'prepend',
             'upload_path' => 'public/wp-content/uploads',
             'watch_exclude' => ['public/wp-content/cache'],
         ]]);
@@ -344,7 +344,7 @@ class FileWatchTest extends TestCase
     public function test_htaccess_in_the_upload_places_is_compared_with_the_baseline(): void
     {
         config(['neobit.wordpress' => [
-            'gate' => 'prepend',
+            'gatekeeper' => 'prepend',
             'upload_path' => 'public/wp-content/uploads',
             'watch_exclude' => [],
         ]]);

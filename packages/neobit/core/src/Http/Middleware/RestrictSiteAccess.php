@@ -4,8 +4,8 @@ namespace Neobit\Core\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Neobit\Core\Security\Gate;
-use Neobit\Core\Security\GateState;
+use Neobit\Core\Security\Gatekeeper;
+use Neobit\Core\Security\GatekeeperState;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -26,12 +26,12 @@ use Symfony\Component\HttpFoundation\Response;
  * Apacheが直接返すファイル（public/build/・public/storage/）は、ここを通らないので止まらない。
  * コマンドも通らないので、スケジューラーとキューは、制限の間も動く。
  *
- * 判断は、入口の見張りと同じもの（Neobit\Core\Security\Gate）を使う。見張りが掛かっていない環境や、
+ * 判断は、入口の見張りと同じもの（Neobit\Core\Security\Gatekeeper）を使う。見張りが掛かっていない環境や、
  * 見張りの状態のファイルが古いときの保険になる。
  */
 class RestrictSiteAccess
 {
-    /** メンテナンス中の画面のビュー。入口の見張りが返す画面も、このビューから作る（GateState） */
+    /** メンテナンス中の画面のビュー。入口の見張りが返す画面も、このビューから作る（GatekeeperState） */
     public const VIEW = 'neobit::maintenance';
 
     // 制限の間も、IPアドレスに関係なく通すパス。「mail/unsubscribe」「up」の形
@@ -49,20 +49,20 @@ class RestrictSiteAccess
     }
 
     /**
-     * 制限の間も通すパスの全部。except()で渡したものに、管理画面の下を足す。入口の見張りにも書き出す（GateState）。
+     * 制限の間も通すパスの全部。except()で渡したものに、管理画面の下を足す。入口の見張りにも書き出す（GatekeeperState）。
      *
      * @return string[]
      */
     public static function exceptPaths(): array
     {
-        $admin = GateState::adminPath();
+        $admin = GatekeeperState::adminPath();
 
         return [...self::$except, $admin, $admin.'/*'];
     }
 
     public function handle(Request $request, Closure $next): Response
     {
-        if (Gate::opensSite(GateState::build(), $request->decodedPath(), (string) $request->ip())) {
+        if (Gatekeeper::opensSite(GatekeeperState::build(), $request->decodedPath(), (string) $request->ip())) {
             return $next($request);
         }
 

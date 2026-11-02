@@ -337,17 +337,17 @@ has   public/index.php                                                  'PublicF
 has   public/.htaccess                                                  'RewriteRule ^index\.php$ - [L]'
 has   set_permissions.sh                                                'set_permissions.writable'
 has   set_permissions.writable                                          '# public/wp-content/uploads'
-has   packages/neobit/core/gate.php                                     "is_file(__DIR__.'/src/Security/Gate.php')"
-has   packages/neobit/core/src/Security/Gate.php                        "state['admin']['ips']"
-has   packages/neobit/core/src/Security/GateState.php                   'function watchWordPress'
-has   packages/neobit/core/src/Console/CheckGate.php                    'function checkWordPress'
-has   packages/neobit/core/src/Security/IpBlocker.php                   'GateState::exportOrReport'
-has   packages/neobit/core/src/Security/AccessRestriction.php           'GateState::exportOrReport'
+has   packages/neobit/core/gatekeeper.php                               "is_file(__DIR__.'/src/Security/Gatekeeper.php')"
+has   packages/neobit/core/src/Security/Gatekeeper.php                  "state['admin']['ips']"
+has   packages/neobit/core/src/Security/GatekeeperState.php             'function watchWordPress'
+has   packages/neobit/core/src/Console/CheckGatekeeper.php              'function checkWordPress'
+has   packages/neobit/core/src/Security/IpBlocker.php                   'GatekeeperState::exportOrReport'
+has   packages/neobit/core/src/Security/AccessRestriction.php           'GatekeeperState::exportOrReport'
 has   packages/neobit/core/src/Security/AccessRestriction.php           'SITE_TEXT_KEY'
 has   packages/neobit/core/resources/views/admin/access_restriction/index.blade.php '管理画面の存在を隠す'
-has   packages/neobit/core/src/Http/Middleware/RejectBlockedIp.php      'GateState::watchWordPress'
-has   packages/neobit/core/src/Http/Middleware/RestrictSiteAccess.php   'Gate::opensSite'
-has   public/index.php                                                  'is_file($gate'
+has   packages/neobit/core/src/Http/Middleware/RejectBlockedIp.php      'GatekeeperState::watchWordPress'
+has   packages/neobit/core/src/Http/Middleware/RestrictSiteAccess.php   'Gatekeeper::opensSite'
+has   public/index.php                                                  'is_file($gatekeeper'
 has   packages/neobit/core/src/NeobitServiceProvider.php                'config/neobit/{$section}.php'
 has   packages/neobit/core/stubs/config/neobit.php                      "// 'wordpress' => ["
 

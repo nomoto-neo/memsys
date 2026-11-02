@@ -4,7 +4,7 @@ namespace Neobit\Core\Security;
 
 /**
  * 入口の見張りの判断。IPブロックとアクセス制限で、止めるか・通すかを決める。
- * Laravelを起動する前に動く見張り（packages/neobit/core/gate.php）と、Laravelのミドルウェア
+ * Laravelを起動する前に動く見張り（packages/neobit/core/gatekeeper.php）と、Laravelのミドルウェア
  * （RejectBlockedIp・RestrictSiteAccess・RestrictAdminAccess）の両方が、同じ判断をここで行う。
  *
  * ■ Laravelに頼らない
@@ -12,7 +12,7 @@ namespace Neobit\Core\Security;
  * SymfonyのIpUtilsは使わない。IPアドレスの照らし合わせと、訪問者のIPアドレスの求め方も、ここで持つ。
  *
  * ■ 状態
- * 判断に使う状態は、GateState::build()が作る配列。見張りは、それを書き出したJSON（storage/app/gate/state.json）を読む。
+ * 判断に使う状態は、GatekeeperState::build()が作る配列。見張りは、それを書き出したJSON（storage/app/gatekeeper/state.json）を読む。
  * - blocks：止めているIPアドレスかまとまりと、期限のUNIX時刻（期限なしはnull）の並び
  * - site・admin：['restricted' => 制限するか, 'ips' => 許すIPアドレスの一覧]
  * - admin_path：管理画面のURLの頭（app/admin の形）
@@ -26,7 +26,7 @@ namespace Neobit\Core\Security;
  * WordPressのブロックエディタで記事を保存したり（wp-json）できるようにするため。足すのは一覧だけなので、
  * 管理画面の制限をしていなくても、サイトの制限が全員に開くことはない。
  */
-final class Gate
+final class Gatekeeper
 {
     // ---- 応答 ----
 
@@ -86,7 +86,7 @@ final class Gate
     // ---- 見張り ----
 
     /**
-     * 見張りの本体。gate.phpが呼ぶ。止めるなら応答を送って終わり、通すなら何もせずに戻る。
+     * 見張りの本体。gatekeeper.phpが呼ぶ。止めるなら応答を送って終わり、通すなら何もせずに戻る。
      * 状態のファイルを読めないときは、何もせずに通す。後ろのLaravelのミドルウェアが判断するため。
      */
     public static function guard(string $stateFile): void

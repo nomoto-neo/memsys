@@ -67,7 +67,7 @@
 
 `public/.htaccess` は、Laravel の決まりの「末尾の / を外す」決まり（Redirect Trailing Slashes）を消してあります。その働きはリダイレクトのミドルウェア（`ApplyRedirects`）が受け持つので、Laravel の新しい版の `.htaccess` に差し替えるときも、この決まりは戻しません。
 
-`public/.htaccess` と `public/index.php` は、公開ディレクトリの HTML と古い PHP も Laravel を通して返す形にしてあります（利用ガイドの30章）。`.htaccess` は `.html`・`.htm`・`.php` とディレクトリの URL も `index.php` に回し、`index.php` の最後は `PublicFiles::handle()` です。`index.php` の頭では、入口の見張りの `gate.php` を読みます（利用ガイドの26章）。Laravel の新しい版のものに差し替えるときも、この2つは戻しません。
+`public/.htaccess` と `public/index.php` は、公開ディレクトリの HTML と古い PHP も Laravel を通して返す形にしてあります（利用ガイドの30章）。`.htaccess` は `.html`・`.htm`・`.php` とディレクトリの URL も `index.php` に回し、`index.php` の最後は `PublicFiles::handle()` です。`index.php` の頭では、入口の見張りの `gatekeeper.php` を読みます（利用ガイドの26章）。Laravel の新しい版のものに差し替えるときも、この2つは戻しません。
 
 ### ルートやビューの名前を直接書いているもの
 
@@ -85,7 +85,7 @@ Laravel を公開ディレクトリの外に置けないレンタルサーバー
 
 `storage/` のほかに apache が書き込むディレクトリがある案件では、プロジェクトの直下の `set_permissions.writable` に書きます（利用ガイドの0章「サーバーの権限」）。
 
-WordPress を置く案件では、`config/neobit.php` に `wordpress` の節を書き、サーバーごとの `.env` に `WORDPRESS_GATE`（`prepend` か `wp-config`）を書きます。`public/.htaccess` には WordPress に回す URL の決まりを、`public/` には `wordpress.php` を置きます（利用ガイドの31章）。
+WordPress を置く案件では、`config/neobit.php` に `wordpress` の節を書き、サーバーごとの `.env` に `WORDPRESS_GATEKEEPER`（`prepend` か `wp-config`）を書きます。`public/.htaccess` には WordPress に回す URL の決まりを、`public/` には `wordpress.php` を置きます（利用ガイドの31章）。
 
 改ざん監視を使うサーバーでは、コードを更新する利用者の crontab に `neobit:file-watch` を3行（5分ごと・1日1回の `--full`・毎分の `--approve`）書き、`php artisan neobit:file-watch --init` で基準を作ります（利用ガイドの29章）。鍵のファイルの名前は `config/neobit.php` の `file_watch.release_file`（既定は `.version`）で、案件ごとに変えられます。管理画面の「改ざん監視」を使うときは、`routes/admin.php` の管理者だけのグループにルートを1行書き、管理画面のメニューに足します。
 

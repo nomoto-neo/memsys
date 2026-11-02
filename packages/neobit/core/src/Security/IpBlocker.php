@@ -38,8 +38,8 @@ use Symfony\Component\HttpFoundation\Response;
  * 解除した行と、期限が過ぎた行は消す。期限が過ぎた行は、毎時の片付け（TemporaryDataCleaner）が消す。
  *
  * ■ 入口の見張り
- * 止めるかの判断は、入口の見張りと同じもの（Neobit\Core\Security\Gate）を使う。止めている一覧を変えたら、
- * 見張りの状態も書き出す（GateState）。見張りは、Laravelを起動する前に、同じ一覧で止める。
+ * 止めるかの判断は、入口の見張りと同じもの（Neobit\Core\Security\Gatekeeper）を使う。止めている一覧を変えたら、
+ * 見張りの状態も書き出す（GatekeeperState）。見張りは、Laravelを起動する前に、同じ一覧で止める。
  */
 final class IpBlocker
 {
@@ -92,7 +92,7 @@ final class IpBlocker
             return false;
         }
 
-        return Gate::isBlocked(self::blockedList(), $ip, now()->getTimestamp());
+        return Gatekeeper::isBlocked(self::blockedList(), $ip, now()->getTimestamp());
     }
 
     /**
@@ -264,7 +264,7 @@ final class IpBlocker
      */
     public static function coversProtected(string $range, string $currentIp): bool
     {
-        if (Gate::inRange($currentIp, [$range])) {
+        if (Gatekeeper::inRange($currentIp, [$range])) {
             return true;
         }
 
@@ -273,7 +273,7 @@ final class IpBlocker
             $allowedAddress = explode('/', $allowed, 2)[0];
             $rangeAddress = explode('/', $range, 2)[0];
 
-            if (Gate::inRange($allowedAddress, [$range]) || Gate::inRange($rangeAddress, [$allowed])) {
+            if (Gatekeeper::inRange($allowedAddress, [$range]) || Gatekeeper::inRange($rangeAddress, [$allowed])) {
                 return true;
             }
         }
@@ -281,7 +281,7 @@ final class IpBlocker
         return false;
     }
 
-    /** 止めている一覧。[IPアドレスかまとまり, 期限のUNIX時刻かnull]の並び。入口の見張りの状態にも入れる（GateState） */
+    /** 止めている一覧。[IPアドレスかまとまり, 期限のUNIX時刻かnull]の並び。入口の見張りの状態にも入れる（GatekeeperState） */
     public static function blockedList(): array
     {
         return Cache::rememberForever(self::CACHE_KEY, fn () => IpBlock::query()
@@ -295,7 +295,7 @@ final class IpBlocker
     private static function forgetList(): void
     {
         Cache::forget(self::CACHE_KEY);
-        GateState::exportOrReport();
+        GatekeeperState::exportOrReport();
     }
 
     /** アクセス制限で通しているIPアドレスの一覧 */
@@ -309,7 +309,7 @@ final class IpBlocker
     {
         $allowed = self::allowedList();
 
-        return Gate::inRange($ip, $allowed);
+        return Gatekeeper::inRange($ip, $allowed);
     }
 
     /** 自動で止めるときの単位。IPv4は1つ、IPv6は/64のまとまり */

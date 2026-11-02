@@ -184,8 +184,8 @@
 | `AdminRequestLimit` | `limit()` | |
 | `FileWatcher` | `init()`・`check()`・`inspect()`・`acceptAlerts()`・`requestApproval()`・`pendingApproval()`・`applyApproval()`・`recentlyAccepted()`・`acceptedOn()`、定数 `DEFAULT_PATHS` | 改ざん監視 |
 | `PublicFiles` | `handle()`・`file()`・`isDirectory()` | 入口の `public/index.php` が `handle()` を呼ぶ |
-| `gate.php`（パッケージの直下） | 定数 `NEOBIT_GATE_STATE` | 入口の `public/index.php` の頭で読む。状態のファイルの場所を定数で渡す。WordPress には、`auto_prepend_file` か `wp-config.php` の `require` でこのパスを書く |
-| 設定 `neobit.wordpress` | キー `gate`・`admin_paths`・`open_paths`・`hidden_paths`・`wp_config`・`upload_path`・`watch_exclude`、`.env` の `WORDPRESS_GATE`（`prepend`・`wp-config`） | WordPress を置く案件の `config/neobit.php` が書く |
+| `gatekeeper.php`（パッケージの直下） | 定数 `NEOBIT_GATEKEEPER_STATE` | 入口の `public/index.php` の頭で読む。状態のファイルの場所を定数で渡す。WordPress には、`auto_prepend_file` か `wp-config.php` の `require` でこのパスを書く |
+| 設定 `neobit.wordpress` | キー `gatekeeper`・`admin_paths`・`open_paths`・`hidden_paths`・`wp_config`・`upload_path`・`watch_exclude`、`.env` の `WORDPRESS_GATEKEEPER`（`prepend`・`wp-config`） | WordPress を置く案件の `config/neobit.php` が書く |
 | `PublicScriptResponse` | 古い `.php` を動かす目印の応答。`script` | |
 | `BasicAuth` | `isOn()`・`save()`・`addUser()`・`deleteUser()`、定数 `AREAS`（`site`・`admin`）・`USERNAME_PATTERN` | 範囲ごとの目印のファイルと `.htpasswd` を作る |
 | `AccessRestriction` | `allowsSite()`・`allowsAdmin()`・`allowedIps()`・`siteIps()`・`adminIps()`・`envSiteIps()`・`envAdminIps()`・`settings()`・`save()`・`turnOff()`・`parseList()`・`lockoutMessage()` | |
@@ -302,6 +302,6 @@
 | 種類 | 名前 | メモ |
 |---|---|---|
 | `vendor:publish` のタグ | `neobit-config`・`neobit-mail-templates` | |
-| Artisan のコマンド | `neobit:access-denied-off`・`neobit:cleanup-temporary-data`・`neobit:gate`・`neobit:report-operation-logs`・`neobit:reset-two-factor`・`neobit:set-next-id`・`neobit:file-watch` | |
+| Artisan のコマンド | `neobit:access-denied-off`・`neobit:cleanup-temporary-data`・`neobit:gatekeeper`・`neobit:report-operation-logs`・`neobit:reset-two-factor`・`neobit:set-next-id`・`neobit:file-watch` | |
 | テーブル | `code_tables`・`ip_blocks`・`settings`・`operation_logs`・`csv_download_logs`・`csv_import_logs`・`trusted_devices`・`two_factor_backup_codes`・`two_factor_secrets`・`passkeys`・`team_invitations` | |
 | フレームワークが作るコード表 | `operation_log_action`・`operation_log_model` | 設定の `operation_log.actions`・`operation_log.models` の列挙型から作る |

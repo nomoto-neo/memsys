@@ -17,7 +17,7 @@
 |---|---|
 | フレームワーク | `AccessRestriction`（書き方の読み取り・入力した文の保存・操作ログ・締め出さないための知らせ）、`AccessRestrictionController`、アクセス制限の画面、`neobit:access-denied-off` の文言 |
 | データ | settings テーブルに、入力した文のキーを2つ足した（`access.site_allowed_ips_text`・`access.admin_allowed_ips_text`）。マイグレーションは要らない |
-| 変わらないもの | 判断（`Gate`）と入口の見張りの状態のファイル（IP アドレスの一覧だけ）、`.env` の `SITE_ALLOWED_IPS`・`ADMIN_ALLOWED_IPS`（カンマ区切りのまま）、IP ブロックの画面 |
+| 変わらないもの | 判断（`Gatekeeper`）と入口の見張りの状態のファイル（IP アドレスの一覧だけ）、`.env` の `SITE_ALLOWED_IPS`・`ADMIN_ALLOWED_IPS`（カンマ区切りのまま）、IP ブロックの画面 |
 
 ## B. 実装仕様
 
@@ -95,7 +95,7 @@
 - カンマで区切った2つは、正しくない形として知らせる
 - 前の版で保存した設定は、一覧を1行1つの文にして出す
 - 非常口のコマンドは、コメントも残して制限だけを外す
-- 呼び方を変えた `save()` を使うテスト（`GateStateTest`・`IpBlockTest`）も通る
+- 呼び方を変えた `save()` を使うテスト（`GatekeeperStateTest`・`IpBlockTest`）も通る
 - 全体で 517件（成功 516件、飛ばし 1件）
 
 **開発サーバーで確かめたこと**（2026-10-30）

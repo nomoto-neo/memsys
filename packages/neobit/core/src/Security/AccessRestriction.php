@@ -17,7 +17,7 @@ use Neobit\Core\Operations\OperationRecorder;
  *
  * ■ 決まり
  * - サイトと管理画面は、それぞれ画面でチェックを入れたときだけ制限する。管理画面の制限はサイトに掛からず、
- *   サイトの制限は管理画面に掛からない。ただし、管理画面のIPアドレスは、サイトの制限でも通す（Gate::opensSite()）
+ *   サイトの制限は管理画面に掛からない。ただし、管理画面のIPアドレスは、サイトの制限でも通す（Gatekeeper::opensSite()）
  * - サイトは、サイトのIPアドレスのほかに、メンテナンス中の画面を出す。管理画面の下のURLには掛けない
  *   （外すパスは、アプリがRestrictSiteAccess::except()で渡す）
  * - 管理画面は、管理画面のIPアドレスのほかに、404を返す
@@ -40,7 +40,7 @@ use Neobit\Core\Operations\OperationRecorder;
  * 判断に使うIPアドレスの一覧は、保存のときにそこから作って別に保存する。
  *
  * ■ 入口の見張り
- * 判断は、入口の見張りと同じもの（Neobit\Core\Security\Gate）を使う。保存したら、見張りの状態も書き出す（GateState）。
+ * 判断は、入口の見張りと同じもの（Neobit\Core\Security\Gatekeeper）を使う。保存したら、見張りの状態も書き出す（GatekeeperState）。
  */
 final class AccessRestriction
 {
@@ -73,13 +73,13 @@ final class AccessRestriction
     /** サイト（訪問者画面）のIPアドレスの制限で、開いてよいか。制限していなければ誰でもよい */
     public static function allowsSite(Request $request): bool
     {
-        return Gate::allows(GateState::build()['site'], (string) $request->ip());
+        return Gatekeeper::allows(GatekeeperState::build()['site'], (string) $request->ip());
     }
 
     /** 管理画面を開いてよいか。制限していなければ誰でもよい */
     public static function allowsAdmin(Request $request): bool
     {
-        return Gate::allows(GateState::build()['admin'], (string) $request->ip());
+        return Gatekeeper::allows(GatekeeperState::build()['admin'], (string) $request->ip());
     }
 
     /** サイトと管理画面の一覧にあるIPアドレスの全部。IPブロック管理が、止めない対象にする */
@@ -171,7 +171,7 @@ final class AccessRestriction
         Setting::put(self::ADMIN_TEXT_KEY, $adminText);
 
         Cache::forget(self::CACHE_KEY);
-        GateState::exportOrReport();
+        GatekeeperState::exportOrReport();
 
         OperationRecorder::record(OperationLogAction::AccessRestrictionChange, detail: [
             'site' => 'メンテナンス画面：'.($siteRestricted ? '表示する' : '表示しない'),
@@ -263,7 +263,7 @@ final class AccessRestriction
     /** IPアドレスが、一覧のどれかに当たるか */
     private static function matches(string $ip, array $ranges): bool
     {
-        return Gate::inRange($ip, $ranges);
+        return Gatekeeper::inRange($ip, $ranges);
     }
 
     /** IPアドレスか、192.0.2.0/24のようなまとまりの形をそろえる。正しくない形ならnull */

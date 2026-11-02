@@ -13,7 +13,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Throwable;
 
 /**
- * 入口の見張りの状態。判断（Neobit\Core\Security\Gate）に渡す状態を作り、見張りのためにJSONへ書き出す。
+ * 入口の見張りの状態。判断（Neobit\Core\Security\Gatekeeper）に渡す状態を作り、見張りのためにJSONへ書き出す。
  *
  * ■ 作る口は1つ
  * 状態はbuild()の1か所で作る。Laravelのミドルウェアはbuild()の結果をそのまま使い、見張りはそれを書き出した
@@ -22,26 +22,26 @@ use Throwable;
  * .envの分（許すIPアドレスと、信頼するプロキシ）は、毎回設定から読む。
  *
  * ■ 書き出し
- * storage/app/gate/の下に、state.jsonと、見張りが返す画面（404.html・maintenance.html）を置く。
+ * storage/app/gatekeeper/の下に、state.jsonと、見張りが返す画面（404.html・maintenance.html）を置く。
  * JSONにするのは、apacheが書ける場所のファイルを、どの要求でもPHPのコードとして動かさないため。
  * 仮のファイルに書いてから名前を変え、読みかけの見張りに半端な中身を見せない。
  * IPブロックとアクセス制限を変えたときに書き出す（IpBlocker・AccessRestriction）。.envを変えたときは、
  * 設定のキャッシュより古くなったことにRejectBlockedIpが気付いて、書き出し直す（refreshIfStale()）。
- * 手で作り直すのは php artisan neobit:gate --export。
+ * 手で作り直すのは php artisan neobit:gatekeeper --export。
  *
  * ■ WordPressの見張り
  * WordPressを置く案件（設定のneobit.wordpressがある）では、WordPressの入口にも見張りを掛ける。掛ける段は
- * サーバーで決まるので.envのWORDPRESS_GATEに書く（prependかwp-config）。書き忘れていたり、prependなのに
- * PHPのauto_prepend_fileがgate.phpを指していなかったりすると、WordPressが守られないので、critical のログで
+ * サーバーで決まるので.envのWORDPRESS_GATEKEEPERに書く（prependかwp-config）。書き忘れていたり、prependなのに
+ * PHPのauto_prepend_fileがgatekeeper.phpを指していなかったりすると、WordPressが守られないので、critical のログで
  * 知らせる（watchWordPress()。RejectBlockedIpが毎回のアクセスで呼ぶ）。auto_prepend_fileはWebとコマンドで
- * PHPの設定が違い、コマンドからは分からないので、Webの要求で見た結果をキャッシュに控え、neobit:gateが出す。
+ * PHPの設定が違い、コマンドからは分からないので、Webの要求で見た結果をキャッシュに控え、neobit:gatekeeperが出す。
  */
-class GateState
+class GatekeeperState
 {
     // ---- 置き場所 ----
 
     /** 書き出すディレクトリ（storageの下） */
-    private const DIRECTORY = 'app/gate';
+    private const DIRECTORY = 'app/gatekeeper';
 
     /** 状態のファイルの名前 */
     private const STATE_FILE = 'state.json';
@@ -49,7 +49,7 @@ class GateState
     // ---- 書き出しの失敗の知らせ ----
 
     /** 書き出し直しに失敗したことを覚えておくキャッシュのキー。毎回のアクセスでやり直さないため */
-    private const FAILED_KEY = 'neobit-gate-export-failed';
+    private const FAILED_KEY = 'neobit-gatekeeper-export-failed';
 
     /** 書き出し直しに失敗した後、やり直すまでの秒数 */
     private const FAILED_SECONDS = 300;
@@ -57,10 +57,10 @@ class GateState
     // ---- WordPressの見張りの確かめ ----
 
     /** auto_prepend_fileで見張りが掛かっているかを、Webの要求で見た控えのキャッシュのキー */
-    private const PREPEND_KEY = 'neobit-gate-prepend';
+    private const PREPEND_KEY = 'neobit-gatekeeper-prepend';
 
     /** 見張りを掛ける段を書き忘れていることを、知らせた控えのキャッシュのキー */
-    private const GATE_MISSING_KEY = 'neobit-gate-wordpress-missing';
+    private const GATEKEEPER_MISSING_KEY = 'neobit-gatekeeper-wordpress-missing';
 
     /** 控えを書き直す間隔と、書き忘れを知らせ直す間隔の秒数 */
     private const WATCH_SECONDS = 3600;
@@ -74,7 +74,7 @@ class GateState
     // ---- 状態 ----
 
     /**
-     * 判断に使う状態。形は Neobit\Core\Security\Gate の冒頭のコメントのとおり。
+     * 判断に使う状態。形は Neobit\Core\Security\Gatekeeper の冒頭のコメントのとおり。
      *
      * @return array{blocks: list<array{0: string, 1: int|null}>, site: array{restricted: bool, ips: string[]}, admin: array{restricted: bool, ips: string[]}, admin_path: string, site_except: string[], trusted_proxies: string[], wordpress: array{admin: string[], open: string[], hidden: string[]}|null}
      */
@@ -107,7 +107,7 @@ class GateState
     private static function wordpressPaths(): ?array
     {
         $config = config('neobit.wordpress');
-        if (! is_array($config) || (string) ($config['gate'] ?? '') === '') {
+        if (! is_array($config) || (string) ($config['gatekeeper'] ?? '') === '') {
             return null;
         }
 
@@ -154,13 +154,13 @@ class GateState
         if ($withPages || ! self::pagesExist()) {
             try {
                 foreach (self::renderPages() as $status => $html) {
-                    $error = self::writeFile(Gate::PAGES[$status], $html);
+                    $error = self::writeFile(Gatekeeper::PAGES[$status], $html);
                     if ($error !== null) {
                         throw new RuntimeException($error);
                     }
                 }
             } catch (Throwable $e) {
-                Log::error('GateState: 入口の見張りが返す画面を作れませんでした。見張りは短い文だけを返します。'.$e->getMessage());
+                Log::error('GatekeeperState: 入口の見張りが返す画面を作れませんでした。見張りは短い文だけを返します。'.$e->getMessage());
             }
         }
 
@@ -176,7 +176,7 @@ class GateState
     {
         $error = self::export();
         if ($error !== null) {
-            Log::error("GateState: 入口の見張りの状態を書き出せませんでした。php artisan neobit:gate --export で書き出し直してください。{$error}");
+            Log::error("GatekeeperState: 入口の見張りの状態を書き出せませんでした。php artisan neobit:gatekeeper --export で書き出し直してください。{$error}");
         }
     }
 
@@ -205,7 +205,7 @@ class GateState
         $error = self::export(withPages: $stateTime !== false);
         if ($error !== null) {
             Cache::put(self::FAILED_KEY, true, self::FAILED_SECONDS);
-            Log::error("GateState: 入口の見張りの状態を書き出せませんでした。php artisan neobit:gate --export で書き出し直してください。{$error}");
+            Log::error("GatekeeperState: 入口の見張りの状態を書き出せませんでした。php artisan neobit:gatekeeper --export で書き出し直してください。{$error}");
         }
     }
 
@@ -225,21 +225,21 @@ class GateState
         }
 
         // 段の書き忘れ。WordPressが守られないまま気付けないので、続くかぎり知らせ直す
-        $gate = (string) ($config['gate'] ?? '');
-        if ($gate === '') {
-            if (Cache::add(self::GATE_MISSING_KEY, true, self::WATCH_SECONDS)) {
-                Log::critical('GateState: WordPress の保護機能が設定されていません。.env の WORDPRESS_GATE がありません。');
+        $gatekeeper = (string) ($config['gatekeeper'] ?? '');
+        if ($gatekeeper === '') {
+            if (Cache::add(self::GATEKEEPER_MISSING_KEY, true, self::WATCH_SECONDS)) {
+                Log::critical('GatekeeperState: WordPress の保護機能が設定されていません。.env の WORDPRESS_GATEKEEPER がありません。');
             }
 
             return;
         }
-        if ($gate !== self::WORDPRESS_PREPEND) {
+        if ($gatekeeper !== self::WORDPRESS_PREPEND) {
             return;
         }
 
         // auto_prepend_fileが見張りを指しているか。リンクをたどった本当の場所で比べる
         $prependFile ??= (string) ini_get('auto_prepend_file');
-        $attached = $prependFile !== '' && realpath($prependFile) !== false && realpath($prependFile) === realpath(dirname(__DIR__, 2).'/gate.php');
+        $attached = $prependFile !== '' && realpath($prependFile) !== false && realpath($prependFile) === realpath(dirname(__DIR__, 2).'/gatekeeper.php');
 
         $last = Cache::get(self::PREPEND_KEY);
         $now = time();
@@ -250,7 +250,7 @@ class GateState
 
         // 掛かっていない状態に変わったときだけ知らせる
         if (! $attached && (! is_array($last) || $last['attached'])) {
-            Log::critical('GateState: WordPress の保護機能が設定されていません。auto_prepend_file に gate.php が設定されていません。');
+            Log::critical('GatekeeperState: WordPress の保護機能が設定されていません。auto_prepend_file に gatekeeper.php が設定されていません。');
         }
     }
 
@@ -321,7 +321,7 @@ class GateState
     /** 見張りが返す画面のファイルが、全部あるか */
     private static function pagesExist(): bool
     {
-        foreach (Gate::PAGES as $name) {
+        foreach (Gatekeeper::PAGES as $name) {
             if (! is_file(self::directory().DIRECTORY_SEPARATOR.$name)) {
                 return false;
             }
@@ -341,8 +341,8 @@ class GateState
         $notFound = app(ExceptionHandler::class)->render(Request::create('/'), new NotFoundHttpException());
 
         return [
-            Gate::NOT_FOUND => (string) $notFound->getContent(),
-            Gate::MAINTENANCE => view(RestrictSiteAccess::VIEW)->render(),
+            Gatekeeper::NOT_FOUND => (string) $notFound->getContent(),
+            Gatekeeper::MAINTENANCE => view(RestrictSiteAccess::VIEW)->render(),
         ];
     }
 

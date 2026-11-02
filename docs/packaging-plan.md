@@ -396,9 +396,9 @@ A は済み。B は、案の1と、案の5のうち固定ページの移し替�
 
 **A. 入口の見張りを、Laravel から分ける**（WordPress と共存しないサイトでも、既定の形にする）
 
-済み（2026-10-29。`gate.php`・`Gate`・`GateState`・`neobit:gate`、見本のサイトの `public/index.php`。設計は `docs/entry-gate-spec.md`）。2026-10-29 に開発サーバーで、止めた IP への 404 とサイトの制限の 503 を、見張りが Laravel を起動せずに返すことを確かめた。
+済み（2026-10-29。`gatekeeper.php`・`Gatekeeper`・`GatekeeperState`・`neobit:gatekeeper`、見本のサイトの `public/index.php`。設計は `docs/gatekeeper-spec.md`）。2026-10-29 に開発サーバーで、止めた IP への 404 とサイトの制限の 503 を、見張りが Laravel を起動せずに返すことを確かめた。
 
-IP ブロックとアクセス制限の判断を、Laravel を起動する前に動く小さな見張り（`gate.php`）でも行う。攻撃が続いているときに、止めている IP の要求を Laravel の起動の前に返して軽くするためと、Laravel を通らない PHP（WordPress）にも同じ守りを掛けるため。
+IP ブロックとアクセス制限の判断を、Laravel を起動する前に動く小さな見張り（`gatekeeper.php`）でも行う。攻撃が続いているときに、止めている IP の要求を Laravel の起動の前に返して軽くするためと、Laravel を通らない PHP（WordPress）にも同じ守りを掛けるため。
 
 - 判断のロジックは、Laravel に頼らない小さなクラス1つにまとめ、見張りと Laravel のミドルウェア（`RejectBlockedIp`・`RestrictSiteAccess`・`RestrictAdminAccess`）の両方が使う。同じ判断を2か所に書かない
 - 状態（止めている IP と期限、サイトと管理画面の制限と許す IP）は、Laravel が `storage/app/` の下のファイルに書き出し、両方が読む。IP の登録・解除・自動で止めたとき、アクセス制限を保存したときに書き出す。期限は見張りが時刻と比べる
@@ -408,7 +408,7 @@ IP ブロックとアクセス制限の判断を、Laravel を起動する前に
 
 **B. WordPress との共存**（A の見張りを使う）
 
-実装で決めたこと：見張りを掛ける段はサーバーで決まるので `.env` の `WORDPRESS_GATE` に、WordPress の URL と置き場所は案件で決まるので `config/neobit.php` の `wordpress` に書く。管理画面の許す IP は、サイトの制限でも許す（ブロックエディタの保存が `wp-json` を通るため）。WordPress の 404 は数えない。案の1（WordPress に回す URL を設定に書き、Laravel の URL と重ならないか確かめる）は後に回した。
+実装で決めたこと：見張りを掛ける段はサーバーで決まるので `.env` の `WORDPRESS_GATEKEEPER` に、WordPress の URL と置き場所は案件で決まるので `config/neobit.php` の `wordpress` に書く。管理画面の許す IP は、サイトの制限でも許す（ブロックエディタの保存が `wp-json` を通るため）。WordPress の 404 は数えない。案の1（WordPress に回す URL を設定に書き、Laravel の URL と重ならないか確かめる）は後に回した。
 
 既存の WordPress のサイトに Laravel を入れるときの置き方と、WordPress の守り。WordPress は `__()` などの関数を条件なしで作り、Laravel と同じ PHP の中では動かせないので、URL で振り分ける。
 
@@ -429,7 +429,7 @@ IP ブロックとアクセス制限の判断を、Laravel を起動する前に
    - `.user.ini` の `auto_prepend_file`。プールの設定に触れない共用のサーバー向け
    - どちらも使えないときは、`wp-config.php` の頭で `require` する。WordPress が PHP で返すもの（表のページ・`wp-login.php`・`wp-admin/` の下・`wp-json/`・`xmlrpc.php`・`wp-cron.php`）は全部 `wp-config.php` を読むので、WordPress のコンテンツには掛かる。プラグインの `.php` を URL で直に開かれたときは掛からないので、`.htaccess` で `wp-content/` の下の `.php` を直に開けないようにして補う（動かなくなるプラグインが無いかは案件ごとに確かめる）
    - 画像・CSS などの静的なファイルは、どの段でも見張りは掛からない（Laravel の側と同じ）。掛かるのは Apache のベーシック認証だけ
-   - 掛ける場所は `.env` の `WORDPRESS_GATE`（`prepend` か `wp-config`）に書く。書いた場所に置けていないときだけ、管理画面のダッシュボードと確かめのコマンドで警告する。`prepend` は Laravel への要求の中の `ini_get('auto_prepend_file')` で、`wp-config` は `wp-config.php` の `require` の行で確かめる。WordPress を使わないサイトでは確かめない（見張りは `index.php` で必ず掛かるため）
+   - 掛ける場所は `.env` の `WORDPRESS_GATEKEEPER`（`prepend` か `wp-config`）に書く。書いた場所に置けていないときだけ、管理画面のダッシュボードと確かめのコマンドで警告する。`prepend` は Laravel への要求の中の `ini_get('auto_prepend_file')` で、`wp-config` は `wp-config.php` の `require` の行で確かめる。WordPress を使わないサイトでは確かめない（見張りは `index.php` で必ず掛かるため）
 3. WordPress の管理画面（`/wp-admin/`・`wp-login.php`）に、管理画面と同じアクセス制限（許す IP）を掛けられるようにする。`admin-ajax.php` は表の画面からも呼ばれるので通す。`xmlrpc.php` は使っていなければ閉じる
 4. 改ざん監視に WordPress のファイルを足す。`wp-content/uploads` は、許可されていないアップロードファイルとして確かめる。自動の更新は止め、画面からの更新で変わったファイルは、改ざん監視の承認で取り込む（段階4-14）
 5. 利用ガイドに、置き方・`.htaccess` の見本・固定ページの移し替えの手順を書く

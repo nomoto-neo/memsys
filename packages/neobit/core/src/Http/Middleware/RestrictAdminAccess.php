@@ -17,7 +17,7 @@ use Symfony\Component\HttpFoundation\Response;
  * 攻撃で行が増え続けないよう、止めたアクセスは操作ログに残さない。
  * bootstrap/app.phpで、管理画面のルートのグループに、admin.ipの名前で掛けている。
  * サイトの制限（RestrictSiteAccess）とは互いに影響しない。管理画面の下のURLは、サイトの制限から外してある。
- * 入口の見張り（Neobit\Core\Security\Gate）も、管理画面のURLの下に同じ判断をする。ここは見張りが掛かっていないときの保険になる。
+ * 入口の見張り（Neobit\Core\Security\Gatekeeper）も、管理画面のURLの下に同じ判断をする。ここは見張りが掛かっていないときの保険になる。
  */
 class RestrictAdminAccess
 {

@@ -26,19 +26,19 @@ return [
 
     // 公開ディレクトリにWordPressを置き、決まったコーナーだけを受け持たせるときに書く。この節があることが「WordPressを置く」の印になる。
     // 使い方は利用ガイドの「WordPressとの共存」。
-    // - gate          WordPressに入口の見張りを掛ける段。サーバーで決まるので.envのWORDPRESS_GATEに書く。
+    // - gatekeeper    WordPressに入口の見張りを掛ける段。サーバーで決まるので.envのWORDPRESS_GATEKEEPERに書く。
     //                 prepend（PHPのauto_prepend_file）かwp-config（wp-config.phpの頭のrequire）。
     //                 この節があるのに空なら、WordPressが守られていないとしてcriticalのログを出す
     // - admin_paths   管理画面とログインのURL。サイトの制限は掛けず、管理画面の制限を掛ける
     // - open_paths    いつも通すURL。サイトの制限も管理画面の制限も掛けず、止めているIPだけは止める
     // - hidden_paths  いつも404にするURL。使わない入口を、無いことにして隠す
     //                 URLは先頭の/を付けずに書き、*で下を全部にする（サイトの制限を掛けないURLと同じ書き方）
-    // - wp_config     wp-config.phpの場所（プロジェクトの直下からのパス）。gateがwp-configのときに確かめる
+    // - wp_config     wp-config.phpの場所（プロジェクトの直下からのパス）。gatekeeperがwp-configのときに確かめる
     // - upload_path   WordPressのアップロードの置き場所（プロジェクトの直下からのパス）。改ざん監視は、storage/app/publicと
     //                 同じく、ファイルの種類（PHPと許可されていない拡張子）を確かめ、.htaccess・.user.iniだけを基準と比べる
     // - watch_exclude 改ざん監視で何も見ない場所（プロジェクトの直下からのパス）。キャッシュのプラグインが書く場所など
     // 'wordpress' => [
-    //     'gate' => env('WORDPRESS_GATE'),
+    //     'gatekeeper' => env('WORDPRESS_GATEKEEPER'),
     //     'admin_paths' => [
     //         'wp-admin',
     //         'wp-admin/*',

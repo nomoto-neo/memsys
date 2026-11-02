@@ -6,11 +6,11 @@ use Neobit\Core\Http\PublicFiles;
 
 define('LARAVEL_START', microtime(true));
 
-// IPブロックとアクセス制限を、Laravelを起動する前に判断する（Neobit\Core\Security\Gate）。
+// IPブロックとアクセス制限を、Laravelを起動する前に判断する（Neobit\Core\Security\Gatekeeper）。
 // 止めるときは、ここで応答を返して終わる。見張りのファイルが無ければ、後ろのLaravelが判断する
-define('NEOBIT_GATE_STATE', __DIR__.'/../storage/app/gate/state.json');
-if (is_file($gate = __DIR__.'/../vendor/neobit/core/gate.php')) {
-    require $gate;
+define('NEOBIT_GATEKEEPER_STATE', __DIR__.'/../storage/app/gatekeeper/state.json');
+if (is_file($gatekeeper = __DIR__.'/../vendor/neobit/core/gatekeeper.php')) {
+    require $gatekeeper;
 }
 
 // Determine if the application is in maintenance mode...
