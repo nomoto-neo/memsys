@@ -4,7 +4,7 @@ use Neobit\Core\Upload\DefaultUploadDirectory;
 
 /**
  * アップロードの既定の値。アプリのconfig/neobit.phpのuploadの節に書いたキーが、これに優先する。
- * 画面からアップロードするファイル（Neobit\Core\Upload\AjaxFileUpload）と、CSVの取り込み（Neobit\Core\Csv\CsvReader）で受け付けるファイルの条件。
+ * 画面からアップロードするファイル（Neobit\Core\Upload\AjaxFileUpload）と、CSVの取り込み（Neobit\Core\Csv\CsvRead）で受け付けるファイルの条件。
  * サイト全体の方針として決め、コーナーごとには変えない。種類は拡張子で書く。拡張子だけでなく、ファイルの中身から見た種類も確かめる（Laravelのmimes）。
  * 大きさの上限を上げるときは、サーバーのupload_max_filesizeとpost_max_sizeも、それ以上にしておく。
  */

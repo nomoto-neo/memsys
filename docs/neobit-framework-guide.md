@@ -73,7 +73,7 @@
 | 管理画面：スタッフ（`Admin\StaffController`） | 一覧・検索、登録・編集、論理削除と取り消し、権限（Policy）、列挙型、パスワード |
 | 管理画面：カテゴリー（`Admin\CategoryController`） | 確認画面なしの登録・編集、並び替え、ページ分けしない一覧 |
 | 管理画面：項目見出し一覧（フレームワークの `CodeTableController`） | DBで管理する区分表の編集（複数行をまとめて保存、行の追加・削除・並び替え） |
-| 管理画面：一斉メール（`Admin\BulkMailController`・`Admin\BulkMailTemplateController`・`app/Jobs/SendBulkMail.php`・`app/Services/MailUnsubscribe.php`） | キュー（宛先の数だけのジョブを1つのバッチにして積む、送る速さの制限、進み具合の表示）、宛先の CSV の読み込みと検証（`CsvReader`）、氏名の差し込み、添付ファイル、配信停止（21章） |
+| 管理画面：一斉メール（`Admin\BulkMailController`・`Admin\BulkMailTemplateController`・`app/Jobs/SendBulkMail.php`・`app/Services/MailUnsubscribe.php`） | キュー（宛先の数だけのジョブを1つのバッチにして積む、送る速さの制限、進み具合の表示）、宛先の CSV の読み込みと検証（`CsvRead`）、氏名の差し込み、添付ファイル、配信停止（21章） |
 | 管理画面：操作ログ（フレームワークの `OperationLogController`） | 登録・編集・削除の無い、見るだけの一覧。検索（日付の範囲・補足の中の語など、列と直接比べられない条件）、件数の棒グラフと、棒を押しての絞り込み、CSVダウンロード（22章） |
 
 ### 改版について
@@ -255,7 +255,7 @@ GRANT ALL PRIVILEGES ON memsys_testing.* TO 'memsys'@'localhost';
 | `CodeTable`（`code_table()` など） | `packages/neobit/core/src/Code/`・`packages/neobit/core/src/helpers.php` | 区分表（列挙型・CSV・DB） | 8 |
 | `CsvDownload`・`CsvColumnSet`・`CsvWriter` | `packages/neobit/core/src/Csv/` | CSV ダウンロードと、CSV の項目の定義、CSV の共通の書き出し方 | 9 |
 | `CsvImport` ほか | `packages/neobit/core/src/Csv/` | CSV 取り込み（取り込み画面と保存の流れ） | 10 |
-| `CsvReader` | `packages/neobit/core/src/Csv/` | CSV を読んで確かめる部分。自分の画面を持つ機能が、CSV の読み込みと検証だけを借りるときに使う | 10 |
+| `CsvRead` | `packages/neobit/core/src/Csv/` | CSV を読んで確かめる部分。自分の画面を持つ機能が、CSV の読み込みと検証だけを借りるときに使う | 10 |
 | `MailTemplate`・`TemplatedMail` | `packages/neobit/core/src/Mail/`・`packages/neobit/core/src/Mail/` | テンプレートファイルによるメール送信 | 11 |
 | `LoginThrottle` | `packages/neobit/core/src/Auth/` | 認証の失敗回数による試行制限 | 14 |
 | `LoginAccount`・`IsLoginAccount`・`HasTwoFactor` | `packages/neobit/core/src/Auth/` | ログインするモデル（個人会員・企業の担当者・スタッフ）の共通の型と、名前の決まり、2段階認証にかかわるモデルの中身 | 14・23 |
@@ -266,7 +266,7 @@ GRANT ALL PRIVILEGES ON memsys_testing.* TO 'memsys'@'localhost';
 | `PasskeySuggestion` | `packages/neobit/core/src/Auth/` | パスワードでログインした人に、パスキーの登録を1回だけ勧める | 14 |
 | `LegacyPasswordUserProvider`・`LegacyPassword` | `packages/neobit/core/src/Auth/` | 既存のシステムから移した会員の、古い方式のパスワードの照合と、今の方式への置き換え | 14 |
 | `LoginIdMemory` | `packages/neobit/core/src/Auth/` | ログイン画面の入力（企業ID と担当者ID）を、ブラウザに覚えさせる | 14 |
-| `TeamInvitationManager`・`TeamInvitationOwner`・`TeamInvitationRelation` | `packages/neobit/core/src/Team/` | 集団への招待（リンクの発行・送り直し・取り消し・照合）。企業会員の担当者の招待に使う。集団のモデルに、インターフェースとトレイトを付ける | 23 |
+| `TeamInvitationManager`・`TeamInvitationOwner`・`HasTeamInvitations` | `packages/neobit/core/src/Team/` | 集団への招待（リンクの発行・送り直し・取り消し・照合）。企業会員の担当者の招待に使う。集団のモデルに、インターフェースとトレイトを付ける | 23 |
 | `LoginSession` | `packages/neobit/core/src/Auth/` | そのガードだけのログアウト（同じブラウザのほかのログインは残す） | 14 |
 | `LoginRedirect` | `packages/neobit/core/src/Auth/` | ログインの後の移動先（開こうとしていた画面へ戻す。戻り先は、ログインの種類ごとに覚える） | 14 |
 | `LoginVerificationCode` | `packages/neobit/core/src/Auth/` | メールで送る確認コード | 14 |
@@ -1275,7 +1275,7 @@ Route::post('/members/csv-import/execute', [AdminMemberController::class, 'csvIm
 - **アップロードの欄の必須**：`UPLOAD_FILES` の `'required' => true` の欄は、取り込みでも確かめます。ファイル名の列があればファイル名が、無ければ今のファイルが要ります。追加の行にはファイル名を書けないので、必須の欄があるコーナーでは、CSV で追加できません。子テーブルの中の必須の欄は、組の列を取り込むときだけ、どの行にもファイルを求めます。
 - **処理を組み込む**：`validateCsvRows()`（行をまたいだチェック）・`afterCsvImportRow()`（1行保存するたび）・`afterCsvImport()`（確定後の通知など）・`processCsvRows()`（処理だけのモード）。
 - 取り込むたびに `csv_import_logs` に記録します。
-- 自分の画面を持つ機能が CSV の読み込みと検証だけを使うときは、`CsvReader` を `use` します。項目の定義と行の検証ルールを引数で渡し、画面と流れは自分で作ります（設計 15）。
+- 自分の画面を持つ機能が CSV の読み込みと検証だけを使うときは、`CsvRead` を `use` します。項目の定義と行の検証ルールを引数で渡し、画面と流れは自分で作ります（設計 15）。
 
 ## 11. メール送信（MailTemplate・TemplatedMail）
 
@@ -2186,7 +2186,7 @@ class SendBulkMail implements ShouldQueue
 ### 一斉メール
 
 - **文面の管理**：タイトル（管理用）・件名・本文を登録しておきます。
-- **送信**：入力（文面を選ぶと欄に入るので、必要な箇所を書き換える。添付ファイルは1つ）→ 確認 → 送信 → 状況の画面。読み込ませる宛先の CSV は、「氏名,メールアドレス」の見出し無しの形です。文字コードは自動判別します。`CsvReader`（10章）で、読み込みと検証だけを借ります。
+- **送信**：入力（文面を選ぶと欄に入るので、必要な箇所を書き換える。添付ファイルは1つ）→ 確認 → 送信 → 状況の画面。読み込ませる宛先の CSV は、「氏名,メールアドレス」の見出し無しの形です。文字コードは自動判別します。`CsvRead`（10章）で、読み込みと検証だけを借ります。
 - **氏名の差し込み**：件名と本文の `{{$name}}` を宛先の氏名に置き換えます。Blade では展開せず、文字列を置き換えるだけです。Blade で展開すると、画面から Blade のコードを入力されたときに、それがサーバーで実行されてしまうためです。ほかの `{{…}}` は入力エラーにします。件名と CSV の氏名は、メールの見出しを崩さないよう改行を許しません。
 - **宛先は保存しない**：送るたびに送信の記録（`t_bulk_mails`）を1件作りますが、持つのは件名・本文・添付ファイル・件数だけです。宛先はジョブの中にだけあり、送り終えれば消えます。送り終えたら送れた件数と失敗した件数を記録に写します。
 - **二重の送信**：送信中の一斉メールがあれば、入力画面を開いても状況の画面に回します。送信の実行はロックの中で確かめるので、2つの画面から同時に押しても1つしか送りません。
@@ -2404,7 +2404,7 @@ private function afterSave(Member $member, array $validated, array $changedField
 
 <p align="right"><a href="#目次" data-href="#目次" class="internal-link">目次へ戻る</a></p>
 
-**ファイル**：`packages/neobit/core/src/Auth/LoginAccount.php`・`IsLoginAccount.php`・`TwoFactorLogin.php`・`TeamInvitationManager.php`・`TeamInvitationOwner.php`・`TeamInvitationRelation.php`・`LoginIdMemory.php`、`config/login.php`、設計の詳細は「個人会員と企業会員を共存させる設計」（`docs/member-types-spec.md`）　**実例**：個人会員は `AuthSessionController` ほか、企業会員は `app/Http/Controllers/Company/` の下と `Admin\CompanyController`・`Admin\CompanyUserController`
+**ファイル**：`packages/neobit/core/src/Auth/LoginAccount.php`・`IsLoginAccount.php`・`TwoFactorLogin.php`・`TeamInvitationManager.php`・`TeamInvitationOwner.php`・`HasTeamInvitations.php`・`LoginIdMemory.php`、`config/login.php`、設計の詳細は「個人会員と企業会員を共存させる設計」（`docs/member-types-spec.md`）　**実例**：個人会員は `AuthSessionController` ほか、企業会員は `app/Http/Controllers/Company/` の下と `Admin\CompanyController`・`Admin\CompanyUserController`
 
 訪問者側でログインする人は、個人会員と、企業の担当者の2種類です。ログインの仕組み（14章）は同じ共通部品を使い、画面・URL・コントローラーは種類ごとに分けて書きます。企業会員を使わないサイトは、企業会員のファイルを消します。
 
@@ -2531,7 +2531,7 @@ Route::prefix('company')->name('company.')->group(function () {
     ```php
     class Company extends Model implements TeamInvitationOwner
     {
-        use TeamInvitationRelation;                    // invitations() の関連
+        use HasTeamInvitations;                    // invitations() の関連
 
         public static function invitedAccountClass(): string
         {

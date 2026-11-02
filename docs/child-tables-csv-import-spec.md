@@ -13,7 +13,7 @@ CSV の取り込みで、子テーブル（`CHILD_TABLES`）を保存できる�
 
 | 範囲 | 内容 |
 |---|---|
-| フレームワーク | `CsvColumnSet`・`CsvReader`・`ChildTables`。複数の欄（`'repeatable'`）向けに残っていた取り込みの処理は、子テーブルの形に作り直して消した |
+| フレームワーク | `CsvColumnSet`・`CsvRead`・`ChildTables`。複数の欄（`'repeatable'`）向けに残っていた取り込みの処理は、子テーブルの形に作り直して消した |
 | 見本のサイト | ニュースの CSV で、添付ファイルの列を取り込めるようになった。一覧用画像が必須なので、ニュースの CSV では追加ができなくなった（更新だけ） |
 | `csvColumns()` の書き方 | 変わらない。組の横展開を書かなければ、今までどおり親の項目だけで動く |
 
@@ -28,7 +28,7 @@ CSV の取り込みで、子テーブル（`CHILD_TABLES`）を保存できる�
 - 保存ファイル名が空欄なのに表示名がある組と、同じ保存ファイル名が2回ある組はエラー。表示名の列が無ければ、今の行の同じファイル名の表示名を使う。
 - コンストラクタの2つ目の引数は、アップロードの欄の一覧から、子テーブルの定義（関連の名前 => 定義）に変えた。
 
-**取り込みの流れ**（`CsvReader`）
+**取り込みの流れ**（`CsvRead`）
 
 - 1つだけのアップロードの欄（`kind` が `single`）と、子テーブルの定義を集める。
 - 組の列があるCSVだけ、行ごとに子テーブルの今の行（`childTableValues()`）を読み、表示名の補いと、変更の比べに使う。
@@ -48,7 +48,7 @@ CSV の取り込みで、子テーブル（`CHILD_TABLES`）を保存できる�
 
 ## C. 前提・依存
 
-- CSV の取り込み（`CsvImport`・`CsvReader`・`CsvColumnSet`）と、組の横展開の書き出し
+- CSV の取り込み（`CsvImport`・`CsvRead`・`CsvColumnSet`）と、組の横展開の書き出し
 - 子テーブル（`ChildTables`・`ChildTableDefinitions`）
 - アップロードの欄の取り込みのファイル名の確かめ（`AjaxFileUpload::checkImportedUploadFilename()`。組の中の欄の名前でも、そのまま使えた）
 

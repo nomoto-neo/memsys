@@ -266,12 +266,12 @@ private function processCsvRows(CsvImportResult $result): ?string
 - id で探すものが無ければ、`CsvImportSettings` の `query` は null でよい。そのときは id の列を使えない。
 - 整形の `prepareInput()` は、保存するモードでだけ通す。処理だけのモードでは、検証した値がそのまま `validated` に入る。
 
-## 15. CSVの読み込みだけを使う（`CsvReader`）
+## 15. CSVの読み込みだけを使う（`CsvRead`）
 
-`CsvImport` は、取り込み画面と保存の流れ（`CsvImport`）と、CSVを読んで確かめる部分（`CsvReader`）の2つのトレイトでできている。一斉メールのように自分の画面を持つ機能は、`CsvReader` だけを `use` して、CSVの読み込みと検証を借りる。共通の取り込み画面に、その機能の入力欄や表示を足さないため。
+`CsvImport` は、取り込み画面と保存の流れ（`CsvImport`）と、CSVを読んで確かめる部分（`CsvRead`）の2つのトレイトでできている。一斉メールのように自分の画面を持つ機能は、`CsvRead` だけを `use` して、CSVの読み込みと検証を借りる。共通の取り込み画面に、その機能の入力欄や表示を足さないため。
 
 ```php
-use CsvReader;
+use CsvRead;
 
 $result = $this->readCsv(
     settings: $settings,                          // CsvImportSettings。mode は Process、query は null でよい

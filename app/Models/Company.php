@@ -8,8 +8,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Collection;
 use Neobit\Core\Models\OperationLogNamedModel;
+use Neobit\Core\Team\HasTeamInvitations;
 use Neobit\Core\Team\TeamInvitationOwner;
-use Neobit\Core\Team\TeamInvitationRelation;
 
 /**
  * 企業会員の企業。企業の情報だけを持ち、ログインはしない。
@@ -18,7 +18,7 @@ use Neobit\Core\Team\TeamInvitationRelation;
 class Company extends Model implements OperationLogNamedModel, TeamInvitationOwner
 {
     // 担当者の招待の関連（invitations()）。Neobit\Core\Team\TeamInvitationManagerが使う
-    use TeamInvitationRelation;
+    use HasTeamInvitations;
 
     /** 操作ログで、変わった列に数えない列。最後に更新したスタッフのidは、入力とは関係なく変わるため */
     public const OPERATION_LOG_IGNORE = ['staff_id'];

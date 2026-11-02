@@ -22,7 +22,7 @@ use Throwable;
 /**
  * CSV取り込みの共通処理。ダウンロードのCsvDownloadと同じcsvColumns()の定義を使うので、
  * ダウンロードしたCSVを直してそのまま取り込める。
- * このトレイトは取り込み画面と保存の流れを受け持ち、CSVの読み込みと検証はCsvReaderが行う。
+ * このトレイトは取り込み画面と保存の流れを受け持ち、CSVの読み込みと検証はCsvReadが行う。
  *
  * 流れは「ファイルを選ぶ → 全行を検証して確認画面 → エラーが無ければ実行」。実行は全行を
  * 1つのトランザクションで反映し、1件でも失敗したら何も反映しない。
@@ -87,7 +87,7 @@ use Throwable;
  */
 trait CsvImport
 {
-    use CsvReader;
+    use CsvRead;
 
     /** 確認画面に並べる行の数の上限。エラーや警告の行と、処理だけのモードで読んだ行 */
     private const CSV_IMPORT_PREVIEW_ROWS = 30;

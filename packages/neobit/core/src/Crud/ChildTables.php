@@ -373,7 +373,7 @@ trait ChildTables
 
     /**
      * CSV取り込みの1行のファイルの項目の、保存する[ファイル名, 表示名]。ファイル名は、今の行のファイルか、
-     * このレコードの保存先にあるものだと、読むときに確かめてある（CsvReader）。空欄ならファイルは無し
+     * このレコードの保存先にあるものだと、読むときに確かめてある（CsvRead）。空欄ならファイルは無し
      */
     private function childTableImportedFileValue(array $def, string $field, array $validated, int $i): array
     {

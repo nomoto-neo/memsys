@@ -42,7 +42,7 @@ use Neobit\Core\Operations\TemporaryDataCleaner;
  * 確認画面ではstoreCsvForConfirm()で一時ディレクトリに置いてrememberCsv()で合言葉を受け取り、
  * 実行ではpullCsv()で取り出して読み直す。読み直すのは、確認画面の後にデータが変わることがあるため。
  */
-trait CsvReader
+trait CsvRead
 {
     /** CSVファイルの欄の検証ルール。大きさの上限は、設定で決める（config/neobit.phpのuploadの節） */
     private function csvFileRules(): array

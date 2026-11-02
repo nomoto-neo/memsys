@@ -9,7 +9,7 @@ use ReflectionClass;
  *
  * 住所や電話番号のような個人情報が、入力した人によって全角だったり半角だったりするのを防ぐ。
  * 同じ人や同じ住所を、書き方の違いで別のものとして扱わないようにするため。
- * 画面からの入力（Neobit\Core\Http\Middleware\NormalizeInput）と、CSV取り込みのセル（CsvReader）の
+ * 画面からの入力（Neobit\Core\Http\Middleware\NormalizeInput）と、CSV取り込みのセル（CsvRead）の
  * 両方から呼ぶので、そろえる中身をここ1か所に持つ。どちらも、検証の前に通す。
  *
  * ■ そろえる内容

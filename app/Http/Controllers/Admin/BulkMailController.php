@@ -28,7 +28,7 @@ use Neobit\Core\Crud\SearchableList;
 use Neobit\Core\Csv\CsvImportResult;
 use Neobit\Core\Csv\CsvImportRow;
 use Neobit\Core\Csv\CsvImportSettings;
-use Neobit\Core\Csv\CsvReader;
+use Neobit\Core\Csv\CsvRead;
 use Neobit\Core\Csv\CsvWriter;
 use Neobit\Core\Enums\CsvEncoding;
 use Neobit\Core\Enums\CsvImportMode;
@@ -53,7 +53,7 @@ use Throwable;
  *
  * ■ 宛先のCSV
  * 「氏名,メールアドレス」の2列で、見出しの行は無い。会員のデータからではなくCSVから送るのは、
- * 会員でない人にも送れるようにするため。読み込みと検証はCsvReaderを借り、画面と流れはここで持つ。
+ * 会員でない人にも送れるようにするため。読み込みと検証はCsvReadを借り、画面と流れはここで持つ。
  * 宛先は保存せず、ジョブの中にだけ置く。
  *
  * ■ 配信停止
@@ -71,7 +71,7 @@ class BulkMailController extends Controller
     // ---- 共通処理（トレイト） ----
 
     use AjaxFileUpload;
-    use CsvReader;
+    use CsvRead;
     use FormFlow;
     use SearchableList;
 

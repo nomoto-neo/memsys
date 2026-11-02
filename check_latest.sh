@@ -228,7 +228,7 @@ has   app/Http/Controllers/MypageController.php                         'deleteC
 has   resources/views/_member_career_row.blade.php                      'careers_content[]'
 has   resources/views/pdf/resume_on_sheet.blade.php                     '$firstPageRows = 15'
 has   packages/neobit/core/src/Csv/CsvColumnSet.php                     'private function readChildGroup('
-has   packages/neobit/core/src/Csv/CsvReader.php                        'private function checkCsvImportRequiredUploads('
+has   packages/neobit/core/src/Csv/CsvRead.php                          'private function checkCsvImportRequiredUploads('
 has   packages/neobit/core/src/Crud/ChildTables.php                     'private function childTableImportedFileValue('
 has   packages/neobit/core/src/Seo/Seo.php                              'final class Seo'
 has   packages/neobit/core/src/helpers.php                              "function_exists('seo')"
