@@ -23,8 +23,8 @@
     <div class="col-sm-3">
         <select name="disp_flg" class="form-select">
             <option value="">状態（すべて）</option>
-            <option value="1" @selected(hit($filters['disp_flg'], 1))>表示</option>
-            <option value="0" @selected(hit($filters['disp_flg'], 0))>非表示</option>
+            <option value="1" @selected(is_match($filters['disp_flg'], 1))>表示</option>
+            <option value="0" @selected(is_match($filters['disp_flg'], 0))>非表示</option>
         </select>
     </div>
     <div class="col-sm-3">

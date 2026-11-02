@@ -13,7 +13,7 @@ use Neobit\Core\Enums\CodeTableEnum;
 use Tests\TestCase;
 
 /**
- * 画面を短く書くためのヘルパー（hit()・code_options()・code_label()）と、
+ * 画面を短く書くためのヘルパー（is_match()・code_options()・code_label()）と、
  * 画面に渡す$input・$filtersに、値の無い項目のキーも入っていること。
  */
 class FormHelpersTest extends TestCase
@@ -31,33 +31,33 @@ class FormHelpersTest extends TestCase
         ]);
     }
 
-    // ---- hit() ----
+    // ---- is_match() ----
 
-    public function test_hit_compares_a_single_value(): void
+    public function test_is_match_compares_a_single_value(): void
     {
         // フォームから届いた文字と、コード表の数値は、同じ値として扱う
-        $this->assertTrue(hit('13', 13));
-        $this->assertTrue(hit(13, '13'));
-        $this->assertTrue(hit(0, '0'));
-        $this->assertTrue(hit(NoticeMail::Stop, 0));
-        $this->assertFalse(hit('13', 1));
-        $this->assertFalse(hit('1', 13));
+        $this->assertTrue(is_match('13', 13));
+        $this->assertTrue(is_match(13, '13'));
+        $this->assertTrue(is_match(0, '0'));
+        $this->assertTrue(is_match(NoticeMail::Stop, 0));
+        $this->assertFalse(is_match('13', 1));
+        $this->assertFalse(is_match('1', 13));
     }
 
-    public function test_hit_looks_into_an_array(): void
+    public function test_is_match_looks_into_an_array(): void
     {
-        $this->assertTrue(hit(['1', '13'], 13));
-        $this->assertTrue(hit([1, 13], '13'));
-        $this->assertFalse(hit(['1', '13'], 3));
-        $this->assertFalse(hit([], 3));
+        $this->assertTrue(is_match(['1', '13'], 13));
+        $this->assertTrue(is_match([1, 13], '13'));
+        $this->assertFalse(is_match(['1', '13'], 3));
+        $this->assertFalse(is_match([], 3));
     }
 
-    public function test_hit_is_false_for_an_empty_value(): void
+    public function test_is_match_is_false_for_an_empty_value(): void
     {
-        $this->assertFalse(hit(null, 0));
-        $this->assertFalse(hit('', 0));
-        $this->assertFalse(hit(null, ''));
-        $this->assertFalse(hit('', ''));
+        $this->assertFalse(is_match(null, 0));
+        $this->assertFalse(is_match('', 0));
+        $this->assertFalse(is_match(null, ''));
+        $this->assertFalse(is_match('', ''));
     }
 
     // ---- code_options()・code_label() ----

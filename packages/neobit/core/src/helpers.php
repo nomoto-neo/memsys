@@ -99,7 +99,7 @@ if (! function_exists('code_options')) {
         }
 
         $option = fn (int|string $value, mixed $label): string => '<option value="'.e($value).'"'
-            .(hit($selected, $value) ? ' selected' : '').'>'.e($label).'</option>';
+            .(is_match($selected, $value) ? ' selected' : '').'>'.e($label).'</option>';
 
         $lines = [];
 
@@ -123,17 +123,17 @@ if (! function_exists('code_options')) {
     }
 }
 
-if (! function_exists('hit')) {
+if (! function_exists('is_match')) {
     /**
      * 入力値が、選択肢の値に当たっているかを返す。チェックボックス・ラジオ・プルダウンの
      * 「選ばれているか」を、@checked()・@selected()に渡すのに使う。
      * 入力値が1つなら同じ値か、配列ならその中にあるかを見る。フォームから届いた文字の'1'と、
      * コード表の数値の1は、同じ値として扱う。入力値が空なら当たらない。
      *
-     *   <input type="checkbox" name="hobby[]" value="{{ $k }}" @checked(hit($input['hobby'], $k))>
-     *   <option value="{{ $k }}" @selected(hit($input['prefecture'], $k))>{{ $name }}</option>
+     *   <input type="checkbox" name="hobby[]" value="{{ $k }}" @checked(is_match($input['hobby'], $k))>
+     *   <option value="{{ $k }}" @selected(is_match($input['prefecture'], $k))>{{ $name }}</option>
      */
-    function hit(mixed $value, mixed $key): bool
+    function is_match(mixed $value, mixed $key): bool
     {
         // 列挙型は、その値で比べる
         $normalize = fn (mixed $v): ?string => match (true) {

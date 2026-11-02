@@ -19,7 +19,7 @@
  * - 一番上の変数 $name は $input['name']。foreachの行 $d.id は $d->id
  * - 名前が _ary で終わる変数は区分表。foreachならcode_table('名前')、
  *   $xxx_ary[$v] ならcode_label('名前', $v)
- * - |checked:$k・|selected:$k は @checked(hit(…))・@selected(hit(…))
+ * - |checked:$k・|selected:$k は @checked(is_match(…))・@selected(is_match(…))
  * - html_optionsはcode_options()、html_valuesはcode_label()
  * - <!--{$err.xxx}--> は、エラー欄の<div class="invalid-feedback" …>
  * - HTMLのコメント <!-- … --> は、Bladeのコメント {{-- … --}}
@@ -688,7 +688,7 @@ final class Tpl2Blade
         $selected = $this->expr($attrs['selected'] ?? $attrs['checked'] ?? '$'.$field);
 
         return "@foreach (code_table('{$codeName}') as \$k => \$name)\n"
-            ."    <label><input type=\"{$type}\" name=\"{$name}\" value=\"{{ \$k }}\" @checked(hit({$selected}, \$k))>{{ \$name }}</label>\n"
+            ."    <label><input type=\"{$type}\" name=\"{$name}\" value=\"{{ \$k }}\" @checked(is_match({$selected}, \$k))>{{ \$name }}</label>\n"
             .'@endforeach'
             .$this->todo('囲むタグとクラスを、デザインに合わせて直します', $inner);
     }
@@ -1106,7 +1106,7 @@ final class Tpl2Blade
             // 値が当たっていたら checked・selected を出す、旧フレームワークの修飾子
             case 'checked':
             case 'selected':
-                $condition = isset($args[0]) ? "hit({$value}, {$args[0]})" : $value;
+                $condition = isset($args[0]) ? "is_match({$value}, {$args[0]})" : $value;
 
                 return $this->operand("@{$name}({$condition})", 'directive');
 

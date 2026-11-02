@@ -40,13 +40,13 @@
     <div class="form-check form-check-inline">
         <input id="disp_flg_1" type="radio" name="disp_flg" value="1"
                class="form-check-input"
-               @checked(hit($input['disp_flg'], 1)){{ $disabled }}>
+               @checked(is_match($input['disp_flg'], 1)){{ $disabled }}>
         <label for="disp_flg_1" class="form-check-label">表示</label>
     </div>
     <div class="form-check form-check-inline">
         <input id="disp_flg_0" type="radio" name="disp_flg" value="0"
                class="form-check-input"
-               @checked(hit($input['disp_flg'], 0)){{ $disabled }}>
+               @checked(is_match($input['disp_flg'], 0)){{ $disabled }}>
         <label for="disp_flg_0" class="form-check-label">非表示</label>
     </div>
     <div class="invalid-feedback" data-item="disp_flg">{{ $errors->first('disp_flg') }}</div>

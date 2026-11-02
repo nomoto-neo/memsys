@@ -1053,7 +1053,7 @@ final class AppUploadDirectory implements UploadDirectoryRule
 | `code_keys('prefectures')` | 値の一覧。検証の `Rule::in(code_keys(...))` |
 | `code_label('prefectures', $value, '（未設定）')` | 名称。画面の表示、メール。複数選ばれた値を配列で渡すと、名称を「、」でつなげる。区切りは4番目の引数に書く |
 | `code_options('prefectures', $selected)` | プルダウンの `<option>` を並べた HTML。選ばれているものに `selected` が付く。2階層の配列を渡すと `<optgroup>` にまとめる |
-| `hit($value, $key)` | 入力値が、選択肢の値に当たっているか。`@checked()`・`@selected()` に渡す |
+| `is_match($value, $key)` | 入力値が、選択肢の値に当たっているか。`@checked()`・`@selected()` に渡す |
 
 出どころは4種類で、`CodeTable` がコード名から自動で探します（2つ以上にあればエラー）。
 
@@ -1136,7 +1136,7 @@ public function label(): string
 @foreach (code_table('hobby') as $k => $name)
     <div class="form-check form-check-inline">
         <input id="hobby_{{ $k }}" type="checkbox" name="hobby[]" value="{{ $k }}"
-               class="form-check-input" @checked(hit($input['hobby'], $k)){{ $disabled }}>
+               class="form-check-input" @checked(is_match($input['hobby'], $k)){{ $disabled }}>
         <label for="hobby_{{ $k }}" class="form-check-label">{{ $name }}</label>
     </div>
 @endforeach
@@ -1145,7 +1145,7 @@ public function label(): string
 {{ code_label('hobby', $row->hobby) }}
 ```
 
-- **`hit($value, $key)`** は、入力値が1つなら同じ値か、配列ならその中にあるかを返します。フォームから届いた文字の `'1'` と、コード表の数値の `1` は、同じ値として扱います。入力値が空なら、当たりません。型をそろえる `(int)` や `in_array()` を、画面に書かなくて済みます。
+- **`is_match($value, $key)`** は、入力値が1つなら同じ値か、配列ならその中にあるかを返します。フォームから届いた文字の `'1'` と、コード表の数値の `1` は、同じ値として扱います。入力値が空なら、当たりません。型をそろえる `(int)` や `in_array()` を、画面に書かなくて済みます。
 - **`code_options()`** は、`HtmlString`（そのまま出してよい印の付いた HTML）を返します。`{{ }}` はこの印の付いた値をエスケープしないので、`{{ }}` で出します。`{!! !!}` でも同じ結果になりますが、`{!! !!}` は中身を確かめずに出す書き方なので、画面には増やしません。複数選べるプルダウンは、選ばれている値を配列で渡します。
 - **2階層の選択肢は、`code/` の CSV に見出しの行を書きます**。`[東北]` のように `[ ]` で囲んだ行が見出しで、その後ろの行は、次の見出しまでその中に入ります。`code_options('pref_area', $input['pref'])` と名前を渡すだけで、見出しごとの `<optgroup>` にまとまります。地域ごとに分けた都道府県のような選択肢に使います。
 
@@ -1161,7 +1161,7 @@ public function label(): string
 - **2階層のまま使えるのは `code_options()` だけです**。`code_table('pref_area')` は `['東北' => [2 => '青森県', 3 => '岩手県'], …]` を返します。`code_keys()`・`code_label()` や、検証の `Rule::in()`、CSV の項目の定義は、1階層のコード表のためのものです。2階層のコード表に使うときは、使う側で形を合わせます。列挙型と DB のコード表は、1階層だけです。
 - **`code_options()` には、コード表の名前の代わりに配列も渡せます**。区分表に無い選択肢や、コントローラーで組み立てた2階層の配列を、そのまま渡せます。
 - **ラジオとチェックボックスを並べる部品は、作りません**。1個ずつを囲むタグとクラスが、デザインごとに違うためです。
-- 選択肢ごとに `data-` 属性を付けるなど、`<option>` に手を入れたいときは、`@foreach` と `@selected(hit(...))` で書きます。
+- 選択肢ごとに `data-` 属性を付けるなど、`<option>` に手を入れたいときは、`@foreach` と `@selected(is_match(...))` で書きます。
 
 Blade には `\App\Enums\...` を書かず、`code_table()` 系で書きます。画面の説明文のような文面は、列挙型に持たせず Blade に書きます。
 
