@@ -96,7 +96,7 @@ class OperationLogReportTest extends TestCase
         config(['neobit.operation_log.report_to' => 'admin@example.com']);
 
         try {
-            file_put_contents($path, "FROM_NAME: サイト\nTO: {!! \$to !!}\nSUBJECT: 件名\n\n本文\n");
+            file_put_contents($path, "FROM_NAME: サイト\nTO: {!! \$to_mail !!}\nSUBJECT: 件名\n\n本文\n");
 
             // 送信の失敗はログに残して続けるが、テンプレートの誤りは、受け止めずに止める
             $this->expectException(MailTemplateException::class);

@@ -191,8 +191,8 @@ class FileWatch extends Command
             Mail::send(new TemplatedMail('file_watch_approved', [
                 'from_mail' => config('mail.from.address'),
                 'from_name' => config('mail.from.name'),
-                'to' => implode(', ', $recipients),
-                'app_name' => config('app.site_name'),
+                'to_mail' => implode(', ', $recipients),
+                'site_name' => config('app.site_name'),
                 'by' => $approval['by'],
                 'count' => count($labels),
                 'changed' => $lists['changed'],
@@ -264,8 +264,8 @@ class FileWatch extends Command
             Mail::send(new TemplatedMail('file_watch_alert', [
                 'from_mail' => config('mail.from.address'),
                 'from_name' => config('mail.from.name'),
-                'to' => implode(', ', $recipients),
-                'app_name' => config('app.site_name'),
+                'to_mail' => implode(', ', $recipients),
+                'site_name' => config('app.site_name'),
                 'counts' => implode('・', $counts),
                 'dangers' => $this->lines($dangers),
                 'unreadable' => $unreadable !== [] ? '  '.implode("\n  ", $unreadable) : '  （なし）',

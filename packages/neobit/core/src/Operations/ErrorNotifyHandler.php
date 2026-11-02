@@ -134,8 +134,8 @@ final class ErrorNotifyHandler extends AbstractProcessingHandler
         $variables = [
             'from_mail' => config('mail.from.address'),
             'from_name' => config('mail.from.name'),
-            'to' => implode(', ', $recipients),
-            'app_name' => config('app.site_name'),
+            'to_mail' => implode(', ', $recipients),
+            'site_name' => config('app.site_name'),
             'app_env' => config('app.env'),
             'level' => $record->level->getName(),
             'datetime' => $record->datetime->format('Y-m-d H:i:s'),

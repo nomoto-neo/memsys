@@ -2,7 +2,7 @@ FROM: {!! $from_name !!} <{!! $from_mail !!}>
 TO: {!! $to_mail !!}
 SUBJECT: 退会手続き完了のお知らせ
 
-{!! $member_name !!} 様
+{!! $name !!} 様
 
 退会のお手続きが完了しました。これまでご利用いただき、ありがとうございました。
 

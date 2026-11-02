@@ -1,8 +1,8 @@
 FROM: {!! $from_name !!} <{!! $from_mail !!}>
-TO: {!! $to !!}
-SUBJECT: 【要確認：{!! $app_name !!}】{!! $level !!}：{!! $title !!}
+TO: {!! $to_mail !!}
+SUBJECT: 【要確認：{!! $site_name !!}】{!! $level !!}：{!! $title !!}
 
-{!! $app_name !!}（{!! $app_env !!}）で、注意すべきログが記録されました。
+{!! $site_name !!}（{!! $app_env !!}）で、注意すべきログが記録されました。
 
 ■日時
 {!! $datetime !!}　{!! $level !!}

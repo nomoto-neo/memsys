@@ -36,7 +36,7 @@ class MailTemplateTest extends TestCase
         'from_name' => 'サイト',
         'to_mail' => 'to@example.com',
         'site_name' => 'テストサイト',
-        'member_name' => '山田 太郎',
+        'name' => '山田 太郎',
         'purpose_label' => 'ログイン',
         'code' => '123456',
     ];
@@ -241,8 +241,8 @@ class MailTemplateTest extends TestCase
         $parsed = MailTemplate::render('file_watch_alert', [
             'from_mail' => 'from@example.com',
             'from_name' => 'サイト',
-            'to' => 'dev@example.com',
-            'app_name' => 'サイト',
+            'to_mail' => 'dev@example.com',
+            'site_name' => 'サイト',
             'counts' => '変更 1件',
             'dangers' => '（なし）',
             'unreadable' => '（なし）',

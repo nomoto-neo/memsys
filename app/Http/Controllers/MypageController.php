@@ -380,7 +380,7 @@ class MypageController extends Controller
                 'from_mail' => config('mail.from.address'),
                 'from_name' => config('mail.from.name'),
                 'to_mail' => $email,
-                'member_name' => $name,
+                'name' => $name,
                 'contact_url' => route('contact.create'),
             ]));
         } catch (MailTemplateException $e) {

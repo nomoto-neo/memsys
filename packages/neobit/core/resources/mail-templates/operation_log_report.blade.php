@@ -1,8 +1,8 @@
 FROM: {!! $from_name !!} <{!! $from_mail !!}>
-TO: {!! $to !!}
-SUBJECT: 【要確認：{!! $app_name !!}】操作ログの報告（{!! $date !!}）
+TO: {!! $to_mail !!}
+SUBJECT: 【要確認：{!! $site_name !!}】操作ログの報告（{!! $date !!}）
 
-{!! $app_name !!}の、{!! $date !!} の操作ログの報告です。
+{!! $site_name !!}の、{!! $date !!} の操作ログの報告です。
 
 ■気になる点
 @if ($notable !== '')

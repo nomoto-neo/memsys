@@ -67,16 +67,16 @@ class LoginVerificationCode
     private const VALID_MINUTES = 10;
 
     /**
-     * @param  class-string<LoginAccount>  $memberClass  確認コードを送る相手のモデル
+     * @param  class-string<LoginAccount>  $accountClass  確認コードを送る相手のモデル
      */
-    public function __construct(private readonly string $memberClass)
+    public function __construct(private readonly string $accountClass)
     {
     }
 
     /** 会員の種類と使い道ごとのセッションのキー */
     private function sessionKey(string $purpose): string
     {
-        return $this->memberClass::loginType().".verification_code.$purpose";
+        return $this->accountClass::loginType().".verification_code.$purpose";
     }
 
     /**
@@ -155,9 +155,9 @@ class LoginVerificationCode
         }
 
         // 仮置きした種類の名前から、会員のモデルを決めて読む
-        $memberClass = Relation::getMorphedModel($state['member_type']);
+        $accountClass = Relation::getMorphedModel($state['member_type']);
 
-        return $memberClass !== null ? $memberClass::find($state['member_id']) : null;
+        return $accountClass !== null ? $accountClass::find($state['member_id']) : null;
     }
 
     /**
@@ -227,12 +227,12 @@ class LoginVerificationCode
 
         try {
             // テンプレートは、その種類のもの、無ければ種類の名前を除いたものを使う
-            Mail::send(new TemplatedMail([$this->memberClass::loginMailTemplate(self::TEMPLATE), self::TEMPLATE], [
+            Mail::send(new TemplatedMail([$this->accountClass::loginMailTemplate(self::TEMPLATE), self::TEMPLATE], [
                 'from_mail' => config('mail.from.address'),
                 'from_name' => config('mail.from.name'),
                 'to_mail' => $email,
                 'site_name' => config('app.site_name'),
-                'member_name' => $name,
+                'name' => $name,
                 'purpose_label' => $label,
                 'code' => $code,
             ]));

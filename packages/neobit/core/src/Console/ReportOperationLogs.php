@@ -54,8 +54,8 @@ class ReportOperationLogs extends Command
             Mail::send(new TemplatedMail('operation_log_report', $report + [
                 'from_mail' => config('mail.from.address'),
                 'from_name' => config('mail.from.name'),
-                'to' => implode(', ', $recipients),
-                'app_name' => config('app.site_name'),
+                'to_mail' => implode(', ', $recipients),
+                'site_name' => config('app.site_name'),
                 'url' => $this->operationLogUrl(),
             ]));
         } catch (MailTemplateException $e) {

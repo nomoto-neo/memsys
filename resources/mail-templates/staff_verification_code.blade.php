@@ -2,7 +2,7 @@ FROM: {!! $from_name !!} <{!! $from_mail !!}>
 TO: {!! $to_mail !!}
 SUBJECT: 【{!! $site_name !!}】{!! $purpose_label !!}のお手続き
 
-{!! $member_name !!} 様
+{!! $name !!} 様
 
 {!! $purpose_label !!}のお手続きのための確認コードは下記のとおりです。
 
