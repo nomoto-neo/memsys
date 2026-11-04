@@ -50,6 +50,7 @@
 | 4-3 | ほかのテーブルから作るコード表を、設定に書けるようにする | 済み |
 | 4-4 | アップロードの保存先のディレクトリの規則を、プロジェクトで差し替えられるようにする | 済み |
 | 4-5 | 配る前に、案件が頼る名前を総点検する | 済み |
+| 4-5-2 | 名前の総点検の続き。一覧の外にあって見ていなかった種類を見直す | 進行中 |
 | 4-6 | IPブロック管理（攻撃の IP を入口で止める）を足す | 済み |
 | 4-7 | 設定ファイルの分け方を見直す | 済み |
 | 4-8 | 子テーブル（1:多の子テーブルを、親と同じ画面で入力して保存する部品。`ChildTables`）を足す | 済み |
@@ -215,6 +216,39 @@
 | 11. メールのテンプレートと変数 | 済み |
 | 12. JavaScript・CSS | 済み |
 | 13. そのほか | 済み |
+
+### 段階4-5-2　名前の総点検の続き
+
+2026-11-04 に足した段階。段階4-5 は名前の一覧の種類ごとに見たため、一覧の外にあるものを見ていなかった。入口の見張りの `Gate` が総点検の後に見つかったのも、そのため。配った後に変えると、全案件やサーバーで直す作業が出るものなので、版を出す前に見る。
+
+見るもの。
+
+| 種類 | 状態 |
+|---|---|
+| フレームワークのテーブルの列（`code_tables`・`operation_logs`・`csv_download_logs`・`csv_import_logs`・`trusted_devices`・`two_factor_backup_codes`・`two_factor_secrets`・`team_invitations`・`ip_blocks`・`settings`・`seo_metas`・`redirects`・`basic_auth_users`） | 進行中 |
+| 見本のサイトのテーブルの列（`t_` で始まるもの）。案件が写す元になるので、同じ観点で見る | 進行中 |
+| `.env` の名前（`ADMIN_ALLOWED_IPS`・`SITE_ALLOWED_IPS`・`CRON_ENABLED`・`OPERATION_REPORT_TO`・`TRUSTED_PROXIES` など） | 未 |
+| `settings` テーブルに入れるキー | 未 |
+| 保存先のディレクトリ・定数・ファイル名 | 未 |
+
+見ないもの。Laravel 標準のテーブル（`migrations`・`password_reset_tokens`・`sessions`・`cache`・`cache_locks`・`jobs`・`job_batches`・`failed_jobs`）と、`laravel/passkeys` の形に合わせた `passkeys`。
+
+決まったもの。
+
+| 今の名前 | 後の名前 | 理由 |
+|---|---|---|
+| `code_tables` の列 `name` | `label` | 画面に出す文字で、列挙型の `label()`・ヘルパーの `code_label()` とそろう。`name` は人の名前と紛れる。項目見出し一覧のフォームの欄 `rows[][name]` も変える |
+| `ip_blocks` の列 `blocked_until` | `expires_at` | 期限が来た行は消すので、記録そのものの期限。`trusted_devices`・`team_invitations` の `expires_at` とそろう。`IpBlocker::changeUntil()` は `changeExpiry()` に、操作ログの詳細のキー `until` も `expires_at` にする |
+| SEO の画像の URL：`seo_metas` の列 `image`、記事の SEO の欄 `seo_image`、`settings` のキー `seo.image` と `seo.pages` の中の `image`、設定 `neobit.seo` の `image`・`organization_logo` | `image_url`・`seo_image_url`・`seo.image_url`・`image_url`・`image_url`・`organization_logo_url` | 入るのは画像の URL で、`image` では何が入るか読み取れない。画面の見出し「シェアの画像のURL」とモデルの `seoImageUrl()` とそろう。`seo('image')` は `<head>` に出す値を `og:image` などに合わせて並べたものなので、変えない |
+| `t_bulk_mails.status`・`t_companies.status` | 文字列から `tinyint` の数値に。送信中1・完了2、申請中1・承認済み2・停止9 | 既存のプロジェクトの形（1:仮登録・2:本登録・9:退会）にそろえる。意味は列挙型（`BulkMailStatus`・`CompanyStatus`）で分かる。進む順に1から振り、止める状態は9。`t_newsletter_subscribers.source` と `operation_logs.action` は、種類が増える・案件が足すものなので文字列のまま |
+| `t_companies` の列 `representative` | `ceo_name` | `representative` は単語の馴染みが薄い。CEO は広く通じ、`_name` で中身が名前だと分かる。株式会社に限らず団体の代表者も入れることを、列の説明に書く。画面の見出し「代表者名」は変えない |
+| `t_members` の列 `birthdate` | `birthday` | 日本の業務システムで馴染みのある名前にそろえる。年まで入ることは、日付の型で分かる |
+
+決めること。
+
+- パッケージのマイグレーションを、最初の版の前に1本へまとめるか。案件の DB は流したファイル名を記録するので、配った後はまとめられない。まとめるなら、開発サーバーなどすでに流した DB の扱いも決める。それまでは、列の名前を変えるマイグレーションを足して直す
+- 名前の一覧の13章のテーブルに、`seo_metas`・`redirects`・`basic_auth_users` が漏れている。見直しが済んだときに足す
+- 設定の `neobit.code_table.db` のキー `label` は、コード表そのものの名前で、列の `label`（1行ごとの表示）とは指すものが違う。設定の説明に「コード表の名前」と書き添える
 
 ### 段階4-6　IPブロック管理
 
