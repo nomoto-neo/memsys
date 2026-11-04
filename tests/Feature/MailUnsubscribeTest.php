@@ -198,7 +198,7 @@ class MailUnsubscribeTest extends TestCase
                 'kana' => $member->kana,
                 'email' => $member->email,
                 'phone' => $member->phone,
-                'birthdate' => $member->birthdate?->format('Y-m-d'),
+                'birthday' => $member->birthday?->format('Y-m-d'),
                 'prefecture' => $member->prefecture,
                 'notice_mail' => NoticeMail::Stop->value,
             ])

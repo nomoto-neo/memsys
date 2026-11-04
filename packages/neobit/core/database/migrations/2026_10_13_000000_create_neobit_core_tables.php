@@ -70,7 +70,7 @@ return new class extends Migration
             $table->id();
             $table->string('type', 50);
             $table->string('code', 50);
-            $table->string('name')->default('');
+            $table->string('label')->default('');
             $table->unsignedInteger('seq')->default(0);
             $table->unsignedBigInteger('staff_id')->nullable();
             $table->timestamps();

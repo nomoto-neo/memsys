@@ -26,9 +26,9 @@
 |---|---|---|
 | `seo.title_format` | 文字 | null。設定ファイルの `seo.title_format` |
 | `seo.description` | 文字 | null。設定ファイルの `seo.description` |
-| `seo.image` | 文字（`/` から始まるパスか `http(s)://`） | null。設定ファイルの `seo.image` |
+| `seo.image_url` | 文字（`/` から始まるパスか `http(s)://`） | null。設定ファイルの `seo.image_url` |
 | `seo.site_verification` | 文字（英数字・`_`・`-`） | null。タグを出さない |
-| `seo.pages` | `{ルート名: {title, description, image, noindex}}` | 何も入れていないルートは持たない |
+| `seo.pages` | `{ルート名: {title, description, image_url, noindex}}` | 何も入れていないルートは持たない |
 
 - 画面の設定は `Cache::forever('neobit-seo-settings')` に置き、保存で消す。`settings` テーブルが無いとき（マイグレーションの前）は、画面の設定が無いものとして動き、キャッシュには置かない。
 - `seo.pages` のうち、今の `seo.page_routes` に無いルートの値は使わない。保存では、`page_routes` に無いルートの値を捨てる。
@@ -47,7 +47,7 @@
 
 - サイト全体の既定（タイトルの形・既定の説明文・既定のシェアの画像の URL・確認タグ）と、`page_routes` の順のページごとの欄（タイトル・説明文・シェアの画像の URL・検索に出さない）。
 - ページはふだん閉じた枠（`<details>`）で、ページ名をクリックすると開く。ページが増えても画面が長くならないため。閉じていても分かるよう、保存してある値があれば「設定あり」、検索に出さないにしたページは「検索に出さない」の目印を出す。入力エラーのあるページだけ開いて出す。
-- ページの欄は `pages[番号][route]`・`[title]`・`[description]`・`[image]`・`[noindex]` で送る。ルート名に「.」が入るので、名前の鍵にはしない。
+- ページの欄は `pages[番号][route]`・`[title]`・`[description]`・`[image_url]`・`[noindex]` で送る。ルート名に「.」が入るので、名前の鍵にはしない。
 - 空欄の既定には、設定ファイルの値を入力欄の見本（placeholder）で出す。ページの URL は `route()` で作り、引数の要るルートでは出さない。
 - `page_routes` が空なら「設定の seo.page_routes にルートを並べると、ここに出ます。」とだけ出す。
 - 保存の後は「SEO設定を保存しました。」。確認画面は挟まない。

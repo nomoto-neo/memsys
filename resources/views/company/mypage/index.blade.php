@@ -46,7 +46,7 @@
                     <dd class="col-sm-8">{{ $company->kana ?? '（未設定）' }}</dd>
 
                     <dt class="col-sm-4">代表者名</dt>
-                    <dd class="col-sm-8">{{ $company->representative ?? '（未設定）' }}</dd>
+                    <dd class="col-sm-8">{{ $company->ceo_name ?? '（未設定）' }}</dd>
 
                     <dt class="col-sm-4">郵便番号</dt>
                     <dd class="col-sm-8">{{ $company->zip ?? '（未設定）' }}</dd>

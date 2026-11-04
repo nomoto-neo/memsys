@@ -7,7 +7,7 @@
  *    いちばん長い値の桁数に揃える。例：01・02 → 03）。数字以外の値があれば空欄。
  * 3. 「×」でその行を画面から消す（更新すると、その行は削除される）
  * 4. 送信の直前に、入力欄のnameの番号を画面の並び順で振り直す
- *    （codes[0][code]・codes[0][name]、codes[1][code]…）。サーバーはこの順を表示順にする
+ *    （codes[0][code]・codes[0][label]、codes[1][code]…）。サーバーはこの順を表示順にする
  * 5. 保存していない変更があるときにコード表を切り替えようとしたら、
  *    「はい・いいえ」で確かめる。「いいえ」ならプルダウンを元に戻す
  *
@@ -29,7 +29,7 @@ const modalElement = document.getElementById('code-switch-modal');
 const snapshot = () => JSON.stringify(
     Array.from(rows.querySelectorAll('tr')).map((tr) => [
         tr.querySelector('[data-field="code"]').value,
-        tr.querySelector('[data-field="name"]').value,
+        tr.querySelector('[data-field="label"]').value,
     ]),
 );
 
@@ -69,7 +69,7 @@ addButton?.addEventListener('click', () => {
     const row = template.content.firstElementChild.cloneNode(true);
     row.querySelector('[data-field="code"]').value = nextCode();
     rows.appendChild(row);
-    row.querySelector('[data-field="name"]').focus();
+    row.querySelector('[data-field="label"]').focus();
 });
 
 // 3. 行の削除（後から追加した行にも効くよう、まとめて受け取る）
@@ -84,7 +84,7 @@ rows.addEventListener('click', (event) => {
 form.addEventListener('submit', () => {
     rows.querySelectorAll('tr').forEach((tr, index) => {
         tr.querySelector('[data-field="code"]').name = `codes[${index}][code]`;
-        tr.querySelector('[data-field="name"]').name = `codes[${index}][name]`;
+        tr.querySelector('[data-field="label"]').name = `codes[${index}][label]`;
     });
 });
 

@@ -1193,7 +1193,7 @@ private function csvColumns(): array
     return [
         '会員ID' => 'id',
         'お名前' => 'name',
-        '生年月日' => 'birthdate|date:Y/m/d',              // 書式の変換（date・format・number）
+        '生年月日' => 'birthday|date:Y/m/d',              // 書式の変換（date・format・number）
         '都道府県' => ['prefecture', $prefectures],         // 一覧の表示名に置き換え
         '最終更新者' => 'editorStaff.name',                 // リレーション
         '年齢' => '@age',                                   // csvCustomColumn('age', $record)

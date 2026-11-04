@@ -89,7 +89,7 @@ class IpBlockTest extends TestCase
         $block = IpBlock::sole();
         $this->assertTrue($block->auto);
         $this->assertSame(3, $block->hits);
-        $this->assertTrue($block->blocked_until->between(now()->addHours(5)->subMinute(), now()->addHours(5)->addMinute()));
+        $this->assertTrue($block->expires_at->between(now()->addHours(5)->subMinute(), now()->addHours(5)->addMinute()));
 
         // 自動で止めたことは、操作した人のいない操作ログに残る
         $log = OperationLog::where('action', OperationLogAction::IpBlock->value)->sole();
@@ -173,7 +173,7 @@ class IpBlockTest extends TestCase
         // 期限なしに変える
         $this->fromIp(self::VISITOR)->actingAs($manager, 'admin')
             ->patch(route('admin.ip-blocks.update', $block), ['days' => 0]);
-        $this->assertNull($block->fresh()->blocked_until);
+        $this->assertNull($block->fresh()->expires_at);
 
         // 解除すると、行が消えて、そのIPアドレスから開けるようになる
         $this->fromIp(self::VISITOR)->actingAs($manager, 'admin')

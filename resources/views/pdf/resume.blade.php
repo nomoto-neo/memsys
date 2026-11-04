@@ -122,8 +122,8 @@
                 <tr>
                     <td class="label">生年月日</td>
                     <td>
-                        @if ($member->birthdate)
-                            {{ $member->birthdate->format('Y年n月j日') }}生（満{{ $member->birthdate->age }}歳）
+                        @if ($member->birthday)
+                            {{ $member->birthday->format('Y年n月j日') }}生（満{{ $member->birthday->age }}歳）
                         @endif
                     </td>
                 </tr>

@@ -233,7 +233,7 @@
 
 見ないもの。Laravel 標準のテーブル（`migrations`・`password_reset_tokens`・`sessions`・`cache`・`cache_locks`・`jobs`・`job_batches`・`failed_jobs`）と、`laravel/passkeys` の形に合わせた `passkeys`。
 
-決まったもの。
+決まったもの。下の表の分は、2026-11-05 に直した（実装プロンプトは `docs/prompt/column-names.md`）。
 
 | 今の名前 | 後の名前 | 理由 |
 |---|---|---|
@@ -248,7 +248,6 @@
 
 - パッケージのマイグレーションを、最初の版の前に1本へまとめるか。案件の DB は流したファイル名を記録するので、配った後はまとめられない。まとめるなら、開発サーバーなどすでに流した DB の扱いも決める。それまでは、列の名前を変えるマイグレーションを足して直す
 - 名前の一覧の13章のテーブルに、`seo_metas`・`redirects`・`basic_auth_users` が漏れている。見直しが済んだときに足す
-- 設定の `neobit.code_table.db` のキー `label` は、コード表そのものの名前で、列の `label`（1行ごとの表示）とは指すものが違う。設定の説明に「コード表の名前」と書き添える
 
 ### 段階4-6　IPブロック管理
 

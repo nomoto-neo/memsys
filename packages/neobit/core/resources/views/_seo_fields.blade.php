@@ -8,16 +8,16 @@
     - $readonlyが空でない（confirm/show）：入れた値だけを並べる。全部空なら「（自動）」
 
     受け取る変数:
-    - $input     画面の入力値。seo_title・seo_description・seo_image・seo_noindexが入っている
+    - $input     画面の入力値。seo_title・seo_description・seo_image_url・seo_noindexが入っている
     - $readonly  ' readonly'または''
 --}}
 @php
     $seoTitle = $input['seo_title'] ?? null;
     $seoDescription = $input['seo_description'] ?? null;
-    $seoImage = $input['seo_image'] ?? null;
+    $seoImageUrl = $input['seo_image_url'] ?? null;
     $seoNoindex = ($input['seo_noindex'] ?? null) == '1';
-    $seoFilled = filled($seoTitle) || filled($seoDescription) || filled($seoImage) || $seoNoindex;
-    $seoErrors = $errors->hasAny(['seo_title', 'seo_description', 'seo_image', 'seo_noindex']);
+    $seoFilled = filled($seoTitle) || filled($seoDescription) || filled($seoImageUrl) || $seoNoindex;
+    $seoErrors = $errors->hasAny(['seo_title', 'seo_description', 'seo_image_url', 'seo_noindex']);
 @endphp
 @if ($readonly)
     <div class="mb-3">
@@ -30,8 +30,8 @@
                 @if (filled($seoDescription))
                     <dt class="col-sm-3">説明文</dt><dd class="col-sm-9">{{ $seoDescription }}</dd>
                 @endif
-                @if (filled($seoImage))
-                    <dt class="col-sm-3">シェアの画像</dt><dd class="col-sm-9">{{ $seoImage }}</dd>
+                @if (filled($seoImageUrl))
+                    <dt class="col-sm-3">シェアの画像</dt><dd class="col-sm-9">{{ $seoImageUrl }}</dd>
                 @endif
                 @if ($seoNoindex)
                     <dt class="col-sm-3">検索</dt><dd class="col-sm-9">検索に出さない</dd>
@@ -60,10 +60,10 @@
         </div>
 
         <div class="mt-2">
-            <label for="seo_image" class="form-label small mb-1">シェアの画像のURL</label>
-            <input id="seo_image" type="text" name="seo_image" class="form-control form-control-sm" maxlength="255"
-                   placeholder="空欄なら記事の画像（無ければサイトの既定）。例：/uploads/… か https://…" value="{{ $seoImage }}">
-            <div class="invalid-feedback" data-item="seo_image">{{ $errors->first('seo_image') }}</div>
+            <label for="seo_image_url" class="form-label small mb-1">シェアの画像のURL</label>
+            <input id="seo_image_url" type="text" name="seo_image_url" class="form-control form-control-sm" maxlength="255"
+                   placeholder="空欄なら記事の画像（無ければサイトの既定）。例：/uploads/… か https://…" value="{{ $seoImageUrl }}">
+            <div class="invalid-feedback" data-item="seo_image_url">{{ $errors->first('seo_image_url') }}</div>
         </div>
 
         <div class="form-check mt-2">

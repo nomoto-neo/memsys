@@ -13,7 +13,7 @@
 
     呼び出し側が用意する変数：
     - $input        画面に表示する値の配列（name/kana/email/phone/
-                     birthdate/prefecture/password/password_confirmation）。
+                     birthday/prefecture/password/password_confirmation）。
                      editではold()を優先したデフォルト値、confirmでは
                      直前に検証した確認前データ、showでは対象会員の
                      現在値を、それぞれ呼び出し側（コントローラー）で
@@ -74,11 +74,11 @@
 </div>
 
 <div class="mb-3">
-    <label for="birthdate" class="form-label">生年月日 {!! $required['birthdate'] ?? '' !!}</label>
-    <input id="birthdate" type="date" name="birthdate"
+    <label for="birthday" class="form-label">生年月日 {!! $required['birthday'] ?? '' !!}</label>
+    <input id="birthday" type="date" name="birthday"
            class="form-control"
-           value="{{ $input['birthdate'] ?? '' }}"{{ $readonly }}>
-    <div class="invalid-feedback" data-item="birthdate">{{ $errors->first('birthdate') }}</div>
+           value="{{ $input['birthday'] ?? '' }}"{{ $readonly }}>
+    <div class="invalid-feedback" data-item="birthday">{{ $errors->first('birthday') }}</div>
 </div>
 
 <div class="mb-3">

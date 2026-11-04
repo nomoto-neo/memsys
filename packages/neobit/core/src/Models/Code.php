@@ -17,7 +17,7 @@ class Code extends Model
     protected $fillable = [
         'type',
         'code',
-        'name',
+        'label',
         'seq',
         'staff_id',
     ];

@@ -30,7 +30,7 @@ class Company extends Model implements OperationLogNamedModel, TeamInvitationOwn
         'code',
         'name',
         'kana',
-        'representative',
+        'ceo_name',
         'zip',
         'prefecture',
         'address',

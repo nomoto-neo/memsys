@@ -27,13 +27,13 @@
 | `seoable_type`・`seoable_id` | 文字（50）・数 | どのモデルの何番か。モデルの種類は短い名前（`enforceMorphMap()`）。2つで一意 |
 | `title` | 文字（60）・NULL 可 | SEO のタイトル |
 | `description` | 文字（300）・NULL 可 | 説明文 |
-| `image` | 文字（255）・NULL 可 | シェアの画像の URL |
+| `image_url` | 文字（255）・NULL 可 | シェアの画像の URL |
 | `noindex` | 真偽値 | 検索に出さない |
 
 **検証**（`SeoFields::seoRules()`）
 
 - `seo_title`：60文字まで。`seo_description`：300文字まで。
-- `seo_image`：255文字まで。`/` から始まり、次が `/` でないサイトの中のパスか、`http://`・`https://` から始まる URL。空白は不可。`javascript:` やプロトコルを省いた `//` は断る。
+- `seo_image_url`：255文字まで。`/` から始まり、次が `/` でないサイトの中のパスか、`http://`・`https://` から始まる URL。空白は不可。`javascript:` やプロトコルを省いた `//` は断る。
 - `seo_noindex`：`0` か `1`。
 
 **値の組み立てと保存**（`SeoFields`・FormFlow）

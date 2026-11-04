@@ -30,10 +30,10 @@ final class SeoSettings
     private const DEFAULT_KEYS = [
         'title_format' => 'seo.title_format',
         'description' => 'seo.description',
-        'image' => 'seo.image',
+        'image_url' => 'seo.image_url',
         'site_verification' => 'seo.site_verification',
         'organization_name' => 'seo.organization_name',
-        'organization_logo' => 'seo.organization_logo',
+        'organization_logo_url' => 'seo.organization_logo_url',
     ];
 
     /** ページごとの設定のキー（settingsテーブル） */
@@ -45,10 +45,10 @@ final class SeoSettings
     private const DEFAULT_LABELS = [
         'title_format' => 'タイトルの形',
         'description' => '既定の説明文',
-        'image' => '既定のシェアの画像',
+        'image_url' => '既定のシェアの画像',
         'site_verification' => 'Search Consoleの確認タグ',
         'organization_name' => '運営者の名前',
-        'organization_logo' => '運営者のロゴ',
+        'organization_logo_url' => '運営者のロゴ',
     ];
 
     // ---- 値 ----
@@ -65,10 +65,10 @@ final class SeoSettings
         return self::settings()['description'] ?? (string) config('neobit.seo.description');
     }
 
-    /** 既定のシェアの画像。画面で空欄なら設定ファイルの値。どちらも無ければnull */
-    public static function image(): ?string
+    /** 既定のシェアの画像のURL。画面で空欄なら設定ファイルの値。どちらも無ければnull */
+    public static function imageUrl(): ?string
     {
-        return self::settings()['image'] ?? config('neobit.seo.image');
+        return self::settings()['image_url'] ?? config('neobit.seo.image_url');
     }
 
     /** Search Consoleの確認タグのcontentの値。無ければ空 */
@@ -85,16 +85,16 @@ final class SeoSettings
         return $name !== '' ? $name : (string) config('app.site_name');
     }
 
-    /** 運営者のロゴ。画面で空欄なら設定ファイルの値。どちらも無ければnull */
-    public static function organizationLogo(): ?string
+    /** 運営者のロゴのURL。画面で空欄なら設定ファイルの値。どちらも無ければnull */
+    public static function organizationLogoUrl(): ?string
     {
-        return self::settings()['organization_logo'] ?? config('neobit.seo.organization_logo');
+        return self::settings()['organization_logo_url'] ?? config('neobit.seo.organization_logo_url');
     }
 
     /**
      * ページごとの設定。設定のseo.page_routesに無いルートや、画面で何も入れていないルートはnull。
      *
-     * @return array{title: ?string, description: ?string, image: ?string, noindex: bool}|null
+     * @return array{title: ?string, description: ?string, image_url: ?string, noindex: bool}|null
      */
     public static function page(string $routeName): ?array
     {
@@ -117,7 +117,7 @@ final class SeoSettings
      * 画面で入れた設定。空欄の既定はnull。ページは、何か入れたルートだけを持つ。
      * DBを毎回読まないよう、キャッシュに置く。
      *
-     * @return array{title_format: ?string, description: ?string, image: ?string, site_verification: ?string, organization_name: ?string, organization_logo: ?string, pages: array<string, array{title: ?string, description: ?string, image: ?string, noindex: bool}>}
+     * @return array{title_format: ?string, description: ?string, image_url: ?string, site_verification: ?string, organization_name: ?string, organization_logo_url: ?string, pages: array<string, array{title: ?string, description: ?string, image_url: ?string, noindex: bool}>}
      */
     public static function settings(): array
     {
@@ -152,7 +152,7 @@ final class SeoSettings
      * 空の値はnullにし、ページは何も入れていないルートを持たない。
      *
      * @param  array<string, ?string>  $defaults  サイト全体の既定。DEFAULT_KEYSの名前 => 値
-     * @param  array<string, array{title?: ?string, description?: ?string, image?: ?string, noindex?: mixed}>  $pages  ルート名 => 値
+     * @param  array<string, array{title?: ?string, description?: ?string, image_url?: ?string, noindex?: mixed}>  $pages  ルート名 => 値
      */
     public static function save(array $defaults, array $pages): void
     {
@@ -168,7 +168,7 @@ final class SeoSettings
             $values = [
                 'title' => self::nullIfBlank($page['title'] ?? null),
                 'description' => self::nullIfBlank($page['description'] ?? null),
-                'image' => self::nullIfBlank($page['image'] ?? null),
+                'image_url' => self::nullIfBlank($page['image_url'] ?? null),
                 'noindex' => ($page['noindex'] ?? null) == '1',
             ];
             if (array_filter($values) !== []) {

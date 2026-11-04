@@ -148,7 +148,7 @@ class MemberController extends Controller
                 Rule::unique(Member::class, 'email')->ignore($member?->id),
             ],
             'phone' => ['nullable', 'string', new PhoneNumberRule()],
-            'birthdate' => ['nullable', 'date'],
+            'birthday' => ['nullable', 'date'],
             'prefecture' => [
                 'nullable', 'integer',
                 // コードテーブルとの一致を確認
@@ -174,7 +174,7 @@ class MemberController extends Controller
             'kana' => $member->kana,
             'email' => $member->email,
             'phone' => $member->phone,
-            'birthdate' => $member->birthdate?->format('Y-m-d'),
+            'birthday' => $member->birthday?->format('Y-m-d'),
             'prefecture' => $member->prefecture,
             'notice_mail' => $member->notice_mail,
             'staff_memo' => $member->staff_memo,
@@ -263,7 +263,7 @@ class MemberController extends Controller
             'フリガナ' => 'kana',
             'メールアドレス' => 'email',
             '電話番号' => 'phone',
-            '生年月日' => 'birthdate|date:Y/m/d',
+            '生年月日' => 'birthday|date:Y/m/d',
             '年齢' => '@age',
             '都道府県' => ['prefecture', $prefectures],
             'お知らせメール' => ['notice_mail', code_table('notice_mail')],
@@ -282,7 +282,7 @@ class MemberController extends Controller
     {
         return match ($key) {
             // 生年月日から、今日時点の満年齢
-            'age' => $member->birthdate?->age,
+            'age' => $member->birthday?->age,
         };
     }
 
@@ -462,7 +462,7 @@ class MemberController extends Controller
     private function saveValues(array $validated, Member $member): array
     {
         // 入力値をそのまま保存する列。送られてこなかった列は null になる
-        $saveFieldNames = ['name', 'kana', 'email', 'phone', 'birthdate', 'prefecture', 'notice_mail', 'staff_memo'];
+        $saveFieldNames = ['name', 'kana', 'email', 'phone', 'birthday', 'prefecture', 'notice_mail', 'staff_memo'];
 
         $values = $this->pickValues($validated, $saveFieldNames);
 

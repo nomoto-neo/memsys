@@ -69,9 +69,9 @@
                                 <div class="invalid-feedback" data-item="codes[{{ $i }}][code]">{{ $errors->first("codes.$i.code") }}</div>
                             </td>
                             <td>
-                                <input type="text" name="codes[{{ $i }}][name]" value="{{ $row['name'] }}"
-                                       class="form-control" data-field="name" aria-label="表示名称">
-                                <div class="invalid-feedback" data-item="codes[{{ $i }}][name]">{{ $errors->first("codes.$i.name") }}</div>
+                                <input type="text" name="codes[{{ $i }}][label]" value="{{ $row['label'] }}"
+                                       class="form-control" data-field="label" aria-label="表示名称">
+                                <div class="invalid-feedback" data-item="codes[{{ $i }}][label]">{{ $errors->first("codes.$i.label") }}</div>
                             </td>
                             <td class="text-end">
                                 @unless ($fixed)
@@ -106,7 +106,7 @@
     <tr>
         <td class="drag-handle text-center" style="cursor: grab;">⠿</td>
         <td><input type="text" class="form-control" data-field="code" aria-label="コード値"></td>
-        <td><input type="text" class="form-control" data-field="name" aria-label="表示名称"></td>
+        <td><input type="text" class="form-control" data-field="label" aria-label="表示名称"></td>
         <td class="text-end">
             <button type="button" class="btn btn-sm btn-outline-danger" data-remove-row aria-label="この行を削除">×</button>
         </td>

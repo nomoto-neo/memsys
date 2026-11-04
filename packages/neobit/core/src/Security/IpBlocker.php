@@ -135,15 +135,15 @@ final class IpBlocker
 
     /**
      * 止める。同じIPアドレスの行があれば、期限などを書き換える。
-     * $untilがnullなら期限なし。$registeredByは、管理画面から登録したスタッフの名前。
+     * $expiresAtがnullなら期限なし。$registeredByは、管理画面から登録したスタッフの名前。
      */
-    public static function block(string $range, ?CarbonInterface $until, ?string $reason, bool $auto = false, ?int $hits = null, ?string $registeredBy = null): IpBlock
+    public static function block(string $range, ?CarbonInterface $expiresAt, ?string $reason, bool $auto = false, ?int $hits = null, ?string $registeredBy = null): IpBlock
     {
         $values = [
             'auto' => $auto,
             'reason' => $reason,
             'hits' => $hits,
-            'blocked_until' => $until,
+            'expires_at' => $expiresAt,
             'registered_by' => $registeredBy,
         ];
 
@@ -160,23 +160,23 @@ final class IpBlocker
 
         OperationRecorder::record(OperationLogAction::IpBlock, detail: [
             'ip' => $range,
-            'until' => $until?->format('Y-m-d H:i') ?? '期限なし',
+            'expires_at' => $expiresAt?->format('Y-m-d H:i') ?? '期限なし',
             'reason' => $auto ? '自動：'.$reason : (string) $reason,
         ]);
 
         return $block;
     }
 
-    /** 期限を変える。$untilがnullなら期限なし */
-    public static function changeUntil(IpBlock $block, ?CarbonInterface $until): void
+    /** 期限を変える。$expiresAtがnullなら期限なし */
+    public static function changeExpiry(IpBlock $block, ?CarbonInterface $expiresAt): void
     {
-        $block->update(['blocked_until' => $until]);
+        $block->update(['expires_at' => $expiresAt]);
 
         self::forgetList();
 
         OperationRecorder::record(OperationLogAction::IpBlock, detail: [
             'ip' => $block->ip,
-            'until' => $until?->format('Y-m-d H:i') ?? '期限なし',
+            'expires_at' => $expiresAt?->format('Y-m-d H:i') ?? '期限なし',
             'reason' => '期限の変更',
         ]);
     }
@@ -194,7 +194,7 @@ final class IpBlocker
     /** 期限が過ぎた行を消して、消した件数を返す。毎時の片付け（TemporaryDataCleaner）が呼ぶ */
     public static function deleteExpired(): int
     {
-        $deleted = IpBlock::query()->where('blocked_until', '<=', now())->delete();
+        $deleted = IpBlock::query()->where('expires_at', '<=', now())->delete();
 
         if ($deleted > 0) {
             self::forgetList();
@@ -286,8 +286,8 @@ final class IpBlocker
     {
         return Cache::rememberForever(self::CACHE_KEY, fn () => IpBlock::query()
             ->active()
-            ->get(['ip', 'blocked_until'])
-            ->map(fn (IpBlock $block) => [$block->ip, $block->blocked_until?->getTimestamp()])
+            ->get(['ip', 'expires_at'])
+            ->map(fn (IpBlock $block) => [$block->ip, $block->expires_at?->getTimestamp()])
             ->all());
     }
 

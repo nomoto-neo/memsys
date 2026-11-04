@@ -94,7 +94,7 @@ class IpBlockController
         $user = $request->user();
         $registeredBy = $user instanceof LoginAccount ? $user->displayName() : null;
 
-        IpBlocker::block($range, $this->until((int) $validated['days']), $validated['reason'] ?? null, registeredBy: $registeredBy);
+        IpBlocker::block($range, $this->expiresAt((int) $validated['days']), $validated['reason'] ?? null, registeredBy: $registeredBy);
 
         return redirect()->route($this->routeNames($request)['index'])
             ->with('status', "「{$range}」をブロックしました。");
@@ -105,7 +105,7 @@ class IpBlockController
     {
         $validated = $request->validate(['days' => $this->rules()['days']]);
 
-        IpBlocker::changeUntil($ipBlock, $this->until((int) $validated['days']));
+        IpBlocker::changeExpiry($ipBlock, $this->expiresAt((int) $validated['days']));
 
         return redirect()->route($this->routeNames($request)['index'])
             ->with('status', "「{$ipBlock->ip}」の期限を変えました。");
@@ -123,7 +123,7 @@ class IpBlockController
     // ---- 期限とルート ----
 
     /** 選んだ日数から、期限の日時。0なら期限なしでnull */
-    private function until(int $days): ?CarbonInterface
+    private function expiresAt(int $days): ?CarbonInterface
     {
         return $days > 0 ? now()->addDays($days) : null;
     }

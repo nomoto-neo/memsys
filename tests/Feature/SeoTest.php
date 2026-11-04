@@ -96,7 +96,7 @@ class SeoTest extends TestCase
             ->assertDontSee('name="description"', false);
 
         // 既定の説明文と画像を決めれば、それを出す
-        config(['neobit.seo.description' => 'デモサイトの説明', 'neobit.seo.image' => '/images/ogp.png']);
+        config(['neobit.seo.description' => 'デモサイトの説明', 'neobit.seo.image_url' => '/images/ogp.png']);
         $this->get('/')
             ->assertSee('<meta name="description" content="デモサイトの説明">', false)
             ->assertSee('<meta property="og:image" content="https://example.com/images/ogp.png">', false);
@@ -153,7 +153,7 @@ class SeoTest extends TestCase
         $input = $this->newsInput($news, [
             'seo_title' => '秋のイベントのご案内',
             'seo_description' => '検索結果に出す説明',
-            'seo_image' => '/images/event.png',
+            'seo_image_url' => '/images/event.png',
             'seo_noindex' => '1',
         ]);
 
@@ -182,7 +182,7 @@ class SeoTest extends TestCase
         $news->seoMeta()->create(['title' => '前のタイトル']);
 
         $this->actingAs($this->manager(), 'admin')
-            ->patch(route('admin.news.update', $news), $this->newsInput($news, ['seo_title' => '', 'seo_description' => '', 'seo_image' => '', 'seo_noindex' => '0']))
+            ->patch(route('admin.news.update', $news), $this->newsInput($news, ['seo_title' => '', 'seo_description' => '', 'seo_image_url' => '', 'seo_noindex' => '0']))
             ->assertRedirect();
 
         $this->assertNull($news->fresh()->seoMeta);
@@ -200,8 +200,8 @@ class SeoTest extends TestCase
         foreach (['images/event.png', 'javascript:alert(1)', '//evil.example.com/a.png'] as $image) {
             $this->actingAs($manager, 'admin')
                 ->from(route('admin.news.edit', $news))
-                ->patch(route('admin.news.confirm.update', $news), $this->newsInput($news, ['seo_image' => $image]))
-                ->assertSessionHasErrors('seo_image');
+                ->patch(route('admin.news.confirm.update', $news), $this->newsInput($news, ['seo_image_url' => $image]))
+                ->assertSessionHasErrors('seo_image_url');
         }
     }
 
@@ -304,10 +304,10 @@ class SeoTest extends TestCase
      */
     private function seoSettingsInput(array $defaults = [], array $pages = []): array
     {
-        $input = $defaults + ['title_format' => '', 'description' => '', 'image' => '', 'site_verification' => '', 'pages' => []];
+        $input = $defaults + ['title_format' => '', 'description' => '', 'image_url' => '', 'site_verification' => '', 'pages' => []];
 
         foreach (array_keys((array) config('neobit.seo.page_routes')) as $routeName) {
-            $input['pages'][] = ($pages[$routeName] ?? []) + ['route' => $routeName, 'title' => '', 'description' => '', 'image' => '', 'noindex' => '0'];
+            $input['pages'][] = ($pages[$routeName] ?? []) + ['route' => $routeName, 'title' => '', 'description' => '', 'image_url' => '', 'noindex' => '0'];
         }
 
         return $input;
@@ -332,7 +332,7 @@ class SeoTest extends TestCase
         $input = $this->seoSettingsInput([
             'title_format' => '{title} - {site}',
             'description' => 'サイトの説明',
-            'image' => '/images/site.png',
+            'image_url' => '/images/site.png',
             'site_verification' => '<meta name="google-site-verification" content="abc_DEF-123" />',
         ], [
             'top' => ['title' => 'トップの題', 'description' => 'トップの説明'],
@@ -418,10 +418,10 @@ class SeoTest extends TestCase
         $manager = $this->manager();
 
         $this->actingAs($manager, 'admin')
-            ->patch(route('admin.seo-settings.update'), $this->seoSettingsInput(['title_format' => 'タイトル', 'image' => 'images/a.png'], [
-                'top' => ['image' => '//evil.example.com/a.png'],
+            ->patch(route('admin.seo-settings.update'), $this->seoSettingsInput(['title_format' => 'タイトル', 'image_url' => 'images/a.png'], [
+                'top' => ['image_url' => '//evil.example.com/a.png'],
             ]))
-            ->assertSessionHasErrors(['title_format', 'image', 'pages.0.image']);
+            ->assertSessionHasErrors(['title_format', 'image_url', 'pages.0.image_url']);
 
         $this->actingAs($manager, 'admin')
             ->patch(route('admin.seo-settings.update'), $this->seoSettingsInput(['site_verification' => '<script>alert(1)</script>']))
@@ -429,7 +429,7 @@ class SeoTest extends TestCase
 
         // 設定のseo.page_routesに無いルートの値は、捨てる
         $input = $this->seoSettingsInput();
-        $input['pages'][] = ['route' => 'login', 'title' => '外の題', 'description' => '', 'image' => '', 'noindex' => '0'];
+        $input['pages'][] = ['route' => 'login', 'title' => '外の題', 'description' => '', 'image_url' => '', 'noindex' => '0'];
         $this->actingAs($manager, 'admin')->patch(route('admin.seo-settings.update'), $input)->assertSessionHasNoErrors();
         $this->assertSame([], Setting::where('key', 'seo.pages')->value('value'));
     }
@@ -500,7 +500,7 @@ class SeoTest extends TestCase
     {
         $this->actingAs($this->manager(), 'admin')->patch(route('admin.seo-settings.update'), $this->seoSettingsInput([
             'organization_name' => 'デモ株式会社',
-            'organization_logo' => '/images/logo.png',
+            'organization_logo_url' => '/images/logo.png',
         ]));
 
         $html = $this->get('/')->getContent();

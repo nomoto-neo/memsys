@@ -27,7 +27,7 @@
                     <dd class="col-sm-8">{{ $input['kana'] ?? '（未入力）' }}</dd>
 
                     <dt class="col-sm-4">代表者名</dt>
-                    <dd class="col-sm-8">{{ $input['representative'] ?? '（未入力）' }}</dd>
+                    <dd class="col-sm-8">{{ $input['ceo_name'] ?? '（未入力）' }}</dd>
 
                     <dt class="col-sm-4">郵便番号</dt>
                     <dd class="col-sm-8">{{ $input['zip'] ?? '（未入力）' }}</dd>

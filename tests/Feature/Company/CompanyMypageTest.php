@@ -48,7 +48,7 @@ class CompanyMypageTest extends TestCase
         return $override + [
             'name' => '株式会社acme',
             'kana' => 'カブシキガイシャアクメ',
-            'representative' => '代表 一郎',
+            'ceo_name' => '代表 一郎',
             'zip' => '100-0001',
             'prefecture' => 13,
             'address' => '千代田区千代田1-1',
@@ -69,7 +69,7 @@ class CompanyMypageTest extends TestCase
             ->assertRedirect(route('company.mypage'));
 
         $company->refresh();
-        $this->assertSame(['株式会社新社名', '03-9999-0000', '代表 一郎'], [$company->name, $company->tel, $company->representative]);
+        $this->assertSame(['株式会社新社名', '03-9999-0000', '代表 一郎'], [$company->name, $company->tel, $company->ceo_name]);
 
         // 企業の情報の変更では、メールは送らない。誰が変えたかは、操作ログに残る
         $this->assertCount(0, $this->sentMails());

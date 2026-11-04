@@ -29,8 +29,8 @@ class CodeTableEditTest extends TestCase
 
         foreach (['gender' => ['1' => '男性', '2' => '女性'], 'contact' => ['1' => 'LINE', '2' => '電話']] as $type => $rows) {
             $order = 0;
-            foreach ($rows as $code => $name) {
-                Code::create(['type' => $type, 'code' => $code, 'name' => $name, 'seq' => $order++]);
+            foreach ($rows as $code => $label) {
+                Code::create(['type' => $type, 'code' => $code, 'label' => $label, 'seq' => $order++]);
             }
         }
     }
@@ -65,10 +65,10 @@ class CodeTableEditTest extends TestCase
             ->patch(route('admin.codes.update'), [
                 'type' => 'contact',
                 'codes' => [
-                    ['code' => '3', 'name' => 'メール'],
-                    ['code' => '1', 'name' => 'LINE'],
+                    ['code' => '3', 'label' => 'メール'],
+                    ['code' => '1', 'label' => 'LINE'],
                     // コード値が空欄の行は保存しない
-                    ['code' => '', 'name' => '消す行'],
+                    ['code' => '', 'label' => '消す行'],
                 ],
             ])
             ->assertRedirect(route('admin.codes.index', ['type' => 'contact']))
@@ -84,7 +84,7 @@ class CodeTableEditTest extends TestCase
         $this->actingAs($this->staff(StaffAcl::Manager), 'admin')
             ->patch(route('admin.codes.update'), [
                 'type' => 'contact',
-                'codes' => [['code' => '1', 'name' => 'LINE'], ['code' => '01', 'name' => 'LINE2']],
+                'codes' => [['code' => '1', 'label' => 'LINE'], ['code' => '01', 'label' => 'LINE2']],
             ])
             ->assertSessionHasErrors('codes.1.code');
 
@@ -99,7 +99,7 @@ class CodeTableEditTest extends TestCase
         $this->actingAs($manager, 'admin')
             ->patch(route('admin.codes.update'), [
                 'type' => 'gender',
-                'codes' => [['code' => '1', 'name' => '男性'], ['code' => '2', 'name' => '女性'], ['code' => '3', 'name' => 'その他']],
+                'codes' => [['code' => '1', 'label' => '男性'], ['code' => '2', 'label' => '女性'], ['code' => '3', 'label' => 'その他']],
             ])
             ->assertSessionHasErrors('codes');
 
@@ -107,7 +107,7 @@ class CodeTableEditTest extends TestCase
         $this->actingAs($manager, 'admin')
             ->patch(route('admin.codes.update'), [
                 'type' => 'gender',
-                'codes' => [['code' => '2', 'name' => '女'], ['code' => '1', 'name' => '男']],
+                'codes' => [['code' => '2', 'label' => '女'], ['code' => '1', 'label' => '男']],
             ])
             ->assertSessionHasNoErrors();
 

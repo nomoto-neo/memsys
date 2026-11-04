@@ -19,20 +19,20 @@ class IpBlock extends Model
         'auto',
         'reason',
         'hits',
-        'blocked_until',
+        'expires_at',
         'registered_by',
     ];
 
     protected $casts = [
         'auto' => 'boolean',
         'hits' => 'integer',
-        'blocked_until' => 'datetime',
+        'expires_at' => 'datetime',
     ];
 
     /** 今止めている行。期限が無いか、期限がまだ来ていないもの */
     #[Scope]
     protected function active(Builder $query): void
     {
-        $query->where(fn (Builder $q) => $q->whereNull('blocked_until')->orWhere('blocked_until', '>', now()));
+        $query->where(fn (Builder $q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()));
     }
 }

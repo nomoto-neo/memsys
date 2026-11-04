@@ -17,7 +17,7 @@ class SeoMeta extends Model
     protected $fillable = [
         'title',
         'description',
-        'image',
+        'image_url',
         'noindex',
     ];
 

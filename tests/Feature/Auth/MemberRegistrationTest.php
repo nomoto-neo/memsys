@@ -21,7 +21,7 @@ class MemberRegistrationTest extends TestCase
         'kana' => 'トウロク タロウ',
         'email' => 'new@example.com',
         'phone' => '090-1234-5678',
-        'birthdate' => '1990-01-02',
+        'birthday' => '1990-01-02',
         'prefecture' => 13,
         'notice_mail' => 1,
         'password' => 'new-password',

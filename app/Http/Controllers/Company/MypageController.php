@@ -70,7 +70,7 @@ class MypageController extends Controller
         return [
             'name' => ['required', 'string', 'max:255'],
             'kana' => ['nullable', 'string', 'max:255', new KatakanaRule()],
-            'representative' => ['nullable', 'string', 'max:255'],
+            'ceo_name' => ['nullable', 'string', 'max:255'],
             // ハイフンは、あっても無くてもよい
             'zip' => ['nullable', 'string', 'regex:/^[0-9]{3}-?[0-9]{4}$/'],
             'prefecture' => [
@@ -90,7 +90,7 @@ class MypageController extends Controller
         return [
             'name' => $company->name,
             'kana' => $company->kana,
-            'representative' => $company->representative,
+            'ceo_name' => $company->ceo_name,
             'zip' => $company->zip,
             'prefecture' => $company->prefecture,
             'address' => $company->address,
@@ -147,7 +147,7 @@ class MypageController extends Controller
     private function saveValues(array $validated, Company $company): array
     {
         // 入力値をそのまま保存する列。送られてこなかった列は null になる
-        $saveFieldNames = ['name', 'kana', 'representative', 'zip', 'prefecture', 'address', 'tel', 'url'];
+        $saveFieldNames = ['name', 'kana', 'ceo_name', 'zip', 'prefecture', 'address', 'tel', 'url'];
 
         return $this->pickValues($validated, $saveFieldNames);
     }

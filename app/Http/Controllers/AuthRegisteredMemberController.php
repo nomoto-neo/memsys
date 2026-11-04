@@ -66,7 +66,7 @@ class AuthRegisteredMemberController extends Controller
                 Rule::unique(Member::class, 'email'),
             ],
             'phone' => ['nullable', 'string', new PhoneNumberRule()],
-            'birthdate' => ['nullable', 'date'],
+            'birthday' => ['nullable', 'date'],
             'prefecture' => [
                 'nullable', 'integer',
                 // コードテーブルとの一致を確認
@@ -216,7 +216,7 @@ class AuthRegisteredMemberController extends Controller
                 'kana' => $pending['kana'] ?? null,
                 'email' => $pending['email'],
                 'phone' => $pending['phone'] ?? null,
-                'birthdate' => $pending['birthdate'] ?? null,
+                'birthday' => $pending['birthday'] ?? null,
                 'prefecture' => $pending['prefecture'] ?? null,
                 'notice_mail' => $pending['notice_mail'],
                 'password' => $pending['password_hash'],

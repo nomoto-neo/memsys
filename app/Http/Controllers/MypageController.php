@@ -159,7 +159,7 @@ class MypageController extends Controller
                 Rule::unique(Member::class, 'email')->ignore($member->id),
             ],
             'phone' => ['nullable', 'string', new PhoneNumberRule()],
-            'birthdate' => ['nullable', 'date'],
+            'birthday' => ['nullable', 'date'],
             'prefecture' => [
                 'nullable', 'integer',
                 // コードテーブルとの一致を確認
@@ -182,7 +182,7 @@ class MypageController extends Controller
             'kana' => $member->kana,
             'email' => $member->email,
             'phone' => $member->phone,
-            'birthdate' => $member->birthdate?->format('Y-m-d'),
+            'birthday' => $member->birthday?->format('Y-m-d'),
             'prefecture' => $member->prefecture,
             'notice_mail' => $member->notice_mail,
         ];
@@ -402,7 +402,7 @@ class MypageController extends Controller
     private function saveValues(array $validated, Member $member): array
     {
         // 入力値をそのまま保存する列。送られてこなかった列は null になる
-        $saveFieldNames = ['name', 'kana', 'email', 'phone', 'birthdate', 'prefecture', 'notice_mail'];
+        $saveFieldNames = ['name', 'kana', 'email', 'phone', 'birthday', 'prefecture', 'notice_mail'];
 
         return $this->pickValues($validated, $saveFieldNames);
     }

@@ -14,7 +14,7 @@
 
 | 範囲 | 内容 |
 |---|---|
-| フレームワーク | `Seo`（`breadcrumb()`・`breadcrumbs()`・`jsonLd()`）、新規 `SeoArticle`・`neobit::_breadcrumbs`、`_seo_head`（JSON-LD）、`SeoSettings` と「SEO設定」の画面（運営者の名前・ロゴ）、設定の `seo.organization_name`・`organization_logo` |
+| フレームワーク | `Seo`（`breadcrumb()`・`breadcrumbs()`・`jsonLd()`）、新規 `SeoArticle`・`neobit::_breadcrumbs`、`_seo_head`（JSON-LD）、`SeoSettings` と「SEO設定」の画面（運営者の名前・ロゴ）、設定の `seo.organization_name`・`organization_logo_url` |
 | 見本のサイト | レイアウトに `_breadcrumbs`。ニュースが `SeoArticle` を実装し、詳細で「お知らせ」の段を足す。固定ページは入れ子の slug の親を段にする。お知らせの一覧とお問い合わせ（入力・確認・完了）に `@section('title')` を足した |
 | DB | 変更なし（「SEO設定」の値は `settings` テーブルにキーで足す） |
 
@@ -49,7 +49,7 @@
 | 項目 | 設定のキー | 空のとき |
 |---|---|---|
 | 運営者の名前（100文字まで） | `seo.organization_name` | 設定ファイルの `organization_name`、それも空ならサイト名 |
-| 運営者のロゴの URL | `seo.organization_logo` | 設定ファイルの `organization_logo`。それも無ければ出さない。形は `Seo::IMAGE_URL_PATTERN` |
+| 運営者のロゴの URL | `seo.organization_logo_url` | 設定ファイルの `organization_logo_url`。それも無ければ出さない。形は `Seo::IMAGE_URL_PATTERN` |
 
 - 操作ログの項目の名前は「運営者の名前」「運営者のロゴ」。
 - `SeoSettings::save()` は、既定を名前 => 値の配列で受け取る形にした（項目が増えても引数が増えないため）。

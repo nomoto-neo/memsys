@@ -29,7 +29,7 @@
                     <dd class="col-sm-8">{{ $input['phone'] ?? '（未入力）' }}</dd>
 
                     <dt class="col-sm-4">生年月日</dt>
-                    <dd class="col-sm-8">{{ $input['birthdate'] ?? '（未入力）' }}</dd>
+                    <dd class="col-sm-8">{{ $input['birthday'] ?? '（未入力）' }}</dd>
 
                     {{-- $input['prefecture']はhiddenで持ち回している「コード」の文字列。
                          人間向けの確認画面なので、ここで初めてコード表を引いて

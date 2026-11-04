@@ -69,7 +69,7 @@ class RegistrationController extends Controller
             // 企業の情報
             'name' => ['required', 'string', 'max:255'],
             'kana' => ['nullable', 'string', 'max:255', new KatakanaRule()],
-            'representative' => ['nullable', 'string', 'max:255'],
+            'ceo_name' => ['nullable', 'string', 'max:255'],
             // ハイフンは、あっても無くてもよい
             'zip' => ['nullable', 'string', 'regex:/^[0-9]{3}-?[0-9]{4}$/'],
             'prefecture' => [
@@ -217,7 +217,7 @@ class RegistrationController extends Controller
             $company = Company::create([
                 'name' => $pending['name'],
                 'kana' => $pending['kana'] ?? null,
-                'representative' => $pending['representative'] ?? null,
+                'ceo_name' => $pending['ceo_name'] ?? null,
                 'zip' => $pending['zip'] ?? null,
                 'prefecture' => $pending['prefecture'] ?? null,
                 'address' => $pending['address'] ?? null,

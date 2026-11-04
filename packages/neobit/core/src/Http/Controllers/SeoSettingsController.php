@@ -38,20 +38,20 @@ class SeoSettingsController
     /** 入力の検証ルール。ページごとの値は、pagesの下に、page_routesの順の番号で届く */
     private function rules(): array
     {
-        $image = ['nullable', 'string', 'max:255', 'regex:'.Seo::IMAGE_URL_PATTERN];
+        $imageUrl = ['nullable', 'string', 'max:255', 'regex:'.Seo::IMAGE_URL_PATTERN];
 
         return [
             'title_format' => ['nullable', 'string', 'max:100', 'regex:/\{title\}/'],
             'description' => ['nullable', 'string', 'max:300'],
-            'image' => $image,
+            'image_url' => $imageUrl,
             'site_verification' => ['nullable', 'string', 'max:255'],
             'organization_name' => ['nullable', 'string', 'max:100'],
-            'organization_logo' => $image,
+            'organization_logo_url' => $imageUrl,
             'pages' => ['nullable', 'array'],
             'pages.*.route' => ['required', 'string'],
             'pages.*.title' => ['nullable', 'string', 'max:60'],
             'pages.*.description' => ['nullable', 'string', 'max:300'],
-            'pages.*.image' => $image,
+            'pages.*.image_url' => $imageUrl,
             'pages.*.noindex' => ['nullable', 'in:0,1'],
         ];
     }
@@ -82,7 +82,7 @@ class SeoSettingsController
                 'url' => $this->pageUrl($routeName),
                 'title' => old("pages.{$index}.title", $saved['title'] ?? null),
                 'description' => old("pages.{$index}.description", $saved['description'] ?? null),
-                'image' => old("pages.{$index}.image", $saved['image'] ?? null),
+                'imageUrl' => old("pages.{$index}.image_url", $saved['image_url'] ?? null),
                 'noindex' => (bool) old("pages.{$index}.noindex", $saved['noindex'] ?? false),
                 'saved' => $saved !== [],
                 'savedNoindex' => (bool) ($saved['noindex'] ?? false),
@@ -92,16 +92,16 @@ class SeoSettingsController
         return view('neobit::admin.seo_settings.index', [
             'titleFormat' => old('title_format', $settings['title_format']),
             'description' => old('description', $settings['description']),
-            'image' => old('image', $settings['image']),
+            'imageUrl' => old('image_url', $settings['image_url']),
             'siteVerification' => old('site_verification', $settings['site_verification']),
             'organizationName' => old('organization_name', $settings['organization_name']),
-            'organizationLogo' => old('organization_logo', $settings['organization_logo']),
+            'organizationLogoUrl' => old('organization_logo_url', $settings['organization_logo_url']),
             'configTitleFormat' => (string) config('neobit.seo.title_format'),
             'configDescription' => (string) config('neobit.seo.description'),
-            'configImage' => (string) config('neobit.seo.image'),
+            'configImageUrl' => (string) config('neobit.seo.image_url'),
             // 運営者の名前は、設定ファイルも空ならサイト名
             'configOrganizationName' => (string) (config('neobit.seo.organization_name') ?: config('app.site_name')),
-            'configOrganizationLogo' => (string) config('neobit.seo.organization_logo'),
+            'configOrganizationLogoUrl' => (string) config('neobit.seo.organization_logo_url'),
             'pages' => $pages,
             'routes' => $this->routeNames($request),
         ]);
@@ -129,10 +129,10 @@ class SeoSettingsController
         SeoSettings::save([
             'title_format' => $validated['title_format'] ?? null,
             'description' => $validated['description'] ?? null,
-            'image' => $validated['image'] ?? null,
+            'image_url' => $validated['image_url'] ?? null,
             'site_verification' => $siteVerification,
             'organization_name' => $validated['organization_name'] ?? null,
-            'organization_logo' => $validated['organization_logo'] ?? null,
+            'organization_logo_url' => $validated['organization_logo_url'] ?? null,
         ], $pages);
 
         return redirect()->route($this->routeNames($request)['index'])

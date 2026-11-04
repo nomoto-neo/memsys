@@ -18,7 +18,7 @@ return new class extends Migration
             $table->unsignedBigInteger('seoable_id');
             $table->string('title', 60)->nullable();
             $table->string('description', 300)->nullable();
-            $table->string('image')->nullable();
+            $table->string('image_url')->nullable();
             $table->boolean('noindex')->default(false);
             $table->timestamps();
 

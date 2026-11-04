@@ -158,7 +158,7 @@
 | `Seo` | `for()`・`noindex()`・`breadcrumb()`・`breadcrumbs()`・`jsonLd()`・`value()`、定数 `KEYS`・`IMAGE_URL_PATTERN` | ふつうはコントローラーが `for()`・`noindex()` を呼び、画面は `seo()` で読む |
 | `RedirectResolver` | `find()`・`hit()`・`forget()`・`normalize()`・`isWildcard()`・`prefix()`・`encodeLocation()`、定数 `WILDCARD` | リダイレクトの当て方 |
 | `RedirectChecker` | `errors()`・`opensPage()` | リダイレクトの登録のときの確かめ |
-| `SeoSettings` | `titleFormat()`・`description()`・`image()`・`siteVerification()`・`organizationName()`・`organizationLogo()`・`page()`・`pageRoutes()`・`settings()`・`save()`・`extractVerificationContent()` | 管理画面の「SEO設定」の値 |
+| `SeoSettings` | `titleFormat()`・`description()`・`imageUrl()`・`siteVerification()`・`organizationName()`・`organizationLogoUrl()`・`page()`・`pageRoutes()`・`settings()`・`save()`・`extractVerificationContent()` | 管理画面の「SEO設定」の値 |
 | `SlugRule` | 定数 `PATTERN`・`NESTED_PATTERN` | ルートの `where()` に使う |
 | `NotReservedPathRule` | `isReserved()` | |
 | `OperationLog` | `actionOptions()`・`modelOptions()`・`modelNames()`・`operatorLabel()`・`relatedRecords()`・`operatorTypes()`・`relatedKey()`・`countSummary()`・`csvName()`・`detailText()` | |
@@ -189,7 +189,7 @@
 | `PublicScriptResponse` | 古い `.php` を動かす目印の応答。`script` | |
 | `BasicAuth` | `isOn()`・`save()`・`addUser()`・`deleteUser()`、定数 `AREAS`（`site`・`admin`）・`USERNAME_PATTERN` | 範囲ごとの目印のファイルと `.htpasswd` を作る |
 | `AccessRestriction` | `allowsSite()`・`allowsAdmin()`・`allowedIps()`・`siteIps()`・`adminIps()`・`envSiteIps()`・`envAdminIps()`・`settings()`・`save()`・`turnOff()`・`parseList()`・`lockoutMessage()` | |
-| `IpBlocker` | `isBlocked()`・`countMiss()`・`block()`・`changeUntil()`・`release()`・`deleteExpired()`・`normalizeRange()`・`rangeBounds()`・`coversProtected()` | |
+| `IpBlocker` | `isBlocked()`・`countMiss()`・`block()`・`changeExpiry()`・`release()`・`deleteExpired()`・`normalizeRange()`・`rangeBounds()`・`coversProtected()` | |
 | `CsvImportSettings`・`CsvImportResult`・`CsvImportRow`・`CsvColumnSet` | 取り込みの設定と結果 | |
 | 検証のルール | `KatakanaRule`・`HiraganaRule`・`PhoneNumberRule`・`SameCountAsRule`・`UploadRequiredRule`・`SlugRule`・`NotReservedPathRule` | |
 | ミドルウェア | `AjaxFormResponse`・`ApplyRedirects`・`NoIndexHeader`・`NormalizeInput`・`RejectBlockedIp`・`RestrictAdminAccess`・`RestrictSiteAccess`・`RunScheduleOnRequest`・`SecurityHeaders` | |
@@ -225,7 +225,7 @@
 | `neobit` | `security.ip_block_auto`・`security.ip_block_watch_minutes`・`security.ip_block_watch_count`・`security.ip_block_hours` | |
 | `neobit` | `operation_log.report_to`・`operation_log.report_thresholds` | |
 | `neobit` | `schedule.cron_enabled` | `.env` は `CRON_ENABLED` |
-| `neobit` | `seo`（`title_format`・`description`・`description_length`・`image`・`organization_name`・`organization_logo`・`noindex_routes`・`sitemap_routes`・`sitemap_models`・`robots_disallow`・`page_routes`・`redirects`） | |
+| `neobit` | `seo`（`title_format`・`description`・`description_length`・`image_url`・`organization_name`・`organization_logo_url`・`noindex_routes`・`sitemap_routes`・`sitemap_models`・`robots_disallow`・`page_routes`・`redirects`） | |
 | `neobit` | `upload`（`image_types`・`attach_types`・`max_kb`・`max_image_pixels`・`csv_max_kb`・`directory_rule`） | |
 | `neobit` | `cleanup`（`operation_log_days`・`failed_job_days`・`tasks`） | |
 | `neobit` | `form.required_mark`（`admin`・`public`） | |
@@ -242,7 +242,7 @@
 | `_confirm_hidden` | `$input`・`$exclude` | |
 | `_seo_head` | なし | 値は `seo()` で読む。訪問者の側のレイアウトの `<head>` に置く。構造化データも出す |
 | `_breadcrumbs` | なし | パンくずリスト。訪問者の側のレイアウトの本文の上に置く |
-| `_seo_fields` | `$input`・`$readonly` | 記事ごとの SEO の欄。送る名前は `seo_title`・`seo_description`・`seo_image`・`seo_noindex` |
+| `_seo_fields` | `$input`・`$readonly` | 記事ごとの SEO の欄。送る名前は `seo_title`・`seo_description`・`seo_image_url`・`seo_noindex` |
 | `_spam_guard`・`_passkey_suggest` | なし | |
 | `_passkeys` | `$passkeys`・`$passkeyRoute`・`$identityConfirmed`・`$codeSent`・`$confirmBy`・`$twoFactorMissing` | |
 | `_two_factor` | `$twoFactorState`・`$twoFactorRoutes`・`$twoFactorLoginId`・`$twoFactorQrCode`・`$twoFactorSecret`・`$twoFactorBackupCodes`・`$rememberLabel` | |

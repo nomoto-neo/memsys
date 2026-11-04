@@ -53,11 +53,11 @@
                     </div>
 
                     <div class="mb-3">
-                        <label for="birthdate" class="form-label">生年月日 {!! $required['birthdate'] !!}</label>
-                        <input id="birthdate" type="date" name="birthdate"
+                        <label for="birthday" class="form-label">生年月日 {!! $required['birthday'] !!}</label>
+                        <input id="birthday" type="date" name="birthday"
                                class="form-control"
-                               value="{{ $input['birthdate'] ?? '' }}">
-                        <div class="invalid-feedback" data-item="birthdate">{{ $errors->first('birthdate') }}</div>
+                               value="{{ $input['birthday'] ?? '' }}">
+                        <div class="invalid-feedback" data-item="birthday">{{ $errors->first('birthday') }}</div>
                     </div>
 
                     <div class="mb-3">

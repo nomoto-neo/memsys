@@ -262,7 +262,7 @@ has   packages/neobit/core/resources/views/_seo_head.blade.php          'applica
 has   resources/views/layouts/app.blade.php                             "@include('neobit::_breadcrumbs')"
 has   app/Models/News.php                                               'implements SeoArticle'
 has   app/Http/Controllers/PageController.php                           '$parentSlugs'
-has   packages/neobit/core/config/neobit/seo.php                        "'organization_logo'"
+has   packages/neobit/core/config/neobit/seo.php                        "'organization_logo_url'"
 has   packages/neobit/core/database/migrations/2026_10_27_000000_create_redirects_table.php "Schema::create('redirects'"
 has   packages/neobit/core/src/Seo/RedirectResolver.php                 'final class RedirectResolver'
 has   packages/neobit/core/src/Seo/RedirectChecker.php                  'final class RedirectChecker'
@@ -351,6 +351,13 @@ has   public/index.php                                                  'is_file
 has   packages/neobit/core/src/NeobitServiceProvider.php                'config/neobit/{$section}.php'
 has   packages/neobit/core/stubs/config/neobit.php                      "// 'wordpress' => ["
 has   packages/neobit/core/src/Models/Setting.php                       "'value' => 'json:unicode'"
+has   packages/neobit/core/database/migrations/2026_11_05_000000_rename_columns_on_neobit_core_tables.php "'blocked_until', 'expires_at'"
+has   packages/neobit/core/src/Models/Code.php                          "'label'"
+has   packages/neobit/core/src/Security/IpBlocker.php                   'function changeExpiry'
+has   packages/neobit/core/src/Seo/SeoFields.php                        "'seo_image_url' => 'image_url'"
+has   database/migrations/2026_11_05_000000_rename_columns_on_member_tables.php "'representative', 'ceo_name'"
+has   app/Enums/CompanyStatus.php                                       'case Suspended = 9;'
+has   app/Models/Member.php                                             "'birthday'"
 
 echo
 if [ $ng -eq 0 ]; then

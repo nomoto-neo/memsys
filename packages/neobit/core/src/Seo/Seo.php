@@ -82,7 +82,7 @@ final class Seo
         return request()->attributes->get(self::ATTRIBUTE);
     }
 
-    /** 今のページの記事のSEOの欄の値。$columnはtitle・description・image・noindex。記事にSEOの欄が無ければnull */
+    /** 今のページの記事のSEOの欄の値。$columnはtitle・description・image_url・noindex。記事にSEOの欄が無ければnull */
     private function meta(string $column): mixed
     {
         $subject = $this->subject();
@@ -90,7 +90,7 @@ final class Seo
         return $subject !== null && method_exists($subject, 'seoMeta') ? $subject->seoMeta?->{$column} : null;
     }
 
-    /** 「SEO設定」の、今のページのルートの値。$columnはtitle・description・image・noindex。設定が無ければnull */
+    /** 「SEO設定」の、今のページのルートの値。$columnはtitle・description・image_url・noindex。設定が無ければnull */
     private function page(string $column): mixed
     {
         $name = request()->route()?->getName();
@@ -199,7 +199,7 @@ final class Seo
     {
         $organization = ['@type' => 'Organization', 'name' => SeoSettings::organizationName(), 'url' => url('/')];
 
-        $logo = SeoSettings::organizationLogo();
+        $logo = SeoSettings::organizationLogoUrl();
         if ($logo !== null && $logo !== '') {
             $organization['logo'] = ['@type' => 'ImageObject', 'url' => url($logo)];
         }
@@ -303,7 +303,7 @@ final class Seo
     /** シェアの画像の絶対のURL。SEOの欄の画像、記事の画像、「SEO設定」のページの画像、サイトの既定の画像の順。どれも無ければ空 */
     private function image(): string
     {
-        $image = $this->meta('image') ?? $this->subject()?->seoImageUrl() ?? $this->page('image') ?? SeoSettings::image();
+        $image = $this->meta('image_url') ?? $this->subject()?->seoImageUrl() ?? $this->page('image_url') ?? SeoSettings::imageUrl();
 
         return $image === null || $image === '' ? '' : url($image);
     }

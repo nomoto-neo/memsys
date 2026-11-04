@@ -53,7 +53,7 @@ class CodeTableController
             'type' => ['required', Rule::in(array_keys($this->codeTables()))],
             'codes' => ['array'],
             'codes.*.code' => ['nullable', 'string', 'max:50'],
-            'codes.*.name' => ['nullable', 'string', 'max:255'],
+            'codes.*.label' => ['nullable', 'string', 'max:255'],
         ];
     }
 
@@ -80,15 +80,15 @@ class CodeTableController
             // 再表示のとき
             $rows = array_values(array_map(fn ($row) => [
                 'code' => (string) ($row['code'] ?? ''),
-                'name' => (string) ($row['name'] ?? ''),
+                'label' => (string) ($row['label'] ?? ''),
             ], $oldRows));
         } else {
             // 初期表示のとき
             $rows = Code::where('type', $type)
                 ->orderBy('seq')
                 ->orderBy('id')
-                ->get(['code', 'name'])
-                ->map(fn (Code $code) => ['code' => $code->code, 'name' => $code->name])
+                ->get(['code', 'label'])
+                ->map(fn (Code $code) => ['code' => $code->code, 'label' => $code->label])
                 ->all();
         }
 
@@ -124,7 +124,7 @@ class CodeTableController
         foreach ($validated['codes'] ?? [] as $index => $row) {
             $code = (string) ($row['code'] ?? '');
             if ($code !== '') {
-                $rows[$index] = ['code' => $code, 'name' => (string) ($row['name'] ?? '')];
+                $rows[$index] = ['code' => $code, 'label' => (string) ($row['label'] ?? '')];
             }
         }
 
@@ -164,7 +164,7 @@ class CodeTableController
                 Code::create([
                     'type' => $type,
                     'code' => $row['code'],
-                    'name' => $row['name'],
+                    'label' => $row['label'],
                     'seq' => $order++,
                     'staff_id' => $staffId,
                 ]);

@@ -26,7 +26,7 @@
 |---|---|---|
 | title | `seoTitle()` を `seo.title_format`（`{title}｜{site}`）に当てはめる | `@section('title')` を当てはめる。無ければサイト名（`app.site_name`）だけ |
 | description | `seoDescriptionSource()` から作る（下） | `seo.description`。空なら空 |
-| image | `seoImageUrl()`、無ければ `seo.image`。絶対の URL | `seo.image`。無ければ空 |
+| image | `seoImageUrl()`、無ければ `seo.image_url`。絶対の URL | `seo.image_url`。無ければ空 |
 | url | 今の URL（`url()->current()`。`?` の後ろを除いた絶対の URL） | 同じ |
 | type | article | website |
 | site_name | `app.site_name` | 同じ |
@@ -47,7 +47,7 @@
     'title_format' => '{title}｜{site}',
     'description' => '',
     'description_length' => 120,
-    'image' => null,   // publicの下のパスか、URL
+    'image_url' => null,   // publicの下のパスか、URL
 ],
 ```
 

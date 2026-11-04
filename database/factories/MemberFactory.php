@@ -58,7 +58,7 @@ class MemberFactory extends Factory
             'password' => static::$hashedPassword ??= Hash::make('password'),
             'phone' => $faker->phoneNumber,
             // 18歳〜80歳になる範囲の生年月日をランダムに作る。
-            'birthdate' => $faker->dateTimeBetween('-80 years', '-18 years')->format('Y-m-d'),
+            'birthday' => $faker->dateTimeBetween('-80 years', '-18 years')->format('Y-m-d'),
             // ★要確認：都道府県コードは「1=北海道…47=沖縄」という、
             // 都道府県コード（JIS X 0401）の並び順を前提にした
             // 1〜47のランダムな整数にしている。実際の管理画面の

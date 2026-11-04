@@ -69,7 +69,7 @@ class CompanyController extends Controller
     private const INDEX_ROUTE = 'admin.companies.index';
 
     /** フリーワード検索の検索対象とするカラムの一覧。 */
-    private const FREE_WORD_COLUMNS = ['name', 'kana', 'representative', 'staff_memo'];
+    private const FREE_WORD_COLUMNS = ['name', 'kana', 'ceo_name', 'staff_memo'];
 
     /** 1ページに表示する件数。 */
     private const PER_PAGE = 20;
@@ -126,7 +126,7 @@ class CompanyController extends Controller
         return [
             'name' => ['required', 'string', 'max:255'],
             'kana' => ['nullable', 'string', 'max:255', new KatakanaRule()],
-            'representative' => ['nullable', 'string', 'max:255'],
+            'ceo_name' => ['nullable', 'string', 'max:255'],
             // ハイフンは、あっても無くてもよい
             'zip' => ['nullable', 'string', 'regex:/^[0-9]{3}-?[0-9]{4}$/'],
             'prefecture' => [
@@ -168,7 +168,7 @@ class CompanyController extends Controller
         return [
             'name' => $company->name,
             'kana' => $company->kana,
-            'representative' => $company->representative,
+            'ceo_name' => $company->ceo_name,
             'zip' => $company->zip,
             'prefecture' => $company->prefecture,
             'address' => $company->address,
@@ -250,7 +250,7 @@ class CompanyController extends Controller
             '企業ID' => 'code',
             '企業名' => 'name',
             'フリガナ' => 'kana',
-            '代表者名' => 'representative',
+            '代表者名' => 'ceo_name',
             '郵便番号' => 'zip',
             '都道府県' => ['prefecture', code_table('prefectures')],
             '住所' => 'address',
@@ -525,7 +525,7 @@ class CompanyController extends Controller
     private function saveValues(array $validated, Company $company): array
     {
         // 入力値をそのまま保存する列。送られてこなかった列は null になる
-        $saveFieldNames = ['name', 'kana', 'representative', 'zip', 'prefecture', 'address', 'tel', 'url', 'staff_memo'];
+        $saveFieldNames = ['name', 'kana', 'ceo_name', 'zip', 'prefecture', 'address', 'tel', 'url', 'staff_memo'];
 
         $values = $this->pickValues($validated, $saveFieldNames);
 

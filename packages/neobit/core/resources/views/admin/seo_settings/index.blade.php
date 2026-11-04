@@ -37,10 +37,10 @@
             </div>
 
             <div class="mb-3">
-                <label for="seo-image" class="form-label">既定のシェアの画像のURL</label>
-                <input type="text" id="seo-image" name="image" value="{{ $image }}" class="form-control"
-                       placeholder="{{ $configImage !== '' ? $configImage : '例：/images/ogp.png' }}">
-                <div class="invalid-feedback" data-item="image">{{ $errors->first('image') }}</div>
+                <label for="seo-image-url" class="form-label">既定のシェアの画像のURL</label>
+                <input type="text" id="seo-image-url" name="image_url" value="{{ $imageUrl }}" class="form-control"
+                       placeholder="{{ $configImageUrl !== '' ? $configImageUrl : '例：/images/ogp.png' }}">
+                <div class="invalid-feedback" data-item="image_url">{{ $errors->first('image_url') }}</div>
                 <div class="form-text">記事に画像が無いときに使います。/ から始まるサイトの中のパスか、http(s):// から始まるURLです。</div>
             </div>
 
@@ -60,10 +60,10 @@
             </div>
 
             <div>
-                <label for="seo-organization-logo" class="form-label">運営者のロゴのURL</label>
-                <input type="text" id="seo-organization-logo" name="organization_logo" value="{{ $organizationLogo }}" class="form-control"
-                       placeholder="{{ $configOrganizationLogo !== '' ? $configOrganizationLogo : '例：/images/logo.png' }}">
-                <div class="invalid-feedback" data-item="organization_logo">{{ $errors->first('organization_logo') }}</div>
+                <label for="seo-organization-logo-url" class="form-label">運営者のロゴのURL</label>
+                <input type="text" id="seo-organization-logo-url" name="organization_logo_url" value="{{ $organizationLogoUrl }}" class="form-control"
+                       placeholder="{{ $configOrganizationLogoUrl !== '' ? $configOrganizationLogoUrl : '例：/images/logo.png' }}">
+                <div class="invalid-feedback" data-item="organization_logo_url">{{ $errors->first('organization_logo_url') }}</div>
                 <div class="form-text">/ から始まるサイトの中のパスか、http(s):// から始まるURLです。</div>
             </div>
         </div>
@@ -80,7 +80,7 @@
                 @foreach ($pages as $page)
                     @php($prefix = 'pages.'.$page['index'])
                     @php($name = 'pages['.$page['index'].']')
-                    <details class="border rounded p-2 mb-2" @if ($errors->hasAny([$prefix.'.title', $prefix.'.description', $prefix.'.image', $prefix.'.noindex'])) open @endif>
+                    <details class="border rounded p-2 mb-2" @if ($errors->hasAny([$prefix.'.title', $prefix.'.description', $prefix.'.image_url', $prefix.'.noindex'])) open @endif>
                         <summary>
                             {{ $page['label'] }}
                             @if ($page['url'] !== null)
@@ -109,9 +109,9 @@
                         </div>
 
                         <div class="mb-2">
-                            <label for="seo-page-{{ $page['index'] }}-image" class="form-label small">シェアの画像のURL</label>
-                            <input type="text" id="seo-page-{{ $page['index'] }}-image" name="{{ $name }}[image]" value="{{ $page['image'] }}" class="form-control">
-                            <div class="invalid-feedback" data-item="{{ $prefix }}.image">{{ $errors->first($prefix.'.image') }}</div>
+                            <label for="seo-page-{{ $page['index'] }}-image-url" class="form-label small">シェアの画像のURL</label>
+                            <input type="text" id="seo-page-{{ $page['index'] }}-image-url" name="{{ $name }}[image_url]" value="{{ $page['imageUrl'] }}" class="form-control">
+                            <div class="invalid-feedback" data-item="{{ $prefix }}.image_url">{{ $errors->first($prefix.'.image_url') }}</div>
                         </div>
 
                         <div class="form-check">

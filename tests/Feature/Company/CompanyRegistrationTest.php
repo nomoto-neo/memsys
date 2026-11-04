@@ -24,7 +24,7 @@ class CompanyRegistrationTest extends TestCase
     private const INPUT = [
         'name' => '株式会社新規',
         'kana' => 'カブシキガイシャシンキ',
-        'representative' => '代表 一郎',
+        'ceo_name' => '代表 一郎',
         'zip' => '100-0001',
         'prefecture' => 13,
         'address' => '千代田区千代田1-1',

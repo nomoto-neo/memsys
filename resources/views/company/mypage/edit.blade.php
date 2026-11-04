@@ -37,11 +37,11 @@
                     </div>
 
                     <div class="mb-3">
-                        <label for="representative" class="form-label">代表者名 {!! $required['representative'] !!}</label>
-                        <input id="representative" type="text" name="representative"
+                        <label for="ceo_name" class="form-label">代表者名 {!! $required['ceo_name'] !!}</label>
+                        <input id="ceo_name" type="text" name="ceo_name"
                                class="form-control"
-                               value="{{ $input['representative'] ?? '' }}">
-                        <div class="invalid-feedback" data-item="representative">{{ $errors->first('representative') }}</div>
+                               value="{{ $input['ceo_name'] ?? '' }}">
+                        <div class="invalid-feedback" data-item="ceo_name">{{ $errors->first('ceo_name') }}</div>
                     </div>
 
                     <div class="mb-3">

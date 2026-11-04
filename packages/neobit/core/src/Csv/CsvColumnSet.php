@@ -21,7 +21,7 @@ use Neobit\Core\Crud\ChildTableDefinitions;
  *
  *     '会員ID'       => 'id',                              // カラム
  *     '最終更新者'   => 'editorStaff.name',                // リレーションはドットでたどる
- *     '生年月日'     => 'birthdate|date:Y/m/d',            // 「|」の後ろで書式を変換
+ *     '生年月日'     => 'birthday|date:Y/m/d',            // 「|」の後ろで書式を変換
  *     '記事ID'       => 'id|format:%06d',
  *     '都道府県'     => ['prefecture', $prefectures],      // [値の場所, 一覧]：値を一覧の表示名に置き換える
  *     'カテゴリー'   => ['categories.*.id', $categories, 'import' => 'category_ids'],

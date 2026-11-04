@@ -35,11 +35,11 @@ class CodeSeeder extends Seeder
             }
 
             $order = 0;
-            foreach ($rows as $code => $name) {
+            foreach ($rows as $code => $label) {
                 Code::create([
                     'type' => $type,
                     'code' => (string) $code,
-                    'name' => $name,
+                    'label' => $label,
                     'seq' => $order++,
                 ]);
             }

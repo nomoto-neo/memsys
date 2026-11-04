@@ -49,7 +49,7 @@ class GatekeeperStateTest extends TestCase
 
         $state = GatekeeperState::read();
         $this->assertSame(self::ATTACKER, $state['blocks'][0][0]);
-        $this->assertSame($block->blocked_until->getTimestamp(), $state['blocks'][0][1]);
+        $this->assertSame($block->expires_at->getTimestamp(), $state['blocks'][0][1]);
 
         IpBlocker::release($block);
 

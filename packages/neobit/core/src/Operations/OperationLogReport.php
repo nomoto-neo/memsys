@@ -125,7 +125,7 @@ final class OperationLogReport
             ->get();
         foreach ($autoBlocks as $log) {
             $notable[] = '・'.($log->detail['ip'] ?? '').' を、存在しないURLへのアクセスが多いので、自動でブロックしました'
-                .'（'.($log->detail['until'] ?? '').'まで）';
+                .'（'.($log->detail['expires_at'] ?? '').'まで）';
         }
 
         // ---- 操作の多い人。全体の件数の後ろに、見たり持ち出したりした件数を0件のものを除いて添える ----

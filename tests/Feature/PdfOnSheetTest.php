@@ -42,7 +42,7 @@ class PdfOnSheetTest extends TestCase
             'name' => '山田 太郎',
             'kana' => 'ヤマダ タロウ',
             'email' => 'taro@example.com',
-            'birthdate' => '1990-05-12',
+            'birthday' => '1990-05-12',
             'password' => Hash::make('member-password'),
         ]);
 

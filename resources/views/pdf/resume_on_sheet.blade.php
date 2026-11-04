@@ -25,11 +25,11 @@
 <div class="at" style="left: 34mm; top: 40mm; width: 115mm; height: 10mm; overflow: auto; font-size: 20pt;">{{ $member->name }}</div>
 
 {{-- 生年月日（「年 月 日生 (満 歳)」の前に数字を入れる） --}}
-@if ($member->birthdate)
-    <div class="at" style="left: 54mm; top: 58.5mm; width: 14mm; text-align: right;">{{ $member->birthdate->year }}</div>
-    <div class="at" style="left: 75mm; top: 58.5mm; width: 8mm; text-align: right;">{{ $member->birthdate->month }}</div>
-    <div class="at" style="left: 90mm; top: 58.5mm; width: 8mm; text-align: right;">{{ $member->birthdate->day }}</div>
-    <div class="at" style="left: 115mm; top: 58.5mm; width: 7mm; text-align: right;">{{ $member->birthdate->age }}</div>
+@if ($member->birthday)
+    <div class="at" style="left: 54mm; top: 58.5mm; width: 14mm; text-align: right;">{{ $member->birthday->year }}</div>
+    <div class="at" style="left: 75mm; top: 58.5mm; width: 8mm; text-align: right;">{{ $member->birthday->month }}</div>
+    <div class="at" style="left: 90mm; top: 58.5mm; width: 8mm; text-align: right;">{{ $member->birthday->day }}</div>
+    <div class="at" style="left: 115mm; top: 58.5mm; width: 7mm; text-align: right;">{{ $member->birthday->age }}</div>
 @endif
 
 {{-- 現住所。会員の情報は都道府県まで。長い住所が入るときは、欄に収まるよう縮める（overflow: auto） --}}

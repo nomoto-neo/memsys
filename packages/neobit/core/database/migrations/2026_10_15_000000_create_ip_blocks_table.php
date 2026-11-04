@@ -22,7 +22,7 @@ return new class extends Migration
             // 自動で止めたときの、数える時間の中のアクセスの回数
             $table->unsignedInteger('hits')->nullable();
             // 止めるのをやめる日時。nullなら期限なし
-            $table->dateTime('blocked_until')->nullable()->index();
+            $table->dateTime('expires_at')->nullable()->index();
             // 管理画面から登録したスタッフの、登録した時点の名前
             $table->string('registered_by')->nullable();
             $table->timestamps();

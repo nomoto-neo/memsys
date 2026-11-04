@@ -60,7 +60,7 @@ class CompanyAdminTest extends TestCase
         return $override + [
             'name' => '株式会社acme',
             'kana' => 'カブシキガイシャアクメ',
-            'representative' => '代表 一郎',
+            'ceo_name' => '代表 一郎',
             'zip' => '100-0001',
             'prefecture' => 13,
             'address' => '千代田区千代田1-1',
@@ -80,7 +80,7 @@ class CompanyAdminTest extends TestCase
             ->assertSee('株式会社pending-co')->assertSee('株式会社approved-co');
 
         // 状態で絞ると、検索条件がセッションに残り、一覧に効く
-        $this->actingAs($staff, 'admin')->post('/app/admin/companies', ['status' => 'pending'])->assertRedirect();
+        $this->actingAs($staff, 'admin')->post('/app/admin/companies', ['status' => (string) CompanyStatus::Pending->value])->assertRedirect();
         $this->actingAs($staff, 'admin')->get('/app/admin/companies?page=1')->assertOk()
             ->assertSee('株式会社pending-co')->assertDontSee('株式会社approved-co');
     }
@@ -110,7 +110,7 @@ class CompanyAdminTest extends TestCase
 
         // 企業IDと状態を一緒に送っても、保存しない
         $this->actingAs($staff, 'admin')
-            ->patch("/app/admin/companies/{$company->id}/update", $input + ['code' => 'other', 'status' => 'suspended'])
+            ->patch("/app/admin/companies/{$company->id}/update", $input + ['code' => 'other', 'status' => (string) CompanyStatus::Suspended->value])
             ->assertRedirect(route('admin.companies.index', ['back']).'#id'.$company->id);
 
         $company->refresh();

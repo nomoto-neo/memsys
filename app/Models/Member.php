@@ -96,7 +96,7 @@ class Member extends Authenticatable implements LoginAccount, OperationLogNamedM
         'email',
         'password',
         'phone',
-        'birthdate',
+        'birthday',
         'prefecture',
         // お知らせメールを受け取るかどうか（App\Enums\NoticeMail）
         'notice_mail',
@@ -117,7 +117,7 @@ class Member extends Authenticatable implements LoginAccount, OperationLogNamedM
     ];
 
     protected $casts = [
-        'birthdate' => 'date',
+        'birthday' => 'date',
         // 都道府県はコード表の値と===で比べるので、intにそろえる
         'prefecture' => 'integer',
         // お知らせメールもコード表の値と===で比べるので、intにそろえる

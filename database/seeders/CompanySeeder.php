@@ -31,7 +31,7 @@ class CompanySeeder extends Seeder
             [
                 'name' => '株式会社サンプル',
                 'kana' => 'カブシキガイシャサンプル',
-                'representative' => '見本 一郎',
+                'ceo_name' => '見本 一郎',
                 'zip' => '100-0001',
                 'prefecture' => 13,
                 'address' => '千代田区千代田1-1',

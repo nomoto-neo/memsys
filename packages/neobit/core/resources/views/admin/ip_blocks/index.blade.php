@@ -96,7 +96,7 @@
                     </td>
                     <td class="small">{{ $block->reason }}</td>
                     <td class="small">{{ $block->created_at->format('Y-m-d H:i') }}</td>
-                    <td class="small">{{ $block->blocked_until?->format('Y-m-d H:i') ?? '期限なし' }}</td>
+                    <td class="small">{{ $block->expires_at?->format('Y-m-d H:i') ?? '期限なし' }}</td>
                     <td>
                         <div class="d-flex gap-2">
                             {{-- 期限の変更。変えた日から数え直す --}}

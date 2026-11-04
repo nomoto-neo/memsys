@@ -20,7 +20,7 @@ trait SeoFields
     private static array $seoFieldColumns = [
         'seo_title' => 'title',
         'seo_description' => 'description',
-        'seo_image' => 'image',
+        'seo_image_url' => 'image_url',
         'seo_noindex' => 'noindex',
     ];
 
@@ -30,7 +30,7 @@ trait SeoFields
         return [
             'seo_title' => ['nullable', 'string', 'max:60'],
             'seo_description' => ['nullable', 'string', 'max:300'],
-            'seo_image' => ['nullable', 'string', 'max:255', 'regex:'.Seo::IMAGE_URL_PATTERN],
+            'seo_image_url' => ['nullable', 'string', 'max:255', 'regex:'.Seo::IMAGE_URL_PATTERN],
             'seo_noindex' => ['nullable', 'in:0,1'],
         ];
     }
@@ -50,7 +50,7 @@ trait SeoFields
         return [
             'seo_title' => $meta?->title,
             'seo_description' => $meta?->description,
-            'seo_image' => $meta?->image,
+            'seo_image_url' => $meta?->image_url,
             'seo_noindex' => $meta?->noindex ? '1' : '0',
         ];
     }
@@ -68,7 +68,7 @@ trait SeoFields
         $values = [
             'title' => ($validated['seo_title'] ?? null) ?: null,
             'description' => ($validated['seo_description'] ?? null) ?: null,
-            'image' => ($validated['seo_image'] ?? null) ?: null,
+            'image_url' => ($validated['seo_image_url'] ?? null) ?: null,
             'noindex' => ($validated['seo_noindex'] ?? null) == '1',
         ];
 
