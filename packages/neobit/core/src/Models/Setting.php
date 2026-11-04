@@ -18,7 +18,7 @@ class Setting extends Model
     ];
 
     protected $casts = [
-        'value' => 'json',
+        'value' => 'json:unicode',
     ];
 
     /**

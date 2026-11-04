@@ -26,7 +26,7 @@ class CsvDownloadLog extends Model implements OperationLogRelatedRecord
     protected $casts = [
         'operator_id' => 'integer',
         'row_count' => 'integer',
-        'conditions' => 'array',
+        'conditions' => 'json:unicode',
     ];
 
     /** 操作ログに出す件数 */

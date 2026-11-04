@@ -350,6 +350,7 @@ has   packages/neobit/core/src/Http/Middleware/RestrictSiteAccess.php   'Gatekee
 has   public/index.php                                                  'is_file($gatekeeper'
 has   packages/neobit/core/src/NeobitServiceProvider.php                'config/neobit/{$section}.php'
 has   packages/neobit/core/stubs/config/neobit.php                      "// 'wordpress' => ["
+has   packages/neobit/core/src/Models/Setting.php                       "'value' => 'json:unicode'"
 
 echo
 if [ $ng -eq 0 ]; then
