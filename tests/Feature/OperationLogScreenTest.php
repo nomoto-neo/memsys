@@ -62,7 +62,7 @@ class OperationLogScreenTest extends TestCase
             ->get(route('admin.operation-logs.index'))
             ->assertOk()
             // 種類の名前（スタッフ）と、今の氏名
-            ->assertSee('スタッフID:'.$manager->id.'　管理 花子')
+            ->assertSee('<span title="管理 花子">スタッフID:'.$manager->id.'</span><span class="visually-hidden">　管理 花子</span>', false)
             // 内訳の窓
             ->assertSee('12件')
             ->assertSee('prefecture：13, 14')
@@ -168,6 +168,6 @@ class OperationLogScreenTest extends TestCase
         $this->actingAs($manager, 'admin')
             ->get(route('admin.members.operation-logs', $member))
             ->assertOk()
-            ->assertSee('会員ID:'.$member->id.'　会員 太郎');
+            ->assertSee('<span title="会員 太郎">会員ID:'.$member->id.'</span>', false);
     }
 }

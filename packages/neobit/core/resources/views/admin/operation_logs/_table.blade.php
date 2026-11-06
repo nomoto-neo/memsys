@@ -3,8 +3,10 @@
     $recordsは操作ログの行、$namesはNeobit\Core\Models\OperationLog::modelNames()の結果、
     $relatedはNeobit\Core\Models\OperationLog::relatedRecords()の結果。
 
-    操作した人と対象は「種類ID:番号　氏名」で出す。氏名は操作ログに残していないので、今の氏名を
-    $names[種類][id]から引く。退会した会員のように、もう行が無いものは氏名が出ない。
+    操作した人と対象は「種類ID:番号」で出し、氏名はマウスを乗せたときの吹き出し（title）で出す。氏名の長さで
+    列の幅が変わらないようにするため。同じ人かどうかは、IDで見分ける。読み上げのために、氏名は見えない文字でも入れる。
+    氏名が引けないときは、titleが空になり、吹き出しは出ない。
+    氏名は操作ログに残していないので、今の氏名を$names[種類][id]から引く。退会した会員のように、もう行が無いものは氏名が出ない。
     誰もログインしていない操作は、操作した人を「訪問者」と出す。
     ログインの失敗のように、対象の種類だけが残っている行は、種類だけを出す。
     CSVのダウンロードと取り込みは、対象の欄にCSVの名前を出す。
@@ -35,19 +37,21 @@
                 <td class="text-nowrap">{{ $log->created_at->format('Y-m-d H:i:s') }}</td>
                 <td class="text-nowrap">
                     @if ($log->operator_type !== null)
-                        {{ code_label('operation_log_model', $log->operator_type, $log->operator_type) }}ID:{{ $log->operator_id }}　{{ $names[$log->operator_type][$log->operator_id] ?? '' }}
+                        @php($operatorName = $names[$log->operator_type][$log->operator_id] ?? '')
+                        <span title="{{ $operatorName }}">{{ code_label('operation_log_model', $log->operator_type, $log->operator_type) }}ID:{{ $log->operator_id }}</span>@if ($operatorName !== '')<span class="visually-hidden">　{{ $operatorName }}</span>@endif
                     @else
                         <span class="text-muted">訪問者</span>
                     @endif
                 </td>
                 <td class="text-nowrap">{{ $log->action->label() }}</td>
-                <td>
+                <td class="text-nowrap">
                     @if ($log->csvName() !== null)
                         {{ $log->csvName() }}
                     @elseif ($log->target_type !== null && $log->target_id === null)
                         {{ code_label('operation_log_model', $log->target_type, $log->target_type) }}
                     @elseif ($log->target_type !== null)
-                        {{ code_label('operation_log_model', $log->target_type, $log->target_type) }}ID:{{ $log->target_id }}　{{ $names[$log->target_type][$log->target_id] ?? '' }}
+                        @php($targetName = $names[$log->target_type][$log->target_id] ?? '')
+                        <span title="{{ $targetName }}">{{ code_label('operation_log_model', $log->target_type, $log->target_type) }}ID:{{ $log->target_id }}</span>@if ($targetName !== '')<span class="visually-hidden">　{{ $targetName }}</span>@endif
                     @endif
                 </td>
                 <td class="text-break">
