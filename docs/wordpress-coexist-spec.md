@@ -42,7 +42,7 @@
 
 - 節があって `gatekeeper` が空：critical のログ「.env の WORDPRESS_GATEKEEPER がありません」。キャッシュの `Cache::add` で1時間に1回まで。
 - `gatekeeper` が `prepend`：`ini_get('auto_prepend_file')` と `gatekeeper.php` を `realpath()` で比べる。結果と時刻をキャッシュ（`neobit-gatekeeper-prepend`）に控える。書くのは結果が変わったときと1時間ごとだけ。掛かっていない状態に変わったときに、critical のログを1回。
-- `neobit:gatekeeper`：WordPress の行を出す。`prepend` は控えを出し、掛かっていなければ失敗。控えが無いとき（送った直後でまだ Web の要求が無い）は警告だけにする（利用ガイドの setup.md の手順の `neobit:gatekeeper --export` を失敗に見せないため）。`wp-config` は `wp-config.php` に `gatekeeper.php` を読む `require` があるかを見て、無ければ失敗。コメントにした行は数えない。節があって `gatekeeper` が空なら失敗。値が正しくなければ失敗。
+- `neobit:gatekeeper`：WordPress の行を出す。`prepend` は控えを出し、掛かっていなければ失敗。控えが無いとき（送った直後でまだ Web の要求が無い）は警告だけにする（利用ガイドの deploy.md の手順の `neobit:gatekeeper --export` を失敗に見せないため）。`wp-config` は `wp-config.php` に `gatekeeper.php` を読む `require` があるかを見て、無ければ失敗。コメントにした行は数えない。節があって `gatekeeper` が空なら失敗。値が正しくなければ失敗。
 
 **改ざん監視**
 
@@ -118,7 +118,7 @@
 - 解除した後：`/column/1/` はサイトの制限で 503、`/wp-login.php` は管理画面の扱いで 200、`/xmlrpc.php` はいつも隠す URL で 404
 - アップロード：WordPress で画像を上げても、改ざん監視は知らせない。アップロードの置き場所は、`set_permissions.writable` に書いて `set_permissions.sh --apply` でそろえるまで apache が書けず、画像の保存が「ディレクトリを作成できません」で止まった
 - アップロードの置き場所の `.htaccess`：`.version` の期間に置いたものは通常の更新として取り込み、期間の外の書き換えは15分後に「変わったファイル」として知らせた。中身を戻すと知らせが止まる
-- `set_permissions.sh --apply` は、全部のファイルの ctime を新しくするので、改ざん監視から見ると `.version` を送ったのと同じになる（利用ガイドの setup.md・file-watch.md に書いた）
+- `set_permissions.sh --apply` は、全部のファイルの ctime を新しくするので、改ざん監視から見ると `.version` を送ったのと同じになる（利用ガイドの deploy.md・file-watch.md に書いた）
 - ヘッダー：443 の VirtualHost に `Header always set` で4つを書くと、見張りの 503・404、Laravel の画面、WordPress の画面のどれにも1行ずつ付く。`always` を付けない `Header set` では、Laravel と WordPress の画面で2行になった
 - 管理画面に入れる人：サイトの制限を掛け、管理画面の制限は掛けていない状態で、管理画面の許す IP だけに入っている回線から、ブロックエディタで記事を保存できた（保存が通る `wp-json` は、表の URL と同じくサイトの制限が掛かる）
 

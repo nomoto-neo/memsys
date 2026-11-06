@@ -224,4 +224,4 @@ final class AppUploadDirectory implements UploadDirectoryRule
 
 ## 消えるファイル
 
-古いファイルは、保存の前後で「そのレコードがどこからも参照しなくなったファイル」だけを、トランザクションの確定後に消します。WYSIWYG の本文から外した画像も同じです（[transaction.md](transaction.md)）。
+古いファイルは、保存の前後で「そのレコードがどこからも参照しなくなったファイル」だけを、トランザクションの確定後に消します。WYSIWYG の本文から外した画像も同じです（[rules.md](rules.md)の「トランザクション」）。

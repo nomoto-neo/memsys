@@ -105,7 +105,7 @@ WordPress の分と、5 の管理画面の許す IP アドレスは、2026-10-29
 | 重さ | 内容 |
 |---|---|
 | 中 | 写しが古いまま書き出せない（`storage/app/gatekeeper/` に書けない）と、見張りは解除した IP アドレスを止め続ける。止められた人の要求は Laravel に届かず、Laravel の側では直せない。エラーのログ（エラーの通知のメール）と `neobit:gatekeeper` の食い違いの知らせで、人に直してもらう |
-| 中 | メンテナンス中の画面を案件で上書きしたとき（`resources/views/vendor/neobit/maintenance.blade.php`）は、`neobit:gatekeeper --export` まで見張りの画面が古いまま。利用ガイドの setup.md の手順で毎回流すので、デプロイの後には直る |
+| 中 | メンテナンス中の画面を案件で上書きしたとき（`resources/views/vendor/neobit/maintenance.blade.php`）は、`neobit:gatekeeper --export` まで見張りの画面が古いまま。利用ガイドの deploy.md の手順で毎回流すので、デプロイの後には直る |
 | 中 | 見張りが返す 404・503 には、`SecurityHeaders` のヘッダーが付かない。中身は書き出した固定の HTML だけなので害は小さいが、Laravel の 404 にはヘッダーが付くので、見比べると止められていることが分かる |
 | 低 | 入口の `index.php` の変数 `$gatekeeper` は、PublicFiles で動かす古い `.php` からも見える（`$app`・`$script` と同じ） |
 | 低 | 管理画面の制限は、Laravel では管理画面のルートだけに掛かるが、見張りは管理画面の URL の下の全部に掛かる。ルートの無い URL も 404 なので、見た目は変わらない |

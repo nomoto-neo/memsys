@@ -21,7 +21,7 @@ WordPress は `__()` などの関数を条件なしで作るので、Laravel と
 
 - WordPress の本体（`wp-admin/`・`wp-includes/`・`wp-content/`・`wp-*.php`）を、`public/` の直下に置きます。既存のサイトと同じ `/wp-admin/` の URL のままにするためです。
 - 直下の `index.php` は Laravel の入口なので、WordPress の入口は `public/wordpress.php` という名前で置きます。中身は WordPress の `index.php` と同じです。
-- WordPress が書き込む場所（アップロードの置き場所と、キャッシュのプラグインが書く場所）は、プロジェクトの直下の `set_permissions.writable` に書き、`set_permissions.sh` を流します（[setup.md](setup.md)の「サーバーの権限」）。書かないと、全体と同じく apache は読むだけになり、画像を上げると「ディレクトリを作成できません」で止まります。
+- WordPress が書き込む場所（アップロードの置き場所と、キャッシュのプラグインが書く場所）は、プロジェクトの直下の `set_permissions.writable` に書き、`set_permissions.sh` を流します（[deploy.md](deploy.md)の「サーバーの権限」）。書かないと、全体と同じく apache は読むだけになり、画像を上げると「ディレクトリを作成できません」で止まります。
 
     ```
     public/wp-content/uploads
@@ -42,7 +42,7 @@ WordPress は `__()` などの関数を条件なしで作るので、Laravel と
     ```
 
 - `wp-config.php` は、`public/` の外（プロジェクトの直下）に置きます。WordPress は、本体の1つ上のディレクトリの `wp-config.php` も探すので、そのまま読めます。Web から開けない場所に、DB のパスワードを置くためです。
-- `wp-config.php` には、`DISALLOW_FILE_MODS` を書きます。本体・プラグイン・テーマの更新とインストールと、ファイルの画面での編集を、WordPress の管理画面から止めます。管理画面を乗っ取られても裏口の PHP を置かれないようにするためで、apache がコードに書けない権限の形（[setup.md](setup.md)）とも合います。更新は、保守の作業として作業する人がファイルを送って当て、`.version` も送ります（[file-watch.md](file-watch.md)）。お客さんが自分でプラグインを入れている案件では、この取り決めを結べるかを先に確かめます。結べなければ、次の「お客さんが画面から更新する案件」の形にします。
+- `wp-config.php` には、`DISALLOW_FILE_MODS` を書きます。本体・プラグイン・テーマの更新とインストールと、ファイルの画面での編集を、WordPress の管理画面から止めます。管理画面を乗っ取られても裏口の PHP を置かれないようにするためで、apache がコードに書けない権限の形（[deploy.md](deploy.md)）とも合います。更新は、保守の作業として作業する人がファイルを送って当て、`.version` も送ります（[file-watch.md](file-watch.md)）。お客さんが自分でプラグインを入れている案件では、この取り決めを結べるかを先に確かめます。結べなければ、次の「お客さんが画面から更新する案件」の形にします。
 
     ```php
     define('DISALLOW_FILE_MODS', true);
@@ -191,7 +191,7 @@ require __DIR__.'/vendor/neobit/core/gatekeeper.php';
 
 **セキュリティのヘッダー**
 
-WordPress の画面と、見張りが返す 404・503 には、`SecurityHeaders`（[setup.md](setup.md)）のヘッダーが付きません。Laravel を通らないためです。Apache の設定で付けます。HTTPS の VirtualHost（certbot で証明書を取ったサーバーでは、certbot が作る `〜-le-ssl.conf` の `<VirtualHost *:443>`）に書きます。HTTP の VirtualHost は HTTPS へ移すだけなので、書いても HTTPS の画面には付きません。
+WordPress の画面と、見張りが返す 404・503 には、`SecurityHeaders`（[settings.md](settings.md)）のヘッダーが付きません。Laravel を通らないためです。Apache の設定で付けます。HTTPS の VirtualHost（certbot で証明書を取ったサーバーでは、certbot が作る `〜-le-ssl.conf` の `<VirtualHost *:443>`）に書きます。HTTP の VirtualHost は HTTPS へ移すだけなので、書いても HTTPS の画面には付きません。
 
 ```apache
     Header always set X-Frame-Options "SAMEORIGIN"

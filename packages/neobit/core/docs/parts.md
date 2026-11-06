@@ -19,11 +19,11 @@
 - **`SecurityHeaders`**
   - 場所：`packages/neobit/core/src/Http/Middleware/`
   - 概要：ブラウザに守り方を伝えるヘッダーを、全部の応答に付ける
-  - 詳細：[setup.md](setup.md)
+  - 詳細：[settings.md](settings.md)
 - **`AccessRestriction`・`RestrictSiteAccess`・`RestrictAdminAccess`・`AccessRestrictionController`**
   - 場所：`packages/neobit/core/src/Security/`・`src/Http/Middleware/`・`src/Http/Controllers/`
   - 概要：アクセス制限（サイトはメンテナンス中の画面、管理画面は 404。それぞれ別に掛ける）。管理画面の「アクセス制限」で設定する
-  - 詳細：[setup.md](setup.md)
+  - 詳細：[access-restriction.md](access-restriction.md)
 - **`AjaxFileUpload`**
   - 場所：`packages/neobit/core/src/Upload/`
   - 概要：画像・添付ファイルの Ajax アップロード、WYSIWYG の画像
@@ -175,7 +175,7 @@
 - **`neobit:set-next-id`**
   - 場所：`packages/neobit/core/src/Console/`
   - 概要：新しく登録する行の id の始まりを決めるコマンド（サイトを開ける前に使う）
-  - 詳細：[table-model.md](table-model.md)
+  - 詳細：[table.md](table.md)
 - **`ErrorNotifyHandler`**
   - 場所：`packages/neobit/core/src/Operations/`
   - 概要：ログに書いたエラーを開発者にメールで知らせる（レベル・宛先は .env、間隔は `config/logging.php`）

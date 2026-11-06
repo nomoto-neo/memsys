@@ -24,7 +24,7 @@
 |---|---|
 | フレームワーク | `resources/css/admin.css`・`resources/js/admin_layout.js`（新規）、操作ログの画面（`content-width` を外した） |
 | 見本のサイト | `resources/views/layouts/admin.blade.php`・`resources/views/admin/_menu.blade.php`・`vite.config.js` |
-| 文書 | 利用ガイド（setup.md の「管理画面の見た目」）・名前の一覧・`check_latest.sh` |
+| 文書 | 利用ガイド（settings.md の「管理画面の見た目」）・名前の一覧・`check_latest.sh` |
 
 ## B. 実装仕様
 

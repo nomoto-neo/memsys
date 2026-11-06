@@ -20,6 +20,6 @@ private function beforeDelete(News $news): void
 ```
 
 - ルートは `Route::delete('/news/{news}/delete', ...)`。一覧の削除ボタンは Bootstrap のモーダルで確認してから DELETE を送ります（実例：`admin/news/index.blade.php`）。
-- アップロードファイルの実物は、トランザクションが確定した後に消えます（[transaction.md](transaction.md)）。
+- アップロードファイルの実物は、トランザクションが確定した後に消えます（[rules.md](rules.md)の「トランザクション」）。
 - **論理削除**：モデルに `SoftDeletes` を付けると、`deleteData()` は論理削除になります。削除済みを一覧に出すのは `applyCustomSearch()` の `withTrashed()`、削除済みを表示・取り消しするルートは `->withTrashed()` を付けます。取り消しは `$record->restore()`（実例：スタッフ）。削除済みのときにできない操作は Policy で false を返します（[authorization.md](authorization.md)）。
 - 画面の削除ボタンで防いでいる条件（使用中のカテゴリーは削除できない、など）も、`destroy()` の中で必ずもう一度確かめます。

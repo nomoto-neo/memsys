@@ -80,11 +80,11 @@
 | `CsvImport` | ビュー `neobit::admin.csv_import.form`・`confirm` |
 | `UploadFilePath` | `uploads.show`・`uploads.tmp` |
 
-管理画面の URL は、`config/neobit.php` の `route.admin_path` で決めます（既定は `app/admin`）。変えたら、ベーシック認証の VirtualHost の決まりも合わせて直します（利用ガイドの setup.md の「管理画面の URL」）。
+管理画面の URL は、`config/neobit.php` の `route.admin_path` で決めます（既定は `app/admin`）。変えたら、ベーシック認証の VirtualHost の決まりも合わせて直します（利用ガイドの settings.md の「管理画面の URL」）。
 
 Laravel を公開ディレクトリの外に置けないレンタルサーバーでは、本体を公開ディレクトリの `app/system/` に置き、`index.php` と `vite.config.js` を書き換えます。手順と、置いた後に外から確かめることは、利用ガイドの security.md の「Laravel を公開ディレクトリの外に置けないサーバー」にあります。
 
-`storage/` のほかに apache が書き込むディレクトリがある案件では、プロジェクトの直下の `set_permissions.writable` に書きます（利用ガイドの setup.md の「サーバーの権限」）。
+`storage/` のほかに apache が書き込むディレクトリがある案件では、プロジェクトの直下の `set_permissions.writable` に書きます（利用ガイドの deploy.md の「サーバーの権限」）。
 
 WordPress を置く案件では、`config/neobit.php` に `wordpress` の節を書き、サーバーごとの `.env` に `WORDPRESS_GATEKEEPER`（`prepend` か `wp-config`）を書きます。`public/.htaccess` には WordPress に回す URL の決まりを、`public/` には `wordpress.php` を置きます（利用ガイドの wordpress.md）。
 
@@ -98,4 +98,4 @@ WordPress を置く案件では、`config/neobit.php` に `wordpress` の節を�
 - `bootstrap/cache/*.php` と `bootstrap/cache/views/`（サーバーで作る。`bootstrap/app.php` などは送ってよい）
 - `.env`（サーバーごとに別）
 
-サーバーへ送った後に実行するコマンドは、利用ガイドの setup.md にあります。
+サーバーへ送った後に実行するコマンドは、利用ガイドの deploy.md にあります。

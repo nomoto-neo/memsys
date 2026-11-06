@@ -23,7 +23,7 @@
   ```
 
 - **見つかったときに知らせてもらう**：GitHub のリポジトリの設定で、Dependabot の通知（Dependabot alerts）を有効にします。脆弱性が公表されると、メールで届きます。
-- **版を上げるとき**：`composer update`・`npm update` は、動作を確かめてからサーバーへ送ります。サーバーの上では `composer install --no-dev`・`npm ci` だけを実行し、版を上げる操作はしません（[setup.md](setup.md)）。
+- **版を上げるとき**：`composer update`・`npm update` は、動作を確かめてからサーバーへ送ります。サーバーの上では `composer install --no-dev`・`npm ci` だけを実行し、版を上げる操作はしません（[deploy.md](deploy.md)）。
 
 ## 送信元の認証（SPF・DKIM・DMARC）
 

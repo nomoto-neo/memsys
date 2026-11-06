@@ -119,7 +119,7 @@ FrameworkRoutes::seoSettings('/seo-settings');
         public function sitemapUrl(): string { return route('news.show', $this); }
     }
     ```
-- **robots.txt**（`/robots.txt`。フレームワークのルート `seo.robots`）：本番（`APP_ENV=production`）では、設定の `seo.robots_disallow` の場所を巡回させず、サイトマップの絶対の URL を伝えます。本番以外（開発サーバーなど）では、全部を巡回させません（`Disallow: /`）。`public/robots.txt` があると Apache がそちらを返すので、置きません。管理画面は、隠した URL を教えないよう `robots_disallow` に書かず、`X-Robots-Tag` のヘッダーで検索に出さないようにします（[setup.md](setup.md)「管理画面の URL」）。
+- **robots.txt**（`/robots.txt`。フレームワークのルート `seo.robots`）：本番（`APP_ENV=production`）では、設定の `seo.robots_disallow` の場所を巡回させず、サイトマップの絶対の URL を伝えます。本番以外（開発サーバーなど）では、全部を巡回させません（`Disallow: /`）。`public/robots.txt` があると Apache がそちらを返すので、置きません。管理画面は、隠した URL を教えないよう `robots_disallow` に書かず、`X-Robots-Tag` のヘッダーで検索に出さないようにします（[settings.md](settings.md)「管理画面の URL」）。
 - **設定を書くとき**：アプリの `config/neobit.php` の `seo` の節には、変えるキーだけを書きます（見本のサイトの `config/neobit.php` を参照）。
 
 ## パンくずリストと構造化データ（JSON-LD）

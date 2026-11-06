@@ -82,7 +82,7 @@ Schedule::command(CleanupTemporaryData::class)->hourly()->withoutOverlapping();
 ```
 
 - `/etc/cron.d/` のファイルは、時刻の後に実行するユーザーを書きます。**PHP-FPM のそのサイトのプールと同じユーザー**にします（プールの設定の `user`）。root で動かすと、ログ（`storage/logs`）などのファイルが root の持ち物になり、画面からの処理が書き込めなくなります。apache のようにログインできないユーザーでも動きます。
-- cron から動かすコマンドも、`bootstrap/cache/config.php` から設定を読みます。`schedule:run` が SQLite のエラーで止まるときは、`config:cache` をやり直してください（[setup.md](setup.md)「サーバーへ送った後に実行するコマンド」）。
+- cron から動かすコマンドも、`bootstrap/cache/config.php` から設定を読みます。`schedule:run` が SQLite のエラーで止まるときは、`config:cache` をやり直してください（[deploy.md](deploy.md)「サーバーへ送った後に実行するコマンド」）。
 - cron の PATH は最小限なので、`php` は絶対パスで書きます。場所は `which php` で確かめます。サイトのパスもサーバーに合わせます。
 - `/etc/cron.d/` に置くファイルは、root の持ち物で 644 にしてください。そうでないと、cron が読み飛ばします。最後の行の後ろには改行を入れます。無いと、最後の行が読まれないことがあります。ファイル名に `.` を入れると、読み飛ばされます。
 - 開発用と本番が同じサーバーにあるときは、`/etc/cron.d/` に置くファイルを `memsys_dev`・`memsys` のように分け、中に書くサイトのパスと実行するユーザーを、それぞれに合わせます。

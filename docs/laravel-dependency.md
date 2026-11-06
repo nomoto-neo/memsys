@@ -90,7 +90,7 @@ Laravel やパッケージに脆弱性が出たときに、影響があるかを
    - 手元：`composer show laravel/framework`、または `composer.lock` の版
    - サーバー：`php artisan --version`、またはエラーの画面の版
    - まとめて調べるとき：`composer audit`・`npm audit`
-3. **当たるときは版を上げる**：手元で `composer update`（または `npm update`）をして、テストと画面で確かめてから、`composer.json`・`composer.lock` をサーバーへ送る。サーバーでは `composer install --no-dev --optimize-autoloader` の後に、必ず `php artisan config:cache` をやり直す（利用ガイドの setup.md）。
+3. **当たるときは版を上げる**：手元で `composer update`（または `npm update`）をして、テストと画面で確かめてから、`composer.json`・`composer.lock` をサーバーへ送る。サーバーでは `composer install --no-dev --optimize-autoloader` の後に、必ず `php artisan config:cache` をやり直す（利用ガイドの deploy.md）。
 4. **直った版がまだ無いとき**：その機能を使っている場所（上の表の「主な場所」）を見て、入力の確かめを足す・ルートを止めるなどの回避ができるかを考える。
 
 ## 依存を増やすときの決まり

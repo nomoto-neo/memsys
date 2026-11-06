@@ -49,7 +49,7 @@
   - `Referrer-Policy`（移動先に渡す URL を絞る）
   - `Strict-Transport-Security`（HTTPS だけで開かせる。本番だけ）
   - `Content-Security-Policy`（読み込んでよい場所を決める）。画面の中に書いたスクリプトや、CDN・Cloudflare Turnstile・郵便番号の検索があるので、最初は報告だけのモードで始めて、止まるものが無いことを確かめてから有効にします。
-- **対応した内容**：`Content-Security-Policy` のほかの4つを、全部の応答に付けました（`SecurityHeaders`。利用ガイドの setup.md）。`Strict-Transport-Security` は、HTTPS で届いたときだけ付きます。Apache が直接返すファイル（`public/build/`・`public/storage/`）には付かないので、そちらは Apache の設定で付けます。
+- **対応した内容**：`Content-Security-Policy` のほかの4つを、全部の応答に付けました（`SecurityHeaders`。利用ガイドの settings.md）。`Strict-Transport-Security` は、HTTPS で届いたときだけ付きます。Apache が直接返すファイル（`public/build/`・`public/storage/`）には付かないので、そちらは Apache の設定で付けます。
 
 ### 4. 一斉メールの配信停止
 
@@ -78,7 +78,7 @@
 
 - **今の状態**：どこからでも、ログイン画面を開けます。
 - **なぜ要るか**：事務所などの決まった場所からしか使わないなら、ほかからは入口も見せないほうが安全です。
-- **対応の案**：`.env` に、入ってよい IP アドレスを書きます。空なら制限しません。サーバーの前にプロキシを置くときは、`TRUSTED_PROXIES` の設定が先に要ります（利用ガイドの setup.md）。
+- **対応の案**：`.env` に、入ってよい IP アドレスを書きます。空なら制限しません。サーバーの前にプロキシを置くときは、`TRUSTED_PROXIES` の設定が先に要ります（利用ガイドの settings.md）。
 - **対応した内容**：`.env` の `ADMIN_ALLOWED_IPS` に書いた IP アドレスのほかには、ログイン画面も含めて 404 を返します（`RestrictAdminAccess`。利用ガイドの access-restriction.md）。あわせて、サイト全体を絞る `SITE_ALLOWED_IPS` も足しました。こちらは、メンテナンス中の画面を出します。公開前のデモの運用と、メンテナンスの間に使います。
 
 ### 8. 新しい端末からのログインのお知らせ

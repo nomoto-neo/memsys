@@ -41,7 +41,7 @@ IP ブロックとアクセス制限（[access-restriction.md](access-restrictio
 - **判断は1つ**：見張りと、Laravel のミドルウェア（`RejectBlockedIp`・`RestrictSiteAccess`・`RestrictAdminAccess`）は、同じ判断のクラス `Gatekeeper` を使います。見張りが掛かっていない環境（`php artisan serve`・テスト）や、見張りの状態が古いときは、ミドルウェアが同じ判断をします。
 - **状態のファイル**：見張りは Laravel を読み込まないので、Laravel が書き出した `storage/app/gatekeeper/state.json` を読みます。中身は、止めている IP アドレスと期限、サイトと管理画面の制限と許す IP アドレス（`.env` の分も）、管理画面の URL の頭、サイトの制限を掛けない URL、信頼するプロキシと、WordPress を置く案件では WordPress の URL の決まり（[wordpress.md](wordpress.md)）です。IP ブロックとアクセス制限を変えたときに、書き出し直します。JSON にしているのは、apache が書ける場所のファイルを、どの要求でも PHP のコードとして動かさないためです。
 - **応答**：今までと同じです。止めている IP アドレスと管理画面の制限は 404、サイトの制限は 503 です。画面も、Laravel が返すものと同じ HTML を、書き出しのときに作って置いてあります（`404.html`・`maintenance.html`）。止められていることに、相手に気付かせないためです。
-- **`.env` を変えたとき**：許す IP アドレスや `TRUSTED_PROXIES` を変えて `config:cache` をやり直したら、`php artisan neobit:gatekeeper --export` で書き出し直します（[setup.md](setup.md)の表）。忘れても、設定のキャッシュより状態のファイルが古ければ、次のアクセスで Laravel が書き出し直します。
+- **`.env` を変えたとき**：許す IP アドレスや `TRUSTED_PROXIES` を変えて `config:cache` をやり直したら、`php artisan neobit:gatekeeper --export` で書き出し直します（[deploy.md](deploy.md)の表）。忘れても、設定のキャッシュより状態のファイルが古ければ、次のアクセスで Laravel が書き出し直します。
 - **確かめ**：`php artisan neobit:gatekeeper` で、書き出した日時・止めている IP アドレスの数・制限の状態を出します。状態のファイルが無いときや、今の状態と食い違っているときは、知らせて失敗で終わります。
 - **書き出せないとき**：解除などで書き出しに失敗すると、エラーのログを書きます（エラーの通知のメールが届きます）。古い状態のままだと、見張りが解除した IP アドレスを止め続けるためです。`storage/app/gatekeeper/` に書けるかを確かめて、`php artisan neobit:gatekeeper --export` を実行します。状態のファイルを読めないときと、`gatekeeper.php` が無いとき（送り忘れなど）は、見張りは何もせずに通し、ミドルウェアが判断します。画面だけを作れないとき（案件が足したエラーの画面がコマンドから描けないなど）は、状態は書き出し、エラーのログを書きます。見張りは、画面の代わりに短い文を返します。
 - **プロキシの後ろ**：見張りも、`TRUSTED_PROXIES` に書いたプロキシから届いたときだけ `X-Forwarded-For` を読みます。求め方は Laravel と同じです。

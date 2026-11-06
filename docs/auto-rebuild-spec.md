@@ -23,7 +23,7 @@
 | 見本のサイト | `config/view.php`・`.env.example`・`.gitignore` |
 | 道具 | `set_permissions.sh`・`check_latest.sh` |
 | テスト | `tests/Feature/RebuildTest.php`（新規） |
-| 文書 | 利用ガイド（setup.md の「画面と JS・CSS の作り直し」）・名前の一覧・`docs/new-project-files.md`・計画書 |
+| 文書 | 利用ガイド（deploy.md の「画面と JS・CSS の作り直し」）・名前の一覧・`docs/new-project-files.md`・計画書 |
 
 ## B. 実装仕様
 

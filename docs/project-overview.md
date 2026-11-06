@@ -93,4 +93,4 @@ Laravel の標準の構成に、次のものを足している（各ディレク
 - 手元の開発環境は Windows 11（PowerShell）、PHP 8.3、MariaDB 10.11（`memsys_local`）。メールはレンタルサーバーの SMTP で実際に送る
 - 本番・開発サーバーは自前の VPS で、AlmaLinux 10＋Apache＋PHP-FPM＋MariaDB。Laravel Cloud は使わない
 - 手元の DB は `php artisan migrate:fresh --seed` で作り直せる前提。サーバーのデータは持ってこない（`APP_KEY` が違うので、暗号化した列を復号できない）
-- サーバーへ送らないものと、送った後に実行するコマンドは、`docs/new-project-files.md` の末尾と利用ガイドの setup.md にある
+- サーバーへ送らないものと、送った後に実行するコマンドは、`docs/new-project-files.md` の末尾と利用ガイドの deploy.md にある

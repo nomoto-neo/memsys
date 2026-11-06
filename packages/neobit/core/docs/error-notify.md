@@ -58,7 +58,7 @@ ERROR_NOTIFY_TO=dev1@example.com,dev2@example.com
 - サーバーは `LOG_STACK=daily` を推奨します。
 - 残す日数は、障害に気付いてから見に行くまでの間を考えて、長めにします。週ごとやサイズでの区切りはありません。区切れるのは1日ごとなので、後から見られるかどうかは日数で決まります。
 - 独自の区切りでローテーションさせたい場合は、`LOG_STACK=single` にして、logrotate で独自に設定してください。
-- `.env` を変えたら `php artisan config:cache` をやり直します（[setup.md](setup.md)）。
+- `.env` を変えたら `php artisan config:cache` をやり直します（[deploy.md](deploy.md)）。
 - `daily` のときに今日のログを見るには、`tail -n 80 storage/logs/laravel-$(date +%F).log` とします。
 - ログの中の `[previous exception]` は、その上に書かれた例外の、元になった例外です。起きたことは1件で、同じ1件を外側と内側の2段で書いています。SQL のエラーなら、上が Laravel の包み直した例外（実行した SQL が載っている）、下が DB の機能が最初に投げた例外です。`[stacktrace]` の中の、パス `app/` を含む行が自分たちの書いたコードです。
 - エラーの通知の間引きは、メールだけのものです。ログには、起きたエラーが1件ずつ全部残ります。
