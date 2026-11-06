@@ -181,7 +181,8 @@ MAIL_FROM_NAME="${SITE_NAME}"
 
 - **色は組み合わせの名前で選びます**。レイアウトの `<html data-theme="navy">` に、`navy`・`green`・`orange`・`rose`・`light` のどれかを書きます。書かなければ `navy` です。本文の地は白で、ヘッダーにはメニューと同じ系統の薄い色を付けます。
 - **見本のサイトは、ヘッダーのプルダウンで色を切り替えられます**。プレゼンで見比べるためのもので、選んだ色はそのブラウザーだけに覚え、ほかの人の画面は変わりません。色を決めたサイトでは、レイアウトからプルダウンを消します。動きは `admin_layout.js` が `data-nb-theme-select` の付いたプルダウンに付けます。
-- **色の値は CSS 変数です**（`--nb-header-bg`・`--nb-sidebar-bg`・`--nb-sidebar-text`・`--nb-sidebar-current-bg`・`--nb-accent` など。全部は `admin.css` の頭にあります）。案件だけの色にするときは、案件の CSS で `[data-theme="navy"]` の変数を上書きします。Bootstrap の入力欄・表・カード・ページ送りも、同じ変数の色になります。`btn-primary`・`btn-outline-primary` は、組み合わせによらず同じ青（`--nb-primary`）です。
+- **色の値は CSS 変数です**（`--nb-header-bg`・`--nb-sidebar-bg`・`--nb-sidebar-text`・`--nb-sidebar-current-bg` など。全部は `admin.css` の頭にあります）。案件だけの色にするときは、案件の CSS で `[data-theme="navy"]` の変数を上書きします。
+- **組み合わせで変わるのは、ヘッダーとサイドメニューだけです**。本文の中（ボタン・リンク・入力欄・チェック・ページ送り・タブ・Bootstrap の primary の色）は、説明で「青いボタン」と言えるよう、どの組み合わせでも同じ青（`--nb-primary`、`#1a73e8`）です。
 - **文字の大きさは、`<html data-font-size="medium">` で選びます**。`small`（90%）・`medium`（100%。既定）・`large`（110%）で、Bootstrap の部品と余白も同じ割合で変わります。見本のサイトは、ヘッダーのプルダウンで選べます（`data-nb-font-size-select`。選んだ大きさはそのブラウザーだけに覚えます）。書体は端末の日本語の書体です。
 - **本文は横幅の95%を使います**。入力欄の少ない画面だけ、`@section('content-width', '800px')` のように書いて最大幅を絞れます。
 - **広い画面のメニュー**：ヘッダーの ☰ で、固定表示とアイコンだけの表示を切り替えます。アイコンだけの表示では、マウスを乗せるかキーボードで入ると、本文の上に重なって開きます。選んだ表示は、ブラウザーに覚えます。

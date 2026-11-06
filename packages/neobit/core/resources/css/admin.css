@@ -9,7 +9,8 @@
 
 /*
  * どの組み合わせでも同じ値。本文の地は白で、ヘッダーにはメニューと同じ系統の薄い色を付けて分ける。
- * btn-primaryは、組み合わせによらず同じ青（--nb-primary）にする。
+ * 組み合わせで変わるのは、ヘッダーとサイドメニューだけ。本文の中（ボタン・リンク・入力欄・ページ送り・
+ * Bootstrapのprimaryの色など）は、説明で「青いボタン」と言えるよう、組み合わせによらず同じ青（--nb-primary）にする。
  * -rgbは、Bootstrapが透明度を付けて使う色のための「赤, 緑, 青」。
  * 既定の組み合わせはnavyで、data-themeを書かないときもnavyになる。
  */
@@ -22,6 +23,7 @@
     --nb-primary: #1a73e8;
     --nb-primary-rgb: 26, 115, 232;
     --nb-primary-strong: #1765cc;
+    --nb-primary-strong-rgb: 23, 101, 204;
     --nb-table-head: #f7f8fb;
     --nb-row-hover: #f5f7fb;
     --nb-text: #1f2937;
@@ -43,11 +45,6 @@
     --nb-sidebar-line: #5a789f;
     --nb-sidebar-current-bg: #ffffff;
     --nb-sidebar-current-text: #3b5788;
-    --nb-accent: #4f6fa8;
-    --nb-accent-rgb: 79, 111, 168;
-    --nb-accent-strong: #3b5788;
-    --nb-accent-strong-rgb: 59, 87, 136;
-    --nb-accent-soft: #e9eef7;
 }
 
 /* green：落ち着いた緑のメニュー */
@@ -61,11 +58,6 @@
     --nb-sidebar-line: #5a8c70;
     --nb-sidebar-current-bg: #ffffff;
     --nb-sidebar-current-text: #1f5f30;
-    --nb-accent: #2a7d40;
-    --nb-accent-rgb: 42, 125, 64;
-    --nb-accent-strong: #1f5f30;
-    --nb-accent-strong-rgb: 31, 95, 48;
-    --nb-accent-soft: #e5f3e8;
 }
 
 /* orange：テラコッタのメニュー */
@@ -80,11 +72,6 @@
     --nb-sidebar-line: #b46b45;
     --nb-sidebar-current-bg: #ffffff;
     --nb-sidebar-current-text: #8a4020;
-    --nb-accent: #b3562a;
-    --nb-accent-rgb: 179, 86, 42;
-    --nb-accent-strong: #8a4020;
-    --nb-accent-strong-rgb: 138, 64, 32;
-    --nb-accent-soft: #fbeee6;
 }
 
 /* rose：くすんだローズのメニュー */
@@ -99,11 +86,6 @@
     --nb-sidebar-line: #ad5d69;
     --nb-sidebar-current-bg: #ffffff;
     --nb-sidebar-current-text: #873642;
-    --nb-accent: #b04a57;
-    --nb-accent-rgb: 176, 74, 87;
-    --nb-accent-strong: #873642;
-    --nb-accent-strong-rgb: 135, 54, 66;
-    --nb-accent-soft: #f9eaec;
 }
 
 /* light：白いメニューと、薄い青のヘッダー */
@@ -117,11 +99,6 @@
     --nb-sidebar-line: #e3e7ef;
     --nb-sidebar-current-bg: #4f6fa8;
     --nb-sidebar-current-text: #ffffff;
-    --nb-accent: #4f6fa8;
-    --nb-accent-rgb: 79, 111, 168;
-    --nb-accent-strong: #3b5788;
-    --nb-accent-strong-rgb: 59, 87, 136;
-    --nb-accent-soft: #e9eef7;
 }
 
 /* ---- 全体 ---- */
@@ -150,12 +127,12 @@ html.nb-admin-html[data-font-size="large"] {
     --bs-border-color: var(--nb-border);
     --bs-border-radius: 8px;
     --bs-border-radius-lg: 12px;
-    --bs-primary: var(--nb-accent);
-    --bs-primary-rgb: var(--nb-accent-rgb);
-    --bs-link-color: var(--nb-accent);
-    --bs-link-color-rgb: var(--nb-accent-rgb);
-    --bs-link-hover-color: var(--nb-accent-strong);
-    --bs-link-hover-color-rgb: var(--nb-accent-strong-rgb);
+    --bs-primary: var(--nb-primary);
+    --bs-primary-rgb: var(--nb-primary-rgb);
+    --bs-link-color: var(--nb-primary);
+    --bs-link-color-rgb: var(--nb-primary-rgb);
+    --bs-link-hover-color: var(--nb-primary-strong);
+    --bs-link-hover-color-rgb: var(--nb-primary-strong-rgb);
     background: var(--nb-body-bg);
     color: var(--nb-text);
     line-height: 1.6;
@@ -445,7 +422,7 @@ html.nb-admin-html[data-font-size="large"] {
 
 /* ---- Bootstrapの部品の色と形 ---- */
 
-/* ボタン。組み合わせによらず同じ青にする */
+/* ボタン */
 .nb-admin-body .btn-primary {
     --bs-btn-bg: var(--nb-primary);
     --bs-btn-border-color: var(--nb-primary);
@@ -475,15 +452,15 @@ html.nb-admin-html[data-font-size="large"] {
     --bs-border-color: var(--nb-input-border);
 }
 
-/* 入力欄。選んだときの枠と影を、組み合わせの色にする。読み取り専用と選べない欄は、global.cssの見た目のまま */
+/* 入力欄。選んだときの枠と影を、本文の青にする。読み取り専用と選べない欄は、global.cssの見た目のまま */
 .nb-admin-body :is(.form-control, .form-select):focus:not([readonly]) {
-    border-color: var(--nb-accent);
-    box-shadow: 0 0 0 0.2rem rgba(var(--nb-accent-rgb), 0.2);
+    border-color: var(--nb-primary);
+    box-shadow: 0 0 0 0.2rem rgba(var(--nb-primary-rgb), 0.2);
 }
 
 .nb-admin-body .form-check-input:checked:not(:disabled) {
-    background-color: var(--nb-accent);
-    border-color: var(--nb-accent);
+    background-color: var(--nb-primary);
+    border-color: var(--nb-primary);
 }
 
 /* チェックボックスとラジオボタンの四角と丸を、行の高さ1.6の文字の中央にそろえる。Bootstrapは行の高さ1.5に合わせている */
@@ -508,8 +485,8 @@ html.nb-admin-html[data-font-size="large"] {
 }
 
 .nb-admin-body .form-check-input:focus {
-    border-color: var(--nb-accent);
-    box-shadow: 0 0 0 0.2rem rgba(var(--nb-accent-rgb), 0.2);
+    border-color: var(--nb-primary);
+    box-shadow: 0 0 0 0.2rem rgba(var(--nb-primary-rgb), 0.2);
 }
 
 .nb-admin-body .card {
@@ -538,14 +515,14 @@ html.nb-admin-html[data-font-size="large"] {
 }
 
 .nb-admin-body .pagination {
-    --bs-pagination-color: var(--nb-accent);
-    --bs-pagination-hover-color: var(--nb-accent-strong);
-    --bs-pagination-focus-color: var(--nb-accent-strong);
-    --bs-pagination-focus-box-shadow: 0 0 0 0.2rem rgba(var(--nb-accent-rgb), 0.2);
-    --bs-pagination-active-bg: var(--nb-accent);
-    --bs-pagination-active-border-color: var(--nb-accent);
+    --bs-pagination-color: var(--nb-primary);
+    --bs-pagination-hover-color: var(--nb-primary-strong);
+    --bs-pagination-focus-color: var(--nb-primary-strong);
+    --bs-pagination-focus-box-shadow: 0 0 0 0.2rem rgba(var(--nb-primary-rgb), 0.2);
+    --bs-pagination-active-bg: var(--nb-primary);
+    --bs-pagination-active-border-color: var(--nb-primary);
 }
 
 .nb-admin-body .nav-tabs .nav-link.active {
-    color: var(--nb-accent-strong);
+    color: var(--nb-primary-strong);
 }
