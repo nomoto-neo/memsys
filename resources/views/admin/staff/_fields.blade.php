@@ -35,77 +35,80 @@
                      （ハッシュ化された値しか無く、再現して見せられる
                      ものが無いため、そもそも欄自体を出さない）。
 --}}
-<div class="mb-3">
-    <label for="name" class="form-label">お名前 {!! $required['name'] ?? '' !!}</label>
-    <input id="name" type="text" name="name"
-           class="form-control"
-           value="{{ $input['name'] ?? '' }}"{{ $readonly }}>
-    <div class="invalid-feedback" data-item="name">{{ $errors->first('name') }}</div>
-</div>
-
-<div class="mb-3">
-    <label for="login_id" class="form-label">ログインID {!! $required['login_id'] ?? '' !!}</label>
-    <input id="login_id" type="text" name="login_id"
-           autocomplete="off"
-           class="form-control"
-           value="{{ $input['login_id'] ?? '' }}"{{ $readonly }}>
-    <div class="invalid-feedback" data-item="login_id">{{ $errors->first('login_id') }}</div>
-</div>
-
-<div class="mb-3">
-    <label for="email" class="form-label">メールアドレス {!! $required['email'] ?? '' !!}</label>
-    <input id="email" type="email" name="email"
-           class="form-control"
-           value="{{ $input['email'] ?? '' }}"{{ $readonly }}>
-    <div class="invalid-feedback" data-item="email">{{ $errors->first('email') }}</div>
+<div class="row">
+    <div class="col-md-4 mb-3">
+        <label for="name" class="form-label">お名前 {!! $required['name'] ?? '' !!}</label>
+        <input id="name" type="text" name="name"
+               class="form-control"
+               value="{{ $input['name'] ?? '' }}"{{ $readonly }}>
+        <div class="invalid-feedback" data-item="name">{{ $errors->first('name') }}</div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <label for="login_id" class="form-label">ログインID {!! $required['login_id'] ?? '' !!}</label>
+        <input id="login_id" type="text" name="login_id"
+               autocomplete="off"
+               class="form-control"
+               value="{{ $input['login_id'] ?? '' }}"{{ $readonly }}>
+        <div class="invalid-feedback" data-item="login_id">{{ $errors->first('login_id') }}</div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <label for="email" class="form-label">メールアドレス {!! $required['email'] ?? '' !!}</label>
+        <input id="email" type="email" name="email"
+               class="form-control"
+               value="{{ $input['email'] ?? '' }}"{{ $readonly }}>
+        <div class="invalid-feedback" data-item="email">{{ $errors->first('email') }}</div>
+    </div>
 </div>
 
 @if ($showAcl)
-    <div class="mb-3">
-        <label for="acl" class="form-label">権限 {!! $required['acl'] ?? '' !!}</label>
-        <select id="acl" name="acl"
-                class="form-select"{{ $disabled }}>
-            @foreach (code_table('staff_acl') as $value => $label)
-                <option value="{{ $value }}" @selected((string) ($input['acl'] ?? '') === (string) $value)>{{ $label }}</option>
-            @endforeach
-        </select>
-        <div class="form-text">スタッフは自分自身の情報の編集だけができます。管理者は、スタッフ一覧の表示と、スタッフの登録・削除もできます。</div>
-        <div class="invalid-feedback" data-item="acl">{{ $errors->first('acl') }}</div>
+    <div class="row">
+        <div class="col-md-4 mb-3">
+            <label for="acl" class="form-label">権限 {!! $required['acl'] ?? '' !!}</label>
+            <select id="acl" name="acl"
+                    class="form-select"{{ $disabled }}>
+                @foreach (code_table('staff_acl') as $value => $label)
+                    <option value="{{ $value }}" @selected((string) ($input['acl'] ?? '') === (string) $value)>{{ $label }}</option>
+                @endforeach
+            </select>
+            <div class="form-text">スタッフは自分自身の情報の編集だけができます。管理者は、スタッフ一覧の表示と、スタッフの登録・削除もできます。</div>
+            <div class="invalid-feedback" data-item="acl">{{ $errors->first('acl') }}</div>
+        </div>
     </div>
 @endif
 
 @if ($showPassword)
     <hr>
 
-    <div class="mb-3">
-        <label for="password" class="form-label">
-            @if ($isCreate)
-                パスワード {!! $required['password'] ?? '' !!}
-            @else
-                新しいパスワード
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label for="password" class="form-label">
+                @if ($isCreate)
+                    パスワード {!! $required['password'] ?? '' !!}
+                @else
+                    新しいパスワード
+                @endif
+            </label>
+            <input id="password" type="password" name="password"
+                   autocomplete="new-password"
+                   class="form-control"
+                   value="{{ $input['password'] ?? '' }}"{{ $readonly }}>
+            <div class="invalid-feedback" data-item="password">{{ $errors->first('password') }}</div>
+            @if (! $isCreate)
+                <div class="form-text">空欄のままにすると、現在のパスワードは変更されません。</div>
             @endif
-        </label>
-        <input id="password" type="password" name="password"
-               autocomplete="new-password"
-               class="form-control"
-               value="{{ $input['password'] ?? '' }}"{{ $readonly }}>
-        <div class="invalid-feedback" data-item="password">{{ $errors->first('password') }}</div>
-        @if (! $isCreate)
-            <div class="form-text">空欄のままにすると、現在のパスワードは変更されません。</div>
-        @endif
-    </div>
-
-    <div class="mb-3">
-        <label for="password_confirmation" class="form-label">
-            @if ($isCreate)
-                パスワード（確認） {!! $required['password_confirmation'] ?? '' !!}
-            @else
-                新しいパスワード（確認）
-            @endif
-        </label>
-        <input id="password_confirmation" type="password" name="password_confirmation"
-               autocomplete="new-password"
-               class="form-control"
-               value="{{ $input['password_confirmation'] ?? '' }}"{{ $readonly }}>
+        </div>
+        <div class="col-md-6 mb-3">
+            <label for="password_confirmation" class="form-label">
+                @if ($isCreate)
+                    パスワード（確認） {!! $required['password_confirmation'] ?? '' !!}
+                @else
+                    新しいパスワード（確認）
+                @endif
+            </label>
+            <input id="password_confirmation" type="password" name="password_confirmation"
+                   autocomplete="new-password"
+                   class="form-control"
+                   value="{{ $input['password_confirmation'] ?? '' }}"{{ $readonly }}>
+        </div>
     </div>
 @endif

@@ -45,11 +45,19 @@
     <details class="mb-3 border rounded p-2" @if ($seoFilled || $seoErrors) open @endif>
         <summary class="form-label mb-0">SEOの設定（空欄なら自動）</summary>
 
-        <div class="mt-2">
-            <label for="seo_title" class="form-label small mb-1">SEOのタイトル</label>
-            <input id="seo_title" type="text" name="seo_title" class="form-control form-control-sm" maxlength="60"
-                   placeholder="空欄なら記事のタイトル" value="{{ $seoTitle }}">
-            <div class="invalid-feedback" data-item="seo_title">{{ $errors->first('seo_title') }}</div>
+        <div class="row g-2 mt-0">
+            <div class="col-md-6">
+                <label for="seo_title" class="form-label small mb-1">SEOのタイトル</label>
+                <input id="seo_title" type="text" name="seo_title" class="form-control form-control-sm" maxlength="60"
+                       placeholder="空欄なら記事のタイトル" value="{{ $seoTitle }}">
+                <div class="invalid-feedback" data-item="seo_title">{{ $errors->first('seo_title') }}</div>
+            </div>
+            <div class="col-md-6">
+                <label for="seo_image_url" class="form-label small mb-1">シェアの画像のURL</label>
+                <input id="seo_image_url" type="text" name="seo_image_url" class="form-control form-control-sm" maxlength="255"
+                       placeholder="空欄なら記事の画像（無ければサイトの既定）。例：/uploads/… か https://…" value="{{ $seoImageUrl }}">
+                <div class="invalid-feedback" data-item="seo_image_url">{{ $errors->first('seo_image_url') }}</div>
+            </div>
         </div>
 
         <div class="mt-2">
@@ -57,13 +65,6 @@
             <textarea id="seo_description" name="seo_description" rows="3" class="form-control form-control-sm" maxlength="300"
                       placeholder="空欄なら本文の先頭">{{ $seoDescription }}</textarea>
             <div class="invalid-feedback" data-item="seo_description">{{ $errors->first('seo_description') }}</div>
-        </div>
-
-        <div class="mt-2">
-            <label for="seo_image_url" class="form-label small mb-1">シェアの画像のURL</label>
-            <input id="seo_image_url" type="text" name="seo_image_url" class="form-control form-control-sm" maxlength="255"
-                   placeholder="空欄なら記事の画像（無ければサイトの既定）。例：/uploads/… か https://…" value="{{ $seoImageUrl }}">
-            <div class="invalid-feedback" data-item="seo_image_url">{{ $errors->first('seo_image_url') }}</div>
         </div>
 
         <div class="form-check mt-2">

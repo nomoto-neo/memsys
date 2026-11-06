@@ -20,12 +20,21 @@
             <h2 class="h6 mb-3">サイト全体の既定</h2>
             <p class="small text-muted mb-3">空欄の項目は、設定ファイル（config/neobit.php の seo）の値を使います。</p>
 
-            <div class="mb-3">
-                <label for="seo-title-format" class="form-label">タイトルの形</label>
-                <input type="text" id="seo-title-format" name="title_format" value="{{ $titleFormat }}" class="form-control"
-                       placeholder="{{ $configTitleFormat }}">
-                <div class="invalid-feedback" data-item="title_format">{{ $errors->first('title_format') }}</div>
-                <div class="form-text">{title} はページのタイトル、{site} はサイト名に置き換わります。{title} は必ず入れてください。</div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="seo-title-format" class="form-label">タイトルの形</label>
+                    <input type="text" id="seo-title-format" name="title_format" value="{{ $titleFormat }}" class="form-control"
+                           placeholder="{{ $configTitleFormat }}">
+                    <div class="invalid-feedback" data-item="title_format">{{ $errors->first('title_format') }}</div>
+                    <div class="form-text">{title} はページのタイトル、{site} はサイト名に置き換わります。{title} は必ず入れてください。</div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="seo-image-url" class="form-label">既定のシェアの画像のURL</label>
+                    <input type="text" id="seo-image-url" name="image_url" value="{{ $imageUrl }}" class="form-control"
+                           placeholder="{{ $configImageUrl !== '' ? $configImageUrl : '例：/images/ogp.png' }}">
+                    <div class="invalid-feedback" data-item="image_url">{{ $errors->first('image_url') }}</div>
+                    <div class="form-text">記事に画像が無いときに使います。/ から始まるサイトの中のパスか、http(s):// から始まるURLです。</div>
+                </div>
             </div>
 
             <div class="mb-3">
@@ -36,35 +45,28 @@
                 <div class="form-text">記事の無いページと、本文の無い記事で使います。300文字まで。</div>
             </div>
 
-            <div class="mb-3">
-                <label for="seo-image-url" class="form-label">既定のシェアの画像のURL</label>
-                <input type="text" id="seo-image-url" name="image_url" value="{{ $imageUrl }}" class="form-control"
-                       placeholder="{{ $configImageUrl !== '' ? $configImageUrl : '例：/images/ogp.png' }}">
-                <div class="invalid-feedback" data-item="image_url">{{ $errors->first('image_url') }}</div>
-                <div class="form-text">記事に画像が無いときに使います。/ から始まるサイトの中のパスか、http(s):// から始まるURLです。</div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="seo-organization-name" class="form-label">運営者の名前</label>
+                    <input type="text" id="seo-organization-name" name="organization_name" value="{{ $organizationName }}" class="form-control"
+                           placeholder="{{ $configOrganizationName }}">
+                    <div class="invalid-feedback" data-item="organization_name">{{ $errors->first('organization_name') }}</div>
+                    <div class="form-text">構造化データで、記事を書いた側とサイトの運営者として出します。空欄ならサイト名です。</div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="seo-organization-logo-url" class="form-label">運営者のロゴのURL</label>
+                    <input type="text" id="seo-organization-logo-url" name="organization_logo_url" value="{{ $organizationLogoUrl }}" class="form-control"
+                           placeholder="{{ $configOrganizationLogoUrl !== '' ? $configOrganizationLogoUrl : '例：/images/logo.png' }}">
+                    <div class="invalid-feedback" data-item="organization_logo_url">{{ $errors->first('organization_logo_url') }}</div>
+                    <div class="form-text">/ から始まるサイトの中のパスか、http(s):// から始まるURLです。</div>
+                </div>
             </div>
 
-            <div class="mb-3">
+            <div>
                 <label for="seo-site-verification" class="form-label">Google Search Console の確認タグ</label>
                 <input type="text" id="seo-site-verification" name="site_verification" value="{{ $siteVerification }}" class="form-control">
                 <div class="invalid-feedback" data-item="site_verification">{{ $errors->first('site_verification') }}</div>
                 <div class="form-text">Search Console が示す &lt;meta name="google-site-verification" …&gt; をそのまま貼り付けてもかまいません。content の値だけを保存します。</div>
-            </div>
-
-            <div class="mb-3">
-                <label for="seo-organization-name" class="form-label">運営者の名前</label>
-                <input type="text" id="seo-organization-name" name="organization_name" value="{{ $organizationName }}" class="form-control"
-                       placeholder="{{ $configOrganizationName }}">
-                <div class="invalid-feedback" data-item="organization_name">{{ $errors->first('organization_name') }}</div>
-                <div class="form-text">構造化データで、記事を書いた側とサイトの運営者として出します。空欄ならサイト名です。</div>
-            </div>
-
-            <div>
-                <label for="seo-organization-logo-url" class="form-label">運営者のロゴのURL</label>
-                <input type="text" id="seo-organization-logo-url" name="organization_logo_url" value="{{ $organizationLogoUrl }}" class="form-control"
-                       placeholder="{{ $configOrganizationLogoUrl !== '' ? $configOrganizationLogoUrl : '例：/images/logo.png' }}">
-                <div class="invalid-feedback" data-item="organization_logo_url">{{ $errors->first('organization_logo_url') }}</div>
-                <div class="form-text">/ から始まるサイトの中のパスか、http(s):// から始まるURLです。</div>
             </div>
         </div>
     </div>
@@ -95,23 +97,24 @@
                         </summary>
                         <input type="hidden" name="{{ $name }}[route]" value="{{ $page['route'] }}">
 
-                        <div class="mt-2 mb-2">
-                            <label for="seo-page-{{ $page['index'] }}-title" class="form-label small">タイトル</label>
-                            <input type="text" id="seo-page-{{ $page['index'] }}-title" name="{{ $name }}[title]" value="{{ $page['title'] }}" class="form-control">
-                            <div class="invalid-feedback" data-item="{{ $prefix }}.title">{{ $errors->first($prefix.'.title') }}</div>
-                            <div class="form-text">60文字まで。</div>
+                        <div class="row mt-2">
+                            <div class="col-md-6 mb-2">
+                                <label for="seo-page-{{ $page['index'] }}-title" class="form-label small">タイトル</label>
+                                <input type="text" id="seo-page-{{ $page['index'] }}-title" name="{{ $name }}[title]" value="{{ $page['title'] }}" class="form-control">
+                                <div class="invalid-feedback" data-item="{{ $prefix }}.title">{{ $errors->first($prefix.'.title') }}</div>
+                                <div class="form-text">60文字まで。</div>
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <label for="seo-page-{{ $page['index'] }}-image-url" class="form-label small">シェアの画像のURL</label>
+                                <input type="text" id="seo-page-{{ $page['index'] }}-image-url" name="{{ $name }}[image_url]" value="{{ $page['imageUrl'] }}" class="form-control">
+                                <div class="invalid-feedback" data-item="{{ $prefix }}.image_url">{{ $errors->first($prefix.'.image_url') }}</div>
+                            </div>
                         </div>
 
                         <div class="mb-2">
                             <label for="seo-page-{{ $page['index'] }}-description" class="form-label small">説明文</label>
                             <textarea id="seo-page-{{ $page['index'] }}-description" name="{{ $name }}[description]" rows="2" class="form-control">{{ $page['description'] }}</textarea>
                             <div class="invalid-feedback" data-item="{{ $prefix }}.description">{{ $errors->first($prefix.'.description') }}</div>
-                        </div>
-
-                        <div class="mb-2">
-                            <label for="seo-page-{{ $page['index'] }}-image-url" class="form-label small">シェアの画像のURL</label>
-                            <input type="text" id="seo-page-{{ $page['index'] }}-image-url" name="{{ $name }}[image_url]" value="{{ $page['imageUrl'] }}" class="form-control">
-                            <div class="invalid-feedback" data-item="{{ $prefix }}.image_url">{{ $errors->first($prefix.'.image_url') }}</div>
                         </div>
 
                         <div class="form-check">
