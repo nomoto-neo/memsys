@@ -19,9 +19,10 @@ use Throwable;
  * 初めて動いたとき（しるしの記録が無いとき）は、作り直さずにしるしだけを記録する。送った後の手順で作り直しは済んでいるため。
  *
  * ■ 画面
- * 登録された画面の場所（view:cacheと同じ）の全部のBladeを、Laravelのコンパイラでコンパイルする。コンパイラは
- * 1ファイルずつ一時ファイルに書いてから名前を変えるので、作り直している間も、画面は前か後のどちらかのファイルで出る。
- * 元のファイルが無くなった画面のコンパイル済みファイルは、最後に消す。
+ * 登録された画面の場所（view:cacheと同じ）の全部のBladeを、仮のディレクトリ（bootstrap/cache/views_next）に
+ * コンパイルし、できあがったらbootstrap/cache/viewsと入れ替える。今の置き場所で作り直すと、中身の変わらない画面で
+ * コンパイラが日時を更新しようとし（touch()）、持ち主でない利用者が作ったファイルでは失敗するため。
+ * 元のファイルが無くなった画面のコンパイル済みファイルは、新しい置き場所に作られないので残らない。
  * 送ってから作り直すまでの間は、サーバーのconfig('view.check_cache_timestamps')をfalseにして、前の画面を出す。
  *
  * ■ JS・CSS
@@ -50,6 +51,11 @@ final class AssetRebuilder
 
     private const BUILD_OLD_DIR = 'build_old';
 
+    /** 画面の仮の置き場所と、入れ替えるときに前のものを一時的に置く名前（コンパイル済みの画面の置き場所の後ろに付ける） */
+    private const VIEWS_NEXT_SUFFIX = '_next';
+
+    private const VIEWS_OLD_SUFFIX = '_old';
+
     // ---- 見る元のファイル ----
 
     /** JS・CSSの元のファイル（basePathの下）。フレームワークのものは、Composerが置いたvendor/neobit/coreの下 */
@@ -69,6 +75,11 @@ final class AssetRebuilder
 
     /** ビルドが失敗したときに、ログに残す出力の行数 */
     private const FAILED_OUTPUT_LINES = 20;
+
+    /** ディレクトリの名前の変更を、つかまれていて失敗したときにやり直す回数と、間に待つマイクロ秒 */
+    private const MOVE_TRIES = 5;
+
+    private const MOVE_WAIT_MICROSECONDS = 200000;
 
     /** npm run buildにかけてよい秒数 */
     private const BUILD_TIMEOUT_SECONDS = 600;
@@ -157,30 +168,51 @@ final class AssetRebuilder
 
     // ---- 画面 ----
 
-    /** 全部の画面をコンパイルし、元のファイルが無くなった画面のコンパイル済みファイルを消す。行ったことを文で返す */
+    /** 仮のディレクトリに全部の画面をコンパイルし、できあがったら入れ替える。行ったことを文で返す */
     private function rebuildViews(): string
     {
         $started = microtime(true);
+        $compiled = (string) config('view.compiled');
+        $next = $compiled.self::VIEWS_NEXT_SUFFIX;
+        $old = $compiled.self::VIEWS_OLD_SUFFIX;
 
         try {
-            $compiler = app('blade.compiler');
-            $compiledPath = (string) config('view.compiled');
-            $kept = [];
+            // 前の回の残りを片付ける
+            File::deleteDirectory($next);
+            File::deleteDirectory($old);
+            File::ensureDirectoryExists($next);
+
+            // 登録済みのBladeの命令を持ったまま、置き場所だけを仮のディレクトリにしたコンパイラ
+            $compiler = clone app('blade.compiler');
+            (function () use ($next) {
+                $this->cachePath = $next;
+            })->call($compiler);
 
             foreach ($this->viewPaths() as $path) {
                 foreach (Finder::create()->in($path)->exclude('vendor')->name('*.blade.php')->files() as $file) {
                     $compiler->compile($file->getRealPath());
-                    $kept[$compiler->getCompiledPath($file->getRealPath())] = true;
                 }
             }
 
-            // 元のファイルが無くなった画面のコンパイル済みファイル。置き場所の直下の.phpだけを見る
-            foreach (glob($compiledPath.'/*.php') ?: [] as $file) {
-                if (! isset($kept[$file])) {
-                    @unlink($file);
+            // 置き場所の中の.gitignoreなど、コンパイル済みの画面でないファイルを写す
+            foreach (File::files($compiled, true) as $file) {
+                if ($file->getExtension() !== 'php') {
+                    File::copy($file->getPathname(), $next.'/'.$file->getFilename());
                 }
             }
+
+            // 入れ替える。前のものは、名前を変えてから消す
+            if (is_dir($compiled)) {
+                $this->move($compiled, $old);
+            }
+            $this->move($next, $compiled);
+            File::deleteDirectory($old);
         } catch (Throwable $e) {
+            // 入れ替えの途中で止まったときは、前のものを戻す。仮のディレクトリは片付ける
+            if (! is_dir($compiled) && is_dir($old)) {
+                rename($old, $compiled);
+            }
+            File::deleteDirectory($next);
             $message = '画面の作り直しに失敗しました。直したBladeを確かめてください。（'.$e->getMessage().'）';
             Log::error($message);
 
@@ -248,15 +280,31 @@ final class AssetRebuilder
 
         // 入れ替える。前のものは、名前を変えてから消す
         if (is_dir($build)) {
-            rename($build, $old);
+            $this->move($build, $old);
         }
-        rename($next, $build);
+        $this->move($next, $build);
         File::deleteDirectory($old);
 
         $message = 'JS・CSS を作り直しました。（'.round(microtime(true) - $started, 1).'秒）';
         Log::info($message);
 
         return $message;
+    }
+
+    /**
+     * ディレクトリの名前を変える。Windowsでは、作ったばかりのファイルをウイルス対策などがつかんでいて失敗することがあるので、
+     * 少し待ってやり直す。やり直しても失敗したら、例外を投げる
+     */
+    private function move(string $from, string $to): void
+    {
+        for ($try = 1; $try <= self::MOVE_TRIES; $try++) {
+            if (@rename($from, $to)) {
+                return;
+            }
+            usleep(self::MOVE_WAIT_MICROSECONDS);
+        }
+
+        throw new \RuntimeException("{$from} を {$to} へ移せませんでした。");
     }
 
     // ---- しるし ----

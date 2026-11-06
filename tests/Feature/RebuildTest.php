@@ -33,6 +33,9 @@ class RebuildTest extends TestCase
         file_put_contents($this->base.'/resources/js/app.js', 'console.log(1);');
         file_put_contents($this->base.'/package.json', '{}');
         file_put_contents($this->base.'/public/build/manifest.json', '{"old":true}');
+        file_put_contents($this->base.'/bootstrap/cache/views/.gitignore', "*
+!.gitignore
+");
 
         // 画面の場所とコンパイル済みの置き場所を、作業用のディレクトリにする
         config(['view.compiled' => $this->base.'/bootstrap/cache/views', 'neobit.rebuild.npm' => 'npm']);
@@ -101,6 +104,9 @@ class RebuildTest extends TestCase
 
         $this->assertStringContainsString('画面を作り直しました', $done[0]);
         $this->assertCount(2, glob($this->base.'/bootstrap/cache/views/*.php'));
+        $this->assertFileExists($this->base.'/bootstrap/cache/views/.gitignore');
+        $this->assertDirectoryDoesNotExist($this->base.'/bootstrap/cache/views_next');
+        $this->assertDirectoryDoesNotExist($this->base.'/bootstrap/cache/views_old');
         Process::assertNothingRan();
 
         // 画面を消すと、そのコンパイル済みファイルも消す
