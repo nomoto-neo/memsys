@@ -3,7 +3,7 @@
 /**
  * 画面とJS・CSSの作り直し（neobit:rebuild。Neobit\Core\Operations\AssetRebuilder）の既定の値。
  * アプリのconfig/neobit.phpのrebuildの節に書いたキーが、これに優先する。
- * コードを更新する利用者（devapp）のcrontabから毎分動かす。使い方は利用ガイドの vendor/neobit/core/docs/deploy.md の「画面とJS・CSSの作り直し」。
+ * コードを更新する利用者（devapp）のcrontabから毎分動かす。使い方は利用ガイドの vendor/neobit/core/docs/deploy.md の「画面と JS・CSS の作り直し」。
  */
 return [
 

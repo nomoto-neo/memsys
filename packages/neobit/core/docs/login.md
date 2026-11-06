@@ -163,7 +163,7 @@ $this->useBackupCodes(Staff::class, false);    // バックアップコードを
 
 ## 古い方式のパスワード（LegacyPasswordUserProvider）
 
-**ファイル**：`packages/neobit/core/src/Auth/LegacyPasswordUserProvider.php`（冒頭のコメント）・`packages/neobit/core/src/Auth/LegacyPassword.php`・`packages/neobit/core/src/Auth/Legacy/`・`config/login.php`
+**ファイル**：`packages/neobit/core/src/Auth/LegacyPasswordUserProvider.php`（冒頭のコメント）・`packages/neobit/core/src/Auth/LegacyPassword.php`・`packages/neobit/core/src/Auth/Legacy/`・`config/neobit.php` の `auth`
 
 既存のシステムから会員を移したサイトだけで使います。既存のシステムのパスワードは、MD5 や SHA-1 のような古い方式のハッシュ値で持っていることが多く、元のパスワードには戻せません。古いハッシュ値のまま移し、本人が次にログインしたときに、今の方式（bcrypt）に置き換えます。会員にパスワードを決め直してもらう必要はありません。
 

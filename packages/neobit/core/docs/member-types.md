@@ -2,7 +2,7 @@
 
 <p align="right"><a href="../guide.md">利用ガイドへ戻る</a></p>
 
-**ファイル**：`packages/neobit/core/src/Auth/LoginAccount.php`・`IsLoginAccount.php`・`TwoFactorLogin.php`・`TeamInvitationManager.php`・`TeamInvitationOwner.php`・`HasTeamInvitations.php`・`LoginIdMemory.php`、`config/login.php`、設計の詳細は「個人会員と企業会員を共存させる設計」（`docs/member-types-spec.md`）　**実例**：個人会員は `AuthSessionController` ほか、企業会員は `app/Http/Controllers/Company/` の下と `Admin\CompanyController`・`Admin\CompanyUserController`
+**ファイル**：`packages/neobit/core/src/Auth/LoginAccount.php`・`IsLoginAccount.php`・`TwoFactorLogin.php`・`TeamInvitationManager.php`・`TeamInvitationOwner.php`・`HasTeamInvitations.php`・`LoginIdMemory.php`、`config/site_login.php`、設計の詳細は「個人会員と企業会員を共存させる設計」（`docs/member-types-spec.md`）　**実例**：個人会員は `AuthSessionController` ほか、企業会員は `app/Http/Controllers/Company/` の下と `Admin\CompanyController`・`Admin\CompanyUserController`
 
 訪問者側でログインする人は、個人会員と、企業の担当者の2種類です。ログインの仕組み（[login.md](login.md)）は同じ共通部品を使い、画面・URL・コントローラーは種類ごとに分けて書きます。企業会員を使わないサイトは、企業会員のファイルを消します。
 

@@ -65,7 +65,7 @@
   - 概要：CSV を読んで確かめる部分。自分の画面を持つ機能が、CSV の読み込みと検証だけを借りるときに使う
   - 詳細：[csv-import.md](csv-import.md)
 - **`MailTemplate`・`TemplatedMail`**
-  - 場所：`packages/neobit/core/src/Mail/`・`packages/neobit/core/src/Mail/`
+  - 場所：`packages/neobit/core/src/Mail/`
   - 概要：テンプレートファイルによるメール送信
   - 詳細：[mail.md](mail.md)
 - **`LoginThrottle`**
