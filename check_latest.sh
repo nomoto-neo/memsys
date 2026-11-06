@@ -370,6 +370,8 @@ has   packages/neobit/core/src/Seo/SeoFields.php                        "'seo_im
 has   database/migrations/2026_11_05_000000_rename_columns_on_member_tables.php "'representative', 'ceo_name'"
 has   app/Enums/CompanyStatus.php                                       'case Suspended = 9;'
 has   app/Models/Member.php                                             "'birthday'"
+has   resources/views/layouts/admin.blade.php                           'bootstrap-icons@1.11.3'
+has   resources/views/admin/_menu.blade.php                             'bi-house-door'
 has   packages/neobit/core/src/Operations/AssetRebuilder.php            'build_next'
 has   packages/neobit/core/src/Console/Rebuild.php                      'neobit:rebuild'
 has   packages/neobit/core/config/neobit/rebuild.php                    'REBUILD_NPM'

@@ -51,6 +51,7 @@
 - グループは `<details>`・`<summary>` で、同じ `name="nb-menu"` を付ける。1つを開くとほかが閉じるのはブラウザーの働きで、JavaScript は使わない（Chrome・Edge 120、Safari 17.2、Firefox 130 以降。古いブラウザーでは複数開けるだけ）
 - 今の画面のグループ（`.is-current`）を開いて出す。グループの開閉は覚えない。開くのはいつも1つで、画面を移ると今の画面のグループが開くため
 - 表示の切り替え（`neobit.admin.sidebar`）を `localStorage` に覚える
+- アイコンは Bootstrap Icons 1.11.3（CDN。`integrity` 付き）。グループの開閉の矢印（`bi-chevron-down`）とヘッダーの ☰（`bi-list`）も同じ。メニューのアイコンは `admin/_menu.blade.php` に名前で書く（ダッシュボード `bi-house-door`・コンテンツ `bi-file-earmark-text`・会員 `bi-people`・運用 `bi-sliders`・セキュリティ `bi-shield-lock`・アカウント `bi-person-circle`）
 - 前に選んだ表示は、レイアウトの中の短いスクリプトが、画面を出す前に当てる。`admin_layout.js` は画面を出した後に読まれ、そこで当てると一瞬だけ前の表示が見えるため
 - アイコン表示で開く動きは CSS の `:hover`・`:focus-within` で行う。キーボードで入っても開く
 - 狭い画面（992px 未満）は、Bootstrap の `offcanvas-lg` で左から引き出す

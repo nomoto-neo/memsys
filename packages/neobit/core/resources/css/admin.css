@@ -179,6 +179,11 @@ html.nb-admin-html[data-font-size="large"] {
     color: inherit;
 }
 
+.nb-header-toggle .bi {
+    font-size: 1.25rem;
+    line-height: 1;
+}
+
 .nb-header-toggle:hover {
     background: rgba(127, 127, 127, 0.12);
 }
@@ -322,10 +327,13 @@ html.nb-admin-html[data-font-size="large"] {
     font-weight: 500;
 }
 
+/* メニューのアイコン（Bootstrap Iconsの文字） */
 .nb-menu-icon {
     flex: 0 0 18px;
     width: 18px;
-    height: 18px;
+    font-size: 18px;
+    line-height: 1;
+    text-align: center;
 }
 
 /* グループの見出し。<details>の<summary>で、押すと開閉する */
@@ -358,7 +366,8 @@ html.nb-admin-html[data-font-size="large"] {
 .nb-menu-chevron {
     flex: 0 0 14px;
     width: 14px;
-    height: 14px;
+    font-size: 14px;
+    line-height: 1;
     transform: rotate(-90deg);
     transition: transform 0.2s;
 }

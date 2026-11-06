@@ -20,6 +20,8 @@
         } catch (e) {}
     </script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    {{-- アイコン（Bootstrap Icons）。メニューのアイコンの名前は https://icons.getbootstrap.com/ から選ぶ --}}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" integrity="sha384-XGjxtQfXaH2tnPFa9x+ruJTuLE3Aa6LhHSWRr1XeTyhezb4abCG4ccI5AkVDxqC+" crossorigin="anonymous">
     @vite(['vendor/neobit/core/resources/css/global.css', 'vendor/neobit/core/resources/css/admin.css', 'vendor/neobit/core/resources/js/global.js', 'vendor/neobit/core/resources/js/admin_layout.js'])
 {{-- jQuery。使うときはこのBladeコメントを外す（summernoteを使う場合は必須）。 --}}
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js" integrity="sha384-1H217gwSVyLSIfaLxHbE7dRb3v4mYCKbpQvzx0cegeju1MVsGrX5xXxAvs/HgeFs" crossorigin="anonymous"></script>
@@ -65,10 +67,10 @@
         <header class="nb-header">
             @auth('admin')
                 <button type="button" class="nb-header-toggle d-flex d-lg-none" data-bs-toggle="offcanvas" data-bs-target="#adminMenu" aria-controls="adminMenu" aria-label="メニューを開く">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+                    <i class="bi bi-list" aria-hidden="true"></i>
                 </button>
                 <button type="button" class="nb-header-toggle d-none d-lg-flex" data-nb-sidebar-toggle aria-label="メニューをアイコンだけの表示にする">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+                    <i class="bi bi-list" aria-hidden="true"></i>
                 </button>
             @endauth
             {{-- 広い画面では、サイトの名前はメニューの上に出す --}}

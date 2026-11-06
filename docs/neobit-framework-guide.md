@@ -222,6 +222,7 @@ MAIL_FROM_NAME="${SITE_NAME}"
 - **本文は横幅の95%を使います**。入力欄の少ない画面だけ、`@section('content-width', '800px')` のように書いて最大幅を絞れます。
 - **広い画面のメニュー**：ヘッダーの ☰ で、固定表示とアイコンだけの表示を切り替えます。アイコンだけの表示では、マウスを乗せるかキーボードで入ると、本文の上に重なって開きます。選んだ表示は、ブラウザーに覚えます。
 - **メニューのグループ**：見出しを押すと開閉します（`<details>`）。同じ `name` を付けているので、1つを開くとほかは閉じます。今の画面のグループを開いて出します。グループとアイコンは `admin/_menu.blade.php` に書きます。
+- **メニューのアイコン**：Bootstrap Icons（CDN）を使います。`admin/_menu.blade.php` のグループに、アイコンの名前（`bi-people` など）を書きます。名前は [Bootstrap Icons の一覧](https://icons.getbootstrap.com/) から選びます。
 - **狭い画面のメニュー**：☰ で左から引き出します（Bootstrap の `offcanvas-lg`）。
 
 ### サーバーの前にプロキシを置くとき（TRUSTED_PROXIES）
@@ -3514,7 +3515,7 @@ public_html/              ← 公開ディレクトリ。Laravel の public の�
 
 | 送り先 | 送るもの | 使っている所 | 目的 |
 |---|---|---|---|
-| jsDelivr（CDN） | IP アドレス、ブラウザの情報 | 全部の画面（Bootstrap・jQuery の読み込み） | 画面の表示 |
+| jsDelivr（CDN） | IP アドレス、ブラウザの情報 | 全部の画面（Bootstrap・jQuery の読み込み。管理画面は Bootstrap Icons も） | 画面の表示 |
 | Cloudflare（Turnstile） | IP アドレス、ブラウザの情報 | お問い合わせなどの訪問者向けフォーム（12章） | 機械による送信の判定 |
 | zipcloud | 入力した郵便番号、IP アドレス | お問い合わせの住所の入力 | 郵便番号からの住所の検索 |
 

@@ -79,6 +79,7 @@ Laravel やパッケージに脆弱性が出たときに、影響があるかを
 | `sortablejs` | ドラッグでの並べ替え（カテゴリー・コード表の編集） | npm |
 | `vite`・`laravel-vite-plugin` | JavaScript と CSS のまとめ（ビルドのときだけ） | npm（開発用） |
 | Bootstrap 5.3.3 | 画面の見た目 | CDN |
+| Bootstrap Icons 1.11.3 | 管理画面のアイコン | CDN |
 | jQuery 3.7.1 | summernote が使う | CDN |
 | summernote 0.9.0 | WYSIWYG エディタ（ニュース） | CDN |
 
