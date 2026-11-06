@@ -50,7 +50,7 @@
 | 4-3 | ほかのテーブルから作るコード表を、設定に書けるようにする | 済み |
 | 4-4 | アップロードの保存先のディレクトリの規則を、プロジェクトで差し替えられるようにする | 済み |
 | 4-5 | 配る前に、案件が頼る名前を総点検する | 済み |
-| 4-5-2 | 名前の総点検の続き。一覧の外にあって見ていなかった種類を見直す | 進行中 |
+| 4-5-2 | 名前の総点検の続き。一覧の外にあって見ていなかった種類を見直す | 済み |
 | 4-6 | IPブロック管理（攻撃の IP を入口で止める）を足す | 済み |
 | 4-7 | 設定ファイルの分け方を見直す | 済み |
 | 4-8 | 子テーブル（1:多の子テーブルを、親と同じ画面で入力して保存する部品。`ChildTables`）を足す | 済み |
@@ -219,17 +219,19 @@
 
 ### 段階4-5-2　名前の総点検の続き
 
+済み（2026-11-07）。
+
 2026-11-04 に足した段階。段階4-5 は名前の一覧の種類ごとに見たため、一覧の外にあるものを見ていなかった。入口の見張りの `Gate` が総点検の後に見つかったのも、そのため。配った後に変えると、全案件やサーバーで直す作業が出るものなので、版を出す前に見る。
 
 見るもの。
 
 | 種類 | 状態 |
 |---|---|
-| フレームワークのテーブルの列（`code_tables`・`operation_logs`・`csv_download_logs`・`csv_import_logs`・`trusted_devices`・`two_factor_backup_codes`・`two_factor_secrets`・`team_invitations`・`ip_blocks`・`settings`・`seo_metas`・`redirects`・`basic_auth_users`） | 進行中 |
-| 見本のサイトのテーブルの列（`t_` で始まるもの）。案件が写す元になるので、同じ観点で見る | 進行中 |
-| `.env` の名前（`ADMIN_ALLOWED_IPS`・`SITE_ALLOWED_IPS`・`CRON_ENABLED`・`OPERATION_REPORT_TO`・`TRUSTED_PROXIES` など） | 未 |
-| `settings` テーブルに入れるキー | 未 |
-| 保存先のディレクトリ・定数・ファイル名 | 未 |
+| フレームワークのテーブルの列（`code_tables`・`operation_logs`・`csv_download_logs`・`csv_import_logs`・`trusted_devices`・`two_factor_backup_codes`・`two_factor_secrets`・`team_invitations`・`ip_blocks`・`settings`・`seo_metas`・`redirects`・`basic_auth_users`） | 済み |
+| 見本のサイトのテーブルの列（`t_` で始まるもの）。案件が写す元になるので、同じ観点で見る | 済み |
+| `.env` の名前（`ADMIN_ALLOWED_IPS`・`SITE_ALLOWED_IPS`・`CRON_ENABLED`・`OPERATION_REPORT_TO`・`TRUSTED_PROXIES` など） | 済み |
+| `settings` テーブルに入れるキー | 済み |
+| 保存先のディレクトリ・定数・ファイル名 | 済み |
 
 見ないもの。Laravel 標準のテーブル（`migrations`・`password_reset_tokens`・`sessions`・`cache`・`cache_locks`・`jobs`・`job_batches`・`failed_jobs`）と、`laravel/passkeys` の形に合わせた `passkeys`。
 
@@ -243,11 +245,15 @@
 | `t_bulk_mails.status`・`t_companies.status` | 文字列から `tinyint` の数値に。送信中1・完了2、申請中1・承認済み2・停止9 | 既存のプロジェクトの形（1:仮登録・2:本登録・9:退会）にそろえる。意味は列挙型（`BulkMailStatus`・`CompanyStatus`）で分かる。進む順に1から振り、止める状態は9。`t_newsletter_subscribers.source` と `operation_logs.action` は、種類が増える・案件が足すものなので文字列のまま |
 | `t_companies` の列 `representative` | `ceo_name` | `representative` は単語の馴染みが薄い。CEO は広く通じ、`_name` で中身が名前だと分かる。株式会社に限らず団体の代表者も入れることを、列の説明に書く。画面の見出し「代表者名」は変えない |
 | `t_members` の列 `birthdate` | `birthday` | 日本の業務システムで馴染みのある名前にそろえる。年まで入ることは、日付の型で分かる |
+| `storage/app/basic-auth/`・`storage/app/file-watch/` | `basic_auth/`・`file_watch/` | ディレクトリの名前にハイフンを使わない。コマンドの引数と見間違えやすいため。2026-11-07 に直した |
+| `storage/app/private/tmp/` | `upload_tmp/` | アップロードでしか使わないので、用途が分かる名前にする。URL の `/uploads/tmp/` は、ほかの URL とそろえて複数形のまま。2026-11-07 に直した |
+| `settings` のキー（`access.〜`・`seo.〜`）、`.env` の名前、テーブルの残りの列 | 変えない | 見直して、意味の分かる名前だった |
+| 定数 `NEOBIT_GATEKEEPER_STATE`・`NEOBIT_GATEKEEPER_DONE` | 変えない | 定数は PHP 全体で名前を共有し、入口の見張りは WordPress と同じ処理の中で動く。プラグインの定数とぶつからないよう、頭の `NEOBIT_` を残す |
+| PDF の作業用のディレクトリ `storage/framework/mpdf/` | 変えない | 消しても作り直せるキャッシュなので、Laravel のキャッシュと同じ `storage/framework` に置く。mPDF が足す `mpdf/` と重なっていたのは直した |
 
-決めること。
+残したこと（段階5で決める）。
 
 - パッケージのマイグレーションを、最初の版の前に1本へまとめるか。案件の DB は流したファイル名を記録するので、配った後はまとめられない。まとめるなら、開発サーバーなどすでに流した DB の扱いも決める。それまでは、列の名前を変えるマイグレーションを足して直す
-- 名前の一覧の13章のテーブルに、`seo_metas`・`redirects`・`basic_auth_users` が漏れている。見直しが済んだときに足す
 
 ### 段階4-6　IPブロック管理
 

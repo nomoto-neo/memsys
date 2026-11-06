@@ -309,5 +309,5 @@
 |---|---|---|
 | `vendor:publish` のタグ | `neobit-config`・`neobit-mail-templates` | |
 | Artisan のコマンド | `neobit:access-denied-off`・`neobit:cleanup-temporary-data`・`neobit:gatekeeper`・`neobit:report-operation-logs`・`neobit:reset-two-factor`・`neobit:set-next-id`・`neobit:file-watch` | |
-| テーブル | `code_tables`・`ip_blocks`・`settings`・`operation_logs`・`csv_download_logs`・`csv_import_logs`・`trusted_devices`・`two_factor_backup_codes`・`two_factor_secrets`・`passkeys`・`team_invitations` | |
+| テーブル | `code_tables`・`ip_blocks`・`settings`・`operation_logs`・`csv_download_logs`・`csv_import_logs`・`trusted_devices`・`two_factor_backup_codes`・`two_factor_secrets`・`passkeys`・`team_invitations`・`seo_metas`・`redirects`・`basic_auth_users` | |
 | フレームワークが作るコード表 | `operation_log_action`・`operation_log_model` | 設定の `operation_log.actions`・`operation_log.models` の列挙型から作る |
