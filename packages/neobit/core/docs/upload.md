@@ -52,7 +52,7 @@ private function prepareInput(array $validated): array
 - **必須の欄**：`'required' => true` の欄は、新しいファイル（一時ファイルが今ある）か、消していない今のファイルが無いと、確認画面へ進めず、保存もできません。今のファイルは、hidden の値をそのまま信じず、編集しているレコードの今の値と照らします。組の中の欄では、空でない行のどれにもファイルを求めます（今のファイルは、その行の今の値と照らします）。「少なくとも1つ」は、組の `'min' => 1` で決めます。
     - エラーの文は、通常の項目と同じ `validation.required` です。エラーは欄の名前（組の中の欄は `photos_image.0` のように行ごと）に付き、`_ajax_upload_block` が自分で `invalid-feedback` を出します。
     - 必須マークは `requiredFields()` が付けます。画面では `{!! $required['list_image'] ?? '' !!}` と書きます。
-    - ルールは FormFlow の検証（`validatedInput()`）が足すので、コントローラーの `rules()` には書きません。CSV の取り込みには効きません。
+    - ルールは FormFlow の検証（`validatedInput()`）が足すので、コントローラーの `rules()` には書きません。CSV の取り込みでも、必須の欄は確かめます（[csv-import.md](csv-import.md)）。
     - 見本は、ニュースの一覧用画像です。
 - **いくつでも足せるファイル**：子テーブル（[form.md](form.md)）に、ファイルの項目だけの組を書き、`UPLOAD_FILES` に「組の名前.*.列」で書きます（例：`'attach.*.file'`。画面から送る名前は `attach_file`）。行の数の上限は組の `'max'` です。末尾が「.*」だけの書き方（`'attach.*'`）は、例外にして組の書き方を案内します。
 - `$input` の組み立て（`inputPageValues()`・`confirmPageValues()`）と保存（`saveData()`）は FormFlow が自動でアップロードの処理を呼ぶので、入口の書き方は変わりません。

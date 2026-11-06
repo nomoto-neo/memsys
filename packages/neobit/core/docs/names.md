@@ -277,6 +277,7 @@
 | 項目見出し一覧の「頭.index」「頭.update」 | 案件が書く | |
 | IPブロック管理の「頭.index」「頭.store」「頭.update」「頭.destroy」 | 案件が書く。update・destroy の URL に `{ipBlock}` | |
 | 操作ログの「頭.index」「頭.search」「頭.csv」「頭.day」 | 案件が書く | |
+| 改ざん監視の「頭.index」「頭.approve」 | 案件が書く | |
 | アクセス制限の「頭.index」「頭.update」 | 案件が書く | |
 | ベーシック認証の「頭.index」「頭.update」「頭.store」「頭.destroy」 | 案件が書く。update・store の URL に `{area}`（`site`・`admin`）、destroy の URL に `{basicAuthUser}` | |
 | SEO設定の「頭.index」「頭.update」 | 案件が書く | |
@@ -291,7 +292,9 @@
 | `profile_changed` | `$name`・`$changed_at`・`$reset_url`・`$site_name`・`$to_mail`・`$from_mail`・`$from_name` | |
 | `invitation` | `$inviter_name`・`$url`・`$expires_at`・`$site_name`・`$to_mail`・`$from_mail`・`$from_name` | |
 | `error_notify` | `$title`・`$level`・`$message`・`$exception_class`・`$location`・`$where`・`$context`・`$trace`・`$suppressed`・`$datetime`・`$app_env`・`$site_name`・`$to_mail`・`$from_mail`・`$from_name` | |
-| `operation_log_report` | `$date`・`$counts`・`$notable`・`$operators`・`$url`・`$site_name`・`$to_mail`・`$from_mail`・`$from_name` | |
+| `operation_log_report` | `$date`・`$counts`・`$notable`・`$operators`・`$file_updates`・`$url`・`$site_name`・`$to_mail`・`$from_mail`・`$from_name` | |
+| `file_watch_alert` | `$counts`・`$dangers`・`$changed`・`$added`・`$deleted`・`$unreadable`・`$site_name`・`$to_mail`・`$from_mail`・`$from_name` | |
+| `file_watch_approved` | `$by`・`$count`・`$changed`・`$added`・`$deleted`・`$requested_at`・`$accepted_at`・`$site_name`・`$to_mail`・`$from_mail`・`$from_name` | |
 
 ## 12. JavaScript・CSS
 

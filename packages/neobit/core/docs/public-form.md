@@ -13,7 +13,7 @@
 
 ## スパム対策（SpamGuard）
 
-**ファイル**：`packages/neobit/core/src/Security/SpamGuard.php`（冒頭のコメント）・`packages/neobit/core/resources/views/_spam_guard.blade.php`・`packages/neobit/core/src/Enums/SpamCheckResult.php`　**実例**：`ContactController::confirmForStore()`
+**ファイル**：`packages/neobit/core/src/Security/SpamGuard.php`（冒頭のコメント）・`packages/neobit/core/resources/views/_spam_guard.blade.php`・`packages/neobit/core/src/Enums/SpamCheckResult.php`　**実例**：`ContactController::confirm()`
 
 人に手間をかけさせない3つの仕組みを組み合わせます。画像を選ばせる問題は出しません。
 
