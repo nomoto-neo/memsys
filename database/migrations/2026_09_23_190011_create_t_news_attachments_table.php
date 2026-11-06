@@ -13,10 +13,12 @@ return new class extends Migration
      * 「1記事につき0〜複数」を持てる子テーブル（1対多。1つの添付
      * ファイルが複数の記事に属することは無い）。
      *
-     * filenameに保存するのはファイル名だけで、保存先ディレクトリは
-     * list_imageと同じ規則(news/{news_id}/attach/)で組み立てる。
+     * 子テーブルの部品（Neobit\Core\Crud\ChildTables）の形で、アップロードの欄の決まりに合わせて、
+     * fileに保存したファイル名、file_originに表示名を持つ。保存先ディレクトリは
+     * list_imageと同じ規則(news/{news_id}/attach/)で組み立てる。fileは、一時ファイルが片付けで
+     * 消えていたときなどにファイルの無い行になりうるので、NULLを許す。
      * 保存のたびに「このnews_idの行を全削除してから、残す分だけ
-     * 作り直す」という運用にしているため、display_orderのような
+     * 作り直す」という運用にしているため、seqのような
      * 並び順専用カラムは持たせていない(再登録した順=INSERTした順=
      * idの昇順が、そのまま画面上の並び順になる)。
      *
@@ -29,8 +31,8 @@ return new class extends Migration
         Schema::create('t_news_attachments', function (Blueprint $table) {
             $table->id();
             $table->foreignId('news_id');
-            $table->string('filename');
-            $table->string('original_name');
+            $table->string('file')->nullable();
+            $table->string('file_origin')->nullable();
             $table->timestamps();
         });
     }

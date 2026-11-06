@@ -13,6 +13,12 @@ return new class extends Migration
      * false（非表示）にしてあるので、下書きの状態で保存してから、
      * 内容を確認した上で表示に切り替える、という運用ができる。
      *
+     * members_onlyは公開範囲（false＝一般公開、true＝会員限定）。会員限定の記事は、ログインしていない人には
+     * 一覧にも詳細にも出さない（App\Models\News::visibleTo()）。
+     *
+     * publish_start_at・publish_end_atは掲載期間。どちらも任意で、空ならその側の制限は無い。期間の外の記事は、
+     * 訪問者側の一覧・詳細・画像に出さない。表示するたびに今の時刻と比べるので、スケジューラーは要らない。
+     *
      * article_dateはdate型（時刻を持たない日付のみ）。訪問者側の
      * 並び順（新しい順）や年度プルダウンの抽出は、すべてこの列を基準にする。
      *
@@ -32,6 +38,9 @@ return new class extends Migration
             $table->text('body')->nullable();
             $table->date('article_date');
             $table->boolean('disp_flg')->default(false);
+            $table->boolean('members_only')->default(false);
+            $table->dateTime('publish_start_at')->nullable();
+            $table->dateTime('publish_end_at')->nullable();
             $table->timestamps();
             $table->string('list_image')->nullable();
             $table->string('list_image_origin')->nullable();

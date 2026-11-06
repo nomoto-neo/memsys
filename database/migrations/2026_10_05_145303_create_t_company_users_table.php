@@ -23,7 +23,6 @@ return new class extends Migration
             $table->unsignedBigInteger('company_id');
             $table->string('login_id', 50);
             $table->string('name')->nullable();
-            // 同じアドレスを、複数の担当者が使っていてよい（企業の代表アドレスなど）
             $table->string('email')->nullable();
             $table->string('password')->nullable();
             $table->string('legacy_password')->nullable();
@@ -32,6 +31,10 @@ return new class extends Migration
 
             // 担当者IDは、企業の中でだけ重ならない
             $table->unique(['company_id', 'login_id']);
+
+            // メールアドレスも、同じ企業の中で重ならない。確認コードとパスワードの再設定のメールが、本人だけに届くようにするため。
+            // 別の企業の担当者と同じアドレスは使ってよい（2つの企業の担当者を兼ねる人がいるため）。空の担当者は何人いてもよい
+            $table->unique(['company_id', 'email']);
         });
     }
 

@@ -10,7 +10,8 @@ use Illuminate\Support\Facades\Schema;
  *
  * - code       企業ID。ログイン画面で入力する。新しく登録した企業にはidと同じ番号を入れ、
  *              既存のシステムから移した企業には今までのログインIDを入れるので、文字の列にしている
- * - status     申請中・承認済み・停止（App\Enums\CompanyStatus）。承認済みの企業だけがログインできる
+ * - ceo_name   代表者の名前。株式会社に限らず、団体の代表者も入れる
+ * - status     申請中1・承認済み2・停止9（App\Enums\CompanyStatus）。承認済みの企業だけがログインできる
  * - prefecture 都道府県コード（code/prefectures.csvのキー）
  * - staff_memo スタッフが書き残す管理メモ。企業の側には見せない
  * - staff_id   管理画面から最後に更新したスタッフのid
@@ -25,13 +26,13 @@ return new class extends Migration
             $table->string('code', 50)->nullable()->unique();
             $table->string('name');
             $table->string('kana')->nullable();
-            $table->string('representative')->nullable();
+            $table->string('ceo_name')->nullable();
             $table->string('zip', 8)->nullable();
             $table->unsignedTinyInteger('prefecture')->nullable();
             $table->string('address')->nullable();
             $table->string('tel', 20);
             $table->string('url')->nullable();
-            $table->string('status', 20)->index();
+            $table->unsignedTinyInteger('status')->index();
             $table->text('staff_memo')->nullable();
             $table->unsignedBigInteger('staff_id')->nullable();
             $table->timestamps();

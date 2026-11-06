@@ -165,6 +165,35 @@ gone_dir storage/app/private/tmp
 # PDFの作業用のディレクトリが、mpdf/mpdfと重なっていた。中はキャッシュなので消してよい
 gone_dir storage/framework/mpdf/mpdf
 
+# 最初の版の前に、マイグレーションを作る形だけにまとめた。流した記録は、migrationsテーブルから人が消す
+for f in \
+    packages/neobit/core/database/migrations/2026_10_15_000000_create_ip_blocks_table.php \
+    packages/neobit/core/database/migrations/2026_10_16_000000_create_settings_table.php \
+    packages/neobit/core/database/migrations/2026_10_21_000000_rename_sort_order_to_seq_on_code_tables_table.php \
+    packages/neobit/core/database/migrations/2026_10_25_000000_create_seo_metas_table.php \
+    packages/neobit/core/database/migrations/2026_10_27_000000_create_redirects_table.php \
+    packages/neobit/core/database/migrations/2026_10_28_000000_create_basic_auth_users_table.php \
+    packages/neobit/core/database/migrations/2026_11_05_000000_rename_columns_on_neobit_core_tables.php \
+    database/migrations/2026_09_27_100001_drop_withdrawn_at_from_t_members_table.php \
+    database/migrations/2026_09_30_100001_change_original_name_nullable_on_t_news_attachments_table.php \
+    database/migrations/2026_10_03_163426_add_photo_to_t_members_table.php \
+    database/migrations/2026_10_03_165725_move_inquiry_attach_files_to_private_disk.php \
+    database/migrations/2026_10_03_174749_add_members_only_to_t_news_table.php \
+    database/migrations/2026_10_03_174750_move_news_files_to_private_disk.php \
+    database/migrations/2026_10_03_193327_add_publish_period_to_t_news_table.php \
+    database/migrations/2026_10_04_181114_add_staff_memo_to_t_members_table.php \
+    database/migrations/2026_10_05_131909_add_legacy_password_to_t_members_table.php \
+    database/migrations/2026_10_07_023841_add_notice_mail_to_t_members_table.php \
+    database/migrations/2026_10_12_130000_add_unique_email_to_t_company_users_table.php \
+    database/migrations/2026_10_21_000000_rename_columns_on_t_news_attachments_table.php \
+    database/migrations/2026_10_21_100000_rename_display_order_to_seq_on_t_categories_table.php \
+    database/migrations/2026_10_21_200000_rename_display_order_to_seq_on_news_child_tables.php \
+    database/migrations/2026_10_21_300000_drop_seq_on_t_news_attachments_table.php \
+    database/migrations/2026_11_05_000000_rename_columns_on_member_tables.php
+do
+    gone "$f"
+done
+
 echo "--  消したファイルの確認を終えました（NG が無ければ、残っていません）"
 
 # ---- 2. 最新の版であること ----
@@ -189,14 +218,14 @@ has   packages/neobit/core/src/Operations/TemporaryDataCleaner.php      'public 
 has   packages/neobit/core/src/Operations/TemporaryDataCleaner.php      'public static function oldJobBatches('
 has   packages/neobit/core/config/neobit/schedule.php                   "'cron_enabled'"
 has   app/Http/Controllers/Admin/NewsController.php                     "'attach.*.file' => ['type' => UploadType::File]"
-has   packages/neobit/core/database/migrations/2026_10_16_000000_create_settings_table.php "Schema::create('settings'"
-has   packages/neobit/core/database/migrations/2026_10_15_000000_create_ip_blocks_table.php "Schema::create('ip_blocks'"
+has   packages/neobit/core/database/migrations/2026_10_13_000000_create_neobit_core_tables.php "Schema::create('settings'"
+has   packages/neobit/core/database/migrations/2026_10_13_000000_create_neobit_core_tables.php "Schema::create('ip_blocks'"
 has   packages/neobit/core/config/neobit/code_table.php                 "'enum_namespaces'"
 has   packages/neobit/core/stubs/config/neobit.php                      "// 'code_table' => "
 has   packages/neobit/core/resources/mail-templates/verification_code.blade.php '【{!! $site_name !!}】'
 has   packages/neobit/core/resources/js/global.js                       'ajax_submit'
 has   packages/neobit/core/resources/css/global.css                     '.invalid-feedback:not(:empty)'
-has   packages/neobit/core/database/migrations/2026_10_13_000000_create_neobit_core_tables.php 'OLD_CODE_TABLE'
+lacks packages/neobit/core/database/migrations/2026_10_13_000000_create_neobit_core_tables.php 'OLD_CODE_TABLE'
 
 # アプリ
 has   vite.config.js                                                    'preserveSymlinks: true'
@@ -246,7 +275,7 @@ has   packages/neobit/core/src/Seo/Seo.php                              'final c
 has   packages/neobit/core/src/helpers.php                              "function_exists('seo')"
 has   packages/neobit/core/resources/views/_seo_head.blade.php          'twitter:card'
 has   resources/views/layouts/app.blade.php                             "@include('neobit::_seo_head')"
-has   packages/neobit/core/database/migrations/2026_10_25_000000_create_seo_metas_table.php "Schema::create('seo_metas'"
+has   packages/neobit/core/database/migrations/2026_10_13_000000_create_neobit_core_tables.php "Schema::create('seo_metas'"
 has   packages/neobit/core/src/Seo/SeoFields.php                        'trait SeoFields'
 has   packages/neobit/core/src/Crud/FormFlow.php                        'saveSeoFields'
 has   packages/neobit/core/resources/views/_seo_fields.blade.php        'seo_noindex'
@@ -275,7 +304,7 @@ has   resources/views/layouts/app.blade.php                             "@includ
 has   app/Models/News.php                                               'implements SeoArticle'
 has   app/Http/Controllers/PageController.php                           '$parentSlugs'
 has   packages/neobit/core/config/neobit/seo.php                        "'organization_logo_url'"
-has   packages/neobit/core/database/migrations/2026_10_27_000000_create_redirects_table.php "Schema::create('redirects'"
+has   packages/neobit/core/database/migrations/2026_10_13_000000_create_neobit_core_tables.php "Schema::create('redirects'"
 has   packages/neobit/core/src/Seo/RedirectResolver.php                 'final class RedirectResolver'
 has   packages/neobit/core/src/Seo/RedirectChecker.php                  'final class RedirectChecker'
 has   packages/neobit/core/src/Http/Middleware/ApplyRedirects.php       'class ApplyRedirects'
@@ -286,7 +315,7 @@ has   bootstrap/app.php                                                 'ApplyRe
 has   routes/admin.php                                                  'FrameworkRoutes::redirects'
 has   app/Providers/AppServiceProvider.php                              "'redirect' => Redirect::class"
 has   config/neobit.php                                                 "'redirects' => true"
-has   packages/neobit/core/database/migrations/2026_10_28_000000_create_basic_auth_users_table.php "Schema::create('basic_auth_users'"
+has   packages/neobit/core/database/migrations/2026_10_13_000000_create_neobit_core_tables.php "Schema::create('basic_auth_users'"
 has   packages/neobit/core/src/Security/BasicAuth.php                   'final class BasicAuth'
 has   packages/neobit/core/src/Http/Controllers/BasicAuthController.php 'class BasicAuthController'
 has   routes/admin.php                                                  'FrameworkRoutes::basicAuth'
@@ -317,19 +346,14 @@ has   app/Http/Controllers/Admin/NewsController.php                     'CHILD_T
 has   packages/neobit/core/src/Csv/CsvWriter.php                       'final class CsvWriter'
 has   packages/neobit/core/src/Csv/CsvDownload.php                     'CsvWriter::download('
 has   packages/neobit/core/resources/js/repeatable_group.js             'repeatable:add-row'
-has   database/migrations/2026_10_21_000000_rename_columns_on_t_news_attachments_table.php "renameColumn('original_name', 'file_origin')"
 has   app/Models/NewsAttachment.php                                     "'file_origin'"
 has   resources/views/admin/news/_attach_row.blade.php                  "'field' => 'attach_file'"
-has   packages/neobit/core/database/migrations/2026_10_21_000000_rename_sort_order_to_seq_on_code_tables_table.php "renameColumn('sort_order', 'seq')"
 has   packages/neobit/core/src/Models/Code.php                          "'seq'"
-has   database/migrations/2026_10_21_100000_rename_display_order_to_seq_on_t_categories_table.php "renameColumn('display_order', 'seq')"
 has   app/Models/Category.php                                           "'seq'"
-has   database/migrations/2026_10_21_200000_rename_display_order_to_seq_on_news_child_tables.php "'t_news_attachments'"
 has   packages/neobit/core/resources/js/repeatable_group.js             'repeatable:remove-row'
 has   packages/neobit/core/resources/views/_repeatable_group.blade.php  'data-files-only'
 has   packages/neobit/core/src/Crud/ChildTableDefinitions.php     "'delete_insert'"
 has   packages/neobit/core/src/Crud/ChildTables.php                 '作り直す保存。今の行は下でまとめて消す'
-has   database/migrations/2026_10_21_300000_drop_seq_on_t_news_attachments_table.php "dropColumn('seq')"
 has   app/Http/Controllers/Admin/NewsController.php                     "'delete_insert' => true"
 has   packages/neobit/core/src/Rules/UploadRequiredRule.php             'class UploadRequiredRule'
 has   packages/neobit/core/src/Crud/FormFlow.php                        'requiredUploadRules'
@@ -363,13 +387,15 @@ has   public/index.php                                                  'is_file
 has   packages/neobit/core/src/NeobitServiceProvider.php                'config/neobit/{$section}.php'
 has   packages/neobit/core/stubs/config/neobit.php                      "// 'wordpress' => ["
 has   packages/neobit/core/src/Models/Setting.php                       "'value' => 'json:unicode'"
-has   packages/neobit/core/database/migrations/2026_11_05_000000_rename_columns_on_neobit_core_tables.php "'blocked_until', 'expires_at'"
 has   packages/neobit/core/src/Models/Code.php                          "'label'"
 has   packages/neobit/core/src/Security/IpBlocker.php                   'function changeExpiry'
 has   packages/neobit/core/src/Seo/SeoFields.php                        "'seo_image_url' => 'image_url'"
-has   database/migrations/2026_11_05_000000_rename_columns_on_member_tables.php "'representative', 'ceo_name'"
 has   app/Enums/CompanyStatus.php                                       'case Suspended = 9;'
 has   app/Models/Member.php                                             "'birthday'"
+has   database/migrations/2026_09_23_190005_create_t_members_table.php  "date('birthday')"
+has   database/migrations/2026_09_23_190008_create_t_categories_table.php "unsignedInteger('seq')"
+has   database/migrations/2026_09_23_190011_create_t_news_attachments_table.php "'file_origin'"
+has   database/migrations/2026_10_05_145301_create_t_companies_table.php "'ceo_name'"
 has   resources/views/layouts/admin.blade.php                           'bootstrap-icons@1.11.3'
 has   resources/views/admin/_menu.blade.php                             'bi-house-door'
 has   packages/neobit/core/src/Operations/AssetRebuilder.php            'build_next'

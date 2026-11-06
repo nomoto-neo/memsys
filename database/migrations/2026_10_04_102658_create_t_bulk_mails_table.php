@@ -26,7 +26,8 @@ return new class extends Migration
             $table->unsignedInteger('recipient_count');
             $table->unsignedInteger('sent_count')->default(0);
             $table->unsignedInteger('failed_count')->default(0);
-            $table->string('status', 20);
+            // 送信の状態。値はApp\Enums\BulkMailStatus（1＝送信中、2＝完了）
+            $table->unsignedTinyInteger('status');
             $table->string('batch_id', 36)->nullable();
             $table->unsignedBigInteger('operator_id')->nullable();
             $table->dateTime('finished_at')->nullable();
