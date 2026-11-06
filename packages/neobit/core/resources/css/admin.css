@@ -470,14 +470,6 @@ html.nb-admin-html[data-font-size="large"] {
     --bs-btn-focus-shadow-rgb: var(--nb-primary-rgb);
 }
 
-/* 小さいボタン。小さい文字では読みにくいので、管理画面では普通のボタンと同じ大きさにする */
-.nb-admin-body .btn-sm {
-    --bs-btn-padding-y: 0.375rem;
-    --bs-btn-padding-x: 0.75rem;
-    --bs-btn-font-size: 1rem;
-    --bs-btn-border-radius: var(--bs-border-radius);
-}
-
 /* 入力欄の枠線。白い地との明るさの差を、入力欄の枠に求められる3:1にする。エラーの赤い枠は、Bootstrapのまま効く */
 .nb-admin-body :is(.form-control, .form-select, .form-check-input) {
     --bs-border-color: var(--nb-input-border);
