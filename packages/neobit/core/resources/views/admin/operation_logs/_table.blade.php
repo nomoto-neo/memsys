@@ -12,8 +12,10 @@
 
     CSVと一斉メールの送信は、件数を別の記録（$related[操作ログのid]）から出す。
     件数を押すと、内訳のモーダルが開く。モーダルは表の下にまとめて置く。
-    変わった項目と補足が長い（OperationLog::hasLongChangesText()）ときは、切って「…」と「全文」の
-    リンクを出し、押すと全文のモーダルが開く。全文は、補足の項目ごとに1行ずつ出す。
+    変わった項目と補足が長いときは、切って「…」を付ける（OperationLog::shownChangesText()）。長いときと、
+    改ざん監視の承認のファイルの一覧のように一覧に出さない項目があるときは、「全文」のリンクを出し
+    （OperationLog::hasLongChangesText()）、押すと全文のモーダルが開く。全文は、補足の項目ごとに1行ずつ出す。
+    操作した人・IPアドレス・端末は折り返さず、残りの幅を補足の欄に回す。
 --}}
 <table class="table table-striped table-sm align-middle">
     <thead>
@@ -31,7 +33,7 @@
         @forelse ($records as $log)
             <tr>
                 <td class="text-nowrap">{{ $log->created_at->format('Y-m-d H:i:s') }}</td>
-                <td>
+                <td class="text-nowrap">
                     @if ($log->operator_type !== null)
                         {{ code_label('operation_log_model', $log->operator_type, $log->operator_type) }}ID:{{ $log->operator_id }}　{{ $names[$log->operator_type][$log->operator_id] ?? '' }}
                     @else
@@ -48,20 +50,18 @@
                         {{ code_label('operation_log_model', $log->target_type, $log->target_type) }}ID:{{ $log->target_id }}　{{ $names[$log->target_type][$log->target_id] ?? '' }}
                     @endif
                 </td>
-                <td>
+                <td class="text-break">
                     {{-- 長いときは切って、全文をモーダルで出す --}}
+                    {{ $log->shownChangesText() }}
                     @if ($log->hasLongChangesText())
-                        {{ mb_substr($log->changesText(), 0, $log::DETAIL_SHOWN_LENGTH) }}…
                         <a href="#" data-bs-toggle="modal" data-bs-target="#operationLogFull-{{ $log->id }}">全文</a>
-                    @else
-                        {{ $log->changesText() }}
                     @endif
                     @isset($related[$log->id])
                         <a href="#" data-bs-toggle="modal" data-bs-target="#operationLogDetail-{{ $log->id }}">{{ $log->countSummary($related[$log->id]) }}</a>
                     @endisset
                 </td>
-                <td>{{ $log->ip }}</td>
-                <td>{{ $log->device }}</td>
+                <td class="text-nowrap">{{ $log->ip }}</td>
+                <td class="text-nowrap">{{ $log->device }}</td>
             </tr>
         @empty
             <tr>

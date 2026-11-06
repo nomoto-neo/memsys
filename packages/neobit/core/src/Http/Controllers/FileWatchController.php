@@ -83,6 +83,7 @@ class FileWatchController
         $watcher->requestApproval($items, (string) $request->user()?->name);
 
         // 承認した一覧を、種類ごとに見出しを付けて操作ログの補足に残す。「全文」のモーダルで、1項目ずつ行に分かれて出る。
+        // ファイル（file_〜）と「ほか○件」（more）は、一覧の表には出さない（OperationLog::FULL_ONLY_KEY_PREFIX）。
         // 決めた件数まで並べ、多いときは「ほか○件」にする。見出しの件数は、切る前の件数
         $detail = [];
         $shown = 0;

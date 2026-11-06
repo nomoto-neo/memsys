@@ -107,6 +107,35 @@ class OperationLogScreenTest extends TestCase
         $this->assertTrue($long->hasLongChangesText());
     }
 
+    public function test_file_list_is_shown_only_in_the_full_text(): void
+    {
+        $manager = $this->manager();
+
+        // 改ざん監視の承認。一覧には種類と件数だけを出し、ファイルのパスは全文のモーダルだけに出す
+        $log = OperationLog::create([
+            'operator_type' => 'staff',
+            'operator_id' => $manager->id,
+            'action' => OperationLogAction::FileWatchApproval,
+            'detail' => [
+                'changed' => '変わったファイル（2件）',
+                'file_1' => 'packages/neobit/core/resources/views/admin/file_watch/index.blade.php',
+                'file_2' => 'public/wp-content/languages/ja.mo',
+                'more' => 'ほか1件',
+            ],
+        ]);
+
+        $this->assertSame('変わったファイル（2件）', $log->changesText());
+        $this->assertTrue($log->hasLongChangesText());
+
+        $this->actingAs($manager, 'admin')
+            ->get(route('admin.operation-logs.index'))
+            ->assertOk()
+            ->assertSee('data-bs-target="#operationLogFull-'.$log->id.'"', false)
+            ->assertSee('<div class="text-break">public/wp-content/languages/ja.mo</div>', false)
+            ->assertSee('<div class="text-break">ほか1件</div>', false)
+            ->assertDontSee('変わったファイル（2件）…');
+    }
+
     public function test_model_without_a_name_shows_its_type(): void
     {
         // 設定に列挙型が無くても、例外にせず、種類の名前のまま出す。コード表は1つのプロセスの中で

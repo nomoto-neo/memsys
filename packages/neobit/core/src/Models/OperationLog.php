@@ -19,6 +19,15 @@ class OperationLog extends Model
     /** 一覧の表で、変わった項目と補足をこの文字数で切る。超えたら、全文をモーダルで出す */
     public const DETAIL_SHOWN_LENGTH = 60;
 
+    /**
+     * 補足のうち、一覧の表には出さず、全文のモーダルだけに出す項目のキーの頭。改ざん監視の承認のファイルの一覧など。
+     * パスは途中で折り返せず、一覧の列の幅が行ごとに崩れるため
+     */
+    public const FULL_ONLY_KEY_PREFIX = 'file_';
+
+    /** 補足のうち、全文のモーダルだけに出す項目のキー。ファイルの一覧の「ほか○件」 */
+    public const FULL_ONLY_KEYS = ['more'];
+
     protected $table = 'operation_logs';
 
     protected $fillable = [
@@ -226,13 +235,29 @@ class OperationLog extends Model
      */
     public function detailLines(): array
     {
-        $shown = array_filter(
+        return array_values(array_map('strval', $this->shownDetail()));
+    }
+
+    /** 補足のうち、画面に出す項目。キー => 値 */
+    private function shownDetail(): array
+    {
+        return array_filter(
             $this->detail ?? [],
             fn (string $key) => ! str_ends_with($key, '_log_id') && ! ($key === 'name' && $this->csvName() !== null),
             ARRAY_FILTER_USE_KEY,
         );
+    }
 
-        return array_values(array_map('strval', $shown));
+    /** 補足のうち、全文のモーダルだけに出す項目があるか */
+    private function hasFullOnlyDetail(): bool
+    {
+        foreach (array_keys($this->shownDetail()) as $key) {
+            if (str_starts_with($key, self::FULL_ONLY_KEY_PREFIX) || in_array($key, self::FULL_ONLY_KEYS, true)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /** 補足のうち、画面に出す文字。項目を空白でつなぐ */
@@ -241,15 +266,32 @@ class OperationLog extends Model
         return implode(' ', $this->detailLines());
     }
 
-    /** 一覧の表の「変わった項目・補足」の欄に出す文字。変わった項目と補足をつなぐ */
+    /**
+     * 一覧の表の「変わった項目・補足」の欄に出す文字。変わった項目と補足をつなぐ。
+     * 全文のモーダルだけに出す項目（ファイルの一覧など）は入れない
+     */
     public function changesText(): string
     {
-        return trim(implode('、', $this->changed_fields ?? []).' '.$this->detailText());
+        $listed = array_filter(
+            $this->shownDetail(),
+            fn (string $key) => ! str_starts_with($key, self::FULL_ONLY_KEY_PREFIX) && ! in_array($key, self::FULL_ONLY_KEYS, true),
+            ARRAY_FILTER_USE_KEY,
+        );
+
+        return trim(implode('、', $this->changed_fields ?? []).' '.implode(' ', array_map('strval', $listed)));
     }
 
-    /** 「変わった項目・補足」の欄が長く、切って出し、全文をモーダルで出すか */
+    /** 一覧の表に出す「変わった項目・補足」。長いときは決めた文字数で切り、「…」を付ける */
+    public function shownChangesText(): string
+    {
+        $text = $this->changesText();
+
+        return mb_strlen($text) > self::DETAIL_SHOWN_LENGTH ? mb_substr($text, 0, self::DETAIL_SHOWN_LENGTH).'…' : $text;
+    }
+
+    /** 「全文」のリンクを出し、全文をモーダルで出すか。一覧の文字が長いときと、モーダルだけに出す項目があるとき */
     public function hasLongChangesText(): bool
     {
-        return mb_strlen($this->changesText()) > self::DETAIL_SHOWN_LENGTH;
+        return mb_strlen($this->changesText()) > self::DETAIL_SHOWN_LENGTH || $this->hasFullOnlyDetail();
     }
 }
