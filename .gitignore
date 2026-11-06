@@ -16,6 +16,8 @@
 /docs/prompt/*
 /node_modules
 /public/build
+/public/build_next
+/public/build_old
 /public/fonts-manifest.dev.json
 /public/hot
 /public/storage

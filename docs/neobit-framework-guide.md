@@ -91,10 +91,10 @@
 |---|---|---|
 | 1 | `composer install --no-dev --optimize-autoloader` | `composer.json`・`composer.lock` を変えたとき |
 | 2 | `npm ci` | `package.json`・`package-lock.json` を変えたとき |
-| 3 | `npm run build` | `resources/js`・`resources/css`・`vite.config.js` を変えたとき、フレームワークを更新したとき |
+| 3 | `npm run build` | `resources/js`・`resources/css`・`vite.config.js` を変えたとき、フレームワークを更新したとき。JS・CSS だけの差し替えは、cron の `neobit:rebuild` に任せられる（下の「画面と JS・CSS の作り直し」） |
 | 4 | `php artisan migrate` | マイグレーションを足したとき |
 | 5 | `php artisan config:cache` | 毎回。`.env` か `config/` を変えたときは必ず |
-| 6 | `php artisan view:cache` | 毎回。apache はコンパイル済みの画面を作れないので、ここで全部作る |
+| 6 | `php artisan view:cache` | 毎回。apache はコンパイル済みの画面を作れないので、ここで全部作る。Blade だけの差し替えは、cron の `neobit:rebuild` に任せられる |
 | 7 | `php artisan neobit:gatekeeper --export` | 毎回。入口の見張りの状態と画面を、今の設定で書き出し直す（26章） |
 
 - **`config:cache` は必須です**。サーバーでは、PHP-FPM を apache で動かし、`.env` は apache から読めないようにしています。`config:cache` は `.env` の値を取り込んだ `bootstrap/cache/config.php` を作り、Laravel はそれだけを読むようになるので、apache が `.env` を読めなくても画面も cron も動きます。
@@ -105,7 +105,7 @@
 - 画面が「The bootstrap/cache directory must be present and writable」のエラーで止まったときは、中のファイルが古くなっています。apache は書けないので自分では作り直せません。`php artisan config:cache` をやり直します。
 - `storage/` の下は、全部を apache が書けるようにします。ログ、エラーの通知の間引きの記録（`storage/framework/cache/data`）、PDF の作業用（`storage/framework/mpdf`）、アップロードしたファイルと一時ファイル（`storage/app`）を置くためです。**コードとして動くものは `storage/` に置きません**。
 - **コンパイル済みの画面は `bootstrap/cache/views` に置きます**（`config/view.php`）。PHP としてそのまま動くので、apache は読むだけにします。書けると、侵入されたときに裏口を埋められ、改ざん監視の cron（devapp）にも動かされます。
-- **`view:cache` を忘れると、直した画面がエラーになります**。元のファイルのほうが新しいと、apache が作り直そうとして、書けずに止まります（`tempnam(): file created in the system's temporary directory`・`touch(): Utime failed` など）。知らせのメールも同じ理由で止まります。メールのテンプレートはファイルに書かず、メモリの上で展開するので、`view:cache` の対象ではありません。
+- **`view:cache` を忘れると、直した画面がエラーになります**（`.env` の `VIEW_CHECK_CACHE_TIMESTAMPS` が `true` のとき。サーバーでは `false` にし、cron の `neobit:rebuild` に作り直させます）。元のファイルのほうが新しいと、apache が作り直そうとして、書けずに止まります（`tempnam(): file created in the system's temporary directory`・`touch(): Utime failed` など）。知らせのメールも同じ理由で止まります。メールのテンプレートはファイルに書かず、メモリの上で展開するので、`view:cache` の対象ではありません。
 - `APP_DEBUG=true` のときの Laravel のエラーの詳細の画面は、コンパイルできないので、簡単なエラーの表示になります。
 - devapp が `storage/` の下に作ったファイル（artisan を実行したときのログなど）も、既定の ACL（`default:user:apache:rwx`）で apache が書けます。作った後に権限を直す必要はありません。
 - 設定が効いているかは、画面を開いて確かめます。sudo を使えるときは `sudo -u apache php artisan config:show database.default` でも確かめられ、`mariadb` と出れば apache が読めています。devapp で同じコマンドを実行しても、devapp は `.env` を読めるので確かめになりません。
@@ -113,6 +113,41 @@
 - フレームワークを更新して、見本のサイトの `public/index.php`・`public/.htaccess` が変わったときは、それも案件のサーバーへ写します（26章の入口の見張り、30章）。
 - WordPress を置くサイトは、`php artisan neobit:gatekeeper` で `WordPress の保護機能：` の行も確かめます（31章）。`prepend` の段は、Laravel のページ（管理画面など）を1回開いてから確かめます。WordPress のページは Laravel を通らないので、確かめになりません。
 - **改ざん監視を使っているサイトは、ファイルを送るときに鍵のファイル（既定は `.version`）も、中身を変えて送ります**（29章）。送り忘れると、更新したファイルが改ざんとして知らされます。
+
+### 画面と JS・CSS の作り直し（neobit:rebuild）
+
+Blade・JS・CSS だけを差し替えるとき（デザイナーの直しなど）は、シェルで `view:cache`・`npm run build` を流さずに済みます。コードを更新する利用者（開発サーバーでは devapp）の cron が、毎分、元のファイルの変化を見つけて作り直します。コンパイル済みの画面と JS・CSS を書くのはその利用者だけで、apache には書かせません。
+
+**デザイナーの手順**
+
+1. Blade・JS・CSS を送る
+2. 1分ほど待つ
+3. 管理画面の「改ざん監視」で「承認する」を押す（29章）
+
+**サーバーの設定**（1回だけ。サーバーを管理する人）
+
+- `/etc/cron.d/` の改ざん監視の行の下に、1行を足します。Laravel のスケジューラー（apache の cron）には入れません。
+
+  ```
+  *   * * * * devapp cd /var/www/memsys_dev && /usr/bin/php artisan neobit:rebuild > /dev/null
+  ```
+
+- `.env` に `VIEW_CHECK_CACHE_TIMESTAMPS=false` を書き、`config:cache` をやり直します。元の画面のファイルが新しくても、apache が作り直そうとせず、作り直すまでは前の画面を出すようになります。手元の開発環境は `true`（既定）のままにし、直したらすぐ画面に出します。
+- cron の中で `npm` の場所が見つからないサーバーは、`.env` の `REBUILD_NPM` に絶対のパスを書きます（例：`/usr/bin/npm`）。
+- `sudo bash set_permissions.sh` で、devapp が `bootstrap/cache/views`・`public`・`node_modules` に書けることを確かめます。
+
+**動き**（`Neobit\Core\Operations\AssetRebuilder`）
+
+- 元のファイルの一覧（パス・大きさ・日時）のしるしを、前に作り直したときのしるし（`bootstrap/cache/rebuild.json`）と比べます。足した・直した・消した・名前を変えた、のどれでも作り直します。
+  - 画面：登録された画面の場所の全部（`resources/views`・フレームワークの `neobit::` の画面）
+  - JS・CSS：`resources/js`・`resources/css`・フレームワークの `resources/js`・`resources/css`・`vite.config.js`
+- 画面は、1ファイルずつ置き換えてコンパイルします。作り直している間も、前か後のどちらかの画面が出ます。元のファイルが無くなった画面のコンパイル済みファイルは消します。
+- JS・CSS は、`public/build_next` にビルドしてから `public/build` と入れ替えます。作っている間も、前の JS・CSS が出ます。
+- **失敗したときは、前のものを残します**。失敗はエラーのログに書くので、エラーの通知のメールで届きます（20章）。元のファイルがまた変わるまでは作り直さないので、直して送り直します。
+- `package.json`・`package-lock.json` が変わったときは、JS・CSS を作らずに「npm ci と npm run build を流してください」とエラーで知らせます。外からパッケージを取ってくる `npm ci` は、人が行います。
+- 初めて動いたときは、作り直さずにしるしだけを記録します。
+- ファイルを消すときは、使っているところ（`@include`・コントローラー・`vite.config.js`・`@vite()`）も一緒に直します。残っていると、作り直した後にその画面がエラーになるか、ビルドが失敗します。
+- cron の無いサーバー（`CRON_ENABLED=false`）では動きません。上の「サーバーへ送った後に実行するコマンド」の `npm run build`・`view:cache` を流します。
 
 ### サーバーの権限（set_permissions.sh）
 

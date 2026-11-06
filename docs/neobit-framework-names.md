@@ -227,6 +227,7 @@
 | `neobit` | `security.ip_block_auto`・`security.ip_block_watch_minutes`・`security.ip_block_watch_count`・`security.ip_block_hours` | |
 | `neobit` | `operation_log.report_to`・`operation_log.report_thresholds` | |
 | `neobit` | `schedule.cron_enabled` | `.env` は `CRON_ENABLED` |
+| `neobit` | `rebuild.npm` | `.env` は `REBUILD_NPM` |
 | `neobit` | `seo`（`title_format`・`description`・`description_length`・`image_url`・`organization_name`・`organization_logo_url`・`noindex_routes`・`sitemap_routes`・`sitemap_models`・`robots_disallow`・`page_routes`・`redirects`） | |
 | `neobit` | `upload`（`image_types`・`attach_types`・`max_kb`・`max_image_pixels`・`csv_max_kb`・`directory_rule`） | |
 | `neobit` | `cleanup`（`operation_log_days`・`failed_job_days`・`tasks`） | |
@@ -308,6 +309,6 @@
 | 種類 | 名前 | メモ |
 |---|---|---|
 | `vendor:publish` のタグ | `neobit-config`・`neobit-mail-templates` | |
-| Artisan のコマンド | `neobit:access-denied-off`・`neobit:cleanup-temporary-data`・`neobit:gatekeeper`・`neobit:report-operation-logs`・`neobit:reset-two-factor`・`neobit:set-next-id`・`neobit:file-watch` | |
+| Artisan のコマンド | `neobit:access-denied-off`・`neobit:cleanup-temporary-data`・`neobit:gatekeeper`・`neobit:report-operation-logs`・`neobit:reset-two-factor`・`neobit:set-next-id`・`neobit:file-watch`・`neobit:rebuild` | |
 | テーブル | `code_tables`・`ip_blocks`・`settings`・`operation_logs`・`csv_download_logs`・`csv_import_logs`・`trusted_devices`・`two_factor_backup_codes`・`two_factor_secrets`・`passkeys`・`team_invitations`・`seo_metas`・`redirects`・`basic_auth_users` | |
 | フレームワークが作るコード表 | `operation_log_action`・`operation_log_model` | 設定の `operation_log.actions`・`operation_log.models` の列挙型から作る |

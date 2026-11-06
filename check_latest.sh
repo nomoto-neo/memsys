@@ -370,6 +370,10 @@ has   packages/neobit/core/src/Seo/SeoFields.php                        "'seo_im
 has   database/migrations/2026_11_05_000000_rename_columns_on_member_tables.php "'representative', 'ceo_name'"
 has   app/Enums/CompanyStatus.php                                       'case Suspended = 9;'
 has   app/Models/Member.php                                             "'birthday'"
+has   packages/neobit/core/src/Operations/AssetRebuilder.php            'build_next'
+has   packages/neobit/core/src/Console/Rebuild.php                      'neobit:rebuild'
+has   packages/neobit/core/config/neobit/rebuild.php                    'REBUILD_NPM'
+has   config/view.php                                                   'check_cache_timestamps'
 has   packages/neobit/core/src/Security/BasicAuth.php                   "'app/basic_auth'"
 has   packages/neobit/core/src/Security/FileWatcher.php                 "'app/file_watch/approval.json'"
 has   packages/neobit/core/src/Upload/UploadFilePath.php                "'upload_tmp'"

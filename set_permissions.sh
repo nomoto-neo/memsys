@@ -208,9 +208,25 @@ can no  'bootstrap/cache/views に書けない' -w "$dir/bootstrap/cache/views"
 can yes 'storage/logs に書ける'        -w "$dir/storage/logs"
 can yes 'public/index.php を読める'    -r "$dir/public/index.php"
 can no  'app/ に書けない'              -w "$dir/app"
+can no  'public/build に書けない'      -w "$dir/public/build"
 for path in "${writable[@]}"; do
     can yes "$path に書ける（set_permissions.writable）" -w "$dir/$path"
 done
+
+# 持ち主（devapp）は、cron の neobit:rebuild で画面と JS・CSS を作り直す
+echo
+echo "---- $owner で試した結果 ----"
+can_owner() {  # can_owner 説明 パス … 持ち主の権限で書けるかを並べる
+    if sudo -u "$owner" test -w "$2"; then
+        echo "OK  $1"
+    else
+        echo "NG  $1"; ng=1
+    fi
+}
+can_owner 'bootstrap/cache/views に書ける（画面の作り直し）' "$dir/bootstrap/cache/views"
+can_owner 'public に書ける（JS・CSS の入れ替え）' "$dir/public"
+[ -d "$dir/public/build" ] && can_owner 'public/build に書ける' "$dir/public/build"
+[ -d "$dir/node_modules" ] && can_owner 'node_modules に書ける' "$dir/node_modules"
 
 echo
 if [ $ng -eq 0 ]; then

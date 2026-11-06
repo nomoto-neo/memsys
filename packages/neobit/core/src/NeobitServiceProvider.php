@@ -10,6 +10,7 @@ use Neobit\Core\Console\ReportOperationLogs;
 use Neobit\Core\Console\ResetTwoFactor;
 use Neobit\Core\Console\SetNextId;
 use Neobit\Core\Console\FileWatch;
+use Neobit\Core\Console\Rebuild;
 
 /**
  * ネオビットフレームワークの共通部品を、アプリに組み込む。
@@ -32,6 +33,7 @@ class NeobitServiceProvider extends ServiceProvider
         'schedule',
         'upload',
         'cleanup',
+        'rebuild',
     ];
 
     /**
@@ -82,6 +84,7 @@ class NeobitServiceProvider extends ServiceProvider
                 ResetTwoFactor::class,
                 SetNextId::class,
                 FileWatch::class,
+                Rebuild::class,
             ]);
         }
     }

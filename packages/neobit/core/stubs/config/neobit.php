@@ -25,6 +25,7 @@ return [
     // 'schedule' => ['cron_enabled' => env('CRON_ENABLED', true)],
     // 'upload' => ['max_kb' => 10240],
     // 'cleanup' => ['tasks' => [...]],
+    // 'rebuild' => ['npm' => env('REBUILD_NPM', 'npm')],
 
     // 公開ディレクトリにWordPressを置き、決まったコーナーだけを受け持たせるときに書く。この節があることが「WordPressを置く」の印になる。
     // 使い方は利用ガイドの「WordPressとの共存」。
