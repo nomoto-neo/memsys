@@ -103,10 +103,10 @@ trait PdfDownload
     private const PDF_DEFAULT_FONT = 'ipaexg';
 
     /**
-     * mPDFがフォントの解析結果などを置く、storage/の下の作業用のディレクトリ。
-     * 既定のvendor/の下はサーバーでは書き込めないことがあるため。
+     * mPDFに渡す、storage/の下の作業用のディレクトリ。mPDFはこの下にmpdf/を作り、フォントの解析結果などを置くので、
+     * 置き場所はstorage/framework/mpdf/になる。既定のvendor/の下はサーバーでは書き込めないことがあるため。
      */
-    private const PDF_TEMP_DIR = 'framework/mpdf';
+    private const PDF_TEMP_DIR = 'framework';
 
     /** 切り抜いた画像をJPEGにするときの画質。 */
     private const PDF_IMAGE_QUALITY = 90;
