@@ -5,8 +5,8 @@
     admin/staff/_fields.blade.phpと同じ考え方で、create（新規登録）・edit（編集）・
     confirm（確認画面）・show（詳細表示）の4画面すべてから、この同じタグをそのまま呼び出す。
 
-    企業IDと状態は、ここでは変えない。企業IDは登録のときに自動で決まるので、登録の後の画面で
-    表示だけにし、状態は詳細画面の承認・却下・停止・再開のボタンで変える。
+    企業IDと状態は、ここでは変えない。企業IDは登録のときに自動で決まるので、nameを付けないdisabledの欄で見せ、
+    登録の画面では（自動）と出す。状態は詳細画面の承認・却下・停止・再開のボタンで変える。
     新規登録のときだけ、最初の担当者に招待を送るメールアドレスの欄を出す。
 
     呼び出し側が用意する変数：
@@ -17,81 +17,81 @@
     - $disabled  select（都道府県）に付ける文字列（' disabled'または''）。
     - $required  必須マークのHTML配列。閲覧専用画面では[]でよい。
 --}}
-@if (! $isCreate)
-    <div class="mb-3">
-        <label class="form-label">企業ID</label>
-        <div class="form-control-plaintext">{{ $company->code }}</div>
+{{-- 企業IDは変えないので、nameを付けないdisabledの欄で見せる。登録のときは、まだ決まっていない --}}
+<div class="row">
+    <div class="col-md-3 mb-3">
+        <label for="company_code" class="form-label">企業ID</label>
+        <input id="company_code" type="text" class="form-control"
+               value="{{ $isCreate ? '（自動）' : $company->code }}" disabled>
     </div>
-@endif
-
-<div class="mb-3">
-    <label for="name" class="form-label">企業名 {!! $required['name'] ?? '' !!}</label>
-    <input id="name" type="text" name="name"
-           class="form-control"
-           value="{{ $input['name'] ?? '' }}"{{ $readonly }}>
-    <div class="invalid-feedback" data-item="name">{{ $errors->first('name') }}</div>
+    <div class="col-md-5 mb-3">
+        <label for="name" class="form-label">企業名 {!! $required['name'] ?? '' !!}</label>
+        <input id="name" type="text" name="name"
+               class="form-control"
+               value="{{ $input['name'] ?? '' }}"{{ $readonly }}>
+        <div class="invalid-feedback" data-item="name">{{ $errors->first('name') }}</div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <label for="kana" class="form-label">フリガナ {!! $required['kana'] ?? '' !!}</label>
+        <input id="kana" type="text" name="kana"
+               class="form-control"
+               value="{{ $input['kana'] ?? '' }}"{{ $readonly }}>
+        <div class="invalid-feedback" data-item="kana">{{ $errors->first('kana') }}</div>
+    </div>
 </div>
 
-<div class="mb-3">
-    <label for="kana" class="form-label">フリガナ {!! $required['kana'] ?? '' !!}</label>
-    <input id="kana" type="text" name="kana"
-           class="form-control"
-           value="{{ $input['kana'] ?? '' }}"{{ $readonly }}>
-    <div class="invalid-feedback" data-item="kana">{{ $errors->first('kana') }}</div>
+<div class="row">
+    <div class="col-md-4 mb-3">
+        <label for="ceo_name" class="form-label">代表者名 {!! $required['ceo_name'] ?? '' !!}</label>
+        <input id="ceo_name" type="text" name="ceo_name"
+               class="form-control"
+               value="{{ $input['ceo_name'] ?? '' }}"{{ $readonly }}>
+        <div class="invalid-feedback" data-item="ceo_name">{{ $errors->first('ceo_name') }}</div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <label for="tel" class="form-label">電話番号 {!! $required['tel'] ?? '' !!}</label>
+        <input id="tel" type="text" name="tel"
+               class="form-control"
+               value="{{ $input['tel'] ?? '' }}" placeholder="例: 03-1234-5678"{{ $readonly }}>
+        <div class="invalid-feedback" data-item="tel">{{ $errors->first('tel') }}</div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <label for="url" class="form-label">ホームページURL {!! $required['url'] ?? '' !!}</label>
+        <input id="url" type="text" name="url"
+               class="form-control"
+               value="{{ $input['url'] ?? '' }}" placeholder="例: https://example.com/"{{ $readonly }}>
+        <div class="invalid-feedback" data-item="url">{{ $errors->first('url') }}</div>
+    </div>
 </div>
 
-<div class="mb-3">
-    <label for="ceo_name" class="form-label">代表者名 {!! $required['ceo_name'] ?? '' !!}</label>
-    <input id="ceo_name" type="text" name="ceo_name"
-           class="form-control"
-           value="{{ $input['ceo_name'] ?? '' }}"{{ $readonly }}>
-    <div class="invalid-feedback" data-item="ceo_name">{{ $errors->first('ceo_name') }}</div>
-</div>
-
-<div class="mb-3">
-    <label for="zip" class="form-label">郵便番号 {!! $required['zip'] ?? '' !!}</label>
-    <input id="zip" type="text" name="zip"
-           class="form-control"
-           value="{{ $input['zip'] ?? '' }}" placeholder="例: 100-0001"{{ $readonly }}>
-    <div class="invalid-feedback" data-item="zip">{{ $errors->first('zip') }}</div>
-</div>
-
-<div class="mb-3">
-    <label for="prefecture" class="form-label">都道府県 {!! $required['prefecture'] ?? '' !!}</label>
-    <select id="prefecture" name="prefecture"
-            class="form-select"{{ $disabled }}>
-        <option value="">選択してください</option>
-        @foreach (code_table('prefectures') as $code => $name)
-            <option value="{{ $code }}" @selected((int) ($input['prefecture'] ?? 0) === $code)>
-                {{ $name }}
-            </option>
-        @endforeach
-    </select>
-    <div class="invalid-feedback" data-item="prefecture">{{ $errors->first('prefecture') }}</div>
-</div>
-
-<div class="mb-3">
-    <label for="address" class="form-label">住所 {!! $required['address'] ?? '' !!}</label>
-    <input id="address" type="text" name="address"
-           class="form-control"
-           value="{{ $input['address'] ?? '' }}"{{ $readonly }}>
-    <div class="invalid-feedback" data-item="address">{{ $errors->first('address') }}</div>
-</div>
-
-<div class="mb-3">
-    <label for="tel" class="form-label">電話番号 {!! $required['tel'] ?? '' !!}</label>
-    <input id="tel" type="text" name="tel"
-           class="form-control"
-           value="{{ $input['tel'] ?? '' }}" placeholder="例: 03-1234-5678"{{ $readonly }}>
-    <div class="invalid-feedback" data-item="tel">{{ $errors->first('tel') }}</div>
-</div>
-
-<div class="mb-3">
-    <label for="url" class="form-label">ホームページURL {!! $required['url'] ?? '' !!}</label>
-    <input id="url" type="text" name="url"
-           class="form-control"
-           value="{{ $input['url'] ?? '' }}" placeholder="例: https://example.com/"{{ $readonly }}>
-    <div class="invalid-feedback" data-item="url">{{ $errors->first('url') }}</div>
+<div class="row">
+    <div class="col-md-3 mb-3">
+        <label for="zip" class="form-label">郵便番号 {!! $required['zip'] ?? '' !!}</label>
+        <input id="zip" type="text" name="zip"
+               class="form-control"
+               value="{{ $input['zip'] ?? '' }}" placeholder="例: 100-0001"{{ $readonly }}>
+        <div class="invalid-feedback" data-item="zip">{{ $errors->first('zip') }}</div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <label for="prefecture" class="form-label">都道府県 {!! $required['prefecture'] ?? '' !!}</label>
+        <select id="prefecture" name="prefecture"
+                class="form-select"{{ $disabled }}>
+            <option value="">選択してください</option>
+            @foreach (code_table('prefectures') as $code => $name)
+                <option value="{{ $code }}" @selected((int) ($input['prefecture'] ?? 0) === $code)>
+                    {{ $name }}
+                </option>
+            @endforeach
+        </select>
+        <div class="invalid-feedback" data-item="prefecture">{{ $errors->first('prefecture') }}</div>
+    </div>
+    <div class="col-md-6 mb-3">
+        <label for="address" class="form-label">住所 {!! $required['address'] ?? '' !!}</label>
+        <input id="address" type="text" name="address"
+               class="form-control"
+               value="{{ $input['address'] ?? '' }}"{{ $readonly }}>
+        <div class="invalid-feedback" data-item="address">{{ $errors->first('address') }}</div>
+    </div>
 </div>
 
 {{-- 管理メモ。スタッフが対応の経緯などを書き残す欄で、企業の側には見せない --}}

@@ -51,72 +51,72 @@
     <div class="invalid-feedback" data-item="title">{{ $errors->first('title') }}</div>
 </div>
 
-<div class="mb-3">
-    <label for="article_date" class="form-label">記事日付 {!! $required['article_date'] ?? '' !!}</label>
-    <input id="article_date" type="date" name="article_date"
-           class="form-control"
-           value="{{ $input['article_date'] ?? '' }}"{{ $readonly }}>
-    <div class="invalid-feedback" data-item="article_date">{{ $errors->first('article_date') }}</div>
-</div>
-
-<div class="mb-3">
-    <div class="form-label d-block">表示／非表示 {!! $required['disp_flg'] ?? '' !!}</div>
-    {{--
-        ラジオボタンにしているのは、チェックボックス1つ（チェック=表示）
-        だと未チェック時は項目自体が送信されず、「必須」の意味が
-        あいまいになるため。ラジオボタンなら「表示・非表示のどちらかを
-        必ず選ぶ」という必須の意味がそのままHTML構造に現れる。
-    --}}
-    <div class="form-check form-check-inline">
-        <input id="disp_flg_1" type="radio" name="disp_flg" value="1"
-               class="form-check-input"
-               @checked(($input['disp_flg'] ?? '0') == '1'){{ $disabled }}>
-        <label for="disp_flg_1" class="form-check-label">表示</label>
-    </div>
-    <div class="form-check form-check-inline">
-        <input id="disp_flg_0" type="radio" name="disp_flg" value="0"
-               class="form-check-input"
-               @checked(($input['disp_flg'] ?? '0') == '0'){{ $disabled }}>
-        <label for="disp_flg_0" class="form-check-label">非表示</label>
-    </div>
-    <div class="invalid-feedback" data-item="disp_flg">{{ $errors->first('disp_flg') }}</div>
-</div>
-
-<div class="mb-3">
-    <div class="form-label d-block">公開範囲 {!! $required['members_only'] ?? '' !!}</div>
-    {{-- 会員限定の記事は、ログインしていない人には一覧にも詳細にも出ない。
-         画像・添付ファイルも同じ（App\Policies\NewsPolicy）。 --}}
-    <div class="form-check form-check-inline">
-        <input id="members_only_0" type="radio" name="members_only" value="0"
-               class="form-check-input"
-               @checked(($input['members_only'] ?? '0') == '0'){{ $disabled }}>
-        <label for="members_only_0" class="form-check-label">一般公開</label>
-    </div>
-    <div class="form-check form-check-inline">
-        <input id="members_only_1" type="radio" name="members_only" value="1"
-               class="form-check-input"
-               @checked(($input['members_only'] ?? '0') == '1'){{ $disabled }}>
-        <label for="members_only_1" class="form-check-label">会員限定</label>
-    </div>
-    <div class="invalid-feedback" data-item="members_only">{{ $errors->first('members_only') }}</div>
-</div>
-
-{{-- 掲載期間。どちらも任意で、空ならその側の制限は無い。表示にしてあっても、
+{{-- 記事日付と掲載期間。掲載期間はどちらも任意で、空ならその側の制限は無い。表示にしてあっても、
      期間の外の記事は訪問者側に出ない（App\Models\News::visibleTo()）。 --}}
 <div class="row">
-    <div class="col-md-6 mb-3">
+    <div class="col-md-4 mb-3">
+        <label for="article_date" class="form-label">記事日付 {!! $required['article_date'] ?? '' !!}</label>
+        <input id="article_date" type="date" name="article_date"
+               class="form-control"
+               value="{{ $input['article_date'] ?? '' }}"{{ $readonly }}>
+        <div class="invalid-feedback" data-item="article_date">{{ $errors->first('article_date') }}</div>
+    </div>
+    <div class="col-md-4 mb-3">
         <label for="publish_start_at" class="form-label">掲載開始日時 {!! $required['publish_start_at'] ?? '' !!}</label>
         <input id="publish_start_at" type="datetime-local" name="publish_start_at"
                class="form-control"
                value="{{ $input['publish_start_at'] ?? '' }}"{{ $readonly }}>
         <div class="invalid-feedback" data-item="publish_start_at">{{ $errors->first('publish_start_at') }}</div>
     </div>
-    <div class="col-md-6 mb-3">
+    <div class="col-md-4 mb-3">
         <label for="publish_end_at" class="form-label">掲載終了日時 {!! $required['publish_end_at'] ?? '' !!}</label>
         <input id="publish_end_at" type="datetime-local" name="publish_end_at"
                class="form-control"
                value="{{ $input['publish_end_at'] ?? '' }}"{{ $readonly }}>
         <div class="invalid-feedback" data-item="publish_end_at">{{ $errors->first('publish_end_at') }}</div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4 mb-3">
+        <div class="form-label d-block">表示／非表示 {!! $required['disp_flg'] ?? '' !!}</div>
+        {{--
+            ラジオボタンにしているのは、チェックボックス1つ（チェック=表示）
+            だと未チェック時は項目自体が送信されず、「必須」の意味が
+            あいまいになるため。ラジオボタンなら「表示・非表示のどちらかを
+            必ず選ぶ」という必須の意味がそのままHTML構造に現れる。
+        --}}
+        <div class="form-check form-check-inline">
+            <input id="disp_flg_1" type="radio" name="disp_flg" value="1"
+                   class="form-check-input"
+                   @checked(($input['disp_flg'] ?? '0') == '1'){{ $disabled }}>
+            <label for="disp_flg_1" class="form-check-label">表示</label>
+        </div>
+        <div class="form-check form-check-inline">
+            <input id="disp_flg_0" type="radio" name="disp_flg" value="0"
+                   class="form-check-input"
+                   @checked(($input['disp_flg'] ?? '0') == '0'){{ $disabled }}>
+            <label for="disp_flg_0" class="form-check-label">非表示</label>
+        </div>
+        <div class="invalid-feedback" data-item="disp_flg">{{ $errors->first('disp_flg') }}</div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="form-label d-block">公開範囲 {!! $required['members_only'] ?? '' !!}</div>
+        {{-- 会員限定の記事は、ログインしていない人には一覧にも詳細にも出ない。
+             画像・添付ファイルも同じ（App\Policies\NewsPolicy）。 --}}
+        <div class="form-check form-check-inline">
+            <input id="members_only_0" type="radio" name="members_only" value="0"
+                   class="form-check-input"
+                   @checked(($input['members_only'] ?? '0') == '0'){{ $disabled }}>
+            <label for="members_only_0" class="form-check-label">一般公開</label>
+        </div>
+        <div class="form-check form-check-inline">
+            <input id="members_only_1" type="radio" name="members_only" value="1"
+                   class="form-check-input"
+                   @checked(($input['members_only'] ?? '0') == '1'){{ $disabled }}>
+            <label for="members_only_1" class="form-check-label">会員限定</label>
+        </div>
+        <div class="invalid-feedback" data-item="members_only">{{ $errors->first('members_only') }}</div>
     </div>
 </div>
 

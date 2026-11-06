@@ -8,31 +8,27 @@
 @endpush
 
 @section('content')
-<div class="row justify-content-center">
-    <div class="col-md-7">
-        <div class="card">
-            <div class="card-header">会員編集</div>
-            <div class="card-body">
-                <form method="POST" action="{{ route('admin.members.confirm.update', $member) }}">
-                    @csrf
-                    @method('PATCH')
+<div class="card">
+    <div class="card-header">会員編集</div>
+    <div class="card-body">
+        <form method="POST" action="{{ route('admin.members.confirm.update', $member) }}">
+            @csrf
+            @method('PATCH')
 
-                    @include('admin.members._fields', [
-                        'input' => $input,
-                        'model' => $member,
-                        'readonly' => '',
-                        'disabled' => '',
-                        'required' => $required,
-                        'showPassword' => true,
-                    ])
+            @include('admin.members._fields', [
+                'input' => $input,
+                'model' => $member,
+                'readonly' => '',
+                'disabled' => '',
+                'required' => $required,
+                'showPassword' => true,
+            ])
 
-                    <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-primary">確認する</button>
-                        <a href="{{ route('admin.members.index', ['back']) }}#id{{ $member->id }}" class="btn btn-outline-secondary">キャンセル</a>
-                    </div>
-                </form>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">確認する</button>
+                <a href="{{ route('admin.members.index', ['back']) }}#id{{ $member->id }}" class="btn btn-outline-secondary">キャンセル</a>
             </div>
-        </div>
+        </form>
     </div>
 </div>
 @endsection

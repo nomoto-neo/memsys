@@ -57,57 +57,55 @@
     <div class="invalid-feedback" data-item="kana">{{ $errors->first('kana') }}</div>
 </div>
 
-<div class="mb-3">
-    <label for="email" class="form-label">メールアドレス {!! $required['email'] ?? '' !!}</label>
-    <input id="email" type="email" name="email"
-           class="form-control"
-           value="{{ $input['email'] ?? '' }}"{{ $readonly }}>
-    <div class="invalid-feedback" data-item="email">{{ $errors->first('email') }}</div>
-</div>
-
-<div class="mb-3">
-    <label for="phone" class="form-label">電話番号 {!! $required['phone'] ?? '' !!}</label>
-    <input id="phone" type="text" name="phone"
-           class="form-control"
-           value="{{ $input['phone'] ?? '' }}" placeholder="例: 090-1234-5678"{{ $readonly }}>
-    <div class="invalid-feedback" data-item="phone">{{ $errors->first('phone') }}</div>
-</div>
-
-<div class="mb-3">
-    <label for="birthday" class="form-label">生年月日 {!! $required['birthday'] ?? '' !!}</label>
-    <input id="birthday" type="date" name="birthday"
-           class="form-control"
-           value="{{ $input['birthday'] ?? '' }}"{{ $readonly }}>
-    <div class="invalid-feedback" data-item="birthday">{{ $errors->first('birthday') }}</div>
-</div>
-
-<div class="mb-3">
-    <label for="prefecture" class="form-label">都道府県 {!! $required['prefecture'] ?? '' !!}</label>
-    <select id="prefecture" name="prefecture"
-            class="form-select"{{ $disabled }}>
-        <option value="">選択してください</option>
-        @foreach (code_table('prefectures') as $code => $name)
-            <option value="{{ $code }}" @selected((int) ($input['prefecture'] ?? 0) === $code)>
-                {{ $name }}
-            </option>
+<div class="row">
+    <div class="col-md-6 col-xl-2 mb-3">
+        <label for="phone" class="form-label">電話番号 {!! $required['phone'] ?? '' !!}</label>
+        <input id="phone" type="text" name="phone"
+               class="form-control"
+               value="{{ $input['phone'] ?? '' }}" placeholder="例: 090-1234-5678"{{ $readonly }}>
+        <div class="invalid-feedback" data-item="phone">{{ $errors->first('phone') }}</div>
+    </div>
+    <div class="col-md-6 col-xl-2 mb-3">
+        <label for="birthday" class="form-label">生年月日 {!! $required['birthday'] ?? '' !!}</label>
+        <input id="birthday" type="date" name="birthday"
+               class="form-control"
+               value="{{ $input['birthday'] ?? '' }}"{{ $readonly }}>
+        <div class="invalid-feedback" data-item="birthday">{{ $errors->first('birthday') }}</div>
+    </div>
+    <div class="col-md-6 col-xl-2 mb-3">
+        <label for="prefecture" class="form-label">都道府県 {!! $required['prefecture'] ?? '' !!}</label>
+        <select id="prefecture" name="prefecture"
+                class="form-select"{{ $disabled }}>
+            <option value="">選択してください</option>
+            @foreach (code_table('prefectures') as $code => $name)
+                <option value="{{ $code }}" @selected((int) ($input['prefecture'] ?? 0) === $code)>
+                    {{ $name }}
+                </option>
+            @endforeach
+        </select>
+        <div class="invalid-feedback" data-item="prefecture">{{ $errors->first('prefecture') }}</div>
+    </div>
+    <div class="col-md-6 col-xl-3 mb-3">
+        <label for="email" class="form-label">メールアドレス {!! $required['email'] ?? '' !!}</label>
+        <input id="email" type="email" name="email"
+               class="form-control"
+               value="{{ $input['email'] ?? '' }}"{{ $readonly }}>
+        <div class="invalid-feedback" data-item="email">{{ $errors->first('email') }}</div>
+    </div>
+    <div class="col-md-6 col-xl-3 mb-3">
+        {{-- お知らせメール（管理画面の一斉メール）を受け取るかどうか。$input['notice_mail']は、
+             送信された文字列とモデルのintの2通りがあるので、比べる前に(int)でそろえる --}}
+        <div class="form-label d-block">お知らせメール {!! $required['notice_mail'] ?? '' !!}</div>
+        @foreach (code_table('notice_mail') as $code => $name)
+            <div class="form-check form-check-inline">
+                <input id="notice_mail_{{ $code }}" type="radio" name="notice_mail" value="{{ $code }}"
+                       class="form-check-input"
+                       @checked((int) ($input['notice_mail'] ?? 1) === $code){{ $disabled }}>
+                <label for="notice_mail_{{ $code }}" class="form-check-label">{{ $name }}</label>
+            </div>
         @endforeach
-    </select>
-    <div class="invalid-feedback" data-item="prefecture">{{ $errors->first('prefecture') }}</div>
-</div>
-
-{{-- お知らせメール（管理画面の一斉メール）を受け取るかどうか。$input['notice_mail']は、
-     送信された文字列とモデルのintの2通りがあるので、比べる前に(int)でそろえる --}}
-<div class="mb-3">
-    <div class="form-label d-block">お知らせメール {!! $required['notice_mail'] ?? '' !!}</div>
-    @foreach (code_table('notice_mail') as $code => $name)
-        <div class="form-check form-check-inline">
-            <input id="notice_mail_{{ $code }}" type="radio" name="notice_mail" value="{{ $code }}"
-                   class="form-check-input"
-                   @checked((int) ($input['notice_mail'] ?? 1) === $code){{ $disabled }}>
-            <label for="notice_mail_{{ $code }}" class="form-check-label">{{ $name }}</label>
-        </div>
-    @endforeach
-    <div class="invalid-feedback" data-item="notice_mail">{{ $errors->first('notice_mail') }}</div>
+        <div class="invalid-feedback" data-item="notice_mail">{{ $errors->first('notice_mail') }}</div>
+    </div>
 </div>
 
 <div class="mb-3">

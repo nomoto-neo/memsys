@@ -21,35 +21,36 @@
     <div class="invalid-feedback" data-item="title">{{ $errors->first('title') }}</div>
 </div>
 
-<div class="mb-3">
-    <label for="slug" class="form-label">URLの名前 {!! $required['slug'] ?? '' !!}</label>
-    {{-- 訪問者の側のURLは、この名前がそのままパスになる。aboutusなら /aboutus --}}
-    <div class="input-group">
-        <span class="input-group-text">{{ url('/') }}/</span>
-        <input id="slug" type="text" name="slug"
-               class="form-control"
-               value="{{ $input['slug'] }}" placeholder="例: aboutus"{{ $readonly }}>
+<div class="row">
+    <div class="col-md-8 mb-3">
+        <label for="slug" class="form-label">URLの名前 {!! $required['slug'] ?? '' !!}</label>
+        {{-- 訪問者の側のURLは、この名前がそのままパスになる。aboutusなら /aboutus --}}
+        <div class="input-group">
+            <span class="input-group-text">{{ url('/') }}/</span>
+            <input id="slug" type="text" name="slug"
+                   class="form-control"
+                   value="{{ $input['slug'] }}" placeholder="例: aboutus"{{ $readonly }}>
+        </div>
+        <div class="form-text">半角の英小文字・数字・ハイフン・アンダーバーで入力します。/ を含めることもできます（例：service/price）。ログイン（login）のように、ほかの画面で使っている名前は使えません。</div>
+        <div class="invalid-feedback" data-item="slug">{{ $errors->first('slug') }}</div>
     </div>
-    <div class="form-text">半角の英小文字・数字・ハイフン・アンダーバーで入力します。/ を含めることもできます（例：service/price）。ログイン（login）のように、ほかの画面で使っている名前は使えません。</div>
-    <div class="invalid-feedback" data-item="slug">{{ $errors->first('slug') }}</div>
-</div>
-
-<div class="mb-3">
-    <div class="form-label d-block">表示／非表示 {!! $required['disp_flg'] ?? '' !!}</div>
-    {{-- 非表示のページは、訪問者の側でURLを開いても404になる --}}
-    <div class="form-check form-check-inline">
-        <input id="disp_flg_1" type="radio" name="disp_flg" value="1"
-               class="form-check-input"
-               @checked(is_match($input['disp_flg'], 1)){{ $disabled }}>
-        <label for="disp_flg_1" class="form-check-label">表示</label>
+    <div class="col-md-4 mb-3">
+        <div class="form-label d-block">表示／非表示 {!! $required['disp_flg'] ?? '' !!}</div>
+        {{-- 非表示のページは、訪問者の側でURLを開いても404になる --}}
+        <div class="form-check form-check-inline">
+            <input id="disp_flg_1" type="radio" name="disp_flg" value="1"
+                   class="form-check-input"
+                   @checked(is_match($input['disp_flg'], 1)){{ $disabled }}>
+            <label for="disp_flg_1" class="form-check-label">表示</label>
+        </div>
+        <div class="form-check form-check-inline">
+            <input id="disp_flg_0" type="radio" name="disp_flg" value="0"
+                   class="form-check-input"
+                   @checked(is_match($input['disp_flg'], 0)){{ $disabled }}>
+            <label for="disp_flg_0" class="form-check-label">非表示</label>
+        </div>
+        <div class="invalid-feedback" data-item="disp_flg">{{ $errors->first('disp_flg') }}</div>
     </div>
-    <div class="form-check form-check-inline">
-        <input id="disp_flg_0" type="radio" name="disp_flg" value="0"
-               class="form-check-input"
-               @checked(is_match($input['disp_flg'], 0)){{ $disabled }}>
-        <label for="disp_flg_0" class="form-check-label">非表示</label>
-    </div>
-    <div class="invalid-feedback" data-item="disp_flg">{{ $errors->first('disp_flg') }}</div>
 </div>
 
 <div class="mb-3">
