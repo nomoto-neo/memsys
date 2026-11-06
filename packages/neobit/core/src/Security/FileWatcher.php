@@ -90,7 +90,7 @@ final class FileWatcher
     private const LOCK_FILE = 'bootstrap/cache/file-watch.lock';
 
     /** 管理画面で承認した目印（storageの下）。管理画面（apache）が書き、cron（devapp）が拾って消す */
-    private const APPROVAL_FILE = 'app/file-watch/approval.json';
+    private const APPROVAL_FILE = 'app/file_watch/approval.json';
 
     // ---- 通常の更新の見分け方（秒） ----
 

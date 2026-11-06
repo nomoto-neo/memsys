@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * 管理画面の「ベーシック認証」のユーザー（Neobit\Core\Models\BasicAuthUser）。訪問者画面と管理画面で、別々のユーザーを持つ。
- * 認証するのはApacheで、追加と削除のたびに、範囲ごとにstorage/app/basic-auth/範囲.htpasswdを書き直す
+ * 認証するのはApacheで、追加と削除のたびに、範囲ごとにstorage/app/basic_auth/範囲.htpasswdを書き直す
  * （Neobit\Core\Security\BasicAuth）。
  */
 return new class extends Migration

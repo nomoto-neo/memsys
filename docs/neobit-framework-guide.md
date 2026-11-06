@@ -831,7 +831,7 @@ private function beforeDelete(News $news): void
 
 **ファイル**：`packages/neobit/core/src/Upload/AjaxFileUpload.php`・`UploadFilePath.php`　**実例**：`Admin\NewsController`（一覧用画像・添付ファイル・本文）、`ContactController`（添付ファイル1つ）
 
-ファイルは選んだ時点で Ajax で一時ディレクトリ（`tmp/`）に送り、確認画面を経て保存するときに正式な保存先へ移します。コントローラー・画面の書き方は、アップロードの有無で変わらないようにしてあります。
+ファイルは選んだ時点で Ajax で一時ディレクトリ（`upload_tmp/`）に送り、確認画面を経て保存するときに正式な保存先へ移します。コントローラー・画面の書き方は、アップロードの有無で変わらないようにしてあります。
 
 ### コントローラー
 
@@ -1047,7 +1047,7 @@ final class AppUploadDirectory implements UploadDirectoryRule
 
 ### 一時ファイル（tmp）
 
-アップロードした直後のファイルは、公開・非公開に関係なく `"local"` ディスクの `tmp/` に置き、URL は `/uploads/tmp/{ファイル名}`（ルート `uploads.tmp`）です。アップロードしたときにセッションへファイル名を覚えておき、同じセッション（アップロードしたブラウザ）にだけ返します。保存するときに、持ち主のモデルのディスク（公開なら `"public"`）へ移します。保存されずに残った一時ファイルは、24時間を過ぎるとスケジューラーが消します（19章）。
+アップロードした直後のファイルは、公開・非公開に関係なく `"local"` ディスクの `upload_tmp/`（`storage/app/private/upload_tmp/`）に置き、URL は `/uploads/tmp/{ファイル名}`（ルート `uploads.tmp`）です。アップロードしたときにセッションへファイル名を覚えておき、同じセッション（アップロードしたブラウザ）にだけ返します。保存するときに、持ち主のモデルのディスク（公開なら `"public"`）へ移します。保存されずに残った一時ファイルは、24時間を過ぎるとスケジューラーが消します（19章）。
 
 ### 消えるファイル
 
@@ -2687,25 +2687,25 @@ Route::prefix('company')->name('company.')->group(function () {
 
 運用する人が管理画面から、訪問者画面と管理画面のそれぞれに、ベーシック認証を掛けるかと、そのユーザーを別々に変えられます。認証するのは Apache なので、Laravel を通らない `public` の下の HTML や画像にも掛かります。
 
-- **仕組み**：管理画面で切り替えると、目印のファイル `storage/app/basic-auth/site.on`（訪問者画面）・`admin.on`（管理画面）を作る・消します。ユーザーを追加・削除すると、その範囲の `storage/app/basic-auth/site.htpasswd`・`admin.htpasswd` を書き直します（パスワードは bcrypt の `$2y$`）。サーバーの VirtualHost に書いた決まりが、目印のファイルがあるときだけ認証を掛けます。`public/.htaccess` は変えません。
+- **仕組み**：管理画面で切り替えると、目印のファイル `storage/app/basic_auth/site.on`（訪問者画面）・`admin.on`（管理画面）を作る・消します。ユーザーを追加・削除すると、その範囲の `storage/app/basic_auth/site.htpasswd`・`admin.htpasswd` を書き直します（パスワードは bcrypt の `$2y$`）。サーバーの VirtualHost に書いた決まりが、目印のファイルがあるときだけ認証を掛けます。`public/.htaccess` は変えません。
 - **サーバーの設定**（1回だけ。サーバーを管理する人）：VirtualHost に次の決まりを書き、Apache を読み直します。パスはそのサーバーのプロジェクトの場所に書き換えます。決まりを書いていないサーバーでは、画面で切り替えても掛かりません。
 
     ```apache
     <Directory "/var/www/memsys/public">
         # 管理画面の「ベーシック認証」の訪問者画面。目印のファイルがあるときだけ掛ける。死活監視・配信停止・管理画面・/.well-known には掛けない。
         # index.php に回し直した2回目の判断では掛けない（掛けるかは、届いた URL の1回目で決まっているため）
-        <If "-f '/var/www/memsys/storage/app/basic-auth/site.on' && -z %{ENV:REDIRECT_STATUS} && \
+        <If "-f '/var/www/memsys/storage/app/basic_auth/site.on' && -z %{ENV:REDIRECT_STATUS} && \
             %{REQUEST_URI} !~ m#^/(up|mail/unsubscribe|app/admin|\.well-known)(/|$)#">
             AuthType Basic
             AuthName "Restricted"
-            AuthUserFile /var/www/memsys/storage/app/basic-auth/site.htpasswd
+            AuthUserFile /var/www/memsys/storage/app/basic_auth/site.htpasswd
             Require valid-user
         </If>
         # 管理画面の「ベーシック認証」の管理画面。AuthNameは訪問者画面と分ける
-        <If "-f '/var/www/memsys/storage/app/basic-auth/admin.on' && %{REQUEST_URI} =~ m#^/app/admin#">
+        <If "-f '/var/www/memsys/storage/app/basic_auth/admin.on' && %{REQUEST_URI} =~ m#^/app/admin#">
             AuthType Basic
             AuthName "RestrictedAdmin"
-            AuthUserFile /var/www/memsys/storage/app/basic-auth/admin.htpasswd
+            AuthUserFile /var/www/memsys/storage/app/basic_auth/admin.htpasswd
             Require valid-user
         </If>
     </Directory>
@@ -2717,8 +2717,8 @@ Route::prefix('company')->name('company.')->group(function () {
 - **サーバーでのオンオフ**：目印のファイルを作る・消すだけです。パスワードを忘れて管理画面に入れなくなったときは、`admin.on` を消します。
 
     ```bash
-    touch storage/app/basic-auth/admin.on   # 管理画面に掛ける
-    rm storage/app/basic-auth/admin.on      # 外す
+    touch storage/app/basic_auth/admin.on   # 管理画面に掛ける
+    rm storage/app/basic_auth/admin.on      # 外す
     ```
 - **掛けない URL**：訪問者画面に掛けても、死活監視（`/up`）とメルマガの配信停止（`/mail/unsubscribe`）と `/.well-known` の下には掛けません。`/.well-known` は、Let's Encrypt（certbot）が証明書を更新するたびに外から開いて確かめる場所（`/.well-known/acme-challenge/`）で、掛けると更新が失敗し、気付かないと証明書が切れます。`security.txt` など、外から読まれる前提のものも置かれます。訪問者画面に掛けても管理画面には掛からず、管理画面に掛けても訪問者画面には掛かりません。
 - **ユーザー**：訪問者画面と管理画面で別々に持ちます。同じユーザー名を両方に作っても、別のユーザーです。追加と削除だけです。パスワードを変えるときは、削除して追加し直します。ユーザー名は半角の英数字と `-`・`_`・`.` で、`:` は使えません（ユーザー名とパスワードの区切りのため）。パスワードは8文字以上です。
@@ -3082,7 +3082,7 @@ sudo -u devapp /usr/bin/php artisan neobit:file-watch --init
 改ざん監視の今の状況を見て、`.version` を書き換える正規のメンテナンスのほかで更新した内容（WordPress の画面からの更新など）を、管理画面から承認できます。
 
 - **画面**：開くたびに、その場でチェックし直して「〇〇〇〇-〇〇-〇〇 〇〇:〇〇:〇〇 現在のチェック状況です。」と出します。改ざんの疑い・判断待ち・許可されていないアップロードファイル・確かめられなかったディレクトリ・最近取り込んだ更新（記録にある8日分。開くとファイルの一覧）を並べます。画面は apache で動くので、記録は書きません。apache が中身を読めないファイル（`.env` など）は、最後の cron の結果を使います。
-- **承認**：改ざんの疑いと判断待ちを、まとめて承認します。自分で更新したと分かっていれば、15分の知らせを待たずに承認できます。確かめのモーダルで一覧を見てから「承認する」を押すと、承認の目印（`storage/app/file-watch/approval.json`）を置きます。毎分の cron（`neobit:file-watch --approve`。無ければ5分ごとの回）が拾い、一覧のうち、今も疑いか判断待ちのものだけを基準に取り込みます。押した後に増えた変化と、一覧に無い変化は取り込みません。画面を開いてから押すまでの間に一覧が変わったら、承認せずに「開き直した一覧を確かめてから、承認してください」と出します。画面からは一覧そのものではなく、一覧のしるし（ハッシュ値）を送ります。WordPress の更新のようにファイルが多いと、一覧を送ると PHP が受け取れる数（`max_input_vars`、既定1000）を超えて、黙って一部だけになるためです。
+- **承認**：改ざんの疑いと判断待ちを、まとめて承認します。自分で更新したと分かっていれば、15分の知らせを待たずに承認できます。確かめのモーダルで一覧を見てから「承認する」を押すと、承認の目印（`storage/app/file_watch/approval.json`）を置きます。毎分の cron（`neobit:file-watch --approve`。無ければ5分ごとの回）が拾い、一覧のうち、今も疑いか判断待ちのものだけを基準に取り込みます。押した後に増えた変化と、一覧に無い変化は取り込みません。画面を開いてから押すまでの間に一覧が変わったら、承認せずに「開き直した一覧を確かめてから、承認してください」と出します。画面からは一覧そのものではなく、一覧のしるし（ハッシュ値）を送ります。WordPress の更新のようにファイルが多いと、一覧を送ると PHP が受け取れる数（`max_input_vars`、既定1000）を超えて、黙って一部だけになるためです。
 - **承認できないもの**：許可されていないアップロードファイルと、確かめられなかったディレクトリです。ファイルを消すか、権限を直します。
 - **記録**：押したときに操作ログ（「改ざん監視の承認」）に一覧を残します。受け付けたことは、取り込まれるまで画面に「○○さんの承認を受け付けました」と出します。画面・確かめのモーダル・操作ログは、承認のメールと同じく「変わったファイル」「増えたファイル」「消えたファイル」の見出しで種類ごとにまとめます。確かめのモーダルと操作ログには全部で20件までを並べ、多いときは「ほか○件」にします。全部の一覧は承認のメールに載せます。取り込んだときに「○○さんがサイトの変更内容を承認しました」のメールを、知らせと同じ宛先へ送ります（取り込んだファイルの一覧つき）。1日1回の報告と画面には「○○さんが承認した更新」と出します。承認した覚えが無いのにメールが届いたら、侵入を疑います。
 - **二段階認証などは付けていません**：apache の権限で侵入した攻撃者は目印を真似できますが、apache はコードに書けないので、取り込ませられるのはアップロードの置き場所の `.htaccess` くらいです。それも承認のメールと翌日の報告に残るので、記録で気付ける形にしています。

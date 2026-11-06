@@ -50,7 +50,7 @@ final class UploadFilePath
      * アップロード直後のファイルを置く、TMP_DISKの中の一時ディレクトリ。
      * 確認画面を経て登録か更新が確定したときに、AjaxFileUpload::commitUploads()が正式な保存先へ移す
      */
-    public const TMP_DIR = 'tmp';
+    public const TMP_DIR = 'upload_tmp';
 
     /**
      * 一時ディレクトリを置くディスク。Webサーバーから直接は見えない"local"に置き、

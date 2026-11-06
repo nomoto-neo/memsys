@@ -14,20 +14,20 @@ use Neobit\Core\Operations\OperationRecorder;
  *
  * ■ 掛け方
  * 認証するのはApacheで、Laravelを通らないpublicの下のHTMLや画像にも掛かる。サーバーのVirtualHostに、
- * 範囲ごとに、目印のファイル（storage/app/basic-auth/site.on・admin.on）があるときだけ、その範囲の
+ * 範囲ごとに、目印のファイル（storage/app/basic_auth/site.on・admin.on）があるときだけ、その範囲の
  * .htpasswd（site.htpasswd・admin.htpasswd）で認証する決まりを書いておく。ここは目印のファイルを作る・消すことと、
  * ユーザーから.htpasswdを書き直すことだけをする。public/.htaccessは変えない。決まりの書き方は利用ガイドにある。
  *
  * ■ 締め出さない
  * 範囲ごとに、ユーザーが0人のときは掛けられない。掛けている間は、最後のユーザーを削除できない。
- * パスワードを忘れて入れなくなったときは、サーバーで目印のファイルを消す（rm storage/app/basic-auth/admin.on）。
+ * パスワードを忘れて入れなくなったときは、サーバーで目印のファイルを消す（rm storage/app/basic_auth/admin.on）。
  */
 final class BasicAuth
 {
     // ---- ファイルの置き場所 ----
 
     /** 目印のファイルと.htpasswdを置くディレクトリ（storageの下） */
-    private const DIRECTORY = 'app/basic-auth';
+    private const DIRECTORY = 'app/basic_auth';
 
     // ---- 掛ける範囲 ----
 

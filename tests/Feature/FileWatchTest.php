@@ -294,7 +294,7 @@ class FileWatchTest extends TestCase
         // 非公開の置き場所は見ない（Webから開けず、監視の利用者には読めない権限で作られるため）
         $this->write('storage/app/private/notes.js', 'js', 3);
         $this->write('storage/app/private/backdoor.phtml', '<?php', 3);
-        $this->write('storage/app/basic-auth/.htpasswd', 'staff:$2y$', 3);
+        $this->write('storage/app/basic_auth/.htpasswd', 'staff:$2y$', 3);
 
         $result = $this->checkAt(5);
         $this->assertSame(

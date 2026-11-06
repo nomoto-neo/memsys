@@ -53,10 +53,10 @@ class BasicAuthTest extends TestCase
         ]);
     }
 
-    /** storage/app/basic-auth の中のファイルのパス */
+    /** storage/app/basic_auth の中のファイルのパス */
     private function file(string $name): string
     {
-        return $this->storage.'/app/basic-auth/'.$name;
+        return $this->storage.'/app/basic_auth/'.$name;
     }
 
     /** .htpasswdの行。ユーザー名 => ハッシュ */

@@ -27,7 +27,7 @@
 | `site` | 訪問者画面 | `/admin`・`/up`・`/mail/unsubscribe` の外の全部 |
 | `admin` | 管理画面 | `/admin` の下の全部 |
 
-**ファイル**（`storage/app/basic-auth/`。無ければ PHP が作る）
+**ファイル**（`storage/app/basic_auth/`。無ければ PHP が作る）
 
 | ファイル | 中身 |
 |---|---|

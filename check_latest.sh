@@ -157,6 +157,14 @@ gone_dir resources/views/admin/operation_logs
 gone config/contact.php
 gone config/login.php
 
+# ディレクトリの名前をアンダースコアにそろえ、アップロードの一時ディレクトリをupload_tmpにした。
+# basic_authは、移さないとApacheの決まりが目印のファイルを見つけられず、ベーシック認証が外れる
+gone_dir storage/app/basic-auth
+gone_dir storage/app/file-watch
+gone_dir storage/app/private/tmp
+# PDFの作業用のディレクトリが、mpdf/mpdfと重なっていた。中はキャッシュなので消してよい
+gone_dir storage/framework/mpdf/mpdf
+
 echo "--  消したファイルの確認を終えました（NG が無ければ、残っていません）"
 
 # ---- 2. 最新の版であること ----
@@ -362,6 +370,10 @@ has   packages/neobit/core/src/Seo/SeoFields.php                        "'seo_im
 has   database/migrations/2026_11_05_000000_rename_columns_on_member_tables.php "'representative', 'ceo_name'"
 has   app/Enums/CompanyStatus.php                                       'case Suspended = 9;'
 has   app/Models/Member.php                                             "'birthday'"
+has   packages/neobit/core/src/Security/BasicAuth.php                   "'app/basic_auth'"
+has   packages/neobit/core/src/Security/FileWatcher.php                 "'app/file_watch/approval.json'"
+has   packages/neobit/core/src/Upload/UploadFilePath.php                "'upload_tmp'"
+has   packages/neobit/core/src/Pdf/PdfDownload.php                      "PDF_TEMP_DIR = 'framework'"
 has   packages/neobit/core/resources/css/admin.css                      '[data-theme="green"]'
 has   packages/neobit/core/resources/js/admin_layout.js                 'neobit.admin.theme'
 has   resources/views/layouts/admin.blade.php                           'data-nb-sidebar-toggle'
