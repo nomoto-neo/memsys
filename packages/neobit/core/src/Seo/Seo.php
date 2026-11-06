@@ -108,7 +108,7 @@ final class Seo
             'url' => url()->current(),
             'canonical' => $this->canonical(),
             'type' => $this->subject() !== null ? 'article' : 'website',
-            'site_name' => (string) config('app.site_name'),
+            'site_name' => (string) config('neobit.site.name'),
             'robots' => $this->isNoindex() ? 'noindex' : '',
             'site_verification' => SeoSettings::siteVerification(),
             default => throw new LogicException("seo()の名前には、'".implode("'・'", self::KEYS)."'のどれかを渡してください：{$key}"),
@@ -180,7 +180,7 @@ final class Seo
 
         // トップページは、サイトと運営者
         if ($this->isTop()) {
-            $graph[] = ['@type' => 'WebSite', 'name' => (string) config('app.site_name'), 'url' => url('/')];
+            $graph[] = ['@type' => 'WebSite', 'name' => (string) config('neobit.site.name'), 'url' => url('/')];
             $graph[] = $this->organization();
         }
 
@@ -262,7 +262,7 @@ final class Seo
     /** タイトル。今のページ名を、タイトルの形に当てはめる。ページ名が無ければサイト名だけ */
     private function title(): string
     {
-        $site = (string) config('app.site_name');
+        $site = (string) config('neobit.site.name');
         $title = $this->pageName();
 
         if ($title === '') {

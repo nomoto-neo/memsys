@@ -52,7 +52,7 @@ class MailDomainRuleTest extends TestCase
 
     public function test_recipient_csv_reports_missing_domains(): void
     {
-        config(['mail.bulk_check_domain' => true]);
+        config(['site_bulk_mail.check_domain' => true]);
 
         $this->confirm("誤り 太郎,taro@exmaple.invalid\n")
             ->assertSee('メールアドレスのドメイン（exmaple.invalid）が見つかりません。')
@@ -61,7 +61,7 @@ class MailDomainRuleTest extends TestCase
 
     public function test_format_errors_are_shown_without_looking_up_the_domain(): void
     {
-        config(['mail.bulk_check_domain' => true]);
+        config(['site_bulk_mail.check_domain' => true]);
 
         // 形の誤りがあれば、ドメインの文は出さない
         $this->confirm("誤り 次郎,jiro@@exmaple.invalid\n")
@@ -70,7 +70,7 @@ class MailDomainRuleTest extends TestCase
 
     public function test_domains_are_not_checked_when_the_setting_is_off(): void
     {
-        config(['mail.bulk_check_domain' => false]);
+        config(['site_bulk_mail.check_domain' => false]);
 
         $this->confirm("誤り 太郎,taro@exmaple.invalid\n")
             ->assertDontSee('が見つかりません')

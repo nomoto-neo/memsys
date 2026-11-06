@@ -10,7 +10,7 @@ namespace Neobit\Core\Auth;
  *
  * よくある方式（ソルトの無いMD5・SHA-1・SHA-256）は、Neobit\Core\Auth\Legacyに用意してある。
  * ソルトを付ける、何度も繰り返す、といったそのサイトだけの方式は、サイトごとにクラスを書いて、
- * config/login.phpのlegacy_passwordsに足す。会員を受け取るので、会員ごとのソルトの列も読める。
+ * config/neobit.phpのauthの節のlegacy_passwordsに、種類の名前ごとに足す。会員を受け取るので、会員ごとのソルトの列も読める。
  */
 interface LegacyPassword
 {

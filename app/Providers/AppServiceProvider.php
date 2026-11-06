@@ -101,6 +101,6 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('admin-screen', AdminRequestLimit::limit(...));
 
         // 一斉メールを送る速さの制限。App\Jobs\SendBulkMailのRateLimitedが使う
-        RateLimiter::for('bulk-mail', fn () => Limit::perMinute(config('mail.bulk_per_minute')));
+        RateLimiter::for('bulk-mail', fn () => Limit::perMinute(config('site_bulk_mail.per_minute')));
     }
 }

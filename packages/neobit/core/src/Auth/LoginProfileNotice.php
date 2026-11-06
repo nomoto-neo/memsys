@@ -47,7 +47,7 @@ final class LoginProfileNotice
         $variables = [
             'from_mail' => config('mail.from.address'),
             'from_name' => config('mail.from.name'),
-            'site_name' => config('app.site_name'),
+            'site_name' => config('neobit.site.name'),
             'name' => $member->displayName(),
             'changed_at' => now()->format('Y年n月j日 H:i'),
             'reset_url' => route($member::loginRoute('password.forgot')),

@@ -247,7 +247,7 @@ class RegistrationController extends Controller
             Mail::send(new TemplatedMail('company_registration_staff', [
                 'from_mail' => config('mail.from.address'),
                 'from_name' => config('mail.from.name'),
-                'staff_mail' => config('login.company_user.registration_staff_email'),
+                'staff_mail' => config('site_login.company_user.registration_staff_email'),
                 'company_code' => $company->code,
                 'company_name' => $company->name,
                 'user_name' => $user->name,

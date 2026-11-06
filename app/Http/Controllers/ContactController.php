@@ -265,7 +265,7 @@ class ContactController extends Controller
             Mail::send(new TemplatedMail('contact_staff', [
                 'from_mail' => config('mail.from.address'),
                 'from_name' => config('mail.from.name'),
-                'staff_mail' => config('contact.staff_email'),
+                'staff_mail' => config('site_contact.staff_email'),
                 'name' => $inquiry->name,
                 'furigana' => $inquiry->kana,
                 'email' => $inquiry->email,

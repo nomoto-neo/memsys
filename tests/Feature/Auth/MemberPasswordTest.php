@@ -35,7 +35,7 @@ class MemberPasswordTest extends TestCase
     public function test_change_in_mypage(): void
     {
         // 件名の頭に出る、サイトの名前
-        config(['app.site_name' => 'テストサイト']);
+        config(['neobit.site.name' => 'テストサイト']);
 
         $member = $this->member();
         $member->trustedDevices()->create(['token_hash' => 'x', 'expires_at' => now()->addDay()]);
@@ -89,7 +89,7 @@ class MemberPasswordTest extends TestCase
     public function test_reset_when_forgotten(): void
     {
         // 件名の頭に出る、サイトの名前
-        config(['app.site_name' => 'テストサイト']);
+        config(['neobit.site.name' => 'テストサイト']);
 
         $member = $this->member();
 

@@ -24,12 +24,12 @@
 
 | 名前 | 記事がある（`Seo::for()` を呼んだ） | 記事が無い |
 |---|---|---|
-| title | `seoTitle()` を `seo.title_format`（`{title}｜{site}`）に当てはめる | `@section('title')` を当てはめる。無ければサイト名（`app.site_name`）だけ |
+| title | `seoTitle()` を `seo.title_format`（`{title}｜{site}`）に当てはめる | `@section('title')` を当てはめる。無ければサイト名（`neobit.site.name`）だけ |
 | description | `seoDescriptionSource()` から作る（下） | `seo.description`。空なら空 |
 | image | `seoImageUrl()`、無ければ `seo.image_url`。絶対の URL | `seo.image_url`。無ければ空 |
 | url | 今の URL（`url()->current()`。`?` の後ろを除いた絶対の URL） | 同じ |
 | type | article | website |
-| site_name | `app.site_name` | 同じ |
+| site_name | `neobit.site.name` | 同じ |
 
 - 説明文の作り方：`<script>`・`<style>` は中身ごと除く（タグだけを除くと中身が文として残るため）。段落や改行のタグ（`</p>`・`<br>` など）は空白にする（除くと前後の文がくっつくため）。残りのタグを除き、文字の参照を戻し、続く空白を1つにまとめる。`seo.description_length`（120）文字より長ければ、その文字数で切って「…」を付ける（全角も1文字として数える）。
 - 記事は、今のリクエストの属性に持つ（`Seo::for()` が入れる）。リクエストが変われば、前の記事は引き継がない。
@@ -61,7 +61,7 @@
 
 ## C. 前提・依存
 
-- サイト名（`config('app.site_name')`。`.env` の `SITE_NAME`）
+- サイト名（`config('neobit.site.name')`。`.env` の `SITE_NAME`）
 - 絶対の URL は `url()` で作る。サーバーの前にプロキシを置くときは `TRUSTED_PROXIES` を書かないと、`https://` にならない（利用ガイド0章）
 - 画面の題名の `@section('title')`（今までの書き方のまま使う）
 

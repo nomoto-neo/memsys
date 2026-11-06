@@ -153,6 +153,10 @@ gone app/Enums/OperationLogSubject.php
 gone app/Enums/OperationLogModel.php
 gone_dir resources/views/admin/operation_logs
 
+# 名前の頭にsite_を付けた、案件の設定ファイル
+gone config/contact.php
+gone config/login.php
+
 echo "--  消したファイルの確認を終えました（NG が無ければ、残っていません）"
 
 # ---- 2. 最新の版であること ----
@@ -210,7 +214,7 @@ has   app/Http/Controllers/ContactController.php                        'catch (
 has   config/neobit.php                                                 'BulkMailCleanup::class'
 has   routes/admin.php                                                  'bulk-mails.failedCsv'
 has   app/Rules/MailDomainRule.php                                      'class MailDomainRule'
-has   config/mail.php                                                   "'bulk_check_domain'"
+has   config/site_bulk_mail.php                                         "'check_domain'"
 has   config/mail.php                                                   "'return_path'"
 has   app/Services/NewsletterSubscription.php                           'final class NewsletterSubscription'
 has   routes/admin.php                                                  'newsletter-subscribers.index'
@@ -358,6 +362,13 @@ has   packages/neobit/core/src/Seo/SeoFields.php                        "'seo_im
 has   database/migrations/2026_11_05_000000_rename_columns_on_member_tables.php "'representative', 'ceo_name'"
 has   app/Enums/CompanyStatus.php                                       'case Suspended = 9;'
 has   app/Models/Member.php                                             "'birthday'"
+has   config/site_contact.php                                           "'staff_email'"
+has   config/site_login.php                                             "'identity_check_column'"
+has   packages/neobit/core/config/neobit/site.php                       "env('SITE_NAME'"
+has   packages/neobit/core/config/neobit/auth.php                       "'legacy_passwords'"
+has   packages/neobit/core/src/Auth/LegacyPasswordUserProvider.php      "'neobit.auth.legacy_passwords.'"
+lacks config/app.php                                                    "'site_name'"
+lacks config/mail.php                                                   'bulk_per_minute'
 
 echo
 if [ $ng -eq 0 ]; then

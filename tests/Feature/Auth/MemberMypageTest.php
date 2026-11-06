@@ -47,7 +47,7 @@ class MemberMypageTest extends TestCase
     public function test_profile_change_is_notified_to_old_and_new_address(): void
     {
         // 件名の頭に出る、サイトの名前
-        config(['app.site_name' => 'テストサイト']);
+        config(['neobit.site.name' => 'テストサイト']);
 
         $member = $this->member();
 
@@ -127,7 +127,7 @@ class MemberMypageTest extends TestCase
     public function test_saving_without_email_change_skips_the_code(): void
     {
         // 件名の頭に出る、サイトの名前
-        config(['app.site_name' => 'テストサイト']);
+        config(['neobit.site.name' => 'テストサイト']);
 
         $member = $this->member();
 
@@ -184,7 +184,7 @@ class MemberMypageTest extends TestCase
     public function test_staff_changing_the_password_notifies_the_member(): void
     {
         // 件名の頭に出る、サイトの名前
-        config(['app.site_name' => 'テストサイト']);
+        config(['neobit.site.name' => 'テストサイト']);
 
         $member = $this->member();
         $member->trustedDevices()->create(['token_hash' => 'x', 'expires_at' => now()->addDay()]);

@@ -122,24 +122,14 @@
 
 決まった中身（名前を作る、ログインの列から値を取る）は、トレイト `IsLoginAccount` に用意する。モデルに書くのは、種類の名前と、`displayName()`・`notificationEmail()` になる。共通部品は、渡されたモデルに種類の名前を聞くだけで、個人か企業かの場合分けを持たない。
 
-**設定ファイル（config/login.php）に書くのは、サイトごとに変わるものだけ**にする。
+**設定ファイル（config/site_login.php）に書くのは、サイトごとに変わるものだけ**にする。古い方式のパスワードの照合は、フレームワークが読むので、`config/neobit.php` の `auth.legacy_passwords` に書く（2.9）。
 
 ```php
 return [
-    // 個人会員
-    'member' => [
-        // 古い方式のパスワードを計算するクラス。書いた順に試す。無ければ空（2.9）
-        'legacy_passwords' => [],
-    ],
-
     // 企業の担当者
-    'company' => [
+    'company_user' => [
         // 初回のログインで担当者の情報を登録するときに、照合する企業の列（2.8）
         'identity_check_column' => 'tel',
-        'legacy_passwords' => [
-            Neobit\Core\Auth\Legacy\Md5Password::class,
-            Neobit\Core\Auth\Legacy\Sha1Password::class,
-        ],
     ],
 ];
 ```

@@ -82,7 +82,7 @@ final class SeoSettings
     {
         $name = self::settings()['organization_name'] ?? (string) config('neobit.seo.organization_name');
 
-        return $name !== '' ? $name : (string) config('app.site_name');
+        return $name !== '' ? $name : (string) config('neobit.site.name');
     }
 
     /** 運営者のロゴのURL。画面で空欄なら設定ファイルの値。どちらも無ければnull */

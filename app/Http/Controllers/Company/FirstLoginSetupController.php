@@ -30,7 +30,7 @@ use Neobit\Core\Operations\OperationRecorder;
  *
  * ■ 企業の情報の照合
  * 一緒に、企業のデータにある情報を1つ入力させて照合する。照合する列は、設定の
- * config('login.company_user.identity_check_column')。見本のサイトでは電話番号。
+ * config('site_login.company_user.identity_check_column')。見本のサイトでは電話番号。
  * 既存のシステムのIDとパスワードは、漏れている前提で扱うため。IDとパスワードを知っているだけの
  * 他人が、自分のメールアドレスを登録して、アカウントを自分のものにすることを防ぐ。
  * 照合の失敗は、試行制限（LoginThrottle）で数える。
@@ -324,7 +324,7 @@ class FirstLoginSetupController extends Controller
     /** 企業のデータにある、照合する値。比べられる形にそろえたもの。値が無ければ空の文字 */
     private function identityOf(CompanyUser $user): string
     {
-        $column = config('login.company_user.identity_check_column');
+        $column = config('site_login.company_user.identity_check_column');
 
         return $this->normalizeIdentity((string) $user->company->getAttribute($column));
     }

@@ -160,7 +160,7 @@ MAIL_FROM_NAME="${SITE_NAME}"
 
 - **`APP_NAME` を日本語にしてはいけません**。Laravel は、`APP_NAME` から英数字だけを残して、Cookie とキャッシュの名前を作ります。日本語だけだと全部が消えて、Cookie の名前が `-session` になります。同じドメインに置いたほかの Laravel のサイトと名前が重なり、片方にログインすると、もう片方がログアウトします。
 - **`SITE_NAME` を書かなければ、名前は出ません**。空のままになり、`APP_NAME` を代わりに出すことはありません。`APP_NAME` は処理の中で使う識別名で、人に見せる名前ではないためです。サイトを設置するときに、必ず `SITE_NAME` を書きます。
-- **画面では `config('app.site_name')` で出します**。レイアウト（`layouts/app.blade.php`・`admin.blade.php`・`company.blade.php`）が、メニューと題名に使っています。メンテナンス中の画面（`maintenance.blade.php`）だけは、設定に頼らない1枚の HTML なので、名前を直接書いてあります。
+- **画面では `config('neobit.site.name')` で出します**。レイアウト（`layouts/app.blade.php`・`admin.blade.php`・`company.blade.php`）が、メニューと題名に使っています。メンテナンス中の画面（`maintenance.blade.php`）だけは、設定に頼らない1枚の HTML なので、名前を直接書いてあります。
 - **`.env` に書くのは、サーバーごとに違う値と、秘密の値だけです**。接続先・宛先・鍵などです。残す日数や回数のように、どのサーバーでも同じ値（サイトの決まりごと）は、`config/` のファイルに書きます。Git に記録されるので、いつ変えたかを追えて、サーバーごとに値がずれません。Laravel の標準の項目のうち、このサイトの `.env` に書いていないものは、控えとして `.env.unused` にあります。Laravel は、このファイルを読みません。
 - **`.env` を変えたら `php artisan config:cache` をやり直します**。`APP_NAME` を変えると Cookie の名前が変わるので、ログイン中の人は、ログインし直しになります。
 
@@ -358,7 +358,7 @@ class NewsController extends Controller
 - **テンプレートは細かく部品化しない**：デザイナーが触れる HTML のまま保ちます。コーナーの入力欄は `_fields.blade.php` 1つにまとめ、4つの画面から呼びます（5章）。Blade にコントローラー名は書きません。
 - **設定の既定の値は、フレームワークが持つ**：既定の値は、`vendor/neobit/core/config/neobit/` に機能ごとのファイルで持ちます（`route`・`layouts`・`form`・`code_table`・`operation_log`・`security`・`file_watch`・`seo`・`schedule`・`upload`・`cleanup`）。
 - **案件は `config/neobit.php` の1ファイルに、変える値だけを書く**：機能ごとの節で書きます（例：`'seo' => ['redirects' => true]`）。書いたキーが既定に優先し、書いていないキーは既定の値になります。こうしておくと、案件が何を変えたかが1つのファイルで分かり、パッケージの更新で足した既定の値が、案件のファイルを直さずに効きます。節の中の配列（`neobit.upload.image_types`・`neobit.operation_log.report_thresholds` など）は丸ごと置き換わるので、変えない要素も一緒に書きます。その部分は、パッケージの更新が効かなくなるので、更新のときに見比べます。`php artisan vendor:publish --tag=neobit-config` で、見本（`packages/neobit/core/stubs/config/neobit.php`）を `config/` へ写せます。
-- **フレームワークの設定を変えるために、`config/` にファイルを増やさない**：案件の機能の設定（`contact.php` など）は、今までどおり `config/` に置きます。
+- **フレームワークの設定を変えるために、`config/` にファイルを増やさない**：案件の機能の設定は、名前の頭に `site_` を付けたファイル（`site_contact.php`・`site_login.php`・`site_bulk_mail.php`）に置きます。`config/` を見て、フレームワークの設定（`neobit.php`）・案件の設定（`site_` のファイル）・Laravel のファイル（それ以外）が見分けられるようにするためです。フレームワークは `site_` のファイルを読みません。
 - **Blade のコメントは `{{-- --}}` で書く**：`<style>` や `<script>` の中でも同じです。`/* */`・`//`・`<!-- -->` は HTML のソースに出て、訪問者に見えるので使いません。
 - **コメント**：今のコードが何をしていて、なぜそうなっているかだけを書きます。試行錯誤の経緯は書きません。書き方は 1-5 にまとめてあります。
 
@@ -1599,13 +1599,15 @@ $member->forceFill([
 ])->save();
 ```
 
-**設定**（`config/login.php`）
+**設定**（`config/neobit.php` の `auth` の節。ログインする人の種類の名前ごとに書く）
 
 ```php
-'member' => [
+'auth' => [
     'legacy_passwords' => [
-        Neobit\Core\Auth\Legacy\Md5Password::class,
-        Neobit\Core\Auth\Legacy\Sha1Password::class,
+        'member' => [
+            Neobit\Core\Auth\Legacy\Md5Password::class,
+            Neobit\Core\Auth\Legacy\Sha1Password::class,
+        ],
     ],
 ],
 ```
@@ -1613,7 +1615,7 @@ $member->forceFill([
 - 書いた順に試します。途中で方式を変えたシステムのデータも、並べておけば通ったものを採ります。
 - ソルトの無い MD5・SHA-1・SHA-256 は、`Neobit\Core\Auth\Legacy` に用意してあります。
 - ソルトを付ける、何度も繰り返す、といったそのサイトだけの方式は、`LegacyPassword` を実装したクラスを書いて、設定に足します。メソッドは「入力されたパスワードと会員を受け取って、古い方式のハッシュ値を返す」の1つです。会員を受け取るので、会員ごとのソルトの列も読めます。
-- **新しく始めるサイトは、空のままにします**。古い方式は、何も働きません。
+- **新しく始めるサイトは、書かずに既定の空のままにします**。古い方式は、何も働きません。
 
 **決まりごと**
 
@@ -2170,7 +2172,7 @@ class SendBulkMail implements ShouldQueue
 - **送る速さ**：`AppServiceProvider` の `RateLimiter::for('bulk-mail', ...)` で1分の上限を決め、ジョブの `RateLimited` で守ります。上限は `.env` の `MAIL_BULK_PER_MINUTE` で、SMTP の送信の上限を超えない値にします。見本の値は5です。5通が等間隔で送られるわけではなく、一度に5通を送って、次の1分が来るまで待ちます。
   さくらのレンタルサーバ（ライト・スタンダード・プレミアム）は15分に100通ほどが目安（[メール送信数の制限について](https://help.sakura.ad.jp/rs/2251/)）なので、1分に5通（15分に75通）にして、お問い合わせの通知などほかのメールの分を残しています。1,000通を送るのに3時間20分ほどかかります。
 - **失敗**：試し直しても送れなかったジョブは `failed_jobs` に残り、エラーの通知（20章）にも届きます。放置しても、7日を過ぎると `TemporaryDataCleaner` が消します（19章）。送り直したいときは、その前に `php artisan queue:retry all` を実行してください。
-- **宛先のドメインの確認**：宛先の CSV を読むときに、メールアドレスのドメインに、メールを受け取る設定（MX）かサーバーの住所（A・AAAA）があるかを DNS で確かめ、無ければ確認画面でエラーの行にします（`App\Rules\MailDomainRule`）。`gmial.con` のようなドメインの打ち間違いを、送る前に見つけるためです。同じドメインは1回だけ引きます。アカウントが無いこと（User unknown）は送ってみないと分からないので、ここでは見つかりません。`exmaple.com` のように、打ち間違いを狙って登録されているドメインも、あることになるので止まりません。DNS を引けないサーバーと、外のネットワークに頼らないテストでは、`.env` の `MAIL_BULK_CHECK_DOMAIN=false` で切ります（`config/mail.php` の `bulk_check_domain`）。
+- **宛先のドメインの確認**：宛先の CSV を読むときに、メールアドレスのドメインに、メールを受け取る設定（MX）かサーバーの住所（A・AAAA）があるかを DNS で確かめ、無ければ確認画面でエラーの行にします（`App\Rules\MailDomainRule`）。`gmial.con` のようなドメインの打ち間違いを、送る前に見つけるためです。同じドメインは1回だけ引きます。アカウントが無いこと（User unknown）は送ってみないと分からないので、ここでは見つかりません。`exmaple.com` のように、打ち間違いを狙って登録されているドメインも、あることになるので止まりません。DNS を引けないサーバーと、外のネットワークに頼らないテストでは、`.env` の `MAIL_BULK_CHECK_DOMAIN=false` で切ります（`config/site_bulk_mail.php` の `check_domain`）。
 - **送れなかった宛先**：送信の詳細の画面の下に、送れなかった宛先（氏名・メールアドレス・送れなかった理由・日時）を枠で囲って並べます。宛先は送信の記録に保存しないので、`failed_jobs` に残ったジョブの中から読み出します。そのため、見られるのは上の日数の間だけで、日数は枠の中にも出します。画面に並べるのは先頭の100件で、全件は「CSVダウンロード（全件）」で落とせます。CSV は「氏名, メールアドレス, 送れなかった理由」の3列で、見出しの行はありません。3列目を消せば、そのまま宛先の CSV として読み込めます。ほかの CSV のダウンロードと同じく、ダウンロードの記録と操作ログを残します（`Admin\BulkMailController::failedCsv()`・`BulkMail::failedRecipients()`）。
 - **バッチ**：たくさんのジョブを、1つずつ積まずに `Bus::batch()` で1つにまとめて積むと、Laravel がそのまとまりの件数を `job_batches` に数えます。進み具合（済み・失敗・残り）を、そこから読めます。`finally()` で、全部が終わったときの処理を書けます。一斉メールは、宛先の数だけのジョブを1つのバッチにして積み、送信の詳細の画面に進み具合を出しています（`Admin\BulkMailController` の `dispatchSendJobs()`・`sendCounts()`）。
 - **トランザクション**：ジョブは、トランザクションが終わった後で積んでください。トランザクションの中で保存した行は、終わるまでワーカーからは見えません。中で積むと、ワーカーが先に動いて、行が見つからずに失敗することがあります。中で積むしかないときは、`dispatch()` に `->afterCommit()` を付けると、終わるまで待ってから積まれます。一斉メールは、送信の記録を保存し終えてから積んでいます（`Admin\BulkMailController::store()`）。
@@ -2556,10 +2558,10 @@ Route::prefix('company')->name('company.')->group(function () {
 
 既存のシステムからデータを移すサイトだけで働く機能が、2つあります。新しく始めるサイトでは、対象の会員がいないので、何も起きません。初回のログインでの登録は、コントローラーとルートを消しても構いません。
 
-| 機能 | 設定（`config/login.php`） | 働く条件 |
+| 機能 | 設定 | 働く条件 |
 |---|---|---|
-| 古い方式のパスワードの置き換え（14章） | `legacy_passwords` | `legacy_password` に値がある会員 |
-| 初回のログインでの登録 | `identity_check_column` | メールアドレスが空の担当者 |
+| 古い方式のパスワードの置き換え（14章） | `config/neobit.php` の `auth.legacy_passwords` | `legacy_password` に値がある会員 |
+| 初回のログインでの登録 | `config/site_login.php` の `identity_check_column` | メールアドレスが空の担当者 |
 
 - 移した企業は、企業1件にログインID とパスワードが1組であることが多いので、企業ごとに「最初の担当者」を1人だけ作ります。担当者ID は全部の企業で同じ初期値にし、氏名とメールアドレスは空にします。
 - 最初の担当者がログインすると、2段階目の代わりに、初回のログインでの登録へ回ります。企業のデータにある値を1つ（`identity_check_column`。見本のサイトでは電話番号）照合してから、入力されたメールアドレスに確認コードを送ります。既存の ID とパスワードは漏れている前提で扱い、それだけを知っている他人に登録させないためです。
@@ -2578,7 +2580,7 @@ Route::prefix('company')->name('company.')->group(function () {
 | `app/Http/Middleware/` | `EnsureCompanyIsApproved` |
 | `resources/` | `views/company/`・`views/layouts/company.blade.php`・`views/admin/companies/`・`views/admin/company_users/`、`mail-templates/company_*.blade.php`、管理画面の左のメニュー（`admin/_menu.blade.php`）の「企業会員」 |
 | `routes/company.php`・`routes/admin.php` | 企業会員の画面と、管理画面の企業会員管理のルート |
-| `config/` | `auth.php` の `company` のガードとプロバイダー、`login.php` の `company_user` |
+| `config/` | `auth.php` の `company` のガードとプロバイダー、`site_login.php` の `company_user` |
 | `bootstrap/app.php` | 移動先の `company.*` の行、`company.approved` の短い名前 |
 | `database/` | 企業（`t_companies`）と担当者（`t_company_users`）のテーブルのマイグレーション、`CompanySeeder` と、`DatabaseSeeder` の呼び出し。招待のテーブル（`team_invitations`）は、共通のテーブルなので残す |
 | `tests/Feature/Company/` | 全部 |
@@ -2618,7 +2620,7 @@ Route::prefix('company')->name('company.')->group(function () {
 3. `AppServiceProvider` の `enforceMorphMap()` と、`AppOperationLogModel` に足す。操作ログに氏名を出すなら、モデルに `OperationLogNamedModel`（`operationLogNames()`）を付ける。
 4. `bootstrap/app.php` の、ログインしていないときの移動先に足す。
 5. その種類だけの文面にしたいメールは、テンプレートを、種類の名前を頭に付けて用意する（`種類の名前_verification_code`・`_password_changed`・`_profile_changed`・`_invitation`）。用意しなければ、頭を付けない名前のテンプレートか、フレームワークの既定が使われる（11章）。
-6. `config/login.php` に、種類の名前のキーを足す。
+6. 古い方式のパスワードを使うなら、`config/neobit.php` の `auth.legacy_passwords` に、種類の名前のキーを足す。種類ごとのサイトの設定が要るなら、`config/site_login.php` に種類の名前のキーを足す。
 
 ## 24. アクセス制限（接続元の IP アドレスの制限）
 

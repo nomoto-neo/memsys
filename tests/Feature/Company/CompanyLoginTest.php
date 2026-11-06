@@ -244,7 +244,7 @@ class CompanyLoginTest extends TestCase
 
     public function test_old_password_of_a_migrated_user_is_replaced(): void
     {
-        config(['login.company_user.legacy_passwords' => [Md5Password::class]]);
+        config(['neobit.auth.legacy_passwords.company_user' => [Md5Password::class]]);
         $user = $this->user($this->company());
         $user->forceFill(['password' => null, 'legacy_password' => LegacyPasswordUserProvider::wrap(md5('old-system-password'))])->save();
 

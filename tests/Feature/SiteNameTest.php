@@ -6,7 +6,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * 画面に出すサイトの名前（.envのSITE_NAME。config('app.site_name')）。
+ * 画面に出すサイトの名前（.envのSITE_NAME。config('neobit.site.name')）。
  * 機械の名前のAPP_NAMEとは別に、日本語で決められる。
  */
 class SiteNameTest extends TestCase
@@ -15,7 +15,7 @@ class SiteNameTest extends TestCase
 
     public function test_screens_show_the_site_name(): void
     {
-        config(['app.site_name' => 'デモサイト']);
+        config(['neobit.site.name' => 'デモサイト']);
 
         // 訪問者の側は、メニューの左上と、題名を決めていない画面の題名
         $this->get('/')
@@ -36,14 +36,14 @@ class SiteNameTest extends TestCase
     public function test_site_name_stays_empty_without_falling_back_to_the_app_name(): void
     {
         // SITE_NAMEを書いていなくても、空で書いても、名前は空のまま。APP_NAMEは人に見せる名前ではないので、
-        // 代わりに出さない（config/app.php）
+        // 代わりに出さない（フレームワークのconfig/neobit/site.php）
         $this->assertSame('', $this->siteNameWhen(null));
         $this->assertSame('', $this->siteNameWhen(''));
     }
 
     /**
      * .envのSITE_NAMEがその値のときに、設定のサイトの名前がどうなるか。nullは、書いていないとき。
-     * 手元の.envの中身に左右されないよう、環境変数を差し替えてconfig/app.phpを読み直す。
+     * 手元の.envの中身に左右されないよう、環境変数を差し替えて、既定の値のファイルを読み直す。
      * 読み終えたら、環境変数を元に戻す。
      */
     private function siteNameWhen(?string $value): string
@@ -53,7 +53,7 @@ class SiteNameTest extends TestCase
         try {
             $this->putSiteNameEnv($value, $value, $value ?? false);
 
-            return (require config_path('app.php'))['site_name'];
+            return (require base_path('packages/neobit/core/config/neobit/site.php'))['name'];
         } finally {
             $this->putSiteNameEnv($original['env'], $original['server'], $original['getenv']);
         }

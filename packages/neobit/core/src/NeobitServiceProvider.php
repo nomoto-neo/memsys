@@ -19,9 +19,11 @@ class NeobitServiceProvider extends ServiceProvider
 {
     /** 既定値を持つ設定の節の名前。config/neobit/ の同じ名前のファイルが既定値になる */
     private const CONFIG_SECTIONS = [
+        'site',
         'route',
         'layouts',
         'form',
+        'auth',
         'code_table',
         'operation_log',
         'security',

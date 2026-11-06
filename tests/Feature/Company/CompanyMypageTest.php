@@ -119,7 +119,7 @@ class CompanyMypageTest extends TestCase
     public function test_own_profile_change_is_notified_to_old_and_new_address(): void
     {
         // 件名の頭に出る、サイトの名前
-        config(['app.site_name' => 'テストサイト']);
+        config(['neobit.site.name' => 'テストサイト']);
 
         $user = $this->user($this->company());
 

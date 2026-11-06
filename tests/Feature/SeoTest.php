@@ -29,7 +29,7 @@ class SeoTest extends TestCase
     {
         parent::setUp();
 
-        config(['app.site_name' => 'デモサイト', 'app.url' => 'https://example.com']);
+        config(['neobit.site.name' => 'デモサイト', 'app.url' => 'https://example.com']);
         url()->forceRootUrl('https://example.com');
         url()->forceScheme('https');
     }

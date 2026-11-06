@@ -231,7 +231,7 @@ class LoginVerificationCode
                 'from_mail' => config('mail.from.address'),
                 'from_name' => config('mail.from.name'),
                 'to_mail' => $email,
-                'site_name' => config('app.site_name'),
+                'site_name' => config('neobit.site.name'),
                 'name' => $name,
                 'purpose_label' => $label,
                 'code' => $code,

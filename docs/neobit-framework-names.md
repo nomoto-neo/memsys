@@ -216,6 +216,8 @@
 
 | ファイル | キー | メモ |
 |---|---|---|
+| `neobit` | `site.name` | 画面やメールに出すサイトの名前。`.env` は `SITE_NAME` |
+| `neobit` | `auth.legacy_passwords` | ログインする人の種類の名前ごとに、古い方式のパスワードのクラス。既定は空 |
 | `neobit` | `layouts` | |
 | `neobit` | `route.admin_path` | 管理画面の頭の URL。既定は `app/admin` |
 | `neobit` | `file_watch`（`release_file`・`to`・`public_upload_extra`） | |

@@ -94,7 +94,7 @@ class CompanyUserAdminTest extends TestCase
     public function test_password_change_is_notified_and_resets_trusted_devices(): void
     {
         // 件名の頭に出る、サイトの名前
-        config(['app.site_name' => 'テストサイト']);
+        config(['neobit.site.name' => 'テストサイト']);
 
         $user = $this->user($this->company());
         $staff = $this->staff();

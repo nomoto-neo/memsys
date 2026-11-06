@@ -65,7 +65,7 @@ class CompanyInvitationTest extends TestCase
 
     public function test_invited_person_registers_from_the_link_and_is_logged_in(): void
     {
-        config(['app.site_name' => 'テストサイト']);
+        config(['neobit.site.name' => 'テストサイト']);
 
         $company = $this->company();
         $inviter = $this->user($company);

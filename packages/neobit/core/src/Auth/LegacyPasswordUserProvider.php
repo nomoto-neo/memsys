@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\Hash;
  *
  * ■ ログインのとき
  * passwordが空で、legacy_passwordに値がある会員は、古い方式で照合する。
- * config('login.種類の名前.legacy_passwords')に書いたクラスを、書いた順に試す。それぞれで、
+ * config('neobit.auth.legacy_passwords.種類の名前')に書いたクラスを、書いた順に試す。それぞれで、
  * 入力されたパスワードを古い方式のハッシュ値にし、それをlegacy_passwordと今の方式で照合する。
  * どれかで通ったら、入力されたパスワードを今の方式でpasswordに保存し、legacy_passwordを消す。
  * 次からは、標準の照合になる。
@@ -56,7 +56,7 @@ final class LegacyPasswordUserProvider extends EloquentUserProvider
         }
 
         // 古い方式を、設定に書いた順に試す
-        foreach ((array) config('login.'.$user::loginType().'.legacy_passwords', []) as $class) {
+        foreach ((array) config('neobit.auth.legacy_passwords.'.$user::loginType(), []) as $class) {
             if (! $this->hasher->check((new $class())->hash($plain, $user), $user->legacy_password)) {
                 continue;
             }

@@ -459,7 +459,7 @@ class BulkMailController extends Controller
     // ---- CSVの検証 ----
 
     /**
-     * CSVの1行の検証ルール。config('mail.bulk_check_domain')がtrueなら、メールアドレスのドメインがあるかも
+     * CSVの1行の検証ルール。config('site_bulk_mail.check_domain')がtrueなら、メールアドレスのドメインがあるかも
      * 確かめる（MailDomainRule）。ドメインの打ち間違いを、送る前に見つけるため。
      */
     private function recipientRules(): array
@@ -467,7 +467,7 @@ class BulkMailController extends Controller
         $rules = self::RECIPIENT_RULES;
 
         // 形の誤りがあれば、ドメインは引かずに形の誤りだけを出す
-        if (config('mail.bulk_check_domain')) {
+        if (config('site_bulk_mail.check_domain')) {
             $rules['email'] = ['bail', ...$rules['email'], new MailDomainRule()];
         }
 

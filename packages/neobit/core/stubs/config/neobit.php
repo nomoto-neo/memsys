@@ -13,8 +13,10 @@ return [
     //     'app' => 'layouts.app',
     // ],
 
+    // 'site' => ['name' => env('SITE_NAME', '')],
     // 'route' => ['admin_path' => 'app/admin'],
     // 'form' => ['required_mark' => [...]],
+    // 'auth' => ['legacy_passwords' => ['member' => [...]]],
     // 'code_table' => ['db' => [...], 'method' => [...]],
     // 'operation_log' => ['actions' => [...], 'models' => [...], 'route' => 'admin.operation-logs.index'],
     // 'security' => ['ip_block_auto' => true],

@@ -11,13 +11,7 @@ return [
     | キーは、種類の名前（モデルの短い名前。Neobit\Core\Auth\IsLoginAccount）。member・company_userなど。
     | ガード・ルート・メールのテンプレートの名前は、種類の名前から決まりで作るので、
     | ここには書かない。設計は docs/member-types-spec.md。
-    |
-    | legacy_passwords
-    |   既存のシステムから会員を移したサイトだけで使う。古い方式のパスワードを計算する
-    |   クラスを、試す順に書く（Neobit\Core\Auth\LegacyPasswordUserProvider）。
-    |   ソルトの無いMD5・SHA-1・SHA-256は、Neobit\Core\Auth\Legacyに用意してある。
-    |   そのサイトだけの方式は、Neobit\Core\Auth\LegacyPasswordを実装したクラスを書いて足す。
-    |   新しく始めるサイトでは、空のままにする。
+    | 古い方式のパスワードの照合は、フレームワークの設定（config/neobit.phpのauthの節）に書く。
     |
     | registration_staff_email
     |   企業会員だけで使う。企業の登録の申請があったことを知らせるメールを送る、
@@ -32,20 +26,8 @@ return [
     |
     */
 
-    // 個人会員
-    'member' => [
-        'legacy_passwords' => [
-            // Neobit\Core\Auth\Legacy\Md5Password::class,
-            // Neobit\Core\Auth\Legacy\Sha1Password::class,
-            // Neobit\Core\Auth\Legacy\Sha256Password::class,
-        ],
-    ],
-
     // 企業の担当者
     'company_user' => [
-        'legacy_passwords' => [
-            //
-        ],
         'registration_staff_email' => env('COMPANY_REGISTRATION_STAFF_EMAIL', 'staff@example.com'),
         'identity_check_column' => 'tel',
     ],

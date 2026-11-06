@@ -8,7 +8,7 @@
  */
 return [
 
-    // タイトルの形。{title}はページのタイトル、{site}はサイト名（app.site_name）
+    // タイトルの形。{title}はページのタイトル、{site}はサイト名（neobit.site.name）
     'title_format' => '{title}｜{site}',
 
     // 記事の無いページの説明文。空なら説明文のタグを出さない

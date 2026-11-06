@@ -100,7 +100,7 @@ class SeoSettingsController
             'configDescription' => (string) config('neobit.seo.description'),
             'configImageUrl' => (string) config('neobit.seo.image_url'),
             // 運営者の名前は、設定ファイルも空ならサイト名
-            'configOrganizationName' => (string) (config('neobit.seo.organization_name') ?: config('app.site_name')),
+            'configOrganizationName' => (string) (config('neobit.seo.organization_name') ?: config('neobit.site.name')),
             'configOrganizationLogoUrl' => (string) config('neobit.seo.organization_logo_url'),
             'pages' => $pages,
             'routes' => $this->routeNames($request),

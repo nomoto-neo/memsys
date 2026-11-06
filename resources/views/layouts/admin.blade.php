@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>@yield('title', '管理画面 - '.config('app.site_name'))</title>
+    <title>@yield('title', '管理画面 - '.config('neobit.site.name'))</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     @vite(['vendor/neobit/core/resources/css/global.css', 'vendor/neobit/core/resources/js/global.js'])
 {{-- jQuery。使うときはこのBladeコメントを外す（summernoteを使う場合は必須）。 --}}
@@ -29,7 +29,7 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
         @endauth
-        <a class="navbar-brand" href="{{ route('admin.dashboard') }}">{{ config('app.site_name') }} 管理画面</a>
+        <a class="navbar-brand" href="{{ route('admin.dashboard') }}">{{ config('neobit.site.name') }} 管理画面</a>
         <div class="ms-auto d-flex align-items-center gap-2">
             @auth('admin')
                 <span class="text-light small">{{ Auth::guard('admin')->user()->name }} さん</span>

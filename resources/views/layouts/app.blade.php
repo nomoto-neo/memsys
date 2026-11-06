@@ -19,7 +19,7 @@
 <body class="bg-light">
 <nav class="navbar navbar-expand navbar-light bg-white border-bottom mb-4">
     <div class="container">
-        <a class="navbar-brand" href="/">{{ config('app.site_name') }}</a>
+        <a class="navbar-brand" href="/">{{ config('neobit.site.name') }}</a>
         <div class="d-flex align-items-center gap-2">
             <a href="{{ route('news.index') }}" class="nav-link">お知らせ</a>
             {{-- 固定ページ（管理画面の「固定ページ一覧」で書く）へのリンク。URLの名前を決め打ちで

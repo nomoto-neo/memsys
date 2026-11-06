@@ -193,7 +193,7 @@ final class TeamInvitationManager
                 'from_mail' => config('mail.from.address'),
                 'from_name' => config('mail.from.name'),
                 'to_mail' => $invitation->email,
-                'site_name' => config('app.site_name'),
+                'site_name' => config('neobit.site.name'),
                 'inviter_name' => $inviterName,
                 'url' => route($account::loginRoute(self::ROUTE), ['token' => $token]),
                 'expires_at' => $invitation->expires_at->format('Y年n月j日 H:i'),
