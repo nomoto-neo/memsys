@@ -2006,7 +2006,7 @@ Schedule::command(CleanupTemporaryData::class)->hourly()->withoutOverlapping();
 
 | 一時データ | 置き場所 | 消すもの |
 |---|---|---|
-| アップロード直後の一時ファイル | `storage/app/private/tmp` | 24時間（`MAX_AGE_HOURS`）より古いファイル |
+| アップロード直後の一時ファイル | `storage/app/private/upload_tmp` | 24時間（`MAX_AGE_HOURS`）より古いファイル |
 | CSV 取り込みの作業用ファイル | `storage/app/private/csv_import` | 24時間より古いファイル |
 | 試行制限の回数などのキャッシュ | `cache`・`cache_locks` テーブル | 期限の切れた行（キャッシュを database に置いているときだけ） |
 | 「この端末を信頼する」の記録 | `trusted_devices` テーブル | 期限（`expires_at`）の切れた行 |

@@ -36,7 +36,7 @@ use Illuminate\Support\Facades\Storage;
  *     → /uploads/member/5/photo/xyz.jpg
  *
  * ■ 一時ディレクトリ
- * アップロードした直後のファイルは、公開か非公開かに関係なくstorage/app/private/tmpに置く。
+ * アップロードした直後のファイルは、公開か非公開かに関係なくstorage/app/private/upload_tmpに置く。
  * 保存するまでのファイルは、アップロードしたブラウザだけが見られるようにするため。
  * そのファイル名を覚えておくセッションのキーがTMP_SESSION_KEYで、書くのはAjaxFileUpload、
  * 読むのはUploadedFileController。

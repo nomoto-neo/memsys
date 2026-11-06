@@ -19,7 +19,7 @@ use Neobit\Core\Upload\UploadFilePath;
 /**
  * 一時データの後片付け。使い終わった後も残り続けるものと、残す日数を過ぎたものを消す。
  *
- * アップロード直後の一時ファイル（storage/app/private/tmp）
+ * アップロード直後の一時ファイル（storage/app/private/upload_tmp）
  *   消すもの：MAX_AGE_HOURSより古いファイル
  *
  * CSV取り込みの作業用ファイル（storage/app/private/csv_import）
