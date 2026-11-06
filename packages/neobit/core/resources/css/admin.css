@@ -486,6 +486,27 @@ html.nb-admin-html[data-font-size="large"] {
     border-color: var(--nb-accent);
 }
 
+/* チェックボックスとラジオボタンの四角と丸を、行の高さ1.6の文字の中央にそろえる。Bootstrapは行の高さ1.5に合わせている */
+.nb-admin-body .form-check-input {
+    margin-top: 0.3em;
+}
+
+/* 横に並べたラジオボタン・チェックボックスの行を、入力欄と同じ高さにし、その中央に並べる */
+.nb-admin-body .form-check-inline {
+    display: inline-flex;
+    align-items: center;
+    min-height: calc(1.5em + 0.75rem + 2px);
+}
+
+.nb-admin-body .form-check-inline .form-check-input {
+    margin-top: 0;
+}
+
+/* 表の中のチェックボックス。下の余白を消して、セルの上下の中央に並べる */
+.nb-admin-body td > .form-check {
+    margin-bottom: 0;
+}
+
 .nb-admin-body .form-check-input:focus {
     border-color: var(--nb-accent);
     box-shadow: 0 0 0 0.2rem rgba(var(--nb-accent-rgb), 0.2);

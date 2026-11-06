@@ -41,20 +41,21 @@
 @php
     $uploadUrl = route('admin.members.ajaxUpload');
 @endphp
-<div class="mb-3">
-    <label for="name" class="form-label">お名前 {!! $required['name'] ?? '' !!}</label>
-    <input id="name" type="text" name="name"
-           class="form-control"
-           value="{{ $input['name'] ?? '' }}"{{ $readonly }}>
-    <div class="invalid-feedback" data-item="name">{{ $errors->first('name') }}</div>
-</div>
-
-<div class="mb-3">
-    <label for="kana" class="form-label">フリガナ {!! $required['kana'] ?? '' !!}</label>
-    <input id="kana" type="text" name="kana"
-           class="form-control"
-           value="{{ $input['kana'] ?? '' }}"{{ $readonly }}>
-    <div class="invalid-feedback" data-item="kana">{{ $errors->first('kana') }}</div>
+<div class="row">
+    <div class="col-md-6 col-xl-4 mb-3">
+        <label for="name" class="form-label">お名前 {!! $required['name'] ?? '' !!}</label>
+        <input id="name" type="text" name="name"
+               class="form-control"
+               value="{{ $input['name'] ?? '' }}"{{ $readonly }}>
+        <div class="invalid-feedback" data-item="name">{{ $errors->first('name') }}</div>
+    </div>
+    <div class="col-md-6 col-xl-4 mb-3">
+        <label for="kana" class="form-label">フリガナ {!! $required['kana'] ?? '' !!}</label>
+        <input id="kana" type="text" name="kana"
+               class="form-control"
+               value="{{ $input['kana'] ?? '' }}"{{ $readonly }}>
+        <div class="invalid-feedback" data-item="kana">{{ $errors->first('kana') }}</div>
+    </div>
 </div>
 
 <div class="row">
