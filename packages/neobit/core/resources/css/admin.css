@@ -267,6 +267,8 @@ html.nb-admin-html[data-font-size="large"] {
     background: var(--nb-sidebar-bg);
     color: var(--nb-sidebar-text);
     border-right: 1px solid var(--nb-sidebar-line);
+    /* 右に影を付け、本文より一段手前にあるように見せる */
+    box-shadow: 2px 0 12px rgba(15, 23, 42, 0.12);
     overflow-x: hidden;
     overflow-y: auto;
 }
