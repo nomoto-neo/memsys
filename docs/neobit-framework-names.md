@@ -293,11 +293,15 @@
 
 | 種類 | 名前 | メモ |
 |---|---|---|
-| ファイル | `global.js`・`global.css`・`ajax_upload.js`・`repeatable_group.js`・`upload_request.js`・`passkeys.js`・`code_editor.js`・`ip_block.js`・`wysiwyg_suneditor.js`・`wysiwyg_suneditor_content.css`・`wysiwyg_summernote.js` | |
+| ファイル | `global.js`・`global.css`・`admin.css`・`admin_layout.js`・`ajax_upload.js`・`repeatable_group.js`・`upload_request.js`・`passkeys.js`・`code_editor.js`・`ip_block.js`・`wysiwyg_suneditor.js`・`wysiwyg_suneditor_content.css`・`wysiwyg_summernote.js` | |
 | 短い名前 | `@neobit`（`vite.config.js` の alias） | |
 | 動かすクラス名 | `ajax_submit`・`wysiwyg`・`ajax_upload_block`・`ajax_file_input`・`ajax_file_link`・`ajax_image_block`・`ajax_noimage_block`・`ajax_origin`・`ajax_tmp`・`ajax_del`・`ajax_cancel`・`repeatable_group`・`repeatable_rows`・`repeatable_row`・`repeatable_inline`・`repeatable_add`・`repeatable_remove`・`repeatable_template`・`ajax_submit_message`・`passkey_login`・`passkey_register`・`passkey_message`・`passkey_supported`・`passkey_unsupported`・`required-mark` | |
 | `data-` 属性 | `data-confirm`・`data-item`・`data-field`・`data-group`・`data-files-only`・`data-fixed`・`data-is-image`・`data-upload-url`・`data-submit-url`・`data-options-url`・`data-remember`・`data-current`・`data-unsaved`・`data-switch-answer`・`data-remove-row` | |
 | イベント | `repeatable:add-row`・`repeatable:remove-row` | `ajax_upload.js` が出し、`repeatable_group.js` が受ける |
+| 管理画面のレイアウトのクラス名 | `nb-admin-html`・`nb-admin-body`・`nb-admin`・`nb-main`・`nb-header`・`nb-header-toggle`・`nb-header-title`・`nb-header-user`・`nb-header-setting`・`nb-header-logout`・`nb-content`・`nb-sidebar`・`nb-sidebar-panel`・`nb-brand`・`nb-brand-mark`・`nb-brand-name`・`nb-menu`・`nb-menu-link`・`nb-menu-top`・`nb-menu-icon`・`nb-menu-label`・`nb-menu-group`・`nb-menu-heading`・`nb-menu-chevron`・`nb-menu-items`・`is-current` | 案件の `layouts/admin.blade.php`・`admin/_menu.blade.php` が書く |
+| 管理画面のレイアウトの属性 | `data-theme`（`navy`・`green`・`orange`・`rose`・`light`）・`data-font-size`（`small`・`medium`・`large`）・`data-nb-font-size-select`・`data-nb-sidebar`（`fixed`・`rail`）・`data-nb-sidebar-toggle`・`data-nb-theme-select` | |
+| 管理画面の色の変数 | `--nb-header-bg`・`--nb-header-text`・`--nb-header-line`・`--nb-body-bg`・`--nb-surface`・`--nb-border`・`--nb-table-head`・`--nb-row-hover`・`--nb-text`・`--nb-text-muted`・`--nb-sidebar-bg`・`--nb-sidebar-text`・`--nb-sidebar-muted`・`--nb-sidebar-active`・`--nb-sidebar-line`・`--nb-sidebar-current-bg`・`--nb-sidebar-current-text`・`--nb-accent`・`--nb-accent-rgb`・`--nb-primary`・`--nb-primary-rgb`・`--nb-primary-strong`・`--nb-input-border`・`--nb-accent-strong`・`--nb-accent-strong-rgb`・`--nb-accent-soft`・`--nb-sidebar-width`・`--nb-sidebar-rail-width`・`--nb-header-height` | 案件の CSS で上書きして色を変える |
+| ブラウザーに覚えるキー | `neobit.admin.sidebar`・`neobit.admin.theme`・`neobit.admin.fontSize` | `localStorage` |
 
 ## 13. そのほか
 

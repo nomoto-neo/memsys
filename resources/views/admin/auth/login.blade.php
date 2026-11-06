@@ -2,7 +2,7 @@
 
 @section('content')
 <div class="row justify-content-center">
-    <div class="col-md-6">
+    <div class="col-md-6 col-xl-4">
         <div class="card">
             <div class="card-header">管理者ログイン</div>
             <div class="card-body">

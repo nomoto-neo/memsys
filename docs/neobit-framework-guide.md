@@ -175,6 +175,19 @@ MAIL_FROM_NAME="${SITE_NAME}"
 - **変えたら合わせて直すもの**：ベーシック認証の VirtualHost の決まり（25章）の `m#^/app/admin#`。
 - Laravel を公開ディレクトリの外に置けないサーバー（付録）では、`app/system/` に本体を置くので、`route.admin_path` の最初の区切りを `app` 以外にしても、本体の場所とは重なりません。
 
+### 管理画面の見た目（admin.css）
+
+管理画面のレイアウト（`resources/views/layouts/admin.blade.php`）は、フレームワークの `admin.css` と `admin_layout.js` で見た目と動きを決めます。
+
+- **色は組み合わせの名前で選びます**。レイアウトの `<html data-theme="navy">` に、`navy`・`green`・`orange`・`rose`・`light` のどれかを書きます。書かなければ `navy` です。本文の地は白で、ヘッダーにはメニューと同じ系統の薄い色を付けます。
+- **見本のサイトは、ヘッダーのプルダウンで色を切り替えられます**。プレゼンで見比べるためのもので、選んだ色はそのブラウザーだけに覚え、ほかの人の画面は変わりません。色を決めたサイトでは、レイアウトからプルダウンを消します。動きは `admin_layout.js` が `data-nb-theme-select` の付いたプルダウンに付けます。
+- **色の値は CSS 変数です**（`--nb-header-bg`・`--nb-sidebar-bg`・`--nb-sidebar-text`・`--nb-sidebar-current-bg`・`--nb-accent` など。全部は `admin.css` の頭にあります）。案件だけの色にするときは、案件の CSS で `[data-theme="navy"]` の変数を上書きします。Bootstrap の入力欄・表・カード・ページ送りも、同じ変数の色になります。`btn-primary`・`btn-outline-primary` は、組み合わせによらず同じ青（`--nb-primary`）です。
+- **文字の大きさは、`<html data-font-size="medium">` で選びます**。`small`（90%）・`medium`（100%。既定）・`large`（110%）で、Bootstrap の部品と余白も同じ割合で変わります。見本のサイトは、ヘッダーのプルダウンで選べます（`data-nb-font-size-select`。選んだ大きさはそのブラウザーだけに覚えます）。書体は端末の日本語の書体です。
+- **本文は横幅の95%を使います**。入力欄の少ない画面だけ、`@section('content-width', '800px')` のように書いて最大幅を絞れます。
+- **広い画面のメニュー**：ヘッダーの ☰ で、固定表示とアイコンだけの表示を切り替えます。アイコンだけの表示では、マウスを乗せるかキーボードで入ると、本文の上に重なって開きます。選んだ表示は、ブラウザーに覚えます。
+- **メニューのグループ**：見出しを押すと開閉します（`<details>`）。同じ `name` を付けているので、1つを開くとほかは閉じます。今の画面のグループを開いて出します。グループとアイコンは `admin/_menu.blade.php` に書きます。
+- **狭い画面のメニュー**：☰ で左から引き出します（Bootstrap の `offcanvas-lg`）。
+
 ### サーバーの前にプロキシを置くとき（TRUSTED_PROXIES）
 
 ロードバランサーや CDN をサーバーの前に置くと、サーバーに直接つないでくるのはそのプロキシになります。訪問者の IP アドレスは、プロキシが付ける `X-Forwarded-For` というヘッダーで届きます。

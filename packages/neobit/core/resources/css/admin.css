@@ -1,0 +1,536 @@
+/*
+ * 管理画面のレイアウトと色。案件のlayouts/admin.blade.phpが、global.cssの後に読み込む。
+ * 色はCSS変数（--nb-〜）で持ち、<html data-theme="navy">のように組み合わせの名前で選ぶ。
+ * 案件の色に合わせるときは、組み合わせを選ぶか、案件のCSSで変数を上書きする。
+ * Bootstrapの部品（ボタン・入力欄・表・カード・ページ送り）も、同じ変数の色に合わせる。
+ */
+
+/* ---- 色の組み合わせ ---- */
+
+/*
+ * どの組み合わせでも同じ値。本文の地は白で、ヘッダーにはメニューと同じ系統の薄い色を付けて分ける。
+ * btn-primaryは、組み合わせによらず同じ青（--nb-primary）にする。
+ * -rgbは、Bootstrapが透明度を付けて使う色のための「赤, 緑, 青」。
+ * 既定の組み合わせはnavyで、data-themeを書かないときもnavyになる。
+ */
+:root {
+    --nb-header-text: #1f2937;
+    --nb-body-bg: #ffffff;
+    --nb-surface: #ffffff;
+    --nb-border: #d0d6e0;
+    --nb-input-border: #8c95a3;
+    --nb-primary: #1a73e8;
+    --nb-primary-rgb: 26, 115, 232;
+    --nb-primary-strong: #1765cc;
+    --nb-table-head: #f7f8fb;
+    --nb-row-hover: #f5f7fb;
+    --nb-text: #1f2937;
+    --nb-text-muted: #556070;
+    --nb-sidebar-width: 248px;
+    --nb-sidebar-rail-width: 64px;
+    --nb-header-height: 56px;
+}
+
+/* navy：グレーがかった青のメニュー */
+:root,
+[data-theme="navy"] {
+    --nb-header-bg: #e4ebf4;
+    --nb-header-line: #c9d5e6;
+    --nb-sidebar-bg: #4a6a94;
+    --nb-sidebar-text: #ffffff;
+    --nb-sidebar-muted: #e6ecf5;
+    --nb-sidebar-active: #57779f;
+    --nb-sidebar-line: #5a789f;
+    --nb-sidebar-current-bg: #ffffff;
+    --nb-sidebar-current-text: #3b5788;
+    --nb-accent: #4f6fa8;
+    --nb-accent-rgb: 79, 111, 168;
+    --nb-accent-strong: #3b5788;
+    --nb-accent-strong-rgb: 59, 87, 136;
+    --nb-accent-soft: #e9eef7;
+}
+
+/* green：落ち着いた緑のメニュー */
+[data-theme="green"] {
+    --nb-header-bg: #e3efe7;
+    --nb-header-line: #c6dccd;
+    --nb-sidebar-bg: #4a7f61;
+    --nb-sidebar-text: #ffffff;
+    --nb-sidebar-muted: #ffffff;
+    --nb-sidebar-active: #578c6e;
+    --nb-sidebar-line: #5a8c70;
+    --nb-sidebar-current-bg: #ffffff;
+    --nb-sidebar-current-text: #1f5f30;
+    --nb-accent: #2a7d40;
+    --nb-accent-rgb: 42, 125, 64;
+    --nb-accent-strong: #1f5f30;
+    --nb-accent-strong-rgb: 31, 95, 48;
+    --nb-accent-soft: #e5f3e8;
+}
+
+/* orange：テラコッタのメニュー */
+[data-theme="orange"] {
+    --nb-header-bg: #f6e9e1;
+    --nb-header-text: #2a211c;
+    --nb-header-line: #e8d2c5;
+    --nb-sidebar-bg: #a95c33;
+    --nb-sidebar-text: #ffffff;
+    --nb-sidebar-muted: #ffffff;
+    --nb-sidebar-active: #b5683f;
+    --nb-sidebar-line: #b46b45;
+    --nb-sidebar-current-bg: #ffffff;
+    --nb-sidebar-current-text: #8a4020;
+    --nb-accent: #b3562a;
+    --nb-accent-rgb: 179, 86, 42;
+    --nb-accent-strong: #8a4020;
+    --nb-accent-strong-rgb: 138, 64, 32;
+    --nb-accent-soft: #fbeee6;
+}
+
+/* rose：くすんだローズのメニュー */
+[data-theme="rose"] {
+    --nb-header-bg: #f5e6e8;
+    --nb-header-text: #2a1f22;
+    --nb-header-line: #e6ccd0;
+    --nb-sidebar-bg: #a24d5a;
+    --nb-sidebar-text: #ffffff;
+    --nb-sidebar-muted: #ffffff;
+    --nb-sidebar-active: #ad5a66;
+    --nb-sidebar-line: #ad5d69;
+    --nb-sidebar-current-bg: #ffffff;
+    --nb-sidebar-current-text: #873642;
+    --nb-accent: #b04a57;
+    --nb-accent-rgb: 176, 74, 87;
+    --nb-accent-strong: #873642;
+    --nb-accent-strong-rgb: 135, 54, 66;
+    --nb-accent-soft: #f9eaec;
+}
+
+/* light：白いメニューと、薄い青のヘッダー */
+[data-theme="light"] {
+    --nb-header-bg: #dde6f4;
+    --nb-header-line: #c9d6ea;
+    --nb-sidebar-bg: #ffffff;
+    --nb-sidebar-text: #3a4556;
+    --nb-sidebar-muted: #5f6b7d;
+    --nb-sidebar-active: #eef2f8;
+    --nb-sidebar-line: #e3e7ef;
+    --nb-sidebar-current-bg: #4f6fa8;
+    --nb-sidebar-current-text: #ffffff;
+    --nb-accent: #4f6fa8;
+    --nb-accent-rgb: 79, 111, 168;
+    --nb-accent-strong: #3b5788;
+    --nb-accent-strong-rgb: 59, 87, 136;
+    --nb-accent-soft: #e9eef7;
+}
+
+/* ---- 全体 ---- */
+
+/*
+ * 文字の大きさ。<html>のdata-font-sizeで選び、書かなければ中（ブラウザーの基準のまま）。
+ * Bootstrapの文字と余白はremで決まるので、基準の文字の大きさを変えると全体が同じ割合で変わる。
+ * 書体は外から読み込まず、端末にある日本語の書体を使う。
+ */
+html.nb-admin-html {
+    font-size: 100%;
+}
+
+html.nb-admin-html[data-font-size="small"] {
+    font-size: 90%;
+}
+
+html.nb-admin-html[data-font-size="large"] {
+    font-size: 110%;
+}
+
+.nb-admin-body {
+    --bs-body-bg: var(--nb-body-bg);
+    --bs-body-color: var(--nb-text);
+    --bs-body-font-family: system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+    --bs-border-color: var(--nb-border);
+    --bs-border-radius: 8px;
+    --bs-border-radius-lg: 12px;
+    --bs-primary: var(--nb-accent);
+    --bs-primary-rgb: var(--nb-accent-rgb);
+    --bs-link-color: var(--nb-accent);
+    --bs-link-color-rgb: var(--nb-accent-rgb);
+    --bs-link-hover-color: var(--nb-accent-strong);
+    --bs-link-hover-color-rgb: var(--nb-accent-strong-rgb);
+    background: var(--nb-body-bg);
+    color: var(--nb-text);
+    line-height: 1.6;
+}
+
+/* ---- レイアウト ---- */
+
+/* 広い画面では、メニューと本文を横に並べる。狭い画面では、メニューは☰で左から引き出す */
+.nb-admin {
+    display: flex;
+    min-height: 100vh;
+}
+
+.nb-main {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ヘッダー。本文を送っても、上に残す */
+.nb-header {
+    position: sticky;
+    top: 0;
+    z-index: 1020;
+    height: var(--nb-header-height);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 2.5%;
+    background: var(--nb-header-bg);
+    color: var(--nb-header-text);
+    border-bottom: 1px solid var(--nb-header-line);
+}
+
+.nb-header-toggle {
+    width: 40px;
+    height: 40px;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: inherit;
+}
+
+.nb-header-toggle:hover {
+    background: rgba(127, 127, 127, 0.12);
+}
+
+.nb-header-title {
+    color: inherit;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.nb-header-title:hover {
+    color: inherit;
+    opacity: 0.8;
+}
+
+.nb-header-user {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+/* 色の組み合わせと文字の大きさの切り替え（見本のサイトのヘッダー） */
+.nb-header-setting {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+}
+
+.nb-header-logout {
+    padding: 4px 12px;
+    border: 1px solid var(--nb-header-line);
+    border-radius: 8px;
+    background: transparent;
+    color: inherit;
+}
+
+.nb-header-logout:hover {
+    background: rgba(127, 127, 127, 0.12);
+}
+
+/* 本文。横幅の95%を使う。画面のcontent-widthは、レイアウトがmax-widthに入れる */
+.nb-content {
+    width: 95%;
+    margin: 0 auto;
+    padding: 20px 0 40px;
+}
+
+/* ---- サイドメニュー ---- */
+
+/* 狭い画面で引き出したときの背景と幅。Bootstrapのoffcanvasの変数で決める */
+.nb-sidebar {
+    --bs-offcanvas-width: 280px;
+    --bs-offcanvas-bg: var(--nb-sidebar-bg);
+    --bs-offcanvas-color: var(--nb-sidebar-text);
+}
+
+.nb-sidebar-panel {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: var(--nb-sidebar-bg);
+    color: var(--nb-sidebar-text);
+    border-right: 1px solid var(--nb-sidebar-line);
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+.nb-brand {
+    flex: 0 0 var(--nb-header-height);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 16px;
+    border-bottom: 1px solid var(--nb-sidebar-line);
+    white-space: nowrap;
+}
+
+.nb-brand-mark {
+    flex: 0 0 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    background: var(--nb-sidebar-current-bg);
+    color: var(--nb-sidebar-current-text);
+    font-weight: 700;
+}
+
+.nb-brand-name {
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.nb-brand .btn-close {
+    margin-left: auto;
+    filter: invert(1) grayscale(1) brightness(2);
+}
+
+[data-theme="light"] .nb-brand .btn-close {
+    filter: none;
+}
+
+.nb-menu {
+    padding: 12px 8px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+/* メニューの項目。見出しの無い項目（ダッシュボード）は、アイコンを付けて見出しと並べる */
+.nb-menu-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px 8px 42px;
+    border-radius: 8px;
+    color: var(--nb-sidebar-text);
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.nb-menu-link.nb-menu-top {
+    padding-left: 12px;
+}
+
+.nb-menu-link:hover,
+.nb-menu-heading:hover {
+    background: var(--nb-sidebar-active);
+    color: var(--nb-sidebar-text);
+}
+
+.nb-menu-link.active {
+    background: var(--nb-sidebar-current-bg);
+    color: var(--nb-sidebar-current-text);
+    font-weight: 500;
+}
+
+.nb-menu-icon {
+    flex: 0 0 18px;
+    width: 18px;
+    height: 18px;
+}
+
+/* グループの見出し。<details>の<summary>で、押すと開閉する */
+.nb-menu-group {
+    margin-top: 6px;
+}
+
+.nb-menu-heading {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    color: var(--nb-sidebar-muted);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    cursor: pointer;
+    list-style: none;
+}
+
+.nb-menu-heading::-webkit-details-marker {
+    display: none;
+}
+
+.nb-menu-heading .nb-menu-label {
+    flex: 1 1 auto;
+}
+
+.nb-menu-chevron {
+    flex: 0 0 14px;
+    width: 14px;
+    height: 14px;
+    transform: rotate(-90deg);
+    transition: transform 0.2s;
+}
+
+.nb-menu-group[open] > .nb-menu-heading .nb-menu-chevron {
+    transform: none;
+}
+
+.nb-menu-items {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 2px 0 4px;
+}
+
+/*
+ * 広い画面。メニューは画面の高さに合わせて左に留める。
+ * アイコン表示（data-nb-sidebar="rail"）では、アイコンだけの細い列にし、マウスを乗せるか
+ * キーボードで入ると、本文の上に重ねて開く。
+ */
+@media (min-width: 992px) {
+    .nb-sidebar {
+        flex: 0 0 var(--nb-sidebar-width);
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        z-index: 1030;
+        transition: flex-basis 0.2s;
+    }
+
+    .nb-admin[data-nb-sidebar="rail"] .nb-sidebar {
+        flex-basis: var(--nb-sidebar-rail-width);
+    }
+
+    .nb-admin[data-nb-sidebar="rail"] .nb-sidebar-panel {
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: var(--nb-sidebar-rail-width);
+        transition: width 0.2s, box-shadow 0.2s;
+    }
+
+    .nb-admin[data-nb-sidebar="rail"] .nb-sidebar-panel:hover,
+    .nb-admin[data-nb-sidebar="rail"] .nb-sidebar-panel:focus-within {
+        width: var(--nb-sidebar-width);
+        box-shadow: 8px 0 24px rgba(15, 23, 42, 0.18);
+    }
+
+    /* 閉じているときは、文字と、グループの中の項目を隠す */
+    .nb-admin[data-nb-sidebar="rail"] .nb-sidebar-panel:not(:hover):not(:focus-within) :is(.nb-brand-name, .nb-menu-label, .nb-menu-chevron, .nb-menu-items) {
+        display: none;
+    }
+
+    /* 閉じているときは、今の画面のグループのアイコンを目立たせる */
+    .nb-admin[data-nb-sidebar="rail"] .nb-sidebar-panel:not(:hover):not(:focus-within) .nb-menu-group.is-current > .nb-menu-heading {
+        background: var(--nb-sidebar-current-bg);
+        color: var(--nb-sidebar-current-text);
+    }
+}
+
+/* ---- Bootstrapの部品の色と形 ---- */
+
+/* ボタン。組み合わせによらず同じ青にする */
+.nb-admin-body .btn-primary {
+    --bs-btn-bg: var(--nb-primary);
+    --bs-btn-border-color: var(--nb-primary);
+    --bs-btn-hover-bg: var(--nb-primary-strong);
+    --bs-btn-hover-border-color: var(--nb-primary-strong);
+    --bs-btn-active-bg: var(--nb-primary-strong);
+    --bs-btn-active-border-color: var(--nb-primary-strong);
+    --bs-btn-disabled-bg: var(--nb-primary);
+    --bs-btn-disabled-border-color: var(--nb-primary);
+    --bs-btn-focus-shadow-rgb: var(--nb-primary-rgb);
+}
+
+.nb-admin-body .btn-outline-primary {
+    --bs-btn-color: var(--nb-primary);
+    --bs-btn-border-color: var(--nb-primary);
+    --bs-btn-hover-bg: var(--nb-primary);
+    --bs-btn-hover-border-color: var(--nb-primary);
+    --bs-btn-active-bg: var(--nb-primary-strong);
+    --bs-btn-active-border-color: var(--nb-primary-strong);
+    --bs-btn-disabled-color: var(--nb-primary);
+    --bs-btn-disabled-border-color: var(--nb-primary);
+    --bs-btn-focus-shadow-rgb: var(--nb-primary-rgb);
+}
+
+/* 小さいボタン。小さい文字では読みにくいので、管理画面では普通のボタンと同じ大きさにする */
+.nb-admin-body .btn-sm {
+    --bs-btn-padding-y: 0.375rem;
+    --bs-btn-padding-x: 0.75rem;
+    --bs-btn-font-size: 1rem;
+    --bs-btn-border-radius: var(--bs-border-radius);
+}
+
+/* 入力欄の枠線。白い地との明るさの差を、入力欄の枠に求められる3:1にする。エラーの赤い枠は、Bootstrapのまま効く */
+.nb-admin-body :is(.form-control, .form-select, .form-check-input) {
+    --bs-border-color: var(--nb-input-border);
+}
+
+/* 入力欄。選んだときの枠と影を、組み合わせの色にする。読み取り専用と選べない欄は、global.cssの見た目のまま */
+.nb-admin-body :is(.form-control, .form-select):focus:not([readonly]) {
+    border-color: var(--nb-accent);
+    box-shadow: 0 0 0 0.2rem rgba(var(--nb-accent-rgb), 0.2);
+}
+
+.nb-admin-body .form-check-input:checked:not(:disabled) {
+    background-color: var(--nb-accent);
+    border-color: var(--nb-accent);
+}
+
+.nb-admin-body .form-check-input:focus {
+    border-color: var(--nb-accent);
+    box-shadow: 0 0 0 0.2rem rgba(var(--nb-accent-rgb), 0.2);
+}
+
+.nb-admin-body .card {
+    --bs-card-border-color: var(--nb-border);
+    --bs-card-border-radius: 12px;
+    --bs-card-inner-border-radius: 11px;
+    --bs-card-cap-bg: var(--nb-surface);
+}
+
+/* 表。見出しの行に地の色を付け、本文の行は乗せたときに色を変える */
+.nb-admin-body .table {
+    --bs-table-bg: var(--nb-surface);
+    --bs-table-border-color: var(--nb-border);
+    --bs-table-striped-bg: var(--nb-row-hover);
+}
+
+.nb-admin-body .table > thead th {
+    background: var(--nb-table-head);
+    color: var(--nb-text-muted);
+    font-weight: 500;
+    font-size: 0.92em;
+}
+
+.nb-admin-body .table > tbody > tr:hover > * {
+    --bs-table-bg-state: var(--nb-row-hover);
+}
+
+.nb-admin-body .pagination {
+    --bs-pagination-color: var(--nb-accent);
+    --bs-pagination-hover-color: var(--nb-accent-strong);
+    --bs-pagination-focus-color: var(--nb-accent-strong);
+    --bs-pagination-focus-box-shadow: 0 0 0 0.2rem rgba(var(--nb-accent-rgb), 0.2);
+    --bs-pagination-active-bg: var(--nb-accent);
+    --bs-pagination-active-border-color: var(--nb-accent);
+}
+
+.nb-admin-body .nav-tabs .nav-link.active {
+    color: var(--nb-accent-strong);
+}

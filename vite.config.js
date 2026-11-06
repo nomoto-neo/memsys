@@ -11,7 +11,9 @@ export default defineConfig({
             input: [
                 // フレームワークのもの。使わないエディタの行は消してよい
                 `${NEOBIT}/css/global.css`,
+                `${NEOBIT}/css/admin.css`,
                 `${NEOBIT}/js/global.js`,
+                `${NEOBIT}/js/admin_layout.js`,
                 `${NEOBIT}/js/ajax_upload.js`,
                 `${NEOBIT}/js/repeatable_group.js`,
                 `${NEOBIT}/js/passkeys.js`,

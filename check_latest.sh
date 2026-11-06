@@ -362,6 +362,13 @@ has   packages/neobit/core/src/Seo/SeoFields.php                        "'seo_im
 has   database/migrations/2026_11_05_000000_rename_columns_on_member_tables.php "'representative', 'ceo_name'"
 has   app/Enums/CompanyStatus.php                                       'case Suspended = 9;'
 has   app/Models/Member.php                                             "'birthday'"
+has   packages/neobit/core/resources/css/admin.css                      '[data-theme="green"]'
+has   packages/neobit/core/resources/js/admin_layout.js                 'neobit.admin.theme'
+has   resources/views/layouts/admin.blade.php                           'data-nb-sidebar-toggle'
+has   resources/views/layouts/admin.blade.php                           'data-nb-font-size-select'
+has   resources/views/admin/_menu.blade.php                             'name="nb-menu"'
+has   vite.config.js                                                    'admin_layout.js'
+lacks packages/neobit/core/resources/views/admin/operation_logs/index.blade.php 'content-width'
 has   config/site_contact.php                                           "'staff_email'"
 has   config/site_login.php                                             "'identity_check_column'"
 has   packages/neobit/core/config/neobit/site.php                       "env('SITE_NAME'"
