@@ -1,0 +1,210 @@
+# 部品の一覧
+
+<p align="right"><a href="../guide.md">利用ガイドへ戻る</a></p>
+
+トレイトは、コントローラーが `use` するだけで働きます。コントローラーに書くのは「このコーナーの項目の定義」と「ルートから呼ばれる入口」だけ、というのが全体の考え方です。
+
+- **`SearchableList`**
+  - 場所：`packages/neobit/core/src/Crud/`
+  - 概要：一覧・検索（検索条件の検証と保存、完全一致・部分一致の自動判定、並び順、ページと検索条件の復元）
+  - 詳細：[list.md](list.md)
+- **`FormFlow`**
+  - 場所：`packages/neobit/core/src/Crud/`
+  - 概要：入力 → 確認 → 保存、削除（トランザクション込み）、必須マーク
+  - 詳細：[form.md](form.md)・[delete.md](delete.md)
+- **`InputNormalizer`・`NormalizeInput`**
+  - 場所：`packages/neobit/core/src/Crud/`・`packages/neobit/core/src/Http/Middleware/`
+  - 概要：入力の全角と半角の揺らぎをそろえる（画面の入力と CSV 取り込み。検証の前）
+  - 詳細：[form.md](form.md)
+- **`SecurityHeaders`**
+  - 場所：`packages/neobit/core/src/Http/Middleware/`
+  - 概要：ブラウザに守り方を伝えるヘッダーを、全部の応答に付ける
+  - 詳細：[setup.md](setup.md)
+- **`AccessRestriction`・`RestrictSiteAccess`・`RestrictAdminAccess`・`AccessRestrictionController`**
+  - 場所：`packages/neobit/core/src/Security/`・`src/Http/Middleware/`・`src/Http/Controllers/`
+  - 概要：アクセス制限（サイトはメンテナンス中の画面、管理画面は 404。それぞれ別に掛ける）。管理画面の「アクセス制限」で設定する
+  - 詳細：[setup.md](setup.md)
+- **`AjaxFileUpload`**
+  - 場所：`packages/neobit/core/src/Upload/`
+  - 概要：画像・添付ファイルの Ajax アップロード、WYSIWYG の画像
+  - 詳細：[upload.md](upload.md)
+- **`UploadFilePath`**
+  - 場所：`packages/neobit/core/src/Upload/`
+  - 概要：アップロードしたファイルの保存先と URL の規則（公開・非公開・一時ファイル）
+  - 詳細：[upload.md](upload.md)
+- **`UploadedFileController`**
+  - 場所：`packages/neobit/core/src/Http/Controllers/`
+  - 概要：ログインした人だけが見られるファイルと、一時ファイルを返す
+  - 詳細：[upload.md](upload.md)
+- **`CodeTableController`**
+  - 場所：`packages/neobit/core/src/Http/Controllers/`
+  - 概要：管理画面の項目見出し一覧。DB で管理するコード表をまとめて書き換える
+  - 詳細：[code-table.md](code-table.md)
+- **`PdfDownload`**
+  - 場所：`packages/neobit/core/src/Pdf/`
+  - 概要：Blade のテンプレートから PDF を作って返す（mPDF、同梱の IPAex フォント）
+  - 詳細：[pdf.md](pdf.md)
+- **`HtmlSanitizer`（`safe_html()`）**
+  - 場所：`packages/neobit/core/src/Upload/`
+  - 概要：WYSIWYG の HTML の無害化
+  - 詳細：[upload.md](upload.md)
+- **`CodeTable`（`code_table()` など）**
+  - 場所：`packages/neobit/core/src/Code/`・`packages/neobit/core/src/helpers.php`
+  - 概要：区分表（列挙型・CSV・DB）
+  - 詳細：[code-table.md](code-table.md)
+- **`CsvDownload`・`CsvColumnSet`・`CsvWriter`**
+  - 場所：`packages/neobit/core/src/Csv/`
+  - 概要：CSV ダウンロードと、CSV の項目の定義、CSV の共通の書き出し方
+  - 詳細：[csv-download.md](csv-download.md)
+- **`CsvImport` ほか**
+  - 場所：`packages/neobit/core/src/Csv/`
+  - 概要：CSV 取り込み（取り込み画面と保存の流れ）
+  - 詳細：[csv-import.md](csv-import.md)
+- **`CsvRead`**
+  - 場所：`packages/neobit/core/src/Csv/`
+  - 概要：CSV を読んで確かめる部分。自分の画面を持つ機能が、CSV の読み込みと検証だけを借りるときに使う
+  - 詳細：[csv-import.md](csv-import.md)
+- **`MailTemplate`・`TemplatedMail`**
+  - 場所：`packages/neobit/core/src/Mail/`・`packages/neobit/core/src/Mail/`
+  - 概要：テンプレートファイルによるメール送信
+  - 詳細：[mail.md](mail.md)
+- **`LoginThrottle`**
+  - 場所：`packages/neobit/core/src/Auth/`
+  - 概要：認証の失敗回数による試行制限
+  - 詳細：[login.md](login.md)
+- **`LoginAccount`・`IsLoginAccount`・`HasTwoFactor`**
+  - 場所：`packages/neobit/core/src/Auth/`
+  - 概要：ログインするモデル（個人会員・企業の担当者・スタッフ）の共通の型と、名前の決まり、2段階認証にかかわるモデルの中身
+  - 詳細：[login.md](login.md)・[member-types.md](member-types.md)
+- **`LoginIdType`**
+  - 場所：`packages/neobit/core/src/Enums/`
+  - 概要：ログインに使う値の種類（メールアドレス・ログインID・どちらでも）。モデルの定数で選ぶ
+  - 詳細：[member-types.md](member-types.md)
+- **`TwoFactorLogin`**
+  - 場所：`packages/neobit/core/src/Auth/`
+  - 概要：ログインの、パスワードが合った後の流れ（2段階目・信頼済みの端末・ログインの確定）と、ログアウト
+  - 詳細：[login.md](login.md)
+- **`TwoFactorChallenge`**
+  - 場所：`packages/neobit/core/src/Auth/`
+  - 概要：その人の2段階目の方式で、本人かどうかを確かめる
+  - 詳細：[login.md](login.md)
+- **`TwoFactorManagement`**
+  - 場所：`packages/neobit/core/src/Auth/`
+  - 概要：ログイン中の本人による、バックアップコードの発行と、認証アプリの登録の解除
+  - 詳細：[login.md](login.md)
+- **`PasskeySuggestion`**
+  - 場所：`packages/neobit/core/src/Auth/`
+  - 概要：パスワードでログインした人に、パスキーの登録を1回だけ勧める
+  - 詳細：[login.md](login.md)
+- **`LegacyPasswordUserProvider`・`LegacyPassword`**
+  - 場所：`packages/neobit/core/src/Auth/`
+  - 概要：既存のシステムから移した会員の、古い方式のパスワードの照合と、今の方式への置き換え
+  - 詳細：[login.md](login.md)
+- **`LoginIdMemory`**
+  - 場所：`packages/neobit/core/src/Auth/`
+  - 概要：ログイン画面の入力（企業ID と担当者ID）を、ブラウザに覚えさせる
+  - 詳細：[login.md](login.md)
+- **`TeamInvitationManager`・`TeamInvitationOwner`・`HasTeamInvitations`**
+  - 場所：`packages/neobit/core/src/Team/`
+  - 概要：集団への招待（リンクの発行・送り直し・取り消し・照合）。企業会員の担当者の招待に使う。集団のモデルに、インターフェースとトレイトを付ける
+  - 詳細：[member-types.md](member-types.md)
+- **`LoginSession`**
+  - 場所：`packages/neobit/core/src/Auth/`
+  - 概要：そのガードだけのログアウト（同じブラウザのほかのログインは残す）
+  - 詳細：[login.md](login.md)
+- **`LoginRedirect`**
+  - 場所：`packages/neobit/core/src/Auth/`
+  - 概要：ログインの後の移動先（開こうとしていた画面へ戻す。戻り先は、ログインの種類ごとに覚える）
+  - 詳細：[login.md](login.md)
+- **`LoginVerificationCode`**
+  - 場所：`packages/neobit/core/src/Auth/`
+  - 概要：メールで送る確認コード
+  - 詳細：[login.md](login.md)
+- **`EmailChange`**
+  - 場所：`packages/neobit/core/src/Auth/`
+  - 概要：本人がメールアドレスを変えるときに、新しいアドレスへの確認コードの入力を挟む
+  - 詳細：[login.md](login.md)
+- **`TrustedDeviceManager`**
+  - 場所：`packages/neobit/core/src/Auth/`
+  - 概要：2段階目を省略できる信頼済み端末
+  - 詳細：[login.md](login.md)
+- **`TwoFactorAuthenticator`・`BackupCodeGenerator`**
+  - 場所：`packages/neobit/core/src/Auth/`
+  - 概要：認証アプリ（TOTP）のコードと、バックアップコード
+  - 詳細：[login.md](login.md)
+- **`PasskeyLogin`・`PasskeyManagement`**
+  - 場所：`packages/neobit/core/src/Auth/`
+  - 概要：パスキーでのログインと、本人によるパスキーの登録・削除
+  - 詳細：[login.md](login.md)
+- **`PasswordChange`**
+  - 場所：`packages/neobit/core/src/Auth/`
+  - 概要：パスワードを変えたときの後始末（信頼済み端末・パスキーの無効化、お知らせのメール）
+  - 詳細：[login.md](login.md)
+- **`_confirm_hidden`**
+  - 場所：`packages/neobit/core/resources/views/`
+  - 概要：確認画面の hidden を `$input` から組み立てる
+  - 詳細：[form.md](form.md)
+- **`_ajax_upload_block`**
+  - 場所：`packages/neobit/core/resources/views/`
+  - 概要：アップロード欄（1つだけの欄と、子テーブルの中の欄）
+  - 詳細：[upload.md](upload.md)
+- **`ChildTables`・`_repeatable_group`**
+  - 場所：`packages/neobit/core/src/Crud/`・`packages/neobit/core/resources/views/`
+  - 概要：1:多の子テーブルを、親と同じ画面で入力して保存する（画面の部品は `_repeatable_group`）
+  - 詳細：[form.md](form.md)
+- **`admin/csv_import/`**
+  - 場所：`packages/neobit/core/resources/views/`
+  - 概要：CSV 取り込みの画面（全コーナー共通）
+  - 詳細：[csv-import.md](csv-import.md)
+- **`_passkeys`**
+  - 場所：`packages/neobit/core/resources/views/`
+  - 概要：パスキーの一覧・本人確認・登録の画面の中身
+  - 詳細：[login.md](login.md)
+- **`TemporaryDataCleaner`**
+  - 場所：`packages/neobit/core/src/Operations/`
+  - 概要：一時データの後片付け（一時ファイル・期限の切れたキャッシュと信頼済み端末・古い操作ログ）。プロジェクトの片付けは `config/neobit.php` の `cleanup` の節に足す
+  - 詳細：[scheduler.md](scheduler.md)
+- **`neobit:cleanup-temporary-data`**
+  - 場所：`packages/neobit/core/src/Console/`
+  - 概要：一時データの後片付けのコマンド（スケジューラーから1時間ごと）
+  - 詳細：[scheduler.md](scheduler.md)
+- **`neobit:reset-two-factor`**
+  - 場所：`packages/neobit/core/src/Console/`
+  - 概要：2段階認証の登録を解除するコマンド（画面から解除できる人がいないときに使う）
+  - 詳細：[login.md](login.md)
+- **`neobit:set-next-id`**
+  - 場所：`packages/neobit/core/src/Console/`
+  - 概要：新しく登録する行の id の始まりを決めるコマンド（サイトを開ける前に使う）
+  - 詳細：[table-model.md](table-model.md)
+- **`ErrorNotifyHandler`**
+  - 場所：`packages/neobit/core/src/Operations/`
+  - 概要：ログに書いたエラーを開発者にメールで知らせる（レベル・宛先は .env、間隔は `config/logging.php`）
+  - 詳細：[error-notify.md](error-notify.md)
+- **`OperationRecorder`**
+  - 場所：`packages/neobit/core/src/Operations/`
+  - 概要：操作ログ（誰が・いつ・どこから・何に・何をしたか）を書く
+  - 詳細：[operation-log.md](operation-log.md)
+- **`OperationLogStats`・`OperationLogReport`**
+  - 場所：`packages/neobit/core/src/Operations/`
+  - 概要：操作ログの件数の集計（一覧の上のグラフと表）と、1日ぶんの報告
+  - 詳細：[operation-log.md](operation-log.md)
+- **`neobit:report-operation-logs`**
+  - 場所：`packages/neobit/core/src/Console/`
+  - 概要：操作ログの報告のコマンド（スケジューラーから毎朝。気になる点があった日だけメールを送る）
+  - 詳細：[operation-log.md](operation-log.md)
+- **`AdminRequestLimit`**
+  - 場所：`packages/neobit/core/src/Security/`
+  - 概要：ログイン後の管理画面の全体に掛ける、スタッフごとの回数の制限
+  - 詳細：[operation-log.md](operation-log.md)
+- **`LoginProfileNotice`**
+  - 場所：`packages/neobit/core/src/Auth/`
+  - 概要：会員情報が変わったことを、本人へメールで知らせる
+  - 詳細：[operation-log.md](operation-log.md)
+- **`SpamGuard`・`_spam_guard`**
+  - 場所：`packages/neobit/core/src/Security/`・`packages/neobit/core/resources/views/`
+  - 概要：訪問者向けフォームのスパム対策（ハニーポット・送信までの時間・Cloudflare Turnstile）
+  - 詳細：[public-form.md](public-form.md)
+- **`global.js`・`global.css`**
+  - 場所：`packages/neobit/core/resources/js/`・`css/`
+  - 概要：全画面で使うスクリプトと CSS。フォームの補助（必須マークから required 属性、エラー表示）など
+  - 詳細：[blade.md](blade.md)
