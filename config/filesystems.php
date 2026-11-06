@@ -4,12 +4,11 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Default Filesystem Disk
+    | 既定のディスク
     |--------------------------------------------------------------------------
     |
-    | Here you may specify the default filesystem disk that should be used
-    | by the framework. The "local" disk, as well as a variety of cloud
-    | based disks are available to your application for file storage.
+    | ファイルを置くときに、ディスクを指定しなければここを使う。"local"の
+    | ほか、クラウドのディスクも使える。
     |
     */
 
@@ -17,14 +16,13 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Filesystem Disks
+    | ディスク
     |--------------------------------------------------------------------------
     |
-    | Below you may configure as many filesystem disks as necessary, and you
-    | may even configure multiple disks for the same driver. Examples for
-    | most supported storage drivers are configured here for reference.
+    | ファイルを置くディスク。いくつ書いてもよく、同じ仕組み（driver）で
+    | 複数作ってもよい。
     |
-    | Supported drivers: "local", "ftp", "sftp", "s3"
+    | 使える仕組み："local"・"ftp"・"sftp"・"s3"
     |
     */
 
@@ -65,12 +63,11 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Symbolic Links
+    | シンボリックリンク
     |--------------------------------------------------------------------------
     |
-    | Here you may configure the symbolic links that will be created when the
-    | `storage:link` Artisan command is executed. The array keys should be
-    | the locations of the links and the values should be their targets.
+    | php artisan storage:linkで作るシンボリックリンク。キーがリンクの場所、
+    | 値がリンクの先。
     |
     */
 

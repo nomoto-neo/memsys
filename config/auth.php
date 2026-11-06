@@ -8,12 +8,10 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Authentication Defaults
+    | 認証の既定
     |--------------------------------------------------------------------------
     |
-    | This option defines the default authentication "guard" and password
-    | reset "broker" for your application. You may change these values
-    | as required, but they're a perfect start for most applications.
+    | 既定で使う認証のガードと、パスワードの再設定の仕組み（broker）。
     |
     */
 
@@ -24,18 +22,13 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Authentication Guards
+    | 認証のガード
     |--------------------------------------------------------------------------
     |
-    | Next, you may define every authentication guard for your application.
-    | Of course, a great default configuration has been defined for you
-    | which utilizes session storage plus the Eloquent user provider.
+    | ログインする人の種類ごとのガード。ガードごとに、ログインの状態を
+    | どこに持つか（driver）と、利用者をどこから読むか（provider）を決める。
     |
-    | All authentication guards have a user provider, which defines how the
-    | users are actually retrieved out of your database or other storage
-    | system used by the application. Typically, Eloquent is utilized.
-    |
-    | Supported: "session"
+    | 使える値："session"
     |
     */
 
@@ -57,18 +50,14 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | User Providers
+    | 利用者の読み込み元
     |--------------------------------------------------------------------------
     |
-    | All authentication guards have a user provider, which defines how the
-    | users are actually retrieved out of your database or other storage
-    | system used by the application. Typically, Eloquent is utilized.
+    | ガードが利用者を読み込む元。ふつうはEloquentのモデルから読む。
+    | 利用者のテーブルやモデルが複数あるときは、それぞれに1つずつ書き、
+    | ガードに割り当てる。
     |
-    | If you have multiple user tables or models you may configure multiple
-    | providers to represent the model / table. These providers may then
-    | be assigned to any extra authentication guards you have defined.
-    |
-    | Supported: "database", "eloquent"
+    | 使える値："database"・"eloquent"
     |
     */
 
@@ -93,20 +82,17 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Resetting Passwords
+    | パスワードの再設定
     |--------------------------------------------------------------------------
     |
-    | These configuration options specify the behavior of Laravel's password
-    | reset functionality, including the table utilized for token storage
-    | and the user provider that is invoked to actually retrieve users.
+    | Laravelのパスワードの再設定の仕組みの設定。トークンを置くテーブルと、
+    | 利用者を読む元（provider）を決める。
     |
-    | The expiry time is the number of minutes that each reset token will be
-    | considered valid. This security feature keeps tokens short-lived so
-    | they have less time to be guessed. You may change this as needed.
+    | expireは、再設定のトークンが使える分数。推測される時間を減らすため、
+    | 短くしておく。
     |
-    | The throttle setting is the number of seconds a user must wait before
-    | generating more password reset tokens. This prevents the user from
-    | quickly generating a very large amount of password reset tokens.
+    | throttleは、次のトークンを作れるまでに待つ秒数。短い間に大量の
+    | トークンを作られないようにするため。
     |
     */
 
@@ -121,12 +107,11 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Password Confirmation Timeout
+    | パスワードの確認の有効時間
     |--------------------------------------------------------------------------
     |
-    | Here you may define the number of seconds before a password confirmation
-    | window expires and users are asked to re-enter their password via the
-    | confirmation screen. By default, the timeout lasts for three hours.
+    | パスワードを確かめてから、もう一度入力を求めるまでの秒数。
+    | 既定は3時間。
     |
     */
 

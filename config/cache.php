@@ -6,12 +6,10 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Default Cache Store
+    | 既定のキャッシュの置き場所
     |--------------------------------------------------------------------------
     |
-    | This option controls the default cache store that will be used by the
-    | framework. This connection is utilized if another isn't explicitly
-    | specified when running a cache operation inside the application.
+    | キャッシュを使うときに、置き場所を指定しなければここを使う。
     |
     */
 
@@ -19,16 +17,15 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Cache Stores
+    | キャッシュの置き場所
     |--------------------------------------------------------------------------
     |
-    | Here you may define all of the cache "stores" for your application as
-    | well as their drivers. You may even define multiple stores for the
-    | same cache driver to group types of items stored in your caches.
+    | キャッシュの置き場所と、その仕組み（driver）。同じ仕組みで、
+    | 置き場所を複数作ってもよい。
     |
-    | Supported drivers: "array", "database", "file", "memcached",
-    |                    "redis", "dynamodb", "storage", "octane",
-    |                    "session", "failover", "null"
+    | 使える仕組み："array"・"database"・"file"・"memcached"・
+    |             "redis"・"dynamodb"・"storage"・"octane"・
+    |             "session"・"failover"・"null"
     |
     */
 
@@ -109,12 +106,12 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Cache Key Prefix
+    | キャッシュのキーの頭
     |--------------------------------------------------------------------------
     |
-    | When utilizing the APC, database, memcached, Redis, and DynamoDB cache
-    | stores, there might be other applications using the same cache. For
-    | that reason, you may prefix every cache key to avoid collisions.
+    | APC・DB・Memcached・Redis・DynamoDBのキャッシュは、ほかの
+    | アプリケーションと同じ置き場所を使うことがある。キーがぶつからない
+    | よう、すべてのキーの頭にこの文字を付ける。
     |
     */
 
@@ -122,12 +119,12 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Serializable Classes
+    | キャッシュから戻せるクラス
     |--------------------------------------------------------------------------
     |
-    | This value determines the classes that can be unserialized from cache
-    | storage. By default, no PHP classes will be unserialized from your
-    | cache to prevent gadget chain attacks if your APP_KEY is leaked.
+    | キャッシュから戻せる（unserializeできる）クラス。既定ではどのクラスも
+    | 戻さない。APP_KEYが漏れたときに、ガジェットチェーンの攻撃を
+    | 受けないようにするため。
     |
     */
 

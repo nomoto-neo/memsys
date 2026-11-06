@@ -7,13 +7,11 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Default Database Connection Name
+    | 既定のDBの接続
     |--------------------------------------------------------------------------
     |
-    | Here you may specify which of the database connections below you wish
-    | to use as your default connection for database operations. This is
-    | the connection which will be utilized unless another connection
-    | is explicitly specified when you execute a query / statement.
+    | DBを使うときに、接続を指定しなければ、下の接続のうちここに書いたものを
+    | 使う。
     |
     */
 
@@ -21,12 +19,11 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Database Connections
+    | DBの接続
     |--------------------------------------------------------------------------
     |
-    | Below are all of the database connections defined for your application.
-    | An example configuration is provided for each database system which
-    | is supported by Laravel. You're free to add / remove connections.
+    | このアプリケーションのDBの接続。Laravelが使えるDBごとに見本がある。
+    | 接続は足しても消してもよい。
     |
     */
 
@@ -118,12 +115,11 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Migration Repository Table
+    | マイグレーションの記録のテーブル
     |--------------------------------------------------------------------------
     |
-    | This table keeps track of all the migrations that have already run for
-    | your application. Using this information, we can determine which of
-    | the migrations on disk haven't actually been run on the database.
+    | 流したマイグレーションを記録するテーブル。これを見て、まだ流して
+    | いないマイグレーションを決める。
     |
     */
 
@@ -134,12 +130,11 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Redis Databases
+    | Redis
     |--------------------------------------------------------------------------
     |
-    | Redis is an open source, fast, and advanced key-value store that also
-    | provides a richer body of commands than a typical key-value system
-    | such as Memcached. You may define your connection settings here.
+    | Redisの接続の設定。Redisは、Memcachedより多くの命令を持つ、
+    | 速いキーと値の置き場所。
     |
     */
 

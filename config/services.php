@@ -4,13 +4,11 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Third Party Services
+    | 外部のサービス
     |--------------------------------------------------------------------------
     |
-    | This file is for storing the credentials for third party services such
-    | as Resend, Postmark, AWS, and more. This file provides the de facto
-    | location for this type of information, allowing packages to have
-    | a conventional file to locate the various service credentials.
+    | Resend・Postmark・AWSなど、外部のサービスの認証の情報を置く。
+    | パッケージも、サービスの情報をここから読む。
     |
     */
 

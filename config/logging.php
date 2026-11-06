@@ -10,12 +10,10 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Default Log Channel
+    | 既定のログの出し先
     |--------------------------------------------------------------------------
     |
-    | This option defines the default log channel that is utilized to write
-    | messages to your logs. The value provided here should match one of
-    | the channels present in the list of "channels" configured below.
+    | ログを書くときに使う出し先（channel）。下のchannelsにある名前を書く。
     |
     */
 
@@ -23,12 +21,11 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Deprecations Log Channel
+    | 非推奨の警告のログの出し先
     |--------------------------------------------------------------------------
     |
-    | This option controls the log channel that should be used to log warnings
-    | regarding deprecated PHP and library features. This allows you to get
-    | your application ready for upcoming major versions of dependencies.
+    | PHPやライブラリの、なくなる予定の機能を使ったときの警告を書く出し先。
+    | 依存するものの版を上げる前に、直す所を見つけるため。
     |
     */
 
@@ -39,15 +36,14 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Log Channels
+    | ログの出し先
     |--------------------------------------------------------------------------
     |
-    | Here you may configure the log channels for your application. Laravel
-    | utilizes the Monolog PHP logging library, which includes a variety
-    | of powerful log handlers and formatters that you're free to use.
+    | ログの出し先の一覧。LaravelはMonologを使うので、その書き出しの
+    | 仕組みと形を使える。
     |
-    | Available drivers: "single", "daily", "monthly", "slack", "syslog",
-    |                    "errorlog", "monolog", "custom", "stack"
+    | 使える仕組み："single"・"daily"・"monthly"・"slack"・"syslog"・
+    |             "errorlog"・"monolog"・"custom"・"stack"
     |
     */
 

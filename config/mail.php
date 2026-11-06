@@ -4,13 +4,11 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Default Mailer
+    | 既定のメールの送り方
     |--------------------------------------------------------------------------
     |
-    | This option controls the default mailer that is used to send all email
-    | messages unless another mailer is explicitly specified when sending
-    | the message. All additional mailers can be configured within the
-    | "mailers" array. Examples of each type of mailer are provided.
+    | メールを送るときに、送り方（mailer）を指定しなければここを使う。
+    | 送り方は下のmailersに書く。
     |
     */
 
@@ -18,20 +16,17 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Mailer Configurations
+    | メールの送り方
     |--------------------------------------------------------------------------
     |
-    | Here you may configure all of the mailers used by your application plus
-    | their respective settings. Several examples have been configured for
-    | you and you are free to add your own as your application requires.
+    | このアプリケーションで使う送り方と、その設定。見本を足してあるので、
+    | 要るものを足してよい。
     |
-    | Laravel supports a variety of mail "transport" drivers that can be used
-    | when delivering an email. You may specify which one you're using for
-    | your mailers below. You may also add additional mailers if needed.
+    | 送り方ごとに、実際に送る仕組み（transport）を選ぶ。
     |
-    | Supported: "smtp", "sendmail", "mailgun", "ses", "ses-v2",
-    |            "postmark", "resend", "log", "array",
-    |            "failover", "roundrobin"
+    | 使える値："smtp"・"sendmail"・"mailgun"・"ses"・"ses-v2"・
+    |          "postmark"・"resend"・"log"・"array"・
+    |          "failover"・"roundrobin"
     |
     */
 
@@ -101,12 +96,10 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Global "From" Address
+    | 共通の差出人
     |--------------------------------------------------------------------------
     |
-    | You may wish for all emails sent by your application to be sent from
-    | the same address. Here you may specify a name and address that is
-    | used globally for all emails that are sent by your application.
+    | このアプリケーションが送るメールの、共通の差出人のアドレスと名前。
     |
     */
 
