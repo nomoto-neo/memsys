@@ -8,6 +8,8 @@
     一覧・登録・編集のどの画面にいても、そのコーナーの項目を強調するため。
     今の画面の項目があるグループを開いて出す。グループは<details>で、同じnameを付けているので、
     1つを開くとほかは閉じる（ブラウザーの働き）。
+    ルートの無い項目と、項目が1つも残らないグループは出さない。画面を使わない案件は、routes/admin.phpの
+    FrameworkRoutesの1行を消せば、メニューからも消える。
     管理者だけの項目は、管理者にだけ出す。実際に入れないようにするのはEnsureStaffIsManagerだが、
     入れないリンクは見せないようにする。
 --}}
@@ -56,6 +58,8 @@
 <nav class="nb-menu" aria-label="管理画面のメニュー">
     @foreach ($sections as [$heading, $icon, $items])
         @php
+            // ルートの無い項目は出さない。画面を使わない案件は、routes/admin.phpの1行を消すだけで、メニューからも消える
+            $items = array_filter($items, fn (array $item) => Route::has(is_array($item[0]) ? $item[0][0] : $item[0]));
             $links = array_map(fn (array $item) => [
                 'url' => is_array($item[0]) ? route(...$item[0]) : route($item[0]),
                 'active' => request()->routeIs(...(array) $item[1]),
@@ -63,6 +67,8 @@
             ], $items);
             $current = in_array(true, array_column($links, 'active'), true);
         @endphp
+        {{-- 項目が1つも残らないグループは、見出しも出さない --}}
+        @continue($links === [])
         @if ($heading === '')
             {{-- 見出しの無い項目。アイコンを付けて、グループの見出しと並べる --}}
             @foreach ($links as $link)
