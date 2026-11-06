@@ -2,7 +2,7 @@
 
 設置したサイトを、外から読むだけで確かめる手順と、その結果の記録です。サイトに何も書き込まない範囲だけを扱います。サーバーを移したときや、公開の前に、同じ手順でやり直せるように書いています。
 
-未対応の課題の一覧は `security-issues.md`、サーバーの側で決めることは利用ガイド（`neobit-framework-guide.md`）の付録にあります。
+未対応の課題の一覧は `security-issues.md`、サーバーの側で決めることは利用ガイドの security.md にあります。
 
 ## この確認で分かること・分からないこと
 
@@ -73,14 +73,14 @@ curl -sS -o /dev/null -D - -u $A $B/
 curl -sS -o /dev/null -D - -u $A $B/ | grep -i "^set-cookie" | sed -E 's/=[^;]{20,}/=…/'
 ```
 
-- **見るところ（ヘッダー）**：次の4つがあること（`SecurityHeaders`。利用ガイド0章）。
+- **見るところ（ヘッダー）**：次の4つがあること（`SecurityHeaders`。利用ガイドの setup.md）。
   - `X-Frame-Options: SAMEORIGIN`
   - `X-Content-Type-Options: nosniff`
   - `Referrer-Policy: strict-origin-when-cross-origin`
   - `Strict-Transport-Security: max-age=31536000`
 - **見るところ（Cookie）**：セッションの Cookie に `secure`・`httponly`・`samesite=lax` が付いていること。`XSRF-TOKEN` は、JavaScript が読むものなので `httponly` が無くて正常です。
 - **見るところ（出すぎている情報）**：`Server:` に版の番号が出ていないこと。`X-Powered-By:` が無いこと。
-- **見るところ（Cookie の名前）**：セッションの Cookie の名前が `サイト名-session` の形になっていること。`-session` だけなら、`.env` の `APP_NAME` が、空か、日本語だけです。Laravel は名前から英数字だけを残すので、日本語は消えます（利用ガイド0章「サイトの名前」）。
+- **見るところ（Cookie の名前）**：セッションの Cookie の名前が `サイト名-session` の形になっていること。`-session` だけなら、`.env` の `APP_NAME` が、空か、日本語だけです。Laravel は名前から英数字だけを残すので、日本語は消えます（利用ガイドの setup.md の「サイトの名前」）。
 
 ### 5. 公開されてはいけないファイルが見えないか
 
@@ -108,7 +108,7 @@ done
 - **だめなとき**：`/.env` や `/composer.json` が `200` なら、公開のディレクトリがプロジェクトの直下になっています。Apache の `DocumentRoot` を `public/` にします。`/build/` や `/storage/` が `200` で一覧が出るなら、Apache の `Options -Indexes` が効いていません。
 - **サイズの見方**：`404` のサイズがどれも同じなら、Laravel の 404 の画面です。違うサイズのものは、中身を開いて確かめます。
 
-Laravel 本体を公開ディレクトリの `app/system/` に置いたサイト（利用ガイドの付録「Laravel を公開ディレクトリの外に置けないサーバー」の B）は、本体の場所も確かめます。
+Laravel 本体を公開ディレクトリの `app/system/` に置いたサイト（利用ガイドの security.md の「Laravel を公開ディレクトリの外に置けないサーバー」の B）は、本体の場所も確かめます。
 
 ```bash
 for p in /app/system/ /app/system/.env /app/system/composer.json /app/system/artisan \
@@ -190,8 +190,8 @@ npm audit --omit=dev
 - **`npm audit` の報告の読み方**：数が出たときは、字下げの無い行だけを拾います。それが原因のパッケージです。字下げされた `Depends on vulnerable versions of …` は、原因のパッケージを使っているので巻き込まれた、という連鎖です。数十件と出ても、原因は数個のことがほとんどです。
 - **`--omit=dev` の意味**：本番で使うパッケージだけを調べます。付けないと、手元の開発のときだけ使う道具（Vite など）も調べます。サーバーの画面に入るのは、付けたほうの結果です。
 - **`npm audit fix --force` は、提案を読んでから**：`Will install …, which is a breaking change` の行に、入れようとしている版が出ます。今より古い版へ下げる提案のことがあり、その場合は直りません。パッケージの配り方が変わっていないかを調べます。
-- **報告が出たとき**：重大度と、そのパッケージを自分のコードが使っているかを見ます。版を上げるのは手元で行い、テストを通してから `lock` のファイルをサーバーへ送ります（利用ガイド0章）。
-- 手元の `composer.lock` を調べるものです。サーバーに入っている版が手元と同じ、という前提です。詳しくは、利用ガイドの付録「パッケージの脆弱性の確認」にあります。
+- **報告が出たとき**：重大度と、そのパッケージを自分のコードが使っているかを見ます。版を上げるのは手元で行い、テストを通してから `lock` のファイルをサーバーへ送ります（利用ガイドの setup.md）。
+- 手元の `composer.lock` を調べるものです。サーバーに入っている版が手元と同じ、という前提です。詳しくは、利用ガイドの security.md の「パッケージの脆弱性の確認」にあります。
 
 ## 実施の記録
 
@@ -277,7 +277,7 @@ ServerSignature Off
 sudo apachectl configtest && sudo systemctl reload httpd
 ```
 
-所見3は、サーバーの `.env` の `APP_NAME` を半角の英数字にし、日本語のサイト名は `SITE_NAME` に書いて、`php artisan config:cache` をやり直します（利用ガイド0章「サイトの名前」）。Cookie の名前が変わるので、ログイン中の人は、ログインし直しになります。
+所見3は、サーバーの `.env` の `APP_NAME` を半角の英数字にし、日本語のサイト名は `SITE_NAME` に書いて、`php artisan config:cache` をやり直します（利用ガイドの setup.md の「サイトの名前」）。Cookie の名前が変わるので、ログイン中の人は、ログインし直しになります。
 
 所見4は、手元で `composer update league/commonmark` を実行し、テストを通してから、`composer.lock` をサーバーへ送ります。
 

@@ -63,7 +63,8 @@ Laravel の標準の構成に、次のものを足している（各ディレク
 | `docs/project-overview.md` | このファイル |
 | `docs/laravel-rules.md` | Laravel・PHP の決まり |
 | `docs/neobit-framework-rules.md` | ネオビットフレームワークの決まり |
-| `docs/neobit-framework-guide.md` | ネオビットフレームワークの利用ガイド。部品の使い方の全体 |
+| `packages/neobit/core/docs/guide.md` | ネオビットフレームワークの利用ガイド。入口に機能ごとの概要があり、使い方は `guide/` の下の機能ごとのファイルにある。パッケージと一緒に配る |
+| `packages/neobit/core/CHANGELOG.md` | フレームワークの版ごとの変更の記録 |
 | `docs/neobit-framework-names.md` | 案件のコードが名前で頼っている、フレームワークの部品の名前の一覧 |
 | `docs/new-project-files.md` | 新しいプロジェクトに展開するときに書き換えるファイル |
 | `docs/csv-import-spec.md` | CSV 取り込みの設計 |
@@ -92,4 +93,4 @@ Laravel の標準の構成に、次のものを足している（各ディレク
 - 手元の開発環境は Windows 11（PowerShell）、PHP 8.3、MariaDB 10.11（`memsys_local`）。メールはレンタルサーバーの SMTP で実際に送る
 - 本番・開発サーバーは自前の VPS で、AlmaLinux 10＋Apache＋PHP-FPM＋MariaDB。Laravel Cloud は使わない
 - 手元の DB は `php artisan migrate:fresh --seed` で作り直せる前提。サーバーのデータは持ってこない（`APP_KEY` が違うので、暗号化した列を復号できない）
-- サーバーへ送らないものと、送った後に実行するコマンドは、`docs/new-project-files.md` の末尾と利用ガイドの0章にある
+- サーバーへ送らないものと、送った後に実行するコマンドは、`docs/new-project-files.md` の末尾と利用ガイドの setup.md にある

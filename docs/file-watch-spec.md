@@ -88,7 +88,7 @@
 
 - サーバーの権限の形：コードを更新する利用者と、PHP-FPM・cron の apache が別。`bootstrap/cache` は apache が読めて書けない
 - 改ざん監視の cron は、コードを更新する利用者の crontab で動かす
-- エラーの通知（20章）・操作ログの報告（22章）
+- エラーの通知（利用ガイドの error-notify.md）・操作ログの報告（operation-log.md）
 
 ## D. 設計判断とトレードオフ
 

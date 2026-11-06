@@ -62,7 +62,7 @@
 ## C. 前提・依存
 
 - サイト名（`config('neobit.site.name')`。`.env` の `SITE_NAME`）
-- 絶対の URL は `url()` で作る。サーバーの前にプロキシを置くときは `TRUSTED_PROXIES` を書かないと、`https://` にならない（利用ガイド0章）
+- 絶対の URL は `url()` で作る。サーバーの前にプロキシを置くときは `TRUSTED_PROXIES` を書かないと、`https://` にならない（利用ガイドの setup.md）
 - 画面の題名の `@section('title')`（今までの書き方のまま使う）
 
 ## D. 設計判断とトレードオフ

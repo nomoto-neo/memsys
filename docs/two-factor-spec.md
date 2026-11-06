@@ -225,4 +225,4 @@ php artisan neobit:reset-two-factor staff yamada
 
 1. 流れの統一。方式は今のまま（会員は `Email`、スタッフは `Totp`）で、動きは変えない
 2. 方式の入れ替えと `None` に対応する。会員の TOTP の列と管理画面からの解除、スタッフ向けの確認コードのメール、ログイン中の本人による管理
-3. パスキーの登録の前の本人確認を、`TwoFactorChallenge` に載せ替える。利用ガイドの14章と23章を直す
+3. パスキーの登録の前の本人確認を、`TwoFactorChallenge` に載せ替える。利用ガイドの login.md と member-types.md を直す

@@ -43,11 +43,11 @@
 
 ### ログインする人は、名指ししていない
 
-ログインする人（`Member`・`CompanyUser`・`Staff`）は、共通の型 `LoginAccount` で受け取ります。ガード・ルート・メールのテンプレートの名前は、モデルの「種類の名前」から決まりで作るので、共通部品に会員のモデルやルートの名前は書いていません。会員のモデルを足したり外したりするときに触る所は、利用ガイドの23章にまとめてあります。
+ログインする人（`Member`・`CompanyUser`・`Staff`）は、共通の型 `LoginAccount` で受け取ります。ガード・ルート・メールのテンプレートの名前は、モデルの「種類の名前」から決まりで作るので、共通部品に会員のモデルやルートの名前は書いていません。会員のモデルを足したり外したりするときに触る所は、利用ガイドの member-types.md にまとめてあります。
 
-- 企業会員を使わないサイトで消すもの：23章の「企業会員を使わないサイト」
-- 個人会員をログインID でログインさせるサイトで直すもの：23章の「個人会員をログインID でログインさせるサイト」
-- 会員の種類をもう1つ足すときに触るもの：23章の「会員の種類をもう1つ足すとき」
+- 企業会員を使わないサイトで消すもの：member-types.md の「企業会員を使わないサイト」
+- 個人会員をログインID でログインさせるサイトで直すもの：member-types.md の「個人会員をログインID でログインさせるサイト」
+- 会員の種類をもう1つ足すときに触るもの：member-types.md の「会員の種類をもう1つ足すとき」
 
 ### ログインする人の受け取り方
 
@@ -64,11 +64,11 @@
 | `OperationLog::modelNames()` | 画面に出す名前の読み方（スタッフ・個人会員・企業・企業の担当者） |
 | `config/neobit.php` の `cleanup` の節（`tasks`） | プロジェクトの片付け（お問い合わせ） |
 
-管理画面の「ベーシック認証」を使うサーバーでは、VirtualHost に、訪問者画面と管理画面のそれぞれを目印のファイルで掛ける決まりを書きます（書き方は利用ガイドの25章「ベーシック認証」）。パスは、そのサーバーのプロジェクトの場所にします。
+管理画面の「ベーシック認証」を使うサーバーでは、VirtualHost に、訪問者画面と管理画面のそれぞれを目印のファイルで掛ける決まりを書きます（書き方は利用ガイドの basic-auth.md）。パスは、そのサーバーのプロジェクトの場所にします。
 
 `public/.htaccess` は、Laravel の決まりの「末尾の / を外す」決まり（Redirect Trailing Slashes）を消してあります。その働きはリダイレクトのミドルウェア（`ApplyRedirects`）が受け持つので、Laravel の新しい版の `.htaccess` に差し替えるときも、この決まりは戻しません。
 
-`public/.htaccess` と `public/index.php` は、公開ディレクトリの HTML と古い PHP も Laravel を通して返す形にしてあります（利用ガイドの30章）。`.htaccess` は `.html`・`.htm`・`.php` とディレクトリの URL も `index.php` に回し、`index.php` の最後は `PublicFiles::handle()` です。`index.php` の頭では、入口の見張りの `gatekeeper.php` を読みます（利用ガイドの26章）。Laravel の新しい版のものに差し替えるときも、この2つは戻しません。
+`public/.htaccess` と `public/index.php` は、公開ディレクトリの HTML と古い PHP も Laravel を通して返す形にしてあります（利用ガイドの public-files.md）。`.htaccess` は `.html`・`.htm`・`.php` とディレクトリの URL も `index.php` に回し、`index.php` の最後は `PublicFiles::handle()` です。`index.php` の頭では、入口の見張りの `gatekeeper.php` を読みます（利用ガイドの ip-block.md）。Laravel の新しい版のものに差し替えるときも、この2つは戻しません。
 
 ### ルートやビューの名前を直接書いているもの
 
@@ -80,15 +80,15 @@
 | `CsvImport` | ビュー `neobit::admin.csv_import.form`・`confirm` |
 | `UploadFilePath` | `uploads.show`・`uploads.tmp` |
 
-管理画面の URL は、`config/neobit.php` の `route.admin_path` で決めます（既定は `app/admin`）。変えたら、ベーシック認証の VirtualHost の決まりも合わせて直します（利用ガイドの0章「管理画面の URL」）。
+管理画面の URL は、`config/neobit.php` の `route.admin_path` で決めます（既定は `app/admin`）。変えたら、ベーシック認証の VirtualHost の決まりも合わせて直します（利用ガイドの setup.md の「管理画面の URL」）。
 
-Laravel を公開ディレクトリの外に置けないレンタルサーバーでは、本体を公開ディレクトリの `app/system/` に置き、`index.php` と `vite.config.js` を書き換えます。手順と、置いた後に外から確かめることは、利用ガイドの付録「Laravel を公開ディレクトリの外に置けないサーバー」にあります。
+Laravel を公開ディレクトリの外に置けないレンタルサーバーでは、本体を公開ディレクトリの `app/system/` に置き、`index.php` と `vite.config.js` を書き換えます。手順と、置いた後に外から確かめることは、利用ガイドの security.md の「Laravel を公開ディレクトリの外に置けないサーバー」にあります。
 
-`storage/` のほかに apache が書き込むディレクトリがある案件では、プロジェクトの直下の `set_permissions.writable` に書きます（利用ガイドの0章「サーバーの権限」）。
+`storage/` のほかに apache が書き込むディレクトリがある案件では、プロジェクトの直下の `set_permissions.writable` に書きます（利用ガイドの setup.md の「サーバーの権限」）。
 
-WordPress を置く案件では、`config/neobit.php` に `wordpress` の節を書き、サーバーごとの `.env` に `WORDPRESS_GATEKEEPER`（`prepend` か `wp-config`）を書きます。`public/.htaccess` には WordPress に回す URL の決まりを、`public/` には `wordpress.php` を置きます（利用ガイドの31章）。
+WordPress を置く案件では、`config/neobit.php` に `wordpress` の節を書き、サーバーごとの `.env` に `WORDPRESS_GATEKEEPER`（`prepend` か `wp-config`）を書きます。`public/.htaccess` には WordPress に回す URL の決まりを、`public/` には `wordpress.php` を置きます（利用ガイドの wordpress.md）。
 
-改ざん監視を使うサーバーでは、コードを更新する利用者の crontab に `neobit:file-watch` を3行（5分ごと・1日1回の `--full`・毎分の `--approve`）と、画面と JS・CSS を作り直す `neobit:rebuild` を1行（毎分）書き、`.env` の `VIEW_CHECK_CACHE_TIMESTAMPS` を `false` にし、`php artisan neobit:file-watch --init` で基準を作ります（利用ガイドの29章）。鍵のファイルの名前は `config/neobit.php` の `file_watch.release_file`（既定は `.version`）で、案件ごとに変えられます。管理画面の「改ざん監視」を使うときは、`routes/admin.php` の管理者だけのグループにルートを1行書き、管理画面のメニューに足します。
+改ざん監視を使うサーバーでは、コードを更新する利用者の crontab に `neobit:file-watch` を3行（5分ごと・1日1回の `--full`・毎分の `--approve`）と、画面と JS・CSS を作り直す `neobit:rebuild` を1行（毎分）書き、`.env` の `VIEW_CHECK_CACHE_TIMESTAMPS` を `false` にし、`php artisan neobit:file-watch --init` で基準を作ります（利用ガイドの file-watch.md）。鍵のファイルの名前は `config/neobit.php` の `file_watch.release_file`（既定は `.version`）で、案件ごとに変えられます。管理画面の「改ざん監視」を使うときは、`routes/admin.php` の管理者だけのグループにルートを1行書き、管理画面のメニューに足します。
 
 ## サーバーへ送らないもの
 
@@ -98,4 +98,4 @@ WordPress を置く案件では、`config/neobit.php` に `wordpress` の節を�
 - `bootstrap/cache/*.php` と `bootstrap/cache/views/`（サーバーで作る。`bootstrap/app.php` などは送ってよい）
 - `.env`（サーバーごとに別）
 
-サーバーへ送った後に実行するコマンドは、利用ガイド（`neobit-framework-guide.md`）の0章にあります。
+サーバーへ送った後に実行するコマンドは、利用ガイドの setup.md にあります。

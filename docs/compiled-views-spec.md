@@ -28,7 +28,7 @@
 | フレームワーク | `MailTemplate.php`・`NeobitServiceProvider.php`・`FileWatcher.php`（説明） |
 | 道具 | `set_permissions.sh`・`check_latest.sh` |
 | テスト | `tests/Feature/MailTemplateTest.php`・`tests/Feature/FileWatchTest.php` |
-| 文書 | 利用ガイドの0章と29章・`docs/new-project-files.md`・`docs/project-overview.md`・`docs/file-watch-spec.md` |
+| 文書 | 利用ガイドの setup.md と file-watch.md・`docs/new-project-files.md`・`docs/project-overview.md`・`docs/file-watch-spec.md` |
 
 ## B. 実装仕様
 

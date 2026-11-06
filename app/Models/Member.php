@@ -50,7 +50,7 @@ class Member extends Authenticatable implements LoginAccount, OperationLogNamedM
 
     /**
      * ログインに使う値。メールアドレス。ログインIDでログインさせるサイトでは、ここを変える
-     * （利用ガイドの23章）
+     * （利用ガイドの member-types.md）
      */
     public const LOGIN_ID_TYPE = LoginIdType::Email;
 

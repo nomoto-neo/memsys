@@ -36,7 +36,7 @@
 - 前の `/admin` には何も置かない（404）。固定ページの `/{slug}` にも当たらない（`admin` という名前のページが無ければ）。
 - robots.txt の `robots_disallow` には管理画面を書かない。フレームワークの既定は `[]`、見本のサイトは `['/company', '/mypage']`。
 
-**Laravel を公開ディレクトリの外に置けないサーバー**（利用ガイドの付録）
+**Laravel を公開ディレクトリの外に置けないサーバー**（利用ガイドの security.md）
 
 - A：公開ディレクトリの外に置く（おすすめ）。シンボリックリンクか、`index.php` のパスの書き換え。
 - B：公開ディレクトリを Laravel の `public` そのものにし、本体を公開ディレクトリの `app/system/` に置く。`index.php` に `usePublicPath(__DIR__)`、`vite.config.js` の出力先を公開ディレクトリに。公開ディレクトリの `.htaccess` で `/app/system/` の下を 404 にし、`app/system/.htaccess` にも `Require all denied`。`app/` には `.htaccess` を置かない。置いた後に、外から本体のファイルが 404 になることを確かめる（`docs/security-external-check.md` の5）。
@@ -44,7 +44,7 @@
 ## C. 前提・依存
 
 - 管理画面のルートが、名前の頭 `admin.` のグループにまとまっていること
-- サイトのアクセス制限（利用ガイドの24章）・ベーシック認証（25章）・robots.txt（27章）
+- サイトのアクセス制限（利用ガイドの access-restriction.md）・ベーシック認証（basic-auth.md）・robots.txt（seo.md）
 
 ## D. 設計判断とトレードオフ
 
