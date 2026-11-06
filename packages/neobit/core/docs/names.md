@@ -102,7 +102,8 @@
 | `TwoFactorLogin` | `LOGIN_ACCOUNT` | ログインする人のモデル | |
 | `TwoFactorLogin` | `TWO_FACTOR_VIEW` | 2段階認証の画面 | |
 | `TwoFactorManagement` | `TWO_FACTOR_GUARD`・`TWO_FACTOR_MANAGE_VIEW`・`TWO_FACTOR_BACKUP_CODES_VIEW` | ガードと画面 | |
-| `PasskeyLogin`・`PasskeyManagement` | `PASSKEY_GUARD`・`PASSKEY_ROUTE`・`PASSKEY_VIEW` | ガード・ルートの頭・画面 | |
+| `PasskeyLogin` | `PASSKEY_GUARD` | ログインさせるガード | |
+| `PasskeyManagement` | `PASSKEY_GUARD`・`PASSKEY_ROUTE`・`PASSKEY_VIEW` | ガード・ルートの頭・画面 | |
 | `EmailChange` | `EMAIL_CHANGE_GUARD`・`EMAIL_CHANGE_VIEW`・`EMAIL_CHANGE_ROUTE`・`EMAIL_CHANGE_EDIT_ROUTE`・`EMAIL_CHANGE_DONE_ROUTE`・`EMAIL_CHANGE_DONE_MESSAGE`・`EMAIL_CHANGE_THROTTLE_SCOPE` | ガード・画面・ルート・文言 | |
 
 ## 4. モデルが書くもの
