@@ -54,7 +54,9 @@
                 </select>
                 <div class="invalid-feedback" data-item="days">{{ $errors->first('days') }}</div>
             </div>
-            <div class="col-md-1 d-flex align-items-end">
+            <div class="col-md-1">
+                {{-- ほかの欄のラベルと高さをそろえる。下に範囲やエラーが出ても、ボタンが入力欄と同じ高さに並ぶ --}}
+                <span class="form-label d-block invisible" aria-hidden="true">登録</span>
                 <button type="submit" class="btn btn-primary w-100">登録</button>
             </div>
         </div>
