@@ -565,6 +565,7 @@ WordPress のプラグインなどを、お客さんが今までどおり画面�
 | 版の付け方 | `v1.0.0` の形。直しただけなら3つ目、機能を足したら2つ目、今までの書き方が動かなくなるなら1つ目の番号を上げる。最初の版は `v1.0.0`。案件の `composer.json` は `"neobit/core": "^1.0"` |
 | 変更の記録 | `packages/neobit/core/CHANGELOG.md`。版ごとに「変わったこと・案件で直すこと・設定の見本の変化・サーバーで要る作業」 |
 | 配る用のリポジトリ | GitHub の組織 `neobitjp` の非公開のリポジトリ `neobit-core`（`git@github.com:neobitjp/neobit-core.git`）。パッケージの名前は `neobit/core` のまま。組織は、担当が替わっても会社のものとして残すため |
+| サーバーからの取得 | サーバーごとに、デプロイ用の利用者（devapp など）で読み取り専用の鍵を作り、`neobitjp/neobit-core` のデプロイキーに登録する（書き込みは許さない）。`~/.ssh/config` には別名 `github-neobit-core`（`HostName github.com`・`IdentityFile ~/.ssh/neobit_core`・`IdentitiesOnly yes`）で書き、案件の `composer.json` は `{"type": "vcs", "url": "git@github-neobit-core:neobitjp/neobit-core.git", "no-api": true}`。別名にするのは、ほかのリポジトリを取ってくる鍵と混ぜないため。別名は全部のサーバーと開発者の手元でそろえる。鍵はサーバーごとなので、1台だけを外せる。案件が増えて鍵の管理が重くなったら、読み取りだけの利用者の鍵に切り替える |
 | マイグレーション | 最初の版の前に、パッケージは1本、見本のサイトはテーブルごとに1本へまとめる。リリースした案件が無いので、パッケージにする前の形からの移し替えも消す。2026-11-07 に済み（`docs/migration-squash-spec.md`）。最初の版の後は、まとめない |
 
 ### 段階6　文書
