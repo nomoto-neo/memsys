@@ -28,7 +28,7 @@ return [
     // 'rebuild' => ['npm' => env('REBUILD_NPM', 'npm')],
 
     // 公開ディレクトリにWordPressを置き、決まったコーナーだけを受け持たせるときに書く。この節があることが「WordPressを置く」の印になる。
-    // 使い方は利用ガイドの vendor/neobit/core/docs/guide/wordpress.md。
+    // 使い方は利用ガイドの vendor/neobit/core/docs/wordpress.md。
     // - gatekeeper    WordPressに入口の見張りを掛ける段。サーバーで決まるので.envのWORDPRESS_GATEKEEPERに書く。
     //                 prepend（PHPのauto_prepend_file）かwp-config（wp-config.phpの頭のrequire）。
     //                 この節があるのに空なら、WordPressが守られていないとしてcriticalのログを出す

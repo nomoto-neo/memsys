@@ -15,8 +15,8 @@
 
 **変えたこと**
 
-- 入口 `packages/neobit/core/docs/guide.md`：はじめに、機能ごとの概要とリンク（8つのまとまり）、見本のサイトにある機能、まだ無い機能、このガイドの直し方
-- 機能ごとのファイル `packages/neobit/core/docs/guide/*.md`（34本）：本文は書き直さずに移した。全体像の部品の一覧は、長いので `parts.md` に分けた
+- 入口 `packages/neobit/core/guide.md`：はじめに、機能ごとの概要とリンク（8つのまとまり）、見本のサイトにある機能、まだ無い機能、このガイドの直し方
+- 機能ごとのファイル `packages/neobit/core/docs/*.md`（34本）：本文は書き直さずに移した。全体像の部品の一覧は、長いので `parts.md` に分けた
 - 版の履歴（第1版〜第6版）はやめ、`packages/neobit/core/CHANGELOG.md` を指す
 - ほかの文書とコードのコメントの、章の番号での参照を、ファイルの名前にした
 - フレームワークの決まり（`docs/neobit-framework-rules.md`）と名前の一覧（`docs/neobit-framework-names.md`）も、パッケージの `docs/rules.md`・`names.md` へ移した。案件へ写さず、利用ガイドと同じ版で届くようにするため
@@ -25,7 +25,7 @@
 
 | 場所 | ファイル |
 |---|---|
-| フレームワーク | `docs/guide.md`・`docs/guide/*.md`・`CHANGELOG.md`（新規）、`config/neobit/route.php`（コメント） |
+| フレームワーク | `guide.md`・`docs/*.md`・`CHANGELOG.md`（新規）、`config/neobit/route.php`（コメント） |
 | フレームワーク（決まりと名前の一覧） | `docs/rules.md`・`docs/names.md`（移した）、`config/neobit/file_watch.php`・`rebuild.php`、`src/Security/BasicAuth.php`、`stubs/config/neobit.php`（コメント） |
 | 見本のサイト | `app/Models/Member.php`・`config/view.php`・`routes/console.php`（コメント） |
 | 文書 | `docs/neobit-framework-guide.md`（削除）、`docs/project-overview.md`・`neobit-framework-rules.md`・`new-project-files.md`・`packaging-plan.md`・`security-external-check.md`・`security-issues.md`・`laravel-dependency.md`、仕様メモ12本 |
@@ -68,7 +68,7 @@
 | ガイドの中 | `[ip-block.md](ip-block.md)` のように、ファイルの名前でリンクする。コードの塊の中は、リンクにせず `login.md` と書く |
 | 部品の一覧（`parts.md`） | 表をやめ、部品の名前の下に「場所」「概要」「詳細」の3行を並べるリストにした。詳細は、ファイルの名前のリンク |
 | memsys の文書 | `利用ガイドの scheduler.md`。節を指すときは `利用ガイドの setup.md の「サイトの名前」` |
-| コードのコメント | `利用ガイドの vendor/neobit/core/docs/guide/scheduler.md`。案件でも memsys でも、そのまま開けるパス |
+| コードのコメント | `利用ガイドの vendor/neobit/core/docs/scheduler.md`。案件でも memsys でも、そのまま開けるパス |
 | 案件へ写す文書（`docs/project-overview.md`・`laravel-rules.md`・`new-project-files.md`） | `vendor/neobit/core/docs/rules.md` のように、案件の側のパス |
 | パッケージの文書の中のパス | memsys のまま（`packages/neobit/core/src/…`）。入口に「案件では `vendor/neobit/core/` にある」と書いた |
 
@@ -81,14 +81,14 @@
 
 | 判断 | 選んだもの | 選ばなかったもの |
 |---|---|---|
-| 置き場所 | パッケージの中（`packages/neobit/core/docs/`） | memsys の `docs/guide/`：案件に配られず、案件ごとに写すことになる |
+| 置き場所 | パッケージの中。入口はパッケージの直下（`CHANGELOG.md` と並ぶ `guide.md`）、ページは `docs/` | memsys の `docs/guide/`：案件に配られず、案件ごとに写すことになる。入口も `docs/` に置き、ページを `docs/guide/` に分ける：`docs/` の直下が入口だけになり、パスも1段長くなる |
 | ファイル名 | 機能の名前だけ（`seo.md`） | 番号付き（`27-seo.md`）：章を足したり並べ替えたりすると、名前と参照が変わる |
 | 版の履歴 | `CHANGELOG.md` を指す。第1版〜第6版の表は消す | 履歴のファイルに分ける：パッケージの版と別の番号が並び、どちらが正しいか分からなくなる。消した表は、受け取った案件が無いパッケージにする前の記録で、git に残っている |
 | リンクの文言 | ファイルの名前 | 章の見出し：「操作ログ（[操作ログ](…)）」のように、前の語と重なるところが多い。memsys の文書とコードのコメントの書き方ともそろう |
 | memsys の文書からの指し方 | 名前だけでリンクにしない | リンク：`docs/` の外を指すので、Obsidian で `docs/` だけを開いていると飛べない |
 | 仕様メモ | memsys に残し、ガイドからはリンクしない | パッケージへ移す：なぜそう作ったかの記録で、案件には要らない |
 | 決まりと名前の一覧 | パッケージへ移す | memsys の `docs/` に置いて案件へ写す：フレームワークの版が上がっても、案件の写しは古いまま残る |
-| コードのコメントのパス | `vendor/neobit/core/docs/guide/…` | `guide/scheduler.md`：`vendor/` は検索から外れることが多く、名前だけでは見つけにくい。memsys では `vendor/neobit/core` が `packages/neobit/core` を指すので、同じパスで開ける |
+| コードのコメントのパス | `vendor/neobit/core/docs/…` | ファイルの名前だけ（`scheduler.md`）：`vendor/` は検索から外れることが多く、名前だけでは見つけにくい。memsys では `vendor/neobit/core` が `packages/neobit/core` を指すので、同じパスで開ける |
 
 ## E. 課題・懸念点
 

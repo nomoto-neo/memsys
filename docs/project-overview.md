@@ -63,7 +63,7 @@ Laravel の標準の構成に、次のものを足している（各ディレク
 | `docs/project-overview.md` | このファイル |
 | `docs/laravel-rules.md` | Laravel・PHP の決まり |
 | `vendor/neobit/core/docs/rules.md` | ネオビットフレームワークの決まり |
-| `vendor/neobit/core/docs/guide.md` | ネオビットフレームワークの利用ガイド。入口に機能ごとの概要があり、使い方は `guide/` の下の機能ごとのファイルにある |
+| `vendor/neobit/core/guide.md` | ネオビットフレームワークの利用ガイド。入口に機能ごとの概要があり、使い方は `docs/` の下の機能ごとのファイルにある |
 | `vendor/neobit/core/docs/names.md` | 案件のコードが名前で頼っている、フレームワークの部品の名前の一覧 |
 | `vendor/neobit/core/CHANGELOG.md` | フレームワークの版ごとの変更の記録 |
 | `docs/new-project-files.md` | 新しいプロジェクトに展開するときに書き換えるファイル |

@@ -574,7 +574,7 @@ WordPress のプラグインなどを、お客さんが今までどおり画面�
 - 利用ガイドに、設定・画面・メールのテンプレートを上書きする方法と、`vendor:publish` のタグをまとめる
 - `docs/project-overview.md` のディレクトリの表を合わせる
 - 利用ガイドを、入口と機能ごとのファイルに分ける。2026-11-07 に済み（`docs/guide-split-spec.md`）
-  - 利用ガイドは、パッケージと一緒に配る。入口は `packages/neobit/core/docs/guide.md` で、機能ごとの概要とリンクだけを書く。中身は `packages/neobit/core/docs/guide/` の下の機能ごとのファイル（`seo.md`・`file-watch.md` など。番号は付けない）
+  - 利用ガイドは、パッケージと一緒に配る。入口は `packages/neobit/core/guide.md` で、機能ごとの概要とリンクだけを書く。中身は `packages/neobit/core/docs/` の下の機能ごとのファイル（`seo.md`・`file-watch.md` など。番号は付けない）
   - ほかの文書とコードのコメントからは、章の番号ではなくファイルの名前で指す
   - 利用ガイドの版の履歴はやめ、変更は `packages/neobit/core/CHANGELOG.md` に書く
   - 仕様メモ（`docs/〇〇-spec.md`）は memsys に残す。配らないので、利用ガイドからはリンクしない
