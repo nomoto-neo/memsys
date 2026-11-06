@@ -13,11 +13,11 @@ memsys は、ネオビットフレームワークの見本のサイト。ネオ�
 | 使っているもの | 版 | 決まりを書いたファイル |
 |---|---|---|
 | Laravel（PHP） | Laravel 13 以上・PHP 8.3 以上 | `docs/laravel-rules.md` |
-| ネオビットフレームワーク | このリポジトリが本体 | `docs/neobit-framework-rules.md` |
+| ネオビットフレームワーク | このリポジトリが本体 | `vendor/neobit/core/docs/rules.md` |
 
 - Laravel や PHP のコードを読み書きする前に、`docs/laravel-rules.md` を読む。Artisan・テスト・整形（Pint）・Laravel Boost の道具の使い方もここにある
-- コントローラー・モデル・マイグレーション・Blade・共通部品を読み書きする前に、`docs/neobit-framework-rules.md` を読む。このプロジェクトのコードは、ほとんどがこれに当たる
-- 2つが食い違うときは、`docs/neobit-framework-rules.md` を優先する
+- コントローラー・モデル・マイグレーション・Blade・共通部品を読み書きする前に、`vendor/neobit/core/docs/rules.md` を読む。このプロジェクトのコードは、ほとんどがこれに当たる
+- 2つが食い違うときは、`vendor/neobit/core/docs/rules.md` を優先する
 - 動作条件より古い版への配慮は要らない
 
 そのほかに使っているもの。
@@ -62,10 +62,10 @@ Laravel の標準の構成に、次のものを足している（各ディレク
 |---|---|
 | `docs/project-overview.md` | このファイル |
 | `docs/laravel-rules.md` | Laravel・PHP の決まり |
-| `docs/neobit-framework-rules.md` | ネオビットフレームワークの決まり |
-| `packages/neobit/core/docs/guide.md` | ネオビットフレームワークの利用ガイド。入口に機能ごとの概要があり、使い方は `guide/` の下の機能ごとのファイルにある。パッケージと一緒に配る |
-| `packages/neobit/core/CHANGELOG.md` | フレームワークの版ごとの変更の記録 |
-| `docs/neobit-framework-names.md` | 案件のコードが名前で頼っている、フレームワークの部品の名前の一覧 |
+| `vendor/neobit/core/docs/rules.md` | ネオビットフレームワークの決まり |
+| `vendor/neobit/core/docs/guide.md` | ネオビットフレームワークの利用ガイド。入口に機能ごとの概要があり、使い方は `guide/` の下の機能ごとのファイルにある |
+| `vendor/neobit/core/docs/names.md` | 案件のコードが名前で頼っている、フレームワークの部品の名前の一覧 |
+| `vendor/neobit/core/CHANGELOG.md` | フレームワークの版ごとの変更の記録 |
 | `docs/new-project-files.md` | 新しいプロジェクトに展開するときに書き換えるファイル |
 | `docs/csv-import-spec.md` | CSV 取り込みの設計 |
 | `docs/two-factor-spec.md` | 2段階認証の設計 |

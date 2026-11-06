@@ -104,4 +104,4 @@
 
 ## H. 今後の改善提案・TODO
 
-- 新しくコマンドや案件が頼る名前を足すときは、`docs/neobit-framework-names.md` に足す
+- 新しくコマンドや案件が頼る名前を足すときは、`packages/neobit/core/docs/names.md` に足す

@@ -186,7 +186,7 @@
 
 2026-10-15 に足した段階。メソッド・定数・設定のキーなどの名前を変えると、配った後は全案件のコードを直す変更になる。版を出す前に、案件が頼る名前を全部見直して固める。
 
-名前の一覧は `docs/neobit-framework-names.md` にある。コードから機械的に集めたもので、「案件が頼ってよい名前の一覧」として残す。
+名前の一覧は `packages/neobit/core/docs/names.md` にある。コードから機械的に集めたもので、「案件が頼ってよい名前の一覧」として残す。
 
 進め方。
 
@@ -311,7 +311,7 @@
 | フレームワーク（変更） | `OperationLogAction`・`OperationLogReport`・`TemporaryDataCleaner`・`config/neobit.php`・`stubs/config/neobit.php` |
 | 見本のサイト | `bootstrap/app.php`（ミドルウェアを全体に足す）・`routes/web.php`・`config/neobit.php`・`vite.config.js`・管理画面のメニュー |
 | テスト | `tests/Feature/IpBlockTest.php` |
-| 文書 | 利用ガイドのセキュリティの章・`docs/neobit-framework-names.md`・`check_latest.sh` |
+| 文書 | 利用ガイドのセキュリティの章・`packages/neobit/core/docs/names.md`・`check_latest.sh` |
 
 
 ### 段階4-8　子テーブル
@@ -578,6 +578,7 @@ WordPress のプラグインなどを、お客さんが今までどおり画面�
   - ほかの文書とコードのコメントからは、章の番号ではなくファイルの名前で指す
   - 利用ガイドの版の履歴はやめ、変更は `packages/neobit/core/CHANGELOG.md` に書く
   - 仕様メモ（`docs/〇〇-spec.md`）は memsys に残す。配らないので、利用ガイドからはリンクしない
+  - フレームワークの決まりと名前の一覧も、パッケージの `docs/rules.md`・`names.md` へ移した。案件へ写す文書とコードのコメントは、案件の側のパス（`vendor/neobit/core/docs/…`）で指す
 - 済んだら、この計画書を消すか、設計の記録として残すかを決める
 
 最初の版（`v1.0.0`）を出すまでの順。
@@ -591,7 +592,7 @@ WordPress のプラグインなどを、お客さんが今までどおり画面�
 ## 段階ごとの進め方
 
 1. 変える予定のファイルを一覧で示し、「go」を待つ
-2. 実装する。フレームワークの決まり（`docs/neobit-framework-rules.md`）を先に読む
+2. 実装する。フレームワークの決まり（`packages/neobit/core/docs/rules.md`）を先に読む
 3. `php artisan test` と `vendor/bin/pint --test` を通す
 4. 変更の種類（`add:`・`update:`・`fix:`）ごとにコミットを分ける。`git push` は指示があったときだけ
 5. この文書の「状態」を書き換える

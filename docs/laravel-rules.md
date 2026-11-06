@@ -18,7 +18,7 @@ Laravel Boost は、ガイドラインを `CLAUDE.md` へ書き出さない設�
 - `laravel-best-practices`：Laravel のコードを書く・見直す・直すとき
 - `testing-best-practices`：テストの対象の選び方、名前、構成、検証の仕方、依存の切り離し方
 
-スキルの内容がプロジェクトの決まりと食い違うときは、プロジェクトの決まり（`docs/neobit-framework-rules.md` と `CLAUDE.md`）を優先する。
+スキルの内容がプロジェクトの決まりと食い違うときは、プロジェクトの決まり（`vendor/neobit/core/docs/rules.md` と `CLAUDE.md`）を優先する。
 
 ## Laravel Boost の道具
 
@@ -73,7 +73,7 @@ Laravel まわりの API・動作・設定・版ごとの書き方に頼る変�
 - モデルを新しく作るときは、役に立つファクトリーとシーダーも作る。ほかに要るものがあるかは利用者に聞く。選べるものは `php artisan make:model --help` で確かめる
 - API は、Eloquent の API リソースと API の版の分け方を既定にする。既存の API のルートがそうしていなければ、既存のやり方に合わせる
 - ほかの画面へのリンクは、名前付きのルートと `route()` で作る
-- 検証は Form Request を使わず、コントローラーの `rules()` に書く。理由は `docs/neobit-framework-rules.md`
+- 検証は Form Request を使わず、コントローラーの `rules()` に書く。理由は `vendor/neobit/core/docs/rules.md`
 - 画面の変更が反映されないときや、「Unable to locate file in Vite manifest」のエラーが出たときは、`npm run build` を実行する。または、利用者に `npm run dev` か `composer run dev` を実行してもらう
 - デプロイに Laravel Cloud は使わない。公開の環境は、プロジェクトの概要（`docs/project-overview.md`）にある
 

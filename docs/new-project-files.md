@@ -35,7 +35,7 @@
 | `composer.json`・`package.json` | プロジェクトの名前 |
 | `config/neobit.php` の `seo` | サイトマップに載せるページとモデル、検索に出さないルート、robots.txt で巡回させない場所、管理画面の「SEO設定」に出すページ（`page_routes`）、リダイレクトを使うか（`redirects`）、既定の説明文と画像、構造化データの運営者の名前とロゴ |
 | `docs/project-overview.md` | そのプロジェクトの概要（何のプロジェクトで、どんな構成か）。`CLAUDE.md` は、どのプロジェクトでも共通の決まりなので書き換えない |
-| `docs/` のそのほかの文書 | そのプロジェクトの設計や記録。`docs/laravel-rules.md`・`docs/neobit-framework-rules.md` は、フレームワークの決まりなのでそのまま使う |
+| `docs/` のそのほかの文書 | そのプロジェクトの設計や記録。`docs/laravel-rules.md` は、Laravel の決まりなのでそのまま使う。ネオビットフレームワークの決まり・利用ガイド・名前の一覧は、パッケージ（`vendor/neobit/core/docs/`）にあるので写さない |
 
 ## 3. 共通部品なのに、このサイトの形が入っているもの
 

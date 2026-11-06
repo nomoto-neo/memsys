@@ -50,7 +50,7 @@ class Member extends Authenticatable implements LoginAccount, OperationLogNamedM
 
     /**
      * ログインに使う値。メールアドレス。ログインIDでログインさせるサイトでは、ここを変える
-     * （利用ガイドの member-types.md）
+     * （利用ガイドの vendor/neobit/core/docs/guide/member-types.md）
      */
     public const LOGIN_ID_TYPE = LoginIdType::Email;
 

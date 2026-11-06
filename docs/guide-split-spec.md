@@ -19,12 +19,14 @@
 - 機能ごとのファイル `packages/neobit/core/docs/guide/*.md`（34本）：本文は書き直さずに移した。全体像の部品の一覧は、長いので `parts.md` に分けた
 - 版の履歴（第1版〜第6版）はやめ、`packages/neobit/core/CHANGELOG.md` を指す
 - ほかの文書とコードのコメントの、章の番号での参照を、ファイルの名前にした
+- フレームワークの決まり（`docs/neobit-framework-rules.md`）と名前の一覧（`docs/neobit-framework-names.md`）も、パッケージの `docs/rules.md`・`names.md` へ移した。案件へ写さず、利用ガイドと同じ版で届くようにするため
 
 **変更したファイル**
 
 | 場所 | ファイル |
 |---|---|
 | フレームワーク | `docs/guide.md`・`docs/guide/*.md`・`CHANGELOG.md`（新規）、`config/neobit/route.php`（コメント） |
+| フレームワーク（決まりと名前の一覧） | `docs/rules.md`・`docs/names.md`（移した）、`config/neobit/file_watch.php`・`rebuild.php`、`src/Security/BasicAuth.php`、`stubs/config/neobit.php`（コメント） |
 | 見本のサイト | `app/Models/Member.php`・`config/view.php`・`routes/console.php`（コメント） |
 | 文書 | `docs/neobit-framework-guide.md`（削除）、`docs/project-overview.md`・`neobit-framework-rules.md`・`new-project-files.md`・`packaging-plan.md`・`security-external-check.md`・`security-issues.md`・`laravel-dependency.md`、仕様メモ12本 |
 
@@ -65,7 +67,10 @@
 |---|---|
 | ガイドの中 | `[ip-block.md](ip-block.md)` のように、ファイルの名前でリンクする。コードの塊の中は、リンクにせず `login.md` と書く |
 | 部品の一覧（`parts.md`） | 表をやめ、部品の名前の下に「場所」「概要」「詳細」の3行を並べるリストにした。詳細は、ファイルの名前のリンク |
-| memsys の文書・コードのコメント | `利用ガイドの scheduler.md`。節を指すときは `利用ガイドの setup.md の「サイトの名前」` |
+| memsys の文書 | `利用ガイドの scheduler.md`。節を指すときは `利用ガイドの setup.md の「サイトの名前」` |
+| コードのコメント | `利用ガイドの vendor/neobit/core/docs/guide/scheduler.md`。案件でも memsys でも、そのまま開けるパス |
+| 案件へ写す文書（`docs/project-overview.md`・`laravel-rules.md`・`new-project-files.md`） | `vendor/neobit/core/docs/rules.md` のように、案件の側のパス |
+| パッケージの文書の中のパス | memsys のまま（`packages/neobit/core/src/…`）。入口に「案件では `vendor/neobit/core/` にある」と書いた |
 
 ## C. 前提・依存
 
@@ -82,6 +87,8 @@
 | リンクの文言 | ファイルの名前 | 章の見出し：「操作ログ（[操作ログ](…)）」のように、前の語と重なるところが多い。memsys の文書とコードのコメントの書き方ともそろう |
 | memsys の文書からの指し方 | 名前だけでリンクにしない | リンク：`docs/` の外を指すので、Obsidian で `docs/` だけを開いていると飛べない |
 | 仕様メモ | memsys に残し、ガイドからはリンクしない | パッケージへ移す：なぜそう作ったかの記録で、案件には要らない |
+| 決まりと名前の一覧 | パッケージへ移す | memsys の `docs/` に置いて案件へ写す：フレームワークの版が上がっても、案件の写しは古いまま残る |
+| コードのコメントのパス | `vendor/neobit/core/docs/guide/…` | `guide/scheduler.md`：`vendor/` は検索から外れることが多く、名前だけでは見つけにくい。memsys では `vendor/neobit/core` が `packages/neobit/core` を指すので、同じパスで開ける |
 
 ## E. 課題・懸念点
 
@@ -89,6 +96,7 @@
 |---|---|
 | 低 | ガイドの本文には、`docs/csv-import-spec.md` などの memsys の文書の名前が残っている。案件には無いファイルなので、案件からは読めない |
 | 低 | 入口の「見本のサイトにある機能」は memsys のコントローラーの名前で書いている。案件では、memsys を見に行く前提 |
+| 低 | 管理画面の「ベーシック認証」の注意書きと、改ざん監視の知らせのメールは、利用ガイドを名前（「改ざん監視」など）で指している。読む人向けの文なので、パスにしていない |
 | 低 | `check_latest.sh` には足していない。サーバーの動きに関わるファイルだけを確かめるもので、文書はもともと見ていないため |
 
 ## F. セキュリティ・権限・データ整合性の注意

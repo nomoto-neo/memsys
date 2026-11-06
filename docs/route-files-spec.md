@@ -25,7 +25,7 @@
 | フレームワーク | `packages/neobit/core/src/Routing/FrameworkRoutes.php`（新規）、8画面のコントローラーの説明、`routes/web.php` を指していたコメント |
 | 見本のサイト | `routes/web.php` を指していたコメント（`app/`・`config/neobit.php`） |
 | テスト | `tests/Feature/RouteFilesTest.php` |
-| 道具と文書 | `check_latest.sh`・利用ガイド・`docs/neobit-framework-names.md`・`docs/new-project-files.md`・`docs/project-overview.md`・計画書・`routes/web.php` を今の説明として書いていた仕様メモ |
+| 道具と文書 | `check_latest.sh`・利用ガイド・`packages/neobit/core/docs/names.md`・`docs/new-project-files.md`・`docs/project-overview.md`・計画書・`routes/web.php` を今の説明として書いていた仕様メモ |
 
 ## B. 実装仕様
 

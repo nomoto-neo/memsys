@@ -13,7 +13,7 @@ Artisan::command('inspire', function () {
 /**
  * スケジューラーの設定。この下に書いた処理が、それぞれの時刻に動く。
  * サーバーのcronで、毎分 php artisan schedule:run を動かしておく。cronの設定は、
- * 利用ガイドの scheduler.md にある。登録した一覧は php artisan schedule:list で確かめられる。
+ * 利用ガイドの vendor/neobit/core/docs/guide/scheduler.md にある。登録した一覧は php artisan schedule:list で確かめられる。
  * cronの動かないサーバー（.envのCRON_ENABLED=false）では、同じ予定を、サイトへのアクセスを契機に
  * 動かす（Neobit\Core\Operations\RequestScheduler）。Schedule::exec()のシェルのコマンドは、そこでは動かない。
  */

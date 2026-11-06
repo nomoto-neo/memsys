@@ -28,7 +28,7 @@
 | 見本のサイト | `config/neobit.php`・`config/app.php`。`config/upload.php`・`cleanup.php`・`form.php` を削除。キーが変わるものの呼び出し |
 | フレームワーク | `config/neobit/*.php`（新規）・`stubs/config/neobit.php`・`NeobitServiceProvider.php`。`config/neobit.php`・`upload.php`・`cleanup.php` と、`stubs` の `upload.php`・`cleanup.php` を削除。キーが変わるものの呼び出し |
 | テスト | `tests/Feature/ConfigSectionsTest.php`（新規）・`ConfigStubTest.php`。キーが変わるもの |
-| 道具と文書 | `check_latest.sh`・利用ガイド・`docs/neobit-framework-names.md`・`docs/new-project-files.md`・`docs/project-overview.md`・計画書・設定のキーやパスを書いている仕様メモ |
+| 道具と文書 | `check_latest.sh`・利用ガイド・`packages/neobit/core/docs/names.md`・`docs/new-project-files.md`・`docs/project-overview.md`・計画書・設定のキーやパスを書いている仕様メモ |
 
 ## B. 実装仕様
 
