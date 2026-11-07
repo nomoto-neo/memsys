@@ -63,7 +63,7 @@
 
 | まとまり | ファイル |
 |---|---|
-| はじめに | overview・parts・new-corner・rules・names・examples |
+| はじめに | overview・structure・parts・new-corner・rules・examples |
 | コーナーを作る | list・detail・form・delete・table・blade |
 | ファイルと入出力 | upload・code-table・csv-download・csv-import・pdf |
 | メールとフォーム | mail・public-form・queue |
@@ -71,6 +71,7 @@
 | 設置と運用 | deploy・settings・scheduler・error-notify・operation-log |
 | サイトの守り | access-restriction・basic-auth・ip-block・file-watch・public-files・wordpress・security |
 | 見せ方 | seo・redirect |
+| 備考 | names |
 
 コードを書く人が読む順（全体像 → 部品 → 作る手順 → 各機能）に並べ、サーバーに置くときだけ読むものは「設置と運用」にまとめた。
 
