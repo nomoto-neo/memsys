@@ -49,7 +49,7 @@ Schedule::command(CleanupTemporaryData::class)->hourly()->withoutOverlapping();
 | 終わったジョブのバッチ（[queue.md](queue.md)） | `job_batches` テーブル | 終わってから `failed_job_days`（7日）を過ぎた行。送り直せる間だけ残す |
 | 招待（[member-types.md](member-types.md)） | `team_invitations` テーブル | 期限（`expires_at`）の切れた行（`TeamInvitationManager::deleteExpired()`） |
 
-業務のデータの片付けは、`TemporaryDataCleaner` には書かず、`config/neobit.php` の `cleanup` の節の `tasks` に足します。フレームワークの片付けの後に、同じ1時間ごとの片付けの中で呼ばれます。サンプルサイトでは、お問い合わせと一斉メールの記録の片付けを足しています。
+業務のデータの片付けは、`TemporaryDataCleaner` には書かず、`config/neobit.php` の `cleanup` の節の `tasks` に足します。フレームワークの片付けの後に、同じ1時間ごとの片付けの中で呼ばれます。見本のサイトでは、お問い合わせと一斉メールの記録の片付けを足しています。
 
 | 片付け | 置き場所 | 消すもの |
 |---|---|---|
@@ -105,7 +105,7 @@ CRON_ENABLED=false
 - **時間の上限**：予定は応答を返した後に動くので、PHP の時間の上限（`max_execution_time`）は外して動かします。PHP-FPM の `request_terminate_timeout` を決めているサーバーでは、そちらで切られます。キューのワーカーの `--max-time` は、その秒数より短くしてください。途中で切られた一斉メールのジョブは、DB のキューの仕組みで後からまた送られます。
 - cron が動くサーバーでは、`CRON_ENABLED` は書かない（true のまま）にします。true なら、アクセスを契機には何も動きません。
 
-**cron と同じように動かすには、外から毎分アクセスさせる**
+### cron と同じように動かすには、外から毎分アクセスさせる
 
 アクセスが毎分1回以上あれば、どの予定も、予定の時刻から1分ほどの遅れで動き、cron とほぼ同じになります。アクセスの少ないサイトでは、外の監視サービスなどから、毎分 `/up` を開かせます。
 

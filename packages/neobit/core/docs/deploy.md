@@ -39,13 +39,13 @@ Blade・JS・CSS だけを差し替えるとき（デザイナーの直しなど
 
 cron を使わなくても、シェルで `php artisan neobit:rebuild` を流せば、`view:cache` と `npm run build` を個別に流さずに済みます（初めての1回と、`package.json` が変わったときを除く）。
 
-**デザイナーの手順**
+### デザイナーの手順
 
 1. Blade・JS・CSS を送る
 2. 1分ほど待つ
 3. 管理画面の「改ざん監視」で「承認する」を押す（[file-watch.md](file-watch.md)）
 
-**サーバーの設定**（1回だけ。サーバーを管理する人）
+### サーバーの設定（1回だけ。サーバーを管理する人）
 
 - `/etc/cron.d/` の改ざん監視の行の下に、1行を足します。Laravel のスケジューラー（apache の cron）には入れません。
 
@@ -57,7 +57,7 @@ cron を使わなくても、シェルで `php artisan neobit:rebuild` を流せ
 - cron の中で `npm` の場所が見つからないサーバーは、`.env` の `REBUILD_NPM` に絶対のパスを書きます（例：`/usr/bin/npm`）。
 - `sudo bash set_permissions.sh` で、devapp が `bootstrap/cache/views`・`public`・`node_modules` に書けることを確かめます。
 
-**動き**（`Neobit\Core\Operations\AssetRebuilder`）
+### 動き（`Neobit\Core\Operations\AssetRebuilder`）
 
 - 元のファイルの一覧（パス・大きさ・日時）のしるしを、前に作り直したときのしるし（`bootstrap/cache/rebuild.json`）と比べます。足した・直した・消した・名前を変えた、のどれでも作り直します。
   - 画面：登録された画面の場所の全部（`resources/views`・フレームワークの `neobit::` の画面）
