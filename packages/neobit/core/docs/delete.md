@@ -21,7 +21,7 @@ private function beforeDelete(News $news): void
 }
 ```
 
-- `deleteData()` が自動で消すもの：アップロードファイル、子テーブル（[form.md](form.md) の「子テーブル」）の行とそのファイル、記事ごとの SEO の欄の行。
+- 物理削除のとき、`deleteData()` が自動で消すもの：アップロードファイル、子テーブル（[form.md](form.md) の「子テーブル」）の行とそのファイル、記事ごとの SEO の欄の行。
 - 自分で消すもの：多対多の中間テーブル（`detach()`）と、子テーブルとして定義していない関連テーブル。`beforeDelete()` に書きます。
 - アップロードファイルの実物は、トランザクションが確定した後に消えます（[rules.md](rules.md)の「トランザクション」）。
 - 画面の削除ボタンで防いでいる条件（使用中のカテゴリーは削除できない、など）も、`destroy()` の中で必ずもう一度確かめます。
@@ -39,6 +39,9 @@ Route::delete('/news/{news}/delete', [AdminNewsController::class, 'destroy'])->n
 ## 論理削除と取り消し
 
 モデルに `SoftDeletes` を付けると、`deleteData()` は論理削除になります。
+
+- 論理削除のときは、子テーブル・SEO の欄・アップロードファイルを残します。削除を取り消したときに、元に戻すためです。
+- `beforeDelete()` は論理削除でも呼ばれます。取り消したときに要るもの（多対多の中間テーブルなど）は、消さないようにします。
 
 ```php
 Route::patch('/staff/{staff}/restore', [AdminStaffController::class, 'restore'])
