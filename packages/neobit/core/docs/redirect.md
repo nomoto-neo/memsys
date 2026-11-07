@@ -4,7 +4,7 @@
 
 **ファイル**：`packages/neobit/core/src/Seo/RedirectResolver.php`（当て方）・`RedirectChecker.php`（登録のときの確かめ）・`src/Http/Middleware/ApplyRedirects.php`・`src/Http/Controllers/RedirectController.php`・`src/Models/Redirect.php`、画面は `packages/neobit/core/resources/views/admin/redirects/`　**実例**：管理画面の「運用」の「リダイレクト」
 
-運用する人が管理画面から、古い URL を新しい URL へ移すリダイレクトを登録できます。`.htaccess` は書き換えず、全体のミドルウェアで当てます。登録のときに、`.htaccess` で起きやすい思った動きにならない登録を止めます。
+運用する人が管理画面から、古い URL を新しい URL へ移すリダイレクトを登録できます。種類は、行ごとに 301（恒久）と 302（一時）から選びます。`.htaccess` は書き換えず、全体のミドルウェアで当てます。登録のときに、`.htaccess` で起きやすい思った動きにならない登録を止めます。
 
 ```php
 // bootstrap/app.php。ルートの無い古い URL にも当てるので、全体のミドルウェアに足す

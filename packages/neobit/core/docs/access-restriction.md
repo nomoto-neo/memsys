@@ -28,7 +28,7 @@
     FrameworkRoutes::accessRestriction('/access-restriction');
     ```
 
-- **サイトの制限から管理画面を外す**：`bootstrap/app.php` の `RestrictSiteAccess::except()` に、管理画面の URL（見本のサイトでは `admin`・`admin/*`）を書きます。管理画面の URL の頭は案件が決めるので、案件の側で書きます。
+- **サイトの制限から管理画面を外す**：管理画面（設定の `route.admin_path` の下）は、いつもサイトの制限の外です（`RestrictSiteAccess` が足します）。`bootstrap/app.php` に書く必要はありません。
 - **設定の置き場所**：DB の `settings` テーブルです。毎回のアクセスで読むので、キャッシュに置き、保存のたびに作り直します。変えた内容は、使う IP アドレスとコメント（`203.0.113.10（事務所）` の形）を並べて、操作ログに「アクセス制限の変更」として残ります。
 - **IPブロック管理との関係**：2つの一覧にある IP アドレスは、IPブロック管理で止めません（[ip-block.md](ip-block.md)）。
 - **入口の見張り**：アクセス制限も、IPブロック管理と同じく、Laravel を起動する前の見張りが先に判断します（[ip-block.md](ip-block.md)の「入口の見張り」）。メンテナンス中の画面を変えたとき（`resources/views/vendor/neobit/maintenance.blade.php`）は、`php artisan neobit:gatekeeper --export` で見張りの画面も作り直します。
