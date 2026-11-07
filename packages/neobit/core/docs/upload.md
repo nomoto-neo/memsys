@@ -40,15 +40,18 @@ private function prepareInput(array $validated): array
 }
 ```
 
-- **`UPLOAD_FILES` の書き方**（決まりは `UploadFieldDefinitions` にあり、誤りは最初に画面を開いたときに例外になります）
+### UPLOAD_FILES の書き方
 
-    | キー | 書き方 |
-    |---|---|
-    | `type` | 必ず書く。`UploadType::Image`（画像）か `UploadType::File`（添付ファイル） |
-    | `width` | 画像なら必ず書く。この横幅を超えたら縮小する。添付ファイルには書かない |
-    | `required` | 省略できる。`true` なら必須（下の「必須の欄」） |
+決まりは `UploadFieldDefinitions` にあり、誤りは最初に画面を開いたときに例外になります。
 
-    受け付ける拡張子は、種類ごとに `config/neobit.php` の `upload` の節の `image_types`・`attach_types` を使います。
+| キー | 書き方 |
+|---|---|
+| `type` | 必ず書く。`UploadType::Image`（画像）か `UploadType::File`（添付ファイル） |
+| `width` | 画像なら必ず書く。この横幅を超えたら縮小する。添付ファイルには書かない |
+| `required` | 省略できる。`true` なら必須（下の「必須の欄」） |
+
+受け付ける拡張子は、種類ごとに `config/neobit.php` の `upload` の節の `image_types`・`attach_types` を使います。
+
 - **必須の欄**：`'required' => true` の欄は、新しいファイル（一時ファイルが今ある）か、消していない今のファイルが無いと、確認画面へ進めず、保存もできません。今のファイルは、hidden の値をそのまま信じず、編集しているレコードの今の値と照らします。組の中の欄では、空でない行のどれにもファイルを求めます（今のファイルは、その行の今の値と照らします）。「少なくとも1つ」は、組の `'min' => 1` で決めます。
     - エラーの文は、通常の項目と同じ `validation.required` です。エラーは欄の名前（組の中の欄は `photos_image.0` のように行ごと）に付き、`_ajax_upload_block` が自分で `invalid-feedback` を出します。
     - 必須マークは `requiredFields()` が付けます。画面では `{!! $required['list_image'] ?? '' !!}` と書きます。
