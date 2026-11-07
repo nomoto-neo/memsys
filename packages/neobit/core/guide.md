@@ -26,7 +26,7 @@
 - [登録・更新](docs/form.md)：入力・確認・保存の流れ（`FormFlow`）。確認画面のあり・なし、保存する値、子テーブル
 - [削除](docs/delete.md)：物理削除（`deleteData()`）と、論理削除・取り消し
 - [テーブル](docs/table.md)：フレームワークのテーブルのマイグレーションと、新しく登録する行の id の始まり
-- [画面（Blade）](docs/blade.md)：レイアウト、画面ごとのスクリプト、全体の CSS、スクリプトと CSS のビルド、サーバーでの作り直し（`neobit:rebuild`）
+- [画面（Blade）](docs/blade.md)：レイアウト、画面ごとのスクリプト、全体の CSS、画面で使えるヘルパー、スクリプトと CSS のビルド、サーバーでの作り直し（`neobit:rebuild`）
 
 ## ファイルと入出力
 

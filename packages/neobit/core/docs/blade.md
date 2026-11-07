@@ -28,6 +28,24 @@
 - **共通の部分ビュー**（`_confirm_hidden`・`_ajax_upload_block` など）は、フレームワークの `packages/neobit/core/resources/views/` に置き、モデル名やコントローラー名を書きません。コーナー専用のテンプレート（`admin/news/_fields` など）は、アプリの `resources/views/` に置き、そのコーナーのモデルの定数を参照してかまいません。フレームワークの画面は、`neobit::` を付けた名前で `@include` します（例：`@include('neobit::_confirm_hidden')`）。見た目や文言を変えたいときは、アプリの `resources/views/vendor/neobit/` に同じ名前（例：`_confirm_hidden.blade.php`）で置くと、そちらが使われます。
 - **フレームワークの画面が継承するレイアウト**は、`config/neobit.php` の `layouts`（`admin`・`app`）で、アプリのレイアウトに差し替えます。既定は、Bootstrap だけの `neobit::layouts.plain` です。レイアウトには、セクション `title`・`content`（必須）・`content-width` と、スタック `head-extra`・`scripts` を用意します。
 
+## 画面で使えるヘルパー
+
+フレームワークが用意している関数です。どの画面からも呼べます。
+
+| ヘルパー | 使いどころ | 詳細 |
+|---|---|---|
+| `code_label('prefectures', $value)` | 区分表の値の名前を出す | [code-table.md](code-table.md) |
+| `code_options('prefectures', $selected)` | プルダウンの `<option>` を並べる | 同上 |
+| `code_table('prefectures')` | 選択肢の一覧（値 => 名前）。チェックボックス・ラジオを `@foreach` で並べる | 同上 |
+| `is_match($value, $key)` | 入力値が選択肢に当たっているか。`@checked()`・`@selected()` に渡す | 同上 |
+| `safe_html($html)` | エディタで入力した HTML を、許したタグと属性だけにする。`{!! !!}` で出す HTML は必ず通す | [upload.md](upload.md) |
+| `upload_preview_url($model, $input, $field)` | アップロードの欄に出すファイルの URL | 同上 |
+| `seo('title')` | 今のページの SEO の値 | [seo.md](seo.md) |
+| `required_mark()` | 必須マーク。管理画面か訪問者向けかで、設定の `form.required_mark` の別の文字を出す | [form.md](form.md) |
+
+- 必須マークは、ふつうはコントローラーが項目ごとの配列を作って `$required` で渡し、画面は `{!! $required['name'] ?? '' !!}` で出します。配列は、`FormFlow` を使うコントローラーなら `requiredFields()`、使わないコントローラーなら `required_fields($this->rules())` で作ります。`required_mark()` を画面に直接書くのは、`rules()` と結び付けない画面だけです。
+- `code_keys()` は検証のルールに、`upload_field()`・`upload_input_value()` はアップロードの部分ビューの中で使うもので、画面にはふつう書きません。名前と引数の全部は [names.md](names.md) の「ヘルパー」にあります。
+
 ## スクリプトと CSS のビルド（vite.config.js）
 
 フレームワークのスクリプトと CSS は、`packages/neobit/core/resources/js/`・`css/` にあります。アプリからは、Composer が置いた `vendor/neobit/core/` の下のパスで読み込みます。
