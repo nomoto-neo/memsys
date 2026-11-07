@@ -11,7 +11,7 @@
    - `use FormFlow;` と `rules()`・`formValues()`・`saveValues()`（[form.md](form.md)）
    - アップロードがあれば `use AjaxFileUpload;` と `UPLOAD_FILES`（[upload.md](upload.md)）
    - 入口：`index`・`create`・`confirmForStore`・`backToCreate`・`store`・`show`・`edit`・`confirmForUpdate`・`backToEdit`・`update`・`destroy`
-4. **ルート**：`routes/admin.php` の、ログイン中のスタッフのグループ（`auth:admin`・`auth.session` の内側）に足す。`/xxx/csv` のような固定の URL は、`/xxx/{id}` より前に書く。
+4. **ルート**：`routes/admin.php` の、ログイン中のスタッフのグループ（`auth:admin`・`auth.session` の内側）に足す。`/xxx/csv` のような固定の URL は、`/xxx/{id}` より前に書く。ルートのファイルとグループの全体は [structure.md](structure.md)。
 5. **画面**：`resources/views/admin/<コーナー>/` に `index`・`_fields`・`create`・`edit`・`confirm`・`show`。
 6. **入口のリンク**：管理画面の左のメニュー（`admin/_menu.blade.php`）に項目を足す。
 7. **権限**：管理者だけの機能なら `acl.manager`、1件ごとに判断が要るなら Policy（[authorization.md](authorization.md)）。

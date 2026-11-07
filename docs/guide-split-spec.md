@@ -135,5 +135,6 @@
 
 ## H. 今後の改善提案・TODO
 
-- 計画書の段階6の残り：`docs/new-project-files.md` の調べ直し、上書きの方法と `vendor:publish` のタグをガイドにまとめること、`docs/project-overview.md` のディレクトリの表
+- 計画書の段階6の残り：`docs/new-project-files.md` の調べ直し、上書きの方法と `vendor:publish` のタグをガイドにまとめること
+- 分けた後に、ディレクトリとルートの全体（`structure.md`）を「はじめに」へ足した
 - 版を出す手順（`tools/release-core.sh`）を、ガイドの `deploy.md` か入口に案内する
