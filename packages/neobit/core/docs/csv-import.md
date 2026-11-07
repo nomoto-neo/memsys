@@ -4,6 +4,8 @@
 
 **ファイル**：`packages/neobit/core/src/Csv/CsvImport.php` ほか（冒頭のコメント）、設計の詳細は「CSV取り込みの設計」（`docs/csv-import-spec.md`）　**実例**：`Admin\MemberController`（更新だけ）・`Admin\NewsController`（アップロード項目と子テーブル（添付ファイル）あり。一覧用画像が必須なので、追加はできない）
 
+## コントローラーに書くもの
+
 項目の定義は、ダウンロードと同じ `csvColumns()` を使います。文字コードの判定は、取り込みの設定が `encoding: null` なら自動判別です。ダウンロードした CSV を直して、そのまま取り込めます。検証・保存は画面からの登録・更新（FormFlow）と同じ処理を通ります。
 
 ```php
@@ -26,12 +28,16 @@ private function csvImportSettings(): CsvImportSettings
 }
 ```
 
+## ルート
+
 ```php
 // ルート（/members/{member} より前）
 Route::get('/members/csv-import', [AdminMemberController::class, 'csvImport'])->name('members.csv-import');
 Route::post('/members/csv-import/confirm', [AdminMemberController::class, 'csvImportConfirm'])->name('members.csv-import.confirm');
 Route::post('/members/csv-import/execute', [AdminMemberController::class, 'csvImportExecute'])->name('members.csv-import.execute');
 ```
+
+## 決まりごと
 
 - 入口の3つ（取り込み画面・確認・実行）はトレイトにあり、画面は `admin/csv_import/` の共通のものを使います。取り込みが終わると取り込み画面に戻って結果を出します。「一覧へ戻る」は `INDEX_ROUTE` から作ります。
 - 取り込めるのは `rules()` にある項目だけです。リレーションをたどる列は `'import' => '項目名'` で取り込み先を書きます（例：`['categories.*.id', $categories, 'import' => 'category_ids']`）。`@名前` の列は `'import' => [...]` と `csvCustomImport()` を書いたときだけ取り込みます。

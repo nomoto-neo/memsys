@@ -8,7 +8,7 @@
 
 WordPress は `__()` などの関数を条件なしで作るので、Laravel と同じ PHP の中では動かせません。`public/.htaccess` で、URL ごとにどちらかへ振り分けます。
 
-**フレームワークが受け持つ守りと、WordPress 次第のもの**
+## フレームワークが受け持つ守りと、WordPress 次第のもの
 
 | 守り | WordPress のコーナーの下 |
 |---|---|
@@ -17,7 +17,7 @@ WordPress は `__()` などの関数を条件なしで作るので、Laravel と
 | リダイレクト（[redirect.md](redirect.md)） | 効かない。`.htaccess` が Laravel より先に WordPress へ回すため |
 | ログインの守り・操作ログ・スパムの守り・SEO・存在しない URL の数え（自動で止める） | WordPress 次第 |
 
-**置き方**
+## 置き方
 
 - WordPress の本体（`wp-admin/`・`wp-includes/`・`wp-content/`・`wp-*.php`）を、`public/` の直下に置きます。既存のサイトと同じ `/wp-admin/` の URL のままにするためです。
 - 直下の `index.php` は Laravel の入口なので、WordPress の入口は `public/wordpress.php` という名前で置きます。中身は WordPress の `index.php` と同じです。
@@ -66,7 +66,7 @@ WordPress は `__()` などの関数を条件なしで作るので、Laravel と
 
 - `public/.htaccess` は、apache が書けない権限のままにします。WordPress のパーマリンクの設定を保存すると、WordPress は `public/.htaccess` を書き換えようとするためです。書けなければ、WordPress は書くべき内容を画面に出すだけで、何も壊しません。
 
-**`.htaccess` の振り分け**
+## `.htaccess` の振り分け
 
 `public/.htaccess` の、Laravel の決まり（`# Send Requests To Front Controller...`）の前に書きます。コーナーを足したら、ここにも足します。
 
@@ -90,7 +90,7 @@ RewriteRule ^$ wordpress.php [L]
 - 最上位（`/`）に `p`・`page_id`・`post_type`・`preview`・`s` の問い合わせが付いたものも WordPress に回します。下書きのプレビュー（`/?post_type=news&p=123&preview=true`）・短い URL・検索は、パーマリンクを決めていても最上位で呼ばれるためです。Laravel の側では、最上位でこれらの名前を使いません（検索を作るときは `/search?q=` のように別の URL にします）。
 - 共通のヘッダー・フッターは、Laravel のレイアウトと WordPress のテーマの両方に持ちます。
 
-**設定**
+## 設定
 
 WordPress を置く案件だけが、アプリの `config/neobit.php` に `wordpress` の節を書きます。この節は既定の値を持たないので、全部のキーを書きます。
 
@@ -134,7 +134,7 @@ WordPress を置く案件だけが、アプリの `config/neobit.php` に `wordp
 - `wp-json`（REST API）は、どこにも書きません。表の URL と同じくサイトの制限が掛かります。ブロックエディタの保存も `wp-json` を通りますが、管理画面の許す IP はサイトの制限でも許す（[access-restriction.md](access-restriction.md)）ので、メンテナンス中も記事を保存できます。表のフォーム（Contact Form 7 など）が `wp-json` を使っていても、管理画面の制限には掛かりません。
 - 設定を変えたら、`php artisan config:cache` と `php artisan neobit:gatekeeper --export` を実行します。
 
-**見張りの掛け方**
+## 見張りの掛け方
 
 `index.php` を通らない WordPress には、`public/index.php` の見張り（[ip-block.md](ip-block.md)）が掛かりません。次のどれかで掛け、その段を `.env` に書きます。上のものほど強いので、使えるものを上から選びます。
 
@@ -178,7 +178,7 @@ require __DIR__.'/vendor/neobit/core/gatekeeper.php';
     - `wp-config` の確かめでは、コメントにした行（`//`・`#`・`*` で始まる行）は数えません。
 - **書き忘れたとき**：`wordpress` の節があるのに `.env` の `WORDPRESS_GATEKEEPER` が空なら、WordPress が守られていないので、critical のログを書きます（エラーの通知のメールが届きます。1時間に1回まで）。`prepend` なのに `auto_prepend_file` が見張りを指していないと分かったときも、critical のログを書きます。
 
-**アップロードの置き場所の `.htaccess`**
+## アップロードの置き場所の `.htaccess`
 
 アップロードの置き場所は apache が書けるので、悪い `.htaccess` を置かれると、`AddHandler` で `.jpg` を PHP として動かす設定にされます。改ざん監視は知らせます（[file-watch.md](file-watch.md)）が、Apache の設定で、そもそも効かないようにしておくと確かです。`.htaccess` に書けるのを、アクセスの許可・拒否だけにします。プラグインが置く「開かせない」ための `.htaccess` は、そのまま効きます。
 
@@ -189,7 +189,7 @@ require __DIR__.'/vendor/neobit/core/gatekeeper.php';
 </Directory>
 ```
 
-**セキュリティのヘッダー**
+## セキュリティのヘッダー
 
 WordPress の画面と、見張りが返す 404・503 には、`SecurityHeaders`（[settings.md](settings.md)）のヘッダーが付きません。Laravel を通らないためです。Apache の設定で付けます。HTTPS の VirtualHost（certbot で証明書を取ったサーバーでは、certbot が作る `〜-le-ssl.conf` の `<VirtualHost *:443>`）に書きます。HTTP の VirtualHost は HTTPS へ移すだけなので、書いても HTTPS の画面には付きません。
 
@@ -208,7 +208,7 @@ sudo apachectl configtest && sudo systemctl reload httpd
 - 書いたら、`curl -sI` で Laravel の画面（管理画面のログイン画面など）・WordPress の画面（`/wp-login.php` など）・見張りの 404（`/xmlrpc.php`）・503（サイトの制限の間）を開き、どれにも1行ずつ付くことを確かめます。
 - 見張りの 404・503 にもヘッダーが付くので、止められた人が、ほかの画面とヘッダーを見比べても気付きません。WordPress を置かないサイトでも、書いておくと同じ効き目があります。
 
-**コーナーを足すとき**
+## コーナーを足すとき
 
 1. WordPress の管理画面で、投稿タイプかカテゴリーを作り、パーマリンクがその頭の名前の下に入るようにします。
 2. `public/.htaccess` の `RewriteRule ^(column|topics|wp-json)(/|$) wordpress.php [L]` に、頭の名前を足します。

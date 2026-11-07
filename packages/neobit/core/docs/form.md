@@ -4,7 +4,7 @@
 
 **ファイル**：`packages/neobit/core/src/Crud/FormFlow.php`　**実例**：`Admin\NewsController`（確認画面あり）・`Admin\CategoryController`（確認画面なし）
 
-## コントローラーに書くメソッド
+## コントローラーに書くもの
 
 | メソッド | 必須 | 中身 |
 |---|---|---|

@@ -6,6 +6,8 @@
 
 不正な URL を続けて叩く BOT を、IP アドレスで止めます。Cloudflare などの WAF や fail2ban を入れられない環境で、PHP の側で身を守るためのものです。止めた IP アドレスからのアクセスには、どのページも 404 を返します。
 
+## 止め方と管理画面
+
 - **止める場所**：全体のミドルウェア `RejectBlockedIp` です。ルートの無い URL（`/.env`・`/wp-login.php` など）も、ルートを探す前にここを通ります。止めている一覧はキャッシュに置き、毎回 DB は読みません。403 ではなく 404 にし、画面もルートの無い URL を開いたときと同じ 404 の画面にします。止められていることを、相手に気付かせないためです。Apache が PHP を通さずに返すファイル（画像・CSS など）は止まりません。
 - **自動で止める**：応答が 404・405 になったアクセスを、IP アドレスごとに数えます。`config/neobit.php` の `security.ip_block_watch_minutes`（10分）の中に `security.ip_block_watch_count`（30回）を超えたら、`security.ip_block_hours`（24時間）止めます。`security.ip_block_auto` を false にすると数えず、管理画面からの登録だけになります。IPv6 は `/64` のまとまりで数えて止めます。
 - **止めない IP アドレス**：アクセス制限（[access-restriction.md](access-restriction.md)）のサイトと管理画面の IP アドレスは、`.env` の分も画面の分も、自動でも手動でも止めません。管理画面からは、今の自分の IP アドレスを含むものも登録できません。管理者が自分を止めないようにするためです。

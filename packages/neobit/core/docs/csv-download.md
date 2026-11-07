@@ -4,6 +4,8 @@
 
 **ファイル**：`packages/neobit/core/src/Csv/CsvDownload.php`・`CsvColumnSet.php`（項目の定義の書き方）・`CsvWriter.php`（共通の書き出し方）　**実例**：`Admin\MemberController`・`Admin\NewsController`・`Admin\BulkMailController::failedCsv()`
 
+## コントローラーに書くもの
+
 ```php
 use CsvDownload;
 
@@ -39,8 +41,16 @@ private function csvColumns(): array
 - 書き方の全体（複数の値の「、」区切り、連番の横展開 `'添付ファイル:*' => 'attach.*.file_origin'`、組の横展開 `'添付:*' => ['attach', 'group' => [...]]` など）は `CsvColumnSet.php` の冒頭にあります。
 - **子テーブル**：`csvColumns()` に組の横展開（`'添付:*' => ['attach', 'group' => ['添付ファイル' => 'file_origin', '保存ファイル名' => 'file']]`）を書くと、子テーブルの行を「添付ファイル:1」「保存ファイル名:1」……のように横に並べて書き出します。書かなければ、CSV は親の項目だけです。取り込みは [csv-import.md](csv-import.md) の「子テーブル」。
 - `downloadCsv()` に渡したクエリのデータを出力します。`SearchableList` を使っていれば、一覧の検索条件と並び順が自動的に反映されます。
-- ルート：`Route::get('/members/csv', ...)->name('members.csv')`（`/members/{member}` より前）。一覧画面に「CSVダウンロード」ボタン。
 - ダウンロードのたびに `csv_download_logs` に記録します。
+
+## ルート
+
+```php
+Route::get('/members/csv', [AdminMemberController::class, 'csv'])->name('members.csv');
+```
+
+- `/members/{member}` より前に書きます。
+- 一覧画面に「CSVダウンロード」ボタンを置きます。
 
 ## モデルではないデータを書き出す（CsvWriter）
 

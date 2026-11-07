@@ -4,6 +4,8 @@
 
 **ファイル**：`packages/neobit/core/src/Code/CodeTable.php`・`packages/neobit/core/src/helpers.php`・`app/Enums/`・`code/*.csv`・`config/neobit.php` の `code_table.db`・`code_table.method`・`packages/neobit/core/src/Http/Controllers/CodeTableController.php`（項目見出し一覧）
 
+## ヘルパー
+
 区分表（値と名称の組）は、出どころに関係なく次のヘルパーで使います。
 
 | ヘルパー | 使いどころ |
@@ -13,6 +15,8 @@
 | `code_label('prefectures', $value, '（未設定）')` | 名称。画面の表示、メール。複数選ばれた値を配列で渡すと、名称を「、」でつなげる。区切りは4番目の引数に書く |
 | `code_options('prefectures', $selected)` | プルダウンの `<option>` を並べた HTML。選ばれているものに `selected` が付く。2階層の配列を渡すと `<optgroup>` にまとめる |
 | `is_match($value, $key)` | 入力値が、選択肢の値に当たっているか。`@checked()`・`@selected()` に渡す |
+
+## 出どころ
 
 出どころは4種類で、`CodeTable` がコード名から自動で探します（2つ以上にあればエラー）。
 
@@ -40,6 +44,8 @@ DBのコード表を増やすときは、`config/neobit.php` の `code_table.db`
 FrameworkRoutes::codes('/codes');
 ```
 
+## ほかのテーブルから作る（メソッド）
+
 ほかのテーブルから作るコード表は、モデルに静的なメソッドを書き、`code_table.method` に載せます。画面やコントローラーで一覧を組み立てなくても、ほかのコード表と同じヘルパーで使えます。
 
 ```php
@@ -63,6 +69,8 @@ public static function nameOptions(): array
 - 論理削除した行を、名前には出し、選択肢には出さないときは、上の例のようにメソッドを分けて、コード表を2つにします。
 - 1回作った一覧は、同じリクエストの中で使い回します。1つの画面で何度 `code_label()` を呼んでも、問い合わせは1回です。
 - 操作ログの操作のコード表（`operation_log_action`）は、フレームワークが自分で持つメソッドのコード表です。`config/neobit.php` の `operation_log.actions` の列挙型を、書いた順に合わせて作ります。設定の `code_table.method` に書く必要はありません。
+
+## 列挙型の名前の書き方
 
 列挙型の値ごとの名前や設定は、`match` でメソッドの中に書かず、冒頭の定数に1行ずつまとめ、メソッドはそれを引くだけにします。キーは `case` の値を参照します（PHP 8.2から使える書き方）。
 
