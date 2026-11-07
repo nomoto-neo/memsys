@@ -14,7 +14,7 @@
 | `code_keys('prefectures')` | 値の一覧。検証の `Rule::in(code_keys(...))` |
 | `code_label('prefectures', $value, '（未設定）')` | 名称。画面の表示、メール。複数選ばれた値を配列で渡すと、名称を「、」でつなげる。区切りは4番目の引数に書く |
 | `code_options('prefectures', $selected)` | プルダウンの `<option>` を並べた HTML。選ばれているものに `selected` が付く。2階層の配列を渡すと `<optgroup>` にまとめる |
-| `is_match($value, $key)` | 入力値が、選択肢の値に当たっているか。`@checked()`・`@selected()` に渡す |
+| `is_match($value, $key)` | 入力値（`$value`）が、選択肢の値（`$key`）に当たっているか。入力値が配列なら、その中にあるか。`@checked()`・`@selected()` に渡す |
 
 ## 出どころ
 

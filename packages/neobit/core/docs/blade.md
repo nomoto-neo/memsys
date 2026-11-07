@@ -37,7 +37,7 @@
 | `code_label('prefectures', $value)` | 区分表の値の名前を出す | [code-table.md](code-table.md) |
 | `code_options('prefectures', $selected)` | プルダウンの `<option>` を並べる | 同上 |
 | `code_table('prefectures')` | 選択肢の一覧（値 => 名前）。チェックボックス・ラジオを `@foreach` で並べる | 同上 |
-| `is_match($value, $key)` | 入力値が選択肢に当たっているか。`@checked()`・`@selected()` に渡す | 同上 |
+| `is_match($value, $key)` | 入力値（`$value`）が、選択肢の値（`$key`）に当たっているか。入力値が配列なら、その中にあるか。`@checked()`・`@selected()` に渡す | 同上 |
 | `safe_html($html)` | エディタで入力した HTML を、許したタグと属性だけにする。`{!! !!}` で出す HTML は必ず通す | [upload.md](upload.md) |
 | `upload_preview_url($model, $input, $field)` | アップロードの欄に出すファイルの URL | 同上 |
 | `seo('title')` | 今のページの SEO の値 | [seo.md](seo.md) |

@@ -208,7 +208,7 @@
 | `code_keys($codeName)` | コード表の値の一覧 |
 | `code_label($codeName, $value, $default, $separator)` | 値の名前 |
 | `code_options($options, $selected)` | プルダウンの `<option>` |
-| `is_match($value, $key)` | 入力値が、選択肢の値に当たっているか。`@checked()`・`@selected()` に渡す |
+| `is_match($value, $key)` | 入力値（`$value`）が、選択肢の値（`$key`）に当たっているか。入力値が配列なら、その中にあるか。`@checked()`・`@selected()` に渡す |
 | `safe_html($html)` | エディタの HTML を安全にする |
 | `upload_input_value($input, $key, $idx)` | アップロードの欄の値 |
 | `upload_preview_url($model, $input, $field, $idx)` | アップロードの欄に出す URL |
