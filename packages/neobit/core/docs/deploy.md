@@ -37,6 +37,8 @@
 
 Blade・JS・CSS だけを差し替えるとき（デザイナーの直しなど）は、シェルで `view:cache`・`npm run build` を流さずに済みます。コードを更新する利用者（開発サーバーでは devapp）の cron が、毎分、元のファイルの変化を見つけて作り直します。コンパイル済みの画面と JS・CSS を書くのはその利用者だけで、apache には書かせません。
 
+cron を使わなくても、シェルで `php artisan neobit:rebuild` を流せば、`view:cache` と `npm run build` を個別に流さずに済みます（初めての1回と、`package.json` が変わったときを除く）。
+
 **デザイナーの手順**
 
 1. Blade・JS・CSS を送る

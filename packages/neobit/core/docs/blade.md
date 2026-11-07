@@ -58,3 +58,15 @@ resolve: {
 |---|---|---|
 | `@laravel/passkeys` | `passkeys.js` | パスキーを使うとき |
 | `suneditor` | `wysiwyg_suneditor.js`・`wysiwyg_suneditor_content.css` | SunEditor を使うとき |
+
+## サーバーでの作り直し（neobit:rebuild）
+
+サーバーでは、Blade を直したら `php artisan view:cache`、JS・CSS を直したら `npm run build` が要ります。apache はコンパイル済みの画面を作れないためです。
+
+`php artisan neobit:rebuild` を流せば、この2つを個別に流さずに済みます。前に作り直したときから変わったほうだけを、画面は `view:cache` と同じように、JS・CSS は `npm run build` で作り直します。作り終えてから入れ替えるので、作っている間も前の画面と JS・CSS が出ます。
+
+- 初めて流したときは、作り直さずに、今のファイルのしるしを記録するだけです。最初の1回は、`view:cache` と `npm run build` を流します。
+- `package.json`・`package-lock.json` が変わったときは、JS・CSS を作りません。`npm ci` と `npm run build` を流します。
+- コードを更新する利用者（devapp など）で流します。作ったファイルの持ち主になるためです。
+
+cron で毎分動かしておけば、Blade・JS・CSS だけを送るデザイナーは、シェルを使わずに済みます。設定と動きは [deploy.md](deploy.md) の「画面と JS・CSS の作り直し」にあります。
