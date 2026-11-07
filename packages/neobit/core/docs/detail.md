@@ -24,6 +24,7 @@ public function show(News $news): View
 ## ルート
 
 ```php
+// GET：詳細画面を出す
 Route::get('/news/{news}', [AdminNewsController::class, 'show'])->name('news.show');
 ```
 

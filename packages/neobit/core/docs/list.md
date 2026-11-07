@@ -58,7 +58,9 @@ private function applyCustomSearch(Builder $query, string $key, mixed $value): b
 ## ルート
 
 ```php
+// GET：一覧を出す。保存してある検索の条件・並び順・ページで絞る
 Route::get('/members', [AdminMemberController::class, 'index'])->name('members.index');
+// POST：検索の条件を検証して保存し、一覧の1ページ目へ戻る
 Route::post('/members', [AdminMemberController::class, 'storeSearchCondition'])->name('members.search');
 ```
 

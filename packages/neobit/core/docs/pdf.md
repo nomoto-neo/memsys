@@ -31,7 +31,13 @@ public function resume(Member $member): Response
 ```
 
 - `images` の `aspect`（`[横, 縦]`）を書くと、画像の真ん中をその比で切り抜いてから埋め込みます。mPDF は CSS の `object-fit` に対応していないので、決まった大きさの枠に写真をゆがめずに収めるためです。`path` が null か、ファイルが無いときは埋め込みません。
-- ルート：`Route::get('/members/{member}/resume', ...)->name('members.resume')`。画面のボタンやリンクは、今の画面が切り替わらないように `target="_blank"` で開きます。
+- ルート：画面のボタンやリンクは、今の画面が切り替わらないように `target="_blank"` で開きます。
+
+    ```php
+    // GET：会員の履歴書の PDF を返す
+    Route::get('/members/{member}/resume', [AdminMemberController::class, 'resume'])->name('members.resume');
+    ```
+
 - 返す PDF には、ブラウザやプロキシに残させないヘッダー（`Cache-Control: private, no-store`）を付けています。
 
 ## テンプレート

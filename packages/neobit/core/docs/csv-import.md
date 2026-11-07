@@ -32,8 +32,11 @@ private function csvImportSettings(): CsvImportSettings
 
 ```php
 // ルート（/members/{member} より前）
+// GET：取り込み画面を出す。CSV のファイルを選ぶ
 Route::get('/members/csv-import', [AdminMemberController::class, 'csvImport'])->name('members.csv-import');
+// POST：送られた CSV の全部の行を検証して、確認画面を出す
 Route::post('/members/csv-import/confirm', [AdminMemberController::class, 'csvImportConfirm'])->name('members.csv-import.confirm');
+// POST：確認画面の「取り込む」から保存して、取り込み画面へ戻る
 Route::post('/members/csv-import/execute', [AdminMemberController::class, 'csvImportExecute'])->name('members.csv-import.execute');
 ```
 

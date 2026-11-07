@@ -46,6 +46,7 @@ private function csvColumns(): array
 ## ルート
 
 ```php
+// GET：一覧の検索の条件と並び順のまま、CSV を返す
 Route::get('/members/csv', [AdminMemberController::class, 'csv'])->name('members.csv');
 ```
 

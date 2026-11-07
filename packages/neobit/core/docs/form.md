@@ -90,14 +90,25 @@ public function store(Request $request): RedirectResponse
 ## ルート
 
 ```php
-Route::get('/news/create', ...'create')->name('news.create');
-Route::post('/news/confirm', ...'confirmForStore')->name('news.confirm.store');
-Route::post('/news/back', ...'backToCreate')->name('news.confirm.store.back');
-Route::post('/news/store', ...'store')->name('news.store');
-Route::get('/news/{news}/edit', ...'edit')->name('news.edit');
-Route::patch('/news/{news}/confirm', ...'confirmForUpdate')->name('news.confirm.update');
-Route::post('/news/{news}/back', ...'backToEdit')->name('news.confirm.update.back');
-Route::patch('/news/{news}/update', ...'update')->name('news.update');
+// 新規登録
+// GET：入力画面を出す
+Route::get('/news/create', [AdminNewsController::class, 'create'])->name('news.create');
+// POST：入力を検証して、確認画面を出す
+Route::post('/news/confirm', [AdminNewsController::class, 'confirmForStore'])->name('news.confirm.store');
+// POST：確認画面から、入力した値のまま入力画面へ戻る
+Route::post('/news/back', [AdminNewsController::class, 'backToCreate'])->name('news.confirm.store.back');
+// POST：保存して、一覧へ戻る
+Route::post('/news/store', [AdminNewsController::class, 'store'])->name('news.store');
+
+// 編集
+// GET：今の値を入れた入力画面を出す
+Route::get('/news/{news}/edit', [AdminNewsController::class, 'edit'])->name('news.edit');
+// PATCH：入力を検証して、確認画面を出す
+Route::patch('/news/{news}/confirm', [AdminNewsController::class, 'confirmForUpdate'])->name('news.confirm.update');
+// POST：確認画面から、入力した値のまま入力画面へ戻る
+Route::post('/news/{news}/back', [AdminNewsController::class, 'backToEdit'])->name('news.confirm.update.back');
+// PATCH：保存して、一覧へ戻る
+Route::patch('/news/{news}/update', [AdminNewsController::class, 'update'])->name('news.update');
 ```
 
 ## 画面

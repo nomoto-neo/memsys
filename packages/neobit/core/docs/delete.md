@@ -29,6 +29,7 @@ private function beforeDelete(News $news): void
 ## ルート
 
 ```php
+// DELETE：削除して、一覧へ戻る
 Route::delete('/news/{news}/delete', [AdminNewsController::class, 'destroy'])->name('news.destroy');
 ```
 
@@ -44,6 +45,7 @@ Route::delete('/news/{news}/delete', [AdminNewsController::class, 'destroy'])->n
 - `beforeDelete()` は論理削除でも呼ばれます。取り消したときに要るもの（多対多の中間テーブルなど）は、消さないようにします。
 
 ```php
+// PATCH：削除を取り消して、詳細へ戻る
 Route::patch('/staff/{staff}/restore', [AdminStaffController::class, 'restore'])
     ->withTrashed()
     ->middleware('can:restore,staff')
