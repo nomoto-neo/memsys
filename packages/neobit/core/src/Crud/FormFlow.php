@@ -3,6 +3,7 @@
 namespace Neobit\Core\Crud;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Neobit\Core\Enums\OperationLogAction;
@@ -254,25 +255,32 @@ trait FormFlow
 
     /**
      * 削除の実行。関連データとアップロードを先に消してから本体を消す。
-     * ファイルの実物は、トランザクションが確定した後に消える
+     * ファイルの実物は、トランザクションが確定した後に消える。
+     * 論理削除のモデルは、子テーブル・SEOの欄・アップロードを残す。削除を取り消したときに元に戻すため
      */
     private function deleteData(Model $record): void
     {
-        DB::transaction(function () use ($record) {
+        $softDelete = in_array(SoftDeletes::class, class_uses_recursive($record), true);
+
+        DB::transaction(function () use ($record, $softDelete) {
             $this->beforeDelete($record);
 
-            // 子テーブルの行とファイル。子テーブルが親を参照しているので、親より先に消す
-            if (method_exists($this, 'deleteChildTables')) {
-                $this->deleteChildTables($record);
-            }
+            // 物理削除のときだけ、本体に付いているものを消す
+            if (! $softDelete) {
+                // 子テーブルの行とファイル。子テーブルが親を参照しているので、親より先に消す
+                if (method_exists($this, 'deleteChildTables')) {
+                    $this->deleteChildTables($record);
+                }
 
-            // SEOの欄の行
-            if (method_exists($this, 'deleteSeoFields')) {
-                $this->deleteSeoFields($record);
-            }
+                // SEOの欄の行
+                if (method_exists($this, 'deleteSeoFields')) {
+                    $this->deleteSeoFields($record);
+                }
 
-            if (method_exists($this, 'deleteAllUploads')) {
-                $this->deleteAllUploads($record);
+                // アップロードファイル
+                if (method_exists($this, 'deleteAllUploads')) {
+                    $this->deleteAllUploads($record);
+                }
             }
 
             $record->delete();

@@ -9,6 +9,7 @@ use App\Models\Category;
 use App\Models\News;
 use App\Models\NewsPhoto;
 use App\Models\Staff;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
@@ -23,6 +24,7 @@ use Neobit\Core\Csv\CsvImportSettings;
 use Neobit\Core\Upload\UploadFieldDefinitions;
 use Neobit\Core\Upload\UploadFilePath;
 use PHPUnit\Framework\Attributes\DataProvider;
+use ReflectionMethod;
 use Tests\TestCase;
 use Neobit\Core\Upload\UploadType;
 
@@ -314,6 +316,23 @@ class ChildTablesTest extends TestCase
 
         $this->assertSame(0, NewsPhoto::count());
         Storage::disk(UploadFilePath::PRIVATE_DISK)->assertMissing($this->storedPath($news, $file));
+    }
+
+    /** 論理削除のモデルは、削除を取り消したときに戻せるよう、子テーブルの行とファイルを残す */
+    public function test_soft_delete_keeps_rows_and_files(): void
+    {
+        $news = $this->news();
+        $file = Str::random(40).'.jpg';
+        Storage::disk(UploadFilePath::PRIVATE_DISK)->put($this->storedPath($news, $file), 'a');
+        $news->photos()->create(['image' => $file, 'caption' => '残る', 'seq' => 0]);
+
+        // ニュースを論理削除のモデルとして読み、ニュースのコントローラーの削除に渡す
+        $softNews = (new TestSoftDeletingNews())->newFromBuilder($news->getAttributes());
+        $deleteData = new ReflectionMethod(NewsController::class, 'deleteData');
+        $deleteData->invoke(app(NewsController::class), $softNews);
+
+        $this->assertSame(1, NewsPhoto::count());
+        Storage::disk(UploadFilePath::PRIVATE_DISK)->assertExists($this->storedPath($news, $file));
     }
 
     public function test_private_photo_is_served_for_its_row(): void
@@ -815,6 +834,26 @@ class TestChildTablesManyToManyController extends Controller
     public function saveFor(News $news, array $validated): void
     {
         $this->saveChildTables($news, $validated);
+    }
+}
+
+/**
+ * 論理削除のモデルとして扱うニュース。t_newsにはdeleted_atの列が無いので、論理削除の書き込みは行わない。
+ * FormFlowの削除が、論理削除のモデルを見分けて関連を残すかを確かめるために使う
+ */
+class TestSoftDeletingNews extends News
+{
+    use SoftDeletes;
+
+    /** deleted_atの列が無いので、書き込まずに終える */
+    protected function runSoftDelete(): void
+    {
+    }
+
+    /** 操作ログには、ニュースとして残す */
+    public function getMorphClass(): string
+    {
+        return (new News())->getMorphClass();
     }
 }
 
