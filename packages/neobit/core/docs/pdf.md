@@ -2,7 +2,7 @@
 
 <p align="right"><a href="../guide.md">利用ガイドへ戻る</a></p>
 
-**ファイル**：`packages/neobit/core/src/Pdf/PdfDownload.php`（冒頭のコメント）・`resources/fonts/ipaex/`（IPAex フォントとライセンス）・`resources/views/pdf/`　**実例**：履歴書（`Admin\MemberController::resume()`・`MypageController::resume()`・`resources/views/pdf/resume.blade.php`）
+**ファイル**：`packages/neobit/core/src/Pdf/PdfDownload.php`・`PdfWriter.php`（冒頭のコメント）・`resources/fonts/ipaex/`（IPAex フォントとライセンス）・`resources/views/pdf/`　**実例**：履歴書（`Admin\MemberController::resume()`・`MypageController::resume()`・`resources/views/pdf/resume.blade.php`）
 
 PDF の見た目は、普通の画面と同じく Blade のテンプレート（HTML と CSS）で書き、mPDF（composer の `mpdf/mpdf`）で PDF にします。
 
@@ -30,6 +30,7 @@ public function resume(Member $member): Response
 }
 ```
 
+- `downloadPdf()` は、PDF を中身にした応答（`Response`）を返します。コントローラーはそれをそのまま `return` します。
 - `images` の `aspect`（`[横, 縦]`）を書くと、画像の真ん中をその比で切り抜いてから埋め込みます。mPDF は CSS の `object-fit` に対応していないので、決まった大きさの枠に写真をゆがめずに収めるためです。`path` が null か、ファイルが無いときは埋め込みません。
 - ルート：画面のボタンやリンクは、今の画面が切り替わらないように `target="_blank"` で開きます。
 
@@ -102,7 +103,41 @@ enum AppSheetPaging implements SheetPagingRule
 }
 ```
 
+## ファイルに保存する・メールに付ける
+
+ブラウザに返さずに PDF を使うときは、`PdfWriter` で PDF のデータ（文字列）を作ります。引数は `downloadPdf()` から `inline` を除いたものです。コントローラーのほか、サービスやコマンドからも呼べます。定型紙に載せるときは `PdfWriter::makePdfOnSheet()` です。
+
+```php
+use Neobit\Core\Pdf\PdfWriter;
+
+// ファイルに保存する
+$pdf = PdfWriter::makePdf(
+    view: 'pdf.resume',
+    data: ['member' => $member],
+    name: '履歴書_'.$member->name,
+    images: [
+        'photo' => [
+            'path' => $member->photo_path,
+            'aspect' => Member::PHOTO_ASPECT,
+        ],
+    ],
+    paper: 'A4',
+    orientation: 'P',
+);
+Storage::disk('local')->put("resumes/{$member->id}.pdf", $pdf);
+
+// メールに付ける
+Mail::send(new TemplatedMail('resume_send', [
+    'name' => $member->name,
+], [
+    ['data' => $pdf, 'name' => '履歴書_'.$member->name.'.pdf'],
+]));
+```
+
+- 個人情報を含む PDF をファイルに保存するときは、公開しない `local` のディスク（`storage/app/private`）に保存することを勧めます。
+- メールの添付は、[mail.md](mail.md) のとおりです。
+
 ## 決まりごと
 
 - mPDF の作業用のディレクトリは `storage/framework/mpdf`（Git の対象外）です。最初の1回はフォントを解析するので、少し時間がかかります。
-- フォントを足すときは、`resources/fonts/` にファイルとライセンスを置き、`PdfDownload` の `PDF_FONTS` に足します。
+- フォントを足すときは、`resources/fonts/` にファイルとライセンスを置き、`PdfWriter` の `FONTS` に足します。

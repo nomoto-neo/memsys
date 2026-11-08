@@ -40,9 +40,9 @@
   - 場所：`packages/neobit/core/src/Http/Controllers/`
   - 概要：管理画面の項目見出し一覧。DB で管理するコード表をまとめて書き換える
   - 詳細：[code-table.md](code-table.md)
-- **`PdfDownload`**
+- **`PdfDownload`・`PdfWriter`**
   - 場所：`packages/neobit/core/src/Pdf/`
-  - 概要：Blade のテンプレートから PDF を作って返す（mPDF、同梱の IPAex フォント）
+  - 概要：Blade のテンプレートから PDF を作って返す（mPDF、同梱の IPAex フォント）。`PdfWriter` は PDF のデータを作り、保存やメールへの添付に使う
   - 詳細：[pdf.md](pdf.md)
 - **`HtmlSanitizer`（`safe_html()`）**
   - 場所：`packages/neobit/core/src/Upload/`

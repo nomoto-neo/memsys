@@ -44,7 +44,8 @@ Mail::send(new TemplatedMail('contact_staff', [
     'name' => $inquiry->name,
     // ...
 ], [
-    ['path' => $absolutePath, 'name' => $originalName],   // 添付ファイル（任意）
+    ['path' => $absolutePath, 'name' => $originalName],   // 添付ファイル（任意）。サーバー上のファイル
+    ['data' => $pdf, 'name' => '履歴書.pdf'],              // ファイルの中身を直接渡す
 ]));
 ```
 
@@ -56,6 +57,8 @@ Mail::send(new TemplatedMail('contact_staff', [
     - テンプレートでは書けないヘッダーは、`TemplatedMail` の4つ目の引数に、ヘッダーの名前 => 値の配列で渡せます。
 - 同じ名前に `_html` を付けたファイル（`contact_staff_html.blade.php`、本文だけ）を置くと、HTML とテキストのマルチパートになります。
 - テキスト版は `{!! !!}`、HTML 版の利用者の入力値は `{{ }}` で埋め込みます。条件分岐や繰り返しは Blade の `@if`・`@foreach` が使えます。
+- 添付ファイルは、`path`（サーバー上のファイルの場所）か `data`（ファイルの中身）のどちらかと、`name`（メールに付けるときのファイル名）で書きます。作った PDF などは、`data` で渡せばファイルに書かずに付けられます。`data` のファイルの種類は、`name` の拡張子から決まります。
+- キューに積んで送るときは、`data` ではなく、ファイルに保存して `path` で渡します。
 - `Mail::to()` は使わず `Mail::send()` で送ります（宛先はテンプレートが持つため）。
 - 保存と一緒に送るメールは、保存のトランザクションが確定した後に送り、送信に失敗しても保存は取り消さず、ログに残します（実例：お問い合わせ）。
 

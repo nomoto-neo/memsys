@@ -65,7 +65,6 @@
 | `AjaxFileUpload` | `deleteAllUploads($model)` | 1件分のファイルを全部消す |
 | `AjaxFileUpload` | `checkImportedUploadFilename(...)` | CSV で取り込むファイル名の確かめ |
 | `PdfDownload` | `downloadPdf(...)`・`downloadPdfOnSheet(...)` | PDF のダウンロード。定型紙に文字を載せる形も |
-| `PdfDownload` | `pdfImageData($path, $aspect)` | PDF に埋め込む画像 |
 | `EmailChange` | `holdForEmailChange($request, $account)` | メールアドレスの変更を確認待ちにする |
 | `EmailChange` | `emailChangeForm()`・`emailChangeConfirm()`・`emailChangeResend()`・`emailChangeBack()` | 入口 |
 | `TwoFactorLogin` | `continueAfterPassword($request, $account, $remember)` | パスワードの後の2段階認証へ進む |
@@ -158,6 +157,7 @@
 | `UploadFilePath` | `directory()`・`isPrivate()`・`disk()`・`url()`・`path()`・`tmpUrl()`・`previewUrl()`、定数 `TMP_DIR`・`TMP_DISK`・`TMP_SESSION_KEY`・`TMP_SESSION_MAX`・`PUBLIC_DISK`・`PRIVATE_DISK`・`SAFE_FILENAME` |
 | `OperationRecorder` | `record()`・`loggableFields()` |
 | `CsvWriter` | `download()`・`fetch()`<br>CSV の共通の書き出し方 |
+| `PdfWriter` | `makePdf()`・`makePdfOnSheet()`<br>PDF のデータを作る。保存やメールへの添付に使う |
 | `Seo` | `for()`・`noindex()`・`breadcrumb()`・`breadcrumbs()`・`jsonLd()`・`value()`、定数 `KEYS`・`IMAGE_URL_PATTERN`<br>ふつうはコントローラーが `for()`・`noindex()` を呼び、画面は `seo()` で読む |
 | `RedirectResolver` | `find()`・`hit()`・`forget()`・`normalize()`・`isWildcard()`・`prefix()`・`encodeLocation()`、定数 `WILDCARD`<br>リダイレクトの当て方 |
 | `RedirectChecker` | `errors()`・`opensPage()`<br>リダイレクトの登録のときの確かめ |
@@ -167,7 +167,7 @@
 | `OperationLog` | `actionOptions()`・`modelOptions()`・`modelNames()`・`operatorLabel()`・`relatedRecords()`・`operatorTypes()`・`relatedKey()`・`countSummary()`・`csvName()`・`detailText()` |
 | `OperationLogStats` | `hourly()`・`daily()`・`topOperators()`・`countsBy()` |
 | `OperationLogReport` | `for()` |
-| `TemplatedMail` | `new TemplatedMail($template, $variables)` |
+| `TemplatedMail` | `new TemplatedMail($template, $variables, $attachmentFiles)`<br>添付ファイルは `path` か `data` と `name` |
 | `MailTemplate` | `render()` |
 | `MailTemplateParser` | `parse()` |
 | `PasswordChange` | `resetAndNotify()` |

@@ -34,7 +34,7 @@
 - [区分表・選択肢](docs/code-table.md)：値と名称の組。列挙型・CSV・DB のどれから作っても、同じヘルパーで使う
 - [CSV ダウンロード](docs/csv-download.md)：一覧の CSV ダウンロードと、項目の定義の書き方（`CsvDownload`）
 - [CSV 取り込み](docs/csv-import.md)：CSV の追加・更新の取り込み（`CsvImport`）
-- [PDF 出力](docs/pdf.md)：Blade で書いた画面を PDF にする（`PdfDownload`）
+- [PDF 出力](docs/pdf.md)：Blade で書いた画面を PDF にする（`PdfDownload`・`PdfWriter`）
 
 ## メールとフォーム
 
