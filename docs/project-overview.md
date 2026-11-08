@@ -80,6 +80,7 @@ Laravel の標準の構成に、次のものを足している（各ディレク
 | `docs/compiled-views-spec.md` | コンパイル済みの画面を Web の利用者から守る置き場所の仕様メモ |
 | `docs/route-files-spec.md` | ルートのファイル分けと、フレームワークの画面を1行で書く `FrameworkRoutes` の仕様メモ |
 | `docs/access-ip-comments-spec.md` | アクセス制限の IP アドレスのコメントと、画面の項目の名前の仕様メモ |
+| `docs/pdf-writer-spec.md` | PDF のデータを作る `PdfWriter` と、メールにデータで添付する形の仕様メモ |
 | `docs/[スラッグ]-spec.md` | 機能ごとの仕様メモ。上の表に無いものも、この名前で置いてある。機能の実装の流れ（`CLAUDE.md`）で、実装の後に書く |
 | `docs/packaging-plan.md` | フレームワークをパッケージに分ける計画書。方針と、段階ごとの状態 |
 | `docs/prompt/` | 機能の実装プロンプト（依頼の内容）。git で管理しない |
