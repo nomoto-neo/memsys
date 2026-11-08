@@ -3,7 +3,7 @@
 namespace Neobit\Core\Pdf;
 
 /**
- * 定型紙に文字を載せたPDF（PdfDownload::downloadPdfOnSheet()）で、出来上がるPDFの各ページに、
+ * 定型紙に文字を載せたPDF（PdfWriter::makePdfOnSheet()）で、出来上がるPDFの各ページに、
  * 定型紙のどのページを下敷きにするかを決める約束。フレームワークの決め方はSheetPagingにある。
  * ほかの決め方が要るときは、アプリがこれを実装した列挙型（AppSheetPagingなど）を作って渡す。
  */

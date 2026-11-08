@@ -10,6 +10,8 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Mail\Mailables\Headers;
 use Illuminate\Queue\SerializesModels;
+use LogicException;
+use Symfony\Component\Mime\MimeTypes;
 
 /**
  * テンプレートファイル1つで、送信元・宛先・件名・本文のすべてを決めて送るメール。
@@ -21,6 +23,7 @@ use Illuminate\Queue\SerializesModels;
  *       ...
  *   ], [
  *       ['path' => $absolutePath, 'name' => $originalFileName],
+ *       ['data' => $pdf, 'name' => '履歴書.pdf'],
  *   ]));
  *
  * 宛先はテンプレートが持っているので、Mail::to()は使わずにMail::send()で送る。
@@ -38,8 +41,11 @@ class TemplatedMail extends Mailable
      *         HTML版は{$templateName}_html.blade.phpに置く（Neobit\Core\Mail\MailTemplate参照）。
      *         配列で渡すと、探す名前の一覧になる。先に書いた名前を優先して探す。
      * @param  array<string, scalar>  $vars  テンプレートの中で$変数名として使える値。
-     * @param  array<int, array{path: string, name: string}>  $attachmentFiles  添付ファイル。
-     *         pathはサーバー上のファイルの場所、nameはメールに付けるときのファイル名。
+     * @param  array<int, array{path?: string, data?: string, name: string}>  $attachmentFiles  添付ファイル。
+     *         pathはサーバー上のファイルの場所、dataはファイルの中身で、どちらか1つを書く。
+     *         nameはメールに付けるときのファイル名。dataのファイルの種類は、nameの拡張子から決める。
+     *         キューに積んで送るときは、dataではなくpathで渡す。中身をそのまま積むと、
+     *         キューに入れる中身をJSONにできないことがあるため。
      *         $attachmentsという名前は、親クラスのMailableがすでに持っているので使えない。
      * @param  array<string, string>  $headerLines  メールに足すヘッダー。ヘッダーの名前 => 値。
      *         ヘッダーは、ふつうはテンプレートの見出しの行に書く（Neobit\Core\Mail\MailTemplateParser参照）。
@@ -51,6 +57,13 @@ class TemplatedMail extends Mailable
         private readonly array $attachmentFiles = [],
         private readonly array $headerLines = [],
     ) {
+        // 添付ファイルの書き方の誤りは、送る前に止める
+        foreach ($attachmentFiles as $attachmentFile) {
+            if (isset($attachmentFile['path']) === isset($attachmentFile['data']) || ! isset($attachmentFile['name'])) {
+                throw new LogicException('添付ファイルは、pathかdataのどちらか1つと、nameで書いてください。');
+            }
+        }
+
         $this->parsed = MailTemplate::render($templateName, $vars);
     }
 
@@ -106,9 +119,17 @@ class TemplatedMail extends Mailable
      */
     public function attachments(): array
     {
-        return array_map(
-            fn (array $a) => Attachment::fromPath($a['path'])->as($a['name']),
-            $this->attachmentFiles,
-        );
+        return array_map(function (array $a) {
+            // パスで渡したものは、ファイルから付ける
+            if (isset($a['path'])) {
+                return Attachment::fromPath($a['path'])->as($a['name']);
+            }
+
+            // 中身で渡したものは、ファイル名の拡張子から種類を決めて付ける
+            $extension = strtolower(pathinfo($a['name'], PATHINFO_EXTENSION));
+            $mime = MimeTypes::getDefault()->getMimeTypes($extension)[0] ?? 'application/octet-stream';
+
+            return Attachment::fromData(fn () => $a['data'], $a['name'])->withMime($mime);
+        }, $this->attachmentFiles);
     }
 }

@@ -139,7 +139,7 @@
 - `vite.config.js` に `@neobit`（フレームワークのスクリプトの場所）の短い名前を書く。フレームワークのスクリプトは `@neobit/upload_request.js` のように読み込むので、エディタのスクリプトをプロジェクトへコピーしても動く
 - スクリプトが読み込む npm のパッケージ（`@laravel/passkeys`・`suneditor`）は、プロジェクトの `package.json` に書く。利用ガイドの blade.md に表がある
 - 見本のサイトの画面のスクリプト（`sortable.js`・`contact_form.js`）は、プロジェクトに残した。`code_editor.js` は、段階4-2 でパッケージへ移した
-- PDF のフォント（`resources/fonts/ipaex/`、14MB）は、プロジェクトに残した。無いときは、`PdfDownload` が置き場所を書いた例外にする
+- PDF のフォント（`resources/fonts/ipaex/`、14MB）は、プロジェクトに残した。無いときは、`PdfWriter` が置き場所を書いた例外にする
 - 利用ガイドの upload.md に、エディタのスクリプトを変えるとき・選ぶときの手順を書いた
 
 ### 段階4　`CodeTable` の名前空間

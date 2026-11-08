@@ -405,7 +405,9 @@ has   config/view.php                                                   'check_c
 has   packages/neobit/core/src/Security/BasicAuth.php                   "'app/basic_auth'"
 has   packages/neobit/core/src/Security/FileWatcher.php                 "'app/file_watch/approval.json'"
 has   packages/neobit/core/src/Upload/UploadFilePath.php                "'upload_tmp'"
-has   packages/neobit/core/src/Pdf/PdfDownload.php                      "PDF_TEMP_DIR = 'framework'"
+has   packages/neobit/core/src/Pdf/PdfWriter.php                        "TEMP_DIR = 'framework'"
+has   packages/neobit/core/src/Pdf/PdfWriter.php                        'public static function makePdfOnSheet('
+has   packages/neobit/core/src/Mail/TemplatedMail.php                   'Attachment::fromData('
 has   packages/neobit/core/resources/css/admin.css                      '[data-theme="green"]'
 has   packages/neobit/core/resources/js/admin_layout.js                 'neobit.admin.theme'
 has   resources/views/layouts/admin.blade.php                           'data-nb-sidebar-toggle'

@@ -66,7 +66,7 @@ Laravel やパッケージに脆弱性が出たときに、影響があるかを
 | `pragmarx/google2fa` | 認証アプリ（TOTP）の2段階認証 | フレームワーク |
 | `bacon/bacon-qr-code` | 認証アプリに読ませる QR コード | フレームワーク |
 | `ezyang/htmlpurifier` | WYSIWYG の本文の無害化（`HtmlSanitizer`） | フレームワーク |
-| `mpdf/mpdf` | PDF の出力（`PdfDownload`） | フレームワーク |
+| `mpdf/mpdf` | PDF の出力（`PdfWriter`） | フレームワーク |
 
 開発の手元だけで使うもの（サーバーには入れない）：`laravel/boost`・`laravel/pail`・`laravel/pao`・`laravel/pint`・`laravel/sail`・`phpunit/phpunit`・`mockery/mockery`・`fakerphp/faker`・`nunomaduro/collision`。
 

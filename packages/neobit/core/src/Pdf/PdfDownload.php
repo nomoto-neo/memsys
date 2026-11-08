@@ -3,25 +3,14 @@
 namespace Neobit\Core\Pdf;
 
 use Illuminate\Http\Response;
-use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Log;
-use Mpdf\Config\ConfigVariables;
-use Mpdf\Config\FontVariables;
-use Mpdf\Mpdf;
-use Mpdf\Output\Destination;
-use setasign\Fpdi\PdfParser\PdfParser;
-use setasign\Fpdi\PdfParser\StreamReader;
-use setasign\Fpdi\PdfReader\PageBoundaries;
-use setasign\Fpdi\PdfReader\PdfReader;
-use RuntimeException;
 use Symfony\Component\HttpFoundation\HeaderUtils;
 
 /**
- * BladeのテンプレートからPDFを作って返す共通処理。PDFにするのはmPDF。
+ * BladeのテンプレートからPDFを作り、ブラウザに返す共通処理。PDFを作るのはPdfWriterで、ここは応答にするだけ。
  *
- * PDFの見た目は普通の画面と同じくBladeのテンプレートで書く。コントローラーは入口の
- * メソッドでdownloadPdf()を呼ぶだけでよい。どんなPDFになるかが呼び出しの1か所で分かるよう、
- * 引数に既定の値は持たせず、名前付き引数で全部書く。
+ * コントローラーは入口のメソッドでdownloadPdf()を呼び、返った応答をそのままreturnする。
+ * どんなPDFになるかが呼び出しの1か所で分かるよう、引数に既定の値は持たせず、名前付き引数で全部書く。
+ * ファイルに保存したりメールに添付したりするときは、PdfWriterでPDFのデータを作る。
  *
  *     public function resume(Member $member): Response
  *     {
@@ -36,34 +25,13 @@ use Symfony\Component\HttpFoundation\HeaderUtils;
  *         );
  *     }
  *
- * ■ downloadPdf()の引数
- * - view         テンプレートの名前。resources/views/pdf/に置く
- * - data         テンプレートに渡す変数
- * - name         PDFの名前。ファイル名は「{name}_年月日_時分.pdf」
- * - images       埋め込む画像。名前 => ['path' => サーバー上の場所, 'aspect' => [横, 縦]かnull]。
- *                aspectを書くと真ん中をその比で切り抜いてから埋め込む。mPDFはobject-fitを
- *                使えないので、決まった大きさの枠に写真をゆがめずに収めるため。
- *                pathがnullかファイルが無ければ埋め込まない
- * - paper        用紙の大きさ。'A4'・'A3'・'B5'など
- * - orientation  'P'が縦、'L'が横
- * - inline       trueならブラウザの中で開き、falseならダウンロードさせる
- *
- * ■ テンプレートの書き方
- * - 埋め込める画像は$imagesに入っている。ファイルが無かった画像は入らない
- *
- *   @if (isset($images['photo'])) <img src="{{ $images['photo'] }}"> @endif
- *
- *   画像はファイルの場所やURLではなくmPDFの「var:名前」で渡すので、非公開のファイルも使える
- * - 余白は@page { margin: ... }で書く
- * - フォントは同梱のIPAexゴシックのipaexgとIPAex明朝のipaexmを、font-familyで指定する。
- *   指定しなければipaexgになる。使った文字だけをPDFに埋め込むので、どの環境でも同じ見た目になる
- * - mPDFが解釈できるCSSはブラウザより少なく、flexやgridは使えない。枠や罫線は<table>で組む
+ * ■ 引数
+ * - inline  trueならブラウザの中で開き、falseならダウンロードさせる
+ * - ほかの引数は、PdfWriter::makePdf()と同じ。テンプレートの書き方もPdfWriterにある
+ * - name    PDFのタイトルのほか、ファイル名「{name}_年月日_時分.pdf」にも使う
  *
  * ■ 定型紙に文字を載せる（downloadPdfOnSheet()）
- * 履歴書や申込書のような、決まった様式のPDF（定型紙）を下敷きにして、テンプレートの文字を上に載せる。
- * 引数は、downloadPdf()のpaper・orientationの代わりに、sheet（定型紙のPDFのサーバー上の場所）と、
- * sheetPaging（定型紙のページの使い方。SheetPaging）を渡す。
- * ページの大きさは定型紙の1ページ目に合わせ、余白は0にする。定型紙はアプリのresources/pdf-sheets/に置く。
+ * 引数は、PdfWriter::makePdfOnSheet()の引数にinlineを足したもの。
  *
  *     return $this->downloadPdfOnSheet(
  *         sheet: resource_path('pdf-sheets/resume_a4.pdf'),
@@ -74,43 +42,9 @@ use Symfony\Component\HttpFoundation\HeaderUtils;
  *         images: [],
  *         inline: true,
  *     );
- *
- * - テンプレートでは、文字をposition: absoluteの<div>で置く。left・topは定型紙の左上からのmm。
- *   画像も、位置を決めた<div>の中に<img>を入れる。<img>に直接position: absoluteを付けても効かない
- * - widthを決めると、幅を超えた文字は折り返す。heightと一緒にoverflow: hiddenを書くとはみ出しを切り、
- *   overflow: autoを書くと、欄に収まるよう文字を縮める
- * - <pagebreak />で次のページへ進む。どのページに定型紙のどのページを敷くかは、sheetPagingで決める。
- *   定型紙のページ数がテンプレートより少なければ、Onceは例外、Sequentialは最後のページをくり返し、
- *   Cycleは1ページ目から順にくり返す。ほかの使い方は、アプリがSheetPagingRuleを実装した列挙型で足す
- * - 1ページの中身があふれて、mPDFが自動でページを足すと、足されたページには定型紙が敷かれない。
- *   文字はposition: absoluteで置くので、ふつうはあふれない
- * - 定型紙を読むのはmPDFに入っているFPDI。読めないPDFのときは、例外になる
  */
 trait PdfDownload
 {
-    /**
-     * 日本語フォントの場所。アプリのresources/の下。IPAフォントライセンスで配られているもの。
-     * サイト全体で共通にするものなので、コントローラーからは変えない。
-     */
-    private const PDF_FONT_DIR = 'fonts/ipaex';
-
-    /** font-familyの名前 => フォントファイル。 */
-    private const PDF_FONTS = [
-        'ipaexg' => 'ipaexg.ttf',
-        'ipaexm' => 'ipaexm.ttf',
-    ];
-
-    private const PDF_DEFAULT_FONT = 'ipaexg';
-
-    /**
-     * mPDFに渡す、storage/の下の作業用のディレクトリ。mPDFはこの下にmpdf/を作り、フォントの解析結果などを置くので、
-     * 置き場所はstorage/framework/mpdf/になる。既定のvendor/の下はサーバーでは書き込めないことがあるため。
-     */
-    private const PDF_TEMP_DIR = 'framework';
-
-    /** 切り抜いた画像をJPEGにするときの画質。 */
-    private const PDF_IMAGE_QUALITY = 90;
-
     /** テンプレートからPDFを作って返す。引数の意味はこのファイルの冒頭にある */
     private function downloadPdf(
         string $view,
@@ -121,21 +55,19 @@ trait PdfDownload
         string $orientation,
         bool $inline,
     ): Response {
-        $mpdf = $this->newPdf([
-            'format' => $paper,
-            'orientation' => $orientation,
-        ]);
+        $pdf = PdfWriter::makePdf(
+            view: $view,
+            data: $data,
+            name: $name,
+            images: $images,
+            paper: $paper,
+            orientation: $orientation,
+        );
 
-        $mpdf->SetTitle($name);
-        $mpdf->WriteHTML(view($view, $data + ['images' => $this->pdfImageSrcs($mpdf, $images)])->render());
-
-        return $this->pdfResponse($mpdf, $name, $inline);
+        return $this->pdfResponse($pdf, $name, $inline);
     }
 
-    /**
-     * 定型紙のPDFを下敷きにして、テンプレートの文字を上に載せたPDFを返す。引数の意味はこのファイルの冒頭にある。
-     * 用紙の大きさに合わせるので、用紙の大きさと向きは渡さない
-     */
+    /** 定型紙のPDFを下敷きにして、テンプレートの文字を上に載せたPDFを返す。引数の意味はこのファイルの冒頭にある */
     private function downloadPdfOnSheet(
         string $sheet,
         SheetPagingRule $sheetPaging,
@@ -145,103 +77,26 @@ trait PdfDownload
         array $images,
         bool $inline,
     ): Response {
-        if (! is_file($sheet)) {
-            throw new RuntimeException("定型紙のPDFがありません：{$sheet}");
-        }
+        $pdf = PdfWriter::makePdfOnSheet(
+            sheet: $sheet,
+            sheetPaging: $sheetPaging,
+            view: $view,
+            data: $data,
+            name: $name,
+            images: $images,
+        );
 
-        // ページの大きさは、定型紙の1ページ目に合わせる。余白は0にして、位置を定型紙の左上から決められるようにする
-        $size = (new PdfReader(new PdfParser(StreamReader::createByFile($sheet))))
-            ->getPage(1)
-            ->getWidthAndHeight(PageBoundaries::CROP_BOX);
-        $mpdf = $this->newPdf([
-            'format' => [$size[0] * 25.4 / 72, $size[1] * 25.4 / 72],
-            'margin_left' => 0,
-            'margin_right' => 0,
-            'margin_top' => 0,
-            'margin_bottom' => 0,
-            'margin_header' => 0,
-            'margin_footer' => 0,
-        ]);
-
-        $mpdf->SetTitle($name);
-        $sheetPageCount = $mpdf->setSourceFile($sheet);
-
-        // テンプレートを、<pagebreak />の所でページごとに分ける。下敷きにする定型紙のページを、ページごとに
-        // $sheetPagingで選ぶため。mPDFの機能では、定型紙の全ページをくり返すことができない
-        $html = view($view, $data + ['images' => $this->pdfImageSrcs($mpdf, $images)])->render();
-        $pages = preg_split('/<pagebreak\b[^>]*>/i', $html);
-
-        // ページを足し、選んだ定型紙のページを敷いてから、そのページの文字を書く。
-        // 同じ定型紙のページは、1回だけ読み込んで使い回す
-        $templates = [];
-        foreach ($pages as $index => $pageHtml) {
-            $sheetPage = $sheetPaging->sheetPage($index + 1, $sheetPageCount);
-            if ($sheetPage < 1 || $sheetPage > $sheetPageCount) {
-                throw new RuntimeException("定型紙のページ数（{$sheetPageCount}）が、テンプレートのページ数（".count($pages).'）より少ないです。');
-            }
-
-            $mpdf->AddPage();
-            $mpdf->useTemplate($templates[$sheetPage] ??= $mpdf->importPage($sheetPage));
-            $mpdf->WriteHTML($pageHtml);
-        }
-
-        return $this->pdfResponse($mpdf, $name, $inline);
-    }
-
-    /** 同梱の日本語フォントを使うmPDF。$configは、用紙の大きさや余白などのmPDFの設定 */
-    private function newPdf(array $config): Mpdf
-    {
-        $tempDir = storage_path(self::PDF_TEMP_DIR);
-        File::ensureDirectoryExists($tempDir);
-
-        // フォントはアプリのresources/に置く。PDFを使わないアプリに大きなファイルを持たせないよう、
-        // フレームワークには入れていない。無ければ、置き場所が分かるように止める
-        $fontDir = resource_path(self::PDF_FONT_DIR);
-        if (! is_dir($fontDir)) {
-            throw new RuntimeException("PDFの日本語フォントがありません。{$fontDir} に、IPAexフォント（ipaexg.ttf・ipaexm.ttf）を置いてください。");
-        }
-
-        // mPDFの既定の設定に、同梱のフォントを足す
-        $defaultFontDirs = (new ConfigVariables())->getDefaults()['fontDir'];
-        $defaultFontData = (new FontVariables())->getDefaults()['fontdata'];
-        $fontData = [];
-        foreach (self::PDF_FONTS as $family => $file) {
-            $fontData[$family] = ['R' => $file];
-        }
-
-        return new Mpdf($config + [
-            'mode' => 'utf-8',
-            'tempDir' => $tempDir,
-            'fontDir' => [...$defaultFontDirs, $fontDir],
-            'fontdata' => $defaultFontData + $fontData,
-            'default_font' => self::PDF_DEFAULT_FONT,
-        ]);
-    }
-
-    /** 画像をmPDFに渡し、テンプレートに渡す「var:名前」の一覧を返す。ファイルが無かった画像は入らない */
-    private function pdfImageSrcs(Mpdf $mpdf, array $images): array
-    {
-        $imageSrcs = [];
-        foreach ($images as $imageName => $image) {
-            $imageData = $this->pdfImageData($image['path'] ?? null, $image['aspect'] ?? null);
-
-            if ($imageData !== null) {
-                $mpdf->imageVars[$imageName] = $imageData;
-                $imageSrcs[$imageName] = 'var:'.$imageName;
-            }
-        }
-
-        return $imageSrcs;
+        return $this->pdfResponse($pdf, $name, $inline);
     }
 
     /** 作ったPDFを返す。ファイル名は「{name}_年月日_時分.pdf」 */
-    private function pdfResponse(Mpdf $mpdf, string $name, bool $inline): Response
+    private function pdfResponse(string $pdf, string $name, bool $inline): Response
     {
         $filename = $name.'_'.now()->format('Ymd_Hi').'.pdf';
         // 日本語のファイル名に対応していないブラウザのための、英数字だけの名前
         $fallback = 'document_'.now()->format('Ymd_Hi').'.pdf';
 
-        return response($mpdf->Output('', Destination::STRING_RETURN), 200, [
+        return response($pdf, 200, [
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => HeaderUtils::makeDisposition(
                 $inline ? HeaderUtils::DISPOSITION_INLINE : HeaderUtils::DISPOSITION_ATTACHMENT,
@@ -251,51 +106,5 @@ trait PdfDownload
             // 個人情報を含むPDFを、ブラウザやプロキシに残させない
             'Cache-Control' => 'private, no-store',
         ]);
-    }
-
-    /**
-     * PDFに埋め込む画像のデータ。[横, 縦]の$aspectがあれば、真ん中をその比で切り抜いたJPEGにする。
-     * ファイルが無いか読めないときはnullを返し、その画像は埋め込まない。
-     */
-    private function pdfImageData(?string $path, ?array $aspect): ?string
-    {
-        if ($path === null || ! is_file($path)) {
-            return null;
-        }
-
-        $contents = file_get_contents($path);
-
-        if ($aspect === null) {
-            return $contents;
-        }
-
-        $image = @imagecreatefromstring($contents);
-
-        if ($image === false) {
-            Log::warning('PdfDownload: 画像を読み込めませんでした。', ['path' => $path]);
-
-            return null;
-        }
-
-        // 縦横の比を合わせるため、はみ出す方を切り落とす。横長なら左右、縦長なら上下
-        [$aspectWidth, $aspectHeight] = $aspect;
-        $width = imagesx($image);
-        $height = imagesy($image);
-        $cropWidth = min($width, (int) round($height * $aspectWidth / $aspectHeight));
-        $cropHeight = min($height, (int) round($width * $aspectHeight / $aspectWidth));
-
-        $cropped = imagecreatetruecolor($cropWidth, $cropHeight);
-        // 透過のあるPNGは透明な部分を白にする
-        imagefill($cropped, 0, 0, imagecolorallocate($cropped, 255, 255, 255));
-        imagecopy($cropped, $image, 0, 0, intdiv($width - $cropWidth, 2), intdiv($height - $cropHeight, 2), $cropWidth, $cropHeight);
-
-        ob_start();
-        imagejpeg($cropped, null, self::PDF_IMAGE_QUALITY);
-        $jpeg = ob_get_clean();
-
-        imagedestroy($image);
-        imagedestroy($cropped);
-
-        return $jpeg;
     }
 }
