@@ -103,7 +103,7 @@
 - **`LoginIdMemory`**
   - 場所：`packages/neobit/core/src/Auth/`
   - 概要：ログイン画面の入力（企業ID と担当者ID）を、ブラウザに覚えさせる
-  - 詳細：[login.md](login.md)
+  - 詳細：[member-types.md](member-types.md)
 - **`TeamInvitationManager`・`TeamInvitationOwner`・`HasTeamInvitations`**
   - 場所：`packages/neobit/core/src/Team/`
   - 概要：集団への招待（リンクの発行・送り直し・取り消し・照合）。企業会員の担当者の招待に使う。集団のモデルに、インターフェースとトレイトを付ける
