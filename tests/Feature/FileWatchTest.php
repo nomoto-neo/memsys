@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Mail;
 use Neobit\Core\Mail\TemplatedMail;
+use Neobit\Core\Operations\AssetRebuilder;
 use Neobit\Core\Security\FileWatcher;
 use RuntimeException;
 use Symfony\Component\Console\Output\BufferedOutput;
@@ -543,6 +544,46 @@ class FileWatchTest extends TestCase
         $first->unlock();
         $this->assertTrue($second->lock());
         $second->unlock();
+    }
+
+    public function test_does_not_run_while_rebuilding(): void
+    {
+        // 作り直しが動いている間は、押さえられない。作り直しの途中の仮のディレクトリを拾わないため
+        File::ensureDirectoryExists($this->base.'/bootstrap/cache');
+        $rebuilder = new AssetRebuilder($this->base, $this->base.'/public');
+        $watcher = $this->watcher();
+
+        $this->assertTrue($rebuilder->lock());
+        $this->assertFalse($watcher->lock());
+
+        // 押さえられなかったときは、監視のロックも離している
+        $other = $this->watcher();
+        $rebuilder->unlock();
+        $this->assertTrue($other->lock());
+
+        // 確かめている間は、作り直しのほうが押さえられない
+        $this->assertFalse($rebuilder->lock());
+        $other->unlock();
+        $this->assertTrue($rebuilder->lock());
+        $rebuilder->unlock();
+    }
+
+    public function test_rebuild_lock_in_an_old_baseline_is_dropped_silently(): void
+    {
+        // 作り直しのロックのファイルが入った、前の版の基準。記録の形は、同じく空のファイルのものを写す
+        $this->write('bootstrap/cache/rebuild.lock', '');
+        $this->write('bootstrap/cache/empty.txt', '');
+        $this->watcher()->init();
+        $state = json_decode(File::get($this->base.'/bootstrap/cache/file-watch.json'), true);
+        $state['files']['bootstrap/cache/rebuild.lock'] = $state['files']['bootstrap/cache/empty.txt'];
+        File::put($this->base.'/bootstrap/cache/file-watch.json', json_encode($state));
+
+        // 消えたものとしては知らせず、基準から外す
+        $result = $this->watcher()->check();
+
+        $this->assertSame([], $result['alerts']);
+        $state = json_decode(File::get($this->base.'/bootstrap/cache/file-watch.json'), true);
+        $this->assertArrayNotHasKey('bootstrap/cache/rebuild.lock', $state['files']);
     }
 
     public function test_unreadable_directories_are_reported_without_stopping(): void

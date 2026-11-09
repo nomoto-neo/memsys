@@ -41,8 +41,11 @@ final class AssetRebuilder
     /** しるしの記録（basePathの下）。Webの利用者には書かせない */
     private const STATE_FILE = 'bootstrap/cache/rebuild.json';
 
-    /** 同時に動かないよう押さえる、ロックのファイル（basePathの下） */
-    private const LOCK_FILE = 'bootstrap/cache/rebuild.lock';
+    /**
+     * 同時に動かないよう押さえる、ロックのファイル（basePathの下）。改ざん監視も、確かめている間これを押さえる。
+     * 作り直しの途中の仮のディレクトリを、増えたファイルとして拾わないため
+     */
+    public const LOCK_FILE = 'bootstrap/cache/rebuild.lock';
 
     /** JS・CSSの出し先と、仮の出し先と、入れ替えるときに前のものを一時的に置く名前（publicの下） */
     private const BUILD_DIR = 'build';

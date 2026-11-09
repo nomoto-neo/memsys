@@ -4,6 +4,7 @@ namespace Neobit\Core\Security;
 
 use Carbon\CarbonInterface;
 use Closure;
+use Neobit\Core\Operations\AssetRebuilder;
 use RuntimeException;
 
 /**
@@ -75,6 +76,9 @@ use RuntimeException;
  * ■ 同時に動かない
  * 5分ごとの回と--fullの回が重なると、記録の書き込みで片方の結果が消える。記録の隣のロックのファイルを押さえ、
  * 前の回が動いている間は、次の回は何もせずに終わる（lock()）。
+ * 画面とJS・CSSの作り直し（AssetRebuilder）のロックも、一緒に押さえる。作り直しの途中の仮のディレクトリ
+ * （bootstrap/cache/views_nextなど）を、増えたファイルとして拾わないため。作り直しが動いている間は、
+ * この回は何もせずに終わる。確かめている間は、作り直しのほうが次の分まで待つ。
  *
  * ■ 限界
  * サーバーそのもの（root）を乗っ取られたら、同じサーバーの上の監視は信用できない。外から監視するサービスと組み合わせる。
@@ -127,11 +131,15 @@ final class FileWatcher
         'code',
     ];
 
-    /** 監視しないもの（basePathの下）。この監視の記録とロックのファイル */
+    /**
+     * 監視しないもの（basePathの下）。この監視の記録とロックのファイルと、作り直しのロックのファイル。
+     * ロックのファイルは中身が無く、確かめている間は押さえているので、Windowsでは読めないため
+     */
     private const EXCLUDE = [
         'bootstrap/cache/file-watch.json',
         'bootstrap/cache/file-watch.json.tmp',
         'bootstrap/cache/file-watch.lock',
+        AssetRebuilder::LOCK_FILE,
     ];
 
     /** プロジェクトの直下で、監視しないもの。サーバーでテストを動かしたときにできる */
@@ -163,6 +171,9 @@ final class FileWatcher
     /** 押さえているロックのファイル。押さえていなければnull */
     private mixed $lockHandle = null;
 
+    /** 押さえている、作り直しのロックのファイル。押さえていなければnull */
+    private mixed $rebuildLockHandle = null;
+
     /** この回で開けなかったディレクトリの名前 */
     private array $unreadable = [];
 
@@ -193,10 +204,44 @@ final class FileWatcher
 
     // ---- 入口 ----
 
-    /** 同時に動かないよう、ロックのファイルを押さえる。前の回が押さえていればfalse */
+    /**
+     * 同時に動かないよう、この監視と作り直しのロックのファイルを押さえる。
+     * 前の回か作り直しが押さえていればfalseで、どちらも押さえない
+     */
     public function lock(): bool
     {
-        $path = $this->basePath.'/'.self::LOCK_FILE;
+        $this->lockHandle = $this->acquireLock(self::LOCK_FILE);
+        if ($this->lockHandle === null) {
+            return false;
+        }
+
+        // 作り直しが動いていれば、この回は何もしない。押さえた監視のロックも離す
+        $this->rebuildLockHandle = $this->acquireLock(AssetRebuilder::LOCK_FILE);
+        if ($this->rebuildLockHandle === null) {
+            $this->unlock();
+
+            return false;
+        }
+
+        return true;
+    }
+
+    /** 押さえたロックのファイルを離す */
+    public function unlock(): void
+    {
+        foreach (['lockHandle', 'rebuildLockHandle'] as $property) {
+            if ($this->{$property} !== null) {
+                flock($this->{$property}, LOCK_UN);
+                fclose($this->{$property});
+                $this->{$property} = null;
+            }
+        }
+    }
+
+    /** basePathの下のロックのファイルを押さえ、ハンドルを返す。ほかが押さえていればnull */
+    private function acquireLock(string $file): mixed
+    {
+        $path = $this->basePath.'/'.$file;
         if (! is_dir(dirname($path))) {
             mkdir(dirname($path), 0755, true);
         }
@@ -207,21 +252,10 @@ final class FileWatcher
                 fclose($handle);
             }
 
-            return false;
+            return null;
         }
-        $this->lockHandle = $handle;
 
-        return true;
-    }
-
-    /** 押さえたロックのファイルを離す */
-    public function unlock(): void
-    {
-        if ($this->lockHandle !== null) {
-            flock($this->lockHandle, LOCK_UN);
-            fclose($this->lockHandle);
-            $this->lockHandle = null;
-        }
+        return $handle;
     }
 
     /**
@@ -561,9 +595,10 @@ final class FileWatcher
             $state['upload_config'] = true;
         }
 
-        // WordPressのアップロードの置き場所などの見ない場所は、前の基準に入っていても、消えたものにせず黙って外す
+        // 監視しないファイルや、WordPressのアップロードの置き場所などの見ない場所は、前の基準に入っていても、
+        // 消えたものにせず黙って外す
         foreach (array_keys($state['files']) as $label) {
-            if ($this->isExcluded($label, $this->wordpressIgnored()) && ! $this->isUploadConfig($label)) {
+            if ($this->isExcluded($label, [...self::EXCLUDE, ...$this->wordpressIgnored()]) && ! $this->isUploadConfig($label)) {
                 unset($state['files'][$label]);
             }
         }

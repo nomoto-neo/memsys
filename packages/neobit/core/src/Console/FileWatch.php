@@ -58,9 +58,9 @@ class FileWatch extends Command
             return self::SUCCESS;
         }
 
-        // 前の回が動いている間は、何もせずに終わる（5分ごとの回と--fullの回が重なったとき）。承認は次の分に拾う
+        // 前の回か、画面とJS・CSSの作り直しが動いている間は、何もせずに終わる。承認は次の分に拾う
         if (! $watcher->lock()) {
-            $this->info('前の回が動いているので、何もせずに終わります。');
+            $this->info('前の回か作り直しが動いているので、何もせずに終わります。');
 
             return self::SUCCESS;
         }
