@@ -75,7 +75,7 @@
 - **`LoginAccount`・`IsLoginAccount`・`HasTwoFactor`**
   - 場所：`packages/neobit/core/src/Auth/`
   - 概要：ログインするモデル（個人会員・企業の担当者・スタッフ）の共通の型と、名前の決まり、2段階認証にかかわるモデルの中身
-  - 詳細：[login.md](login.md)・[member-types.md](member-types.md)
+  - 詳細：[member-types.md](member-types.md)・[two-factor.md](two-factor.md)
 - **`LoginIdType`**
   - 場所：`packages/neobit/core/src/Enums/`
   - 概要：ログインに使う値の種類（メールアドレス・ログインID・どちらでも）。モデルの定数で選ぶ
@@ -83,23 +83,23 @@
 - **`TwoFactorLogin`**
   - 場所：`packages/neobit/core/src/Auth/`
   - 概要：ログインの、パスワードが合った後の流れ（2段階目・信頼済みの端末・ログインの確定）と、ログアウト
-  - 詳細：[login.md](login.md)
+  - 詳細：[login.md](login.md)・[two-factor.md](two-factor.md)
 - **`TwoFactorChallenge`**
   - 場所：`packages/neobit/core/src/Auth/`
   - 概要：その人の2段階目の方式で、本人かどうかを確かめる
-  - 詳細：[login.md](login.md)
+  - 詳細：[two-factor.md](two-factor.md)
 - **`TwoFactorManagement`**
   - 場所：`packages/neobit/core/src/Auth/`
   - 概要：ログイン中の本人による、バックアップコードの発行と、認証アプリの登録の解除
-  - 詳細：[login.md](login.md)
+  - 詳細：[two-factor.md](two-factor.md)
 - **`PasskeySuggestion`**
   - 場所：`packages/neobit/core/src/Auth/`
   - 概要：パスワードでログインした人に、パスキーの登録を1回だけ勧める
-  - 詳細：[login.md](login.md)
+  - 詳細：[two-factor.md](two-factor.md)
 - **`LegacyPasswordUserProvider`・`LegacyPassword`**
   - 場所：`packages/neobit/core/src/Auth/`
   - 概要：既存のシステムから移した会員の、古い方式のパスワードの照合と、今の方式への置き換え
-  - 詳細：[login.md](login.md)
+  - 詳細：[legacy-password.md](legacy-password.md)
 - **`LoginIdMemory`**
   - 場所：`packages/neobit/core/src/Auth/`
   - 概要：ログイン画面の入力（企業ID と担当者ID）を、ブラウザに覚えさせる
@@ -127,15 +127,15 @@
 - **`TrustedDeviceManager`**
   - 場所：`packages/neobit/core/src/Auth/`
   - 概要：2段階目を省略できる信頼済み端末
-  - 詳細：[login.md](login.md)
+  - 詳細：[two-factor.md](two-factor.md)
 - **`TwoFactorAuthenticator`・`BackupCodeGenerator`**
   - 場所：`packages/neobit/core/src/Auth/`
   - 概要：認証アプリ（TOTP）のコードと、バックアップコード
-  - 詳細：[login.md](login.md)
+  - 詳細：[two-factor.md](two-factor.md)
 - **`PasskeyLogin`・`PasskeyManagement`**
   - 場所：`packages/neobit/core/src/Auth/`
   - 概要：パスキーでのログインと、本人によるパスキーの登録・削除
-  - 詳細：[login.md](login.md)
+  - 詳細：[two-factor.md](two-factor.md)
 - **`PasswordChange`**
   - 場所：`packages/neobit/core/src/Auth/`
   - 概要：パスワードを変えたときの後始末（信頼済み端末・パスキーの無効化、お知らせのメール）
@@ -159,7 +159,7 @@
 - **`_passkeys`**
   - 場所：`packages/neobit/core/resources/views/`
   - 概要：パスキーの一覧・本人確認・登録の画面の中身
-  - 詳細：[login.md](login.md)
+  - 詳細：[two-factor.md](two-factor.md)
 - **`TemporaryDataCleaner`**
   - 場所：`packages/neobit/core/src/Operations/`
   - 概要：一時データの後片付け（一時ファイル・期限の切れたキャッシュと信頼済み端末・古い操作ログ）。プロジェクトの片付けは `config/neobit.php` の `cleanup` の節に足す
@@ -171,7 +171,7 @@
 - **`neobit:reset-two-factor`**
   - 場所：`packages/neobit/core/src/Console/`
   - 概要：2段階認証の登録を解除するコマンド（画面から解除できる人がいないときに使う）
-  - 詳細：[login.md](login.md)
+  - 詳細：[two-factor.md](two-factor.md)
 - **`neobit:set-next-id`**
   - 場所：`packages/neobit/core/src/Console/`
   - 概要：新しく登録する行の id の始まりを決めるコマンド（サイトを開ける前に使う）

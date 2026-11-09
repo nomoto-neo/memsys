@@ -25,8 +25,8 @@
 ```php
 class CompanyUser extends Authenticatable implements LoginAccount, PasskeyUser
 {
-    use HasPasskeys;        // パスキー（login.md）
-    use HasTwoFactor;       // 2段階認証・バックアップコード・信頼済み端末（login.md）
+    use HasPasskeys;        // パスキー（two-factor.md）
+    use HasTwoFactor;       // 2段階認証・バックアップコード・信頼済み端末（two-factor.md）
     use IsLoginAccount;     // 名前の決まり
 
     // 種類の名前（company_user）は、モデルの短い名前から決まるので、書かない。
@@ -54,7 +54,7 @@ class CompanyUser extends Authenticatable implements LoginAccount, PasskeyUser
 共通部品には、会員のモデルを渡します。
 
 ```php
-// ログインのコントローラー（login.mdの「2段階認証」）
+// ログインのコントローラー（login.mdの「ログインの流れ」）
 use TwoFactorLogin;
 private const LOGIN_ACCOUNT = CompanyUser::class;               // ガード・ルート・2段階目の方式は、ここから決まる
 private const TWO_FACTOR_VIEW = 'company.auth.login-verify';    // 2段階目の画面
@@ -156,7 +156,7 @@ Route::prefix('company')->name('company.')->group(function () {
 
 | 機能 | 設定 | 働く条件 |
 |---|---|---|
-| 古い方式のパスワードの置き換え（[login.md](login.md)） | `config/neobit.php` の `auth.legacy_passwords` | `legacy_password` に値がある会員 |
+| 古い方式のパスワードの置き換え（[legacy-password.md](legacy-password.md)） | `config/neobit.php` の `auth.legacy_passwords` | `legacy_password` に値がある会員 |
 | 初回のログインでの登録 | `config/site_login.php` の `identity_check_column` | メールアドレスが空の担当者 |
 
 - 移した企業は、企業1件にログインID とパスワードが1組であることが多いので、企業ごとに「最初の担当者」を1人だけ作ります。担当者ID は全部の企業で同じ初期値にし、氏名とメールアドレスは空にします。
