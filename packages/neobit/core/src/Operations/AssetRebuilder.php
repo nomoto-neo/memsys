@@ -17,6 +17,10 @@ use Throwable;
  * 元のファイルの一覧（パス・大きさ・日時）からしるし（ハッシュ値）を作り、前に作り直したときのしるし
  * （STATE_FILE）と比べる。足した・直した・消した・名前を変えた、のどれでも変わる。
  * 初めて動いたとき（しるしの記録が無いとき）は、作り直さずにしるしだけを記録する。送った後の手順で作り直しは済んでいるため。
+ * 変わったかどうかに関係なく作り直したいときは、run()に$forceを渡す（neobit:rebuild --force）。
+ *
+ * ■ 順番
+ * JS・CSSを先に、画面を後に作る。npm run buildの表示は数十行あるので、画面の結果の1行が流れて見えなくならないようにするため。
  *
  * ■ 画面
  * 登録された画面の場所（view:cacheと同じ）の全部のBladeを、仮のディレクトリ（bootstrap/cache/views_next）に
@@ -123,11 +127,20 @@ final class AssetRebuilder
     }
 
     /**
-     * 変わったものを作り直し、行ったことを文で返す。何も変わっていなければ空。
+     * 変わったものを作り直し、行ったことを返す。何も変わっていなければ空。
+     * $forceなら、変わったかどうかに関係なく、画面とJS・CSSの両方を作り直す。
+     * $buildOutputを渡すと、npm run buildの表示を流れているそのままに渡す。手で流したときに、画面に出すため。
      *
-     * @return list<string>
+     * 返す1件の中身：
+     * - kind     first（しるしの記録）・packages（パッケージの変化）・assets（JS・CSS）・views（画面）
+     * - ok       うまくいったか
+     * - message  行ったことの文。ログにも同じ文を書く
+     * - detail   失敗したときの、npm run buildの表示の最後の行。無ければnull
+     *
+     * @param  callable(string): void|null  $buildOutput
+     * @return list<array{kind: string, ok: bool, message: string, detail: ?string}>
      */
-    public function run(): array
+    public function run(bool $force = false, ?callable $buildOutput = null): array
     {
         $current = [
             'views' => $this->signature($this->viewPaths(), ['blade.php']),
@@ -135,30 +148,31 @@ final class AssetRebuilder
             'packages' => $this->signature($this->existing(self::PACKAGE_FILES), []),
         ];
 
-        // 初めて動いたときは、しるしだけを記録する
+        // 初めて動いたときは、しるしだけを記録する。作り直すよう言われたときは、そのまま作り直す
         $saved = $this->savedState();
-        if ($saved === null) {
+        if ($saved === null && ! $force) {
             $this->saveState($current);
 
-            return ['しるしを記録しました。次に元のファイルが変わったときから作り直します。'];
+            return [$this->result('first', true, 'しるしを記録しました。次に元のファイルが変わったときから作り直します。')];
         }
 
         $done = [];
 
         // パッケージが変わったときは、JS・CSSは作らずに知らせる。npm ciは人が行う
-        $packagesChanged = $current['packages'] !== ($saved['packages'] ?? null);
+        $packagesChanged = $saved !== null && $current['packages'] !== ($saved['packages'] ?? null);
         if ($packagesChanged) {
             $message = 'package.json か package-lock.json が変わりました。npm ci と npm run build を流してください。JS・CSS は作り直していません。';
             Log::error($message);
-            $done[] = $message;
+            $done[] = $this->result('packages', false, $message);
         }
 
-        if ($current['views'] !== ($saved['views'] ?? null)) {
+        // JS・CSSを先に作る。npm run buildの長い表示の後に、画面の結果が来るようにするため
+        if (! $packagesChanged && ($force || $current['assets'] !== ($saved['assets'] ?? null))) {
+            $done[] = $this->rebuildAssets($buildOutput);
+        }
+
+        if ($force || $current['views'] !== ($saved['views'] ?? null)) {
             $done[] = $this->rebuildViews();
-        }
-
-        if (! $packagesChanged && $current['assets'] !== ($saved['assets'] ?? null)) {
-            $done[] = $this->rebuildAssets();
         }
 
         // 失敗したときも記録する。元のファイルがまた変わるまでは作り直さない
@@ -169,12 +183,19 @@ final class AssetRebuilder
         return $done;
     }
 
+    /** run()が返す1件 */
+    private function result(string $kind, bool $ok, string $message, ?string $detail = null): array
+    {
+        return ['kind' => $kind, 'ok' => $ok, 'message' => $message, 'detail' => $detail];
+    }
+
     // ---- 画面 ----
 
-    /** 仮のディレクトリに全部の画面をコンパイルし、できあがったら入れ替える。行ったことを文で返す */
-    private function rebuildViews(): string
+    /** 仮のディレクトリに全部の画面をコンパイルし、できあがったら入れ替える */
+    private function rebuildViews(): array
     {
         $started = microtime(true);
+        $count = 0;
         $compiled = (string) config('view.compiled');
         $next = $compiled.self::VIEWS_NEXT_SUFFIX;
         $old = $compiled.self::VIEWS_OLD_SUFFIX;
@@ -194,6 +215,7 @@ final class AssetRebuilder
             foreach ($this->viewPaths() as $path) {
                 foreach (Finder::create()->in($path)->exclude('vendor')->name('*.blade.php')->files() as $file) {
                     $compiler->compile($file->getRealPath());
+                    $count++;
                 }
             }
 
@@ -219,13 +241,13 @@ final class AssetRebuilder
             $message = '画面の作り直しに失敗しました。直したBladeを確かめてください。（'.$e->getMessage().'）';
             Log::error($message);
 
-            return $message;
+            return $this->result('views', false, $message);
         }
 
-        $message = '画面を作り直しました。（'.round(microtime(true) - $started, 1).'秒）';
+        $message = '画面を作り直しました。（'.$count.'ファイル、'.round(microtime(true) - $started, 1).'秒）';
         Log::info($message);
 
-        return $message;
+        return $this->result('views', true, $message);
     }
 
     /**
@@ -255,8 +277,13 @@ final class AssetRebuilder
 
     // ---- JS・CSS ----
 
-    /** 仮のディレクトリにビルドし、できあがったら入れ替える。行ったことを文で返す */
-    private function rebuildAssets(): string
+    /**
+     * 仮のディレクトリにビルドし、できあがったら入れ替える。
+     * $buildOutputを渡すと、npm run buildの表示を流れているそのままに渡す
+     *
+     * @param  callable(string): void|null  $buildOutput
+     */
+    private function rebuildAssets(?callable $buildOutput): array
     {
         $started = microtime(true);
         $build = $this->publicPath.'/'.self::BUILD_DIR;
@@ -269,16 +296,19 @@ final class AssetRebuilder
 
         $result = Process::path($this->basePath)
             ->timeout(self::BUILD_TIMEOUT_SECONDS)
-            ->run([(string) config('neobit.rebuild.npm'), 'run', 'build', '--', '--outDir', $next]);
+            ->run(
+                [(string) config('neobit.rebuild.npm'), 'run', 'build', '--', '--outDir', $next],
+                $buildOutput !== null ? fn (string $type, string $output) => $buildOutput($output) : null,
+            );
 
-        // 失敗したときは、前のものを残す
+        // 失敗したときは、前のものを残す。ログには、表示の最後の行も書く
         if (! $result->successful() || ! is_file($next.'/manifest.json')) {
             File::deleteDirectory($next);
-            $lines = array_slice(preg_split('/\R/', trim($result->output()."\n".$result->errorOutput())), -self::FAILED_OUTPUT_LINES);
-            $message = 'JS・CSS の作り直しに失敗しました。前のものを残しています。'."\n".implode("\n", $lines);
-            Log::error($message);
+            $detail = implode("\n", array_slice(preg_split('/\R/', trim($result->output()."\n".$result->errorOutput())), -self::FAILED_OUTPUT_LINES));
+            $message = 'JS・CSS の作り直しに失敗しました。前のものを残しています。';
+            Log::error($message."\n".$detail);
 
-            return $message;
+            return $this->result('assets', false, $message, $detail);
         }
 
         // 入れ替える。前のものは、名前を変えてから消す
@@ -291,7 +321,7 @@ final class AssetRebuilder
         $message = 'JS・CSS を作り直しました。（'.round(microtime(true) - $started, 1).'秒）';
         Log::info($message);
 
-        return $message;
+        return $this->result('assets', true, $message);
     }
 
     /**

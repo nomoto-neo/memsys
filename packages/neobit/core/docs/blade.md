@@ -84,7 +84,8 @@ resolve: {
 
 `php artisan neobit:rebuild` を流せば、この2つを個別に流さずに済みます。前に作り直したときから変わったほうだけを、画面は `view:cache` と同じように、JS・CSS は `npm run build` で作り直します。作り終えてから入れ替えるので、作っている間も前の画面と JS・CSS が出ます。
 
-- 初めて流したときは、作り直さずに、今のファイルのしるしを記録するだけです。最初の1回は、`view:cache` と `npm run build` を流します。
+- 初めて流したときは、作り直さずに、今のファイルのしるしを記録するだけです。最初の1回は、`view:cache` と `npm run build` を流すか、`--force` を付けて流します。
+- `--force` を付けると、元のファイルが変わっていなくても、画面と JS・CSS の両方を作り直します。
 - `package.json`・`package-lock.json` が変わったときは、JS・CSS を作りません。`npm ci` と `npm run build` を流します。
 - コードを更新する利用者（devapp など）で流します。作ったファイルの持ち主になるためです。
 

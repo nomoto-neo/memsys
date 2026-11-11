@@ -400,6 +400,7 @@ has   resources/views/layouts/admin.blade.php                           'bootstr
 has   resources/views/admin/_menu.blade.php                             'bi-house-door'
 has   packages/neobit/core/src/Operations/AssetRebuilder.php            'build_next'
 has   packages/neobit/core/src/Console/Rebuild.php                      'neobit:rebuild'
+has   packages/neobit/core/src/Console/Rebuild.php                      '{--force'
 has   packages/neobit/core/config/neobit/rebuild.php                    'REBUILD_NPM'
 has   config/view.php                                                   'check_cache_timestamps'
 has   packages/neobit/core/src/Security/BasicAuth.php                   "'app/basic_auth'"

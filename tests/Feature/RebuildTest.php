@@ -33,9 +33,9 @@ class RebuildTest extends TestCase
         file_put_contents($this->base.'/resources/js/app.js', 'console.log(1);');
         file_put_contents($this->base.'/package.json', '{}');
         file_put_contents($this->base.'/public/build/manifest.json', '{"old":true}');
-        file_put_contents($this->base.'/bootstrap/cache/views/.gitignore', "*
+        file_put_contents($this->base.'/bootstrap/cache/views/.gitignore', '*
 !.gitignore
-");
+');
 
         // 画面の場所とコンパイル済みの置き場所を、作業用のディレクトリにする
         config(['view.compiled' => $this->base.'/bootstrap/cache/views', 'neobit.rebuild.npm' => 'npm']);
@@ -71,6 +71,23 @@ class RebuildTest extends TestCase
         });
     }
 
+    /**
+     * 表示を出す、本物のプロセスのビルド。npmの代わりにPHPで「run」というスクリプトを動かし、
+     * 「built」と出して、出し先（--outDirの次）にmanifest.jsonを書く。表示が流れてくるかを確かめるため
+     */
+    private function scriptBuild(): void
+    {
+        $script = <<<'PHP'
+            <?php
+            $dir = $argv[array_search('--outDir', $argv, true) + 1];
+            @mkdir($dir, 0777, true);
+            file_put_contents($dir.'/manifest.json', '{"new":true}');
+            echo "built\n";
+            PHP;
+        file_put_contents($this->base.'/run', $script);
+        config(['neobit.rebuild.npm' => PHP_BINARY]);
+    }
+
     /** 元のファイルを書き換える。日時が同じ秒にならないよう、日時も進める */
     private function touchSource(string $path, string $contents): void
     {
@@ -84,7 +101,7 @@ class RebuildTest extends TestCase
 
         $done = $this->rebuilder()->run();
 
-        $this->assertStringContainsString('しるしを記録しました', $done[0]);
+        $this->assertStringContainsString('しるしを記録しました', $done[0]['message']);
         $this->assertFileExists($this->base.'/bootstrap/cache/rebuild.json');
         $this->assertSame([], glob($this->base.'/bootstrap/cache/views/*.php'));
         Process::assertNothingRan();
@@ -102,7 +119,7 @@ class RebuildTest extends TestCase
         $this->touchSource('resources/views/news.blade.php', '<h1>お知らせ</h1>');
         $done = $this->rebuilder()->run();
 
-        $this->assertStringContainsString('画面を作り直しました', $done[0]);
+        $this->assertStringContainsString('画面を作り直しました', $done[0]['message']);
         $this->assertCount(2, glob($this->base.'/bootstrap/cache/views/*.php'));
         $this->assertFileExists($this->base.'/bootstrap/cache/views/.gitignore');
         $this->assertDirectoryDoesNotExist($this->base.'/bootstrap/cache/views_next');
@@ -124,7 +141,7 @@ class RebuildTest extends TestCase
         $this->touchSource('resources/js/app.js', 'console.log(2);');
         $done = $this->rebuilder()->run();
 
-        $this->assertStringContainsString('JS・CSS を作り直しました', $done[0]);
+        $this->assertStringContainsString('JS・CSS を作り直しました', $done[0]['message']);
         $this->assertSame('{"new":true}', file_get_contents($this->base.'/public/build/manifest.json'));
         $this->assertDirectoryDoesNotExist($this->base.'/public/build_next');
         $this->assertDirectoryDoesNotExist($this->base.'/public/build_old');
@@ -138,8 +155,8 @@ class RebuildTest extends TestCase
         $this->touchSource('resources/js/app.js', 'console.log(;');
         $done = $this->rebuilder()->run();
 
-        $this->assertStringContainsString('JS・CSS の作り直しに失敗しました', $done[0]);
-        $this->assertStringContainsString('SyntaxError', $done[0]);
+        $this->assertStringContainsString('JS・CSS の作り直しに失敗しました', $done[0]['message']);
+        $this->assertStringContainsString('SyntaxError', $done[0]['detail']);
         $this->assertSame('{"old":true}', file_get_contents($this->base.'/public/build/manifest.json'));
         $this->assertDirectoryDoesNotExist($this->base.'/public/build_next');
 
@@ -156,9 +173,48 @@ class RebuildTest extends TestCase
         $this->touchSource('resources/js/app.js', 'console.log(3);');
         $done = $this->rebuilder()->run();
 
-        $this->assertStringContainsString('npm ci', $done[0]);
+        $this->assertStringContainsString('npm ci', $done[0]['message']);
         $this->assertSame('{"old":true}', file_get_contents($this->base.'/public/build/manifest.json'));
         Process::assertNothingRan();
+    }
+
+    public function test_force_rebuilds_both_and_builds_scripts_first(): void
+    {
+        $this->scriptBuild();
+        $this->rebuilder()->run();
+
+        // 元のファイルが変わっていなくても、両方を作り直す。JS・CSSが先、画面が後
+        $built = '';
+        $done = $this->rebuilder()->run(force: true, buildOutput: function (string $output) use (&$built) {
+            $built .= $output;
+        });
+
+        $this->assertSame(['assets', 'views'], array_column($done, 'kind'));
+        $this->assertStringContainsString('1ファイル', $done[1]['message']);
+        $this->assertStringContainsString('built', $built);
+        $this->assertSame('{"new":true}', file_get_contents($this->base.'/public/build/manifest.json'));
+    }
+
+    public function test_command_shows_the_results(): void
+    {
+        $this->scriptBuild();
+        $this->app->setBasePath($this->base);
+
+        $this->artisan('neobit:rebuild')
+            ->expectsOutputToContain('しるしを記録しました')
+            ->assertSuccessful();
+
+        // 何も変わっていなければ、そう出す
+        $this->artisan('neobit:rebuild')
+            ->expectsOutputToContain('作り直していません')
+            ->assertSuccessful();
+
+        // 作り直したときは、npm run buildの表示と画面の結果を出す。JS・CSSの結果の行は出さない
+        $this->artisan('neobit:rebuild', ['--force' => true])
+            ->expectsOutputToContain('built')
+            ->expectsOutputToContain('画面を作り直しました')
+            ->doesntExpectOutputToContain('JS・CSS を作り直しました')
+            ->assertSuccessful();
     }
 
     public function test_second_run_waits_while_the_lock_is_held(): void
