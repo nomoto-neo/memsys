@@ -52,6 +52,14 @@ private function prepareInput(array $validated): array
 
 受け付ける拡張子は、種類ごとに `config/neobit.php` の `upload` の節の `image_types`・`attach_types` を使います。
 
+`UPLOAD_FILES` には、その画面で登録・変更する欄だけを書きます。表示だけする欄は書かず、`_ajax_upload_block` も使わずに、モデルの URL のアクセサで表示します（`_ajax_upload_block` は、`UPLOAD_FILES` に無い欄では例外になります）。書いていない欄は、保存のときに触らないので、ファイルも DB の値もそのまま残ります。`saveValues()` の `$saveFieldNames` にも入れません。
+
+```blade
+@if ($model?->list_image_url)
+    <img src="{{ $model->list_image_url }}" alt="" class="border rounded" style="max-width: 90%;">
+@endif
+```
+
 - **必須の欄**：`'required' => true` の欄は、新しいファイル（一時ファイルが今ある）か、消していない今のファイルが無いと、確認画面へ進めず、保存もできません。今のファイルは、hidden の値をそのまま信じず、編集しているレコードの今の値と照らします。組の中の欄では、空でない行のどれにもファイルを求めます（今のファイルは、その行の今の値と照らします）。「少なくとも1つ」は、組の `'min' => 1` で決めます。
     - エラーの文は、通常の項目と同じ `validation.required` です。エラーは欄の名前（組の中の欄は `photos_image.0` のように行ごと）に付き、`_ajax_upload_block` が自分で `invalid-feedback` を出します。
     - 必須マークは `requiredFields()` が付けます。画面では `{!! $required['list_image'] ?? '' !!}` と書きます。
