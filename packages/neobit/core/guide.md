@@ -27,6 +27,7 @@
 - [削除](docs/delete.md)：物理削除（`deleteData()`）と、論理削除・取り消し
 - [テーブル](docs/table.md)：フレームワークのテーブルのマイグレーションと、新しく登録する行の id の始まり
 - [画面（Blade）](docs/blade.md)：レイアウト、画面ごとのスクリプト、全体の CSS、画面で使えるヘルパー、スクリプトと CSS のビルド、サーバーでの作り直し（`neobit:rebuild`）
+- [ツール](docs/tools.md)：テーブルから入力の検証と保存の下書きを作る（`table2rules.php`）、Smarty のテンプレートを Blade に書き換える（`tpl2blade.php`）
 
 ## ファイルと入出力
 

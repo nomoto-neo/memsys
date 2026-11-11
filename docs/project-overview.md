@@ -52,7 +52,7 @@ Laravel の標準の構成に、次のものを足している（各ディレク
 | `resources/js/` | 画面ごとの JavaScript。足したら `vite.config.js` の一覧にも足す。フレームワークのスクリプトと CSS は `packages/neobit/core/resources/` にあり、`vite.config.js` には `vendor/neobit/core/` の下のパスで書く |
 | `resources/mail-templates/` | メールのテンプレート |
 | `docs/` | このプロジェクトの文書（下の「文書」） |
-| `tools/` | 開発の道具。`table2rules.php` は、テーブルの定義からコントローラーとモデルの下書きを書き出す |
+| `tools/` | 開発の道具。使い方は、利用ガイドの tools.md |
 | `check_latest.sh` | サーバーへ送ったファイルが最新かを確かめるスクリプト |
 | `set_permissions.sh` | サーバーのファイルの持ち主・権限・setgid・ACL を、決まった形にそろえるスクリプト（root で実行） |
 

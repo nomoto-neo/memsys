@@ -17,6 +17,8 @@
 | `operationLogActionType($created)` | | 操作ログ（[operation-log.md](operation-log.md)）に残す操作の種類。登録・更新とは別の名前で残したいコーナーで書く（例：一斉メールの送信） |
 | `beforeDelete($record)` | | 削除の直前（[delete.md](delete.md)） |
 
+`rules()`・`formValues()`・`saveValues()` と、モデルの `$fillable`・`$casts` の下書きは、テーブルから `table2rules.php` で書き出せます（[tools.md](tools.md)）。
+
 アップロード項目は `saveValues()` に入れません（`commitUploads()` が保存します）。多対多は `afterSave()` で保存します。
 
 ## 保存する値

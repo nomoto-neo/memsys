@@ -27,6 +27,7 @@
 - **戻り先**：一覧へ戻るリンクは `route('admin.xxx.index', ['back'])`。
 - **共通の部分ビュー**（`_confirm_hidden`・`_ajax_upload_block` など）は、フレームワークの `packages/neobit/core/resources/views/` に置き、モデル名やコントローラー名を書きません。コーナー専用のテンプレート（`admin/news/_fields` など）は、アプリの `resources/views/` に置き、そのコーナーのモデルの定数を参照してかまいません。フレームワークの画面は、`neobit::` を付けた名前で `@include` します（例：`@include('neobit::_confirm_hidden')`）。見た目や文言を変えたいときは、アプリの `resources/views/vendor/neobit/` に同じ名前（例：`_confirm_hidden.blade.php`）で置くと、そちらが使われます。
 - **フレームワークの画面が継承するレイアウト**は、`config/neobit.php` の `layouts`（`admin`・`app`）で、アプリのレイアウトに差し替えます。既定は、Bootstrap だけの `neobit::layouts.plain` です。レイアウトには、セクション `title`・`content`（必須）・`content-width` と、スタック `head-extra`・`scripts` を用意します。
+- **旧フレームワークのテンプレート**：Smarty のテンプレート（`.tpl`）は、`tpl2blade.php` で Blade に書き換えられます（[tools.md](tools.md)）。
 
 ## 画面で使えるヘルパー
 
