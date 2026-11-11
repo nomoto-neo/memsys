@@ -105,8 +105,8 @@ sudo bash set_permissions.sh --apply    # 実際に変える
 | `.env` と、`.env.` で始まる控え（`.env.example`・`.env.unused` を除く） | `devapp:dev` | 読み書き可能 | 読めない（よく知られたファイル名で、攻撃の的になりやすいため） | なし |
 
 - ディレクトリは全部、setgid と既定の ACL を付けます。中に新しく作ったファイルも、誰が作っても同じ形になります。
-- **`storage/` のほかに apache が書き込むディレクトリ**は、プロジェクトの直下の `set_permissions.writable` に、プロジェクトの直下からのパスを1行に1つ書きます（WordPress のアップロードの置き場所など。[wordpress.md](wordpress.md)）。`storage/` と同じ形にそろえ、無ければ作ります。`#` で始まる行と空の行は読み飛ばします。プロジェクトの外を変えないよう、`/` で始まるパス・`..` を含むパス・シンボリックリンクがあれば、何も変えずに止まります。案件ごとの一覧なので、`set_permissions.sh` とは別のファイルにしています。フレームワークを更新して `set_permissions.sh` を差し替えても、一覧は残ります。
-- apache が書ける場所は、侵入されたときに書き換えられる場所です。要る場所だけを書きます。公開ディレクトリの中の場所は、書き込まれたファイルを URL で開かれるので、改ざん監視の見方（[file-watch.md](file-watch.md)）も合わせて決めます。
+- apache が書ける場所は、侵入されたときに書き換えられる場所です。`storage/` のほかに書かせる場所は、要るものだけにします。公開ディレクトリの中の場所は、書き込まれたファイルを URL で開かれるので、改ざん監視の見方（[file-watch.md](file-watch.md)）も合わせて決めます。
+- **`storage/` のほかに apache が書き込むディレクトリ**は、プロジェクトの直下の `set_permissions.writable` に書いてから、`sudo bash set_permissions.sh --apply` を実行します。`set_permissions.writable` には、プロジェクトの直下からのパスを1行に1つ書きます（WordPress のアップロードの置き場所など。[wordpress.md](wordpress.md)）。`storage/` と同じ形にそろえ、無ければ作ります。`#` で始まる行と空の行は読み飛ばします。プロジェクトの外を変えないよう、`/` で始まるパス・`..` を含むパス・シンボリックリンクがあれば、何も変えずに止まります。案件ごとの一覧なので、`set_permissions.sh` とは別のファイルにしています。フレームワークを更新して `set_permissions.sh` を差し替えても、一覧は残ります。
 - 利用者の名前は `--owner`（持ち主）・`--group`（作業のグループ）・`--web-user`（Web の利用者）で変えられます。省けば `devapp`・`dev`・`apache` です。
 - 次のときは、何も変えずに止まります：root でない、`artisan` が無い、利用者やグループが無い、`setfacl` が無い、SELinux が `Disabled` でない（このサーバーでは最初に Disabled にしているので、設定の漏れとして止める）。
 - 次のときは、警告だけを出します：Web の利用者が作業のグループに入っている（グループで書けるコードを Web の側から書き換えられる）、PHP-FPM のプールが Web の利用者で動いていない。
