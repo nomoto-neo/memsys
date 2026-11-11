@@ -13,7 +13,7 @@
 | 3 | `npm run build` | `resources/js`・`resources/css`・`vite.config.js` を変えたとき、フレームワークを更新したとき。JS・CSS だけの差し替えは、cron の `neobit:rebuild` に任せられる（下の「画面と JS・CSS の作り直し」） |
 | 4 | `php artisan migrate` | マイグレーションを足したとき |
 | 5 | `php artisan config:cache` | 毎回。`.env` か `config/` を変えたときは必ず |
-| 6 | `php artisan view:cache` | 毎回。apache はコンパイル済みの画面を作れないので、ここで全部作る。Blade だけの差し替えは、cron の `neobit:rebuild` に任せられる |
+| 6 | `php artisan view:cache` | apache が書けない環境では毎回 |
 | 7 | `php artisan neobit:gatekeeper --export` | 毎回。入口の見張りの状態と画面を、今の設定で書き出し直す（[ip-block.md](ip-block.md)） |
 
 - **`config:cache` は必須です**。サーバーでは、PHP-FPM を apache で動かし、`.env` は apache から読めないようにしています。`config:cache` は `.env` の値を取り込んだ `bootstrap/cache/config.php` を作り、Laravel はそれだけを読むようになるので、apache が `.env` を読めなくても画面も cron も動きます。
@@ -32,6 +32,19 @@
 - フレームワークを更新して、見本のサイトの `public/index.php`・`public/.htaccess` が変わったときは、それも案件のサーバーへ写します（[ip-block.md](ip-block.md)の入口の見張り、[public-files.md](public-files.md)）。
 - WordPress を置くサイトは、`php artisan neobit:gatekeeper` で `WordPress の保護機能：` の行も確かめます（[wordpress.md](wordpress.md)）。`prepend` の段は、Laravel のページ（管理画面など）を1回開いてから確かめます。WordPress のページは Laravel を通らないので、確かめになりません。
 - **改ざん監視を使っているサイトは、ファイルを送るときに鍵のファイル（既定は `.version`）も、中身を変えて送ります**（[file-watch.md](file-watch.md)）。送り忘れると、更新したファイルが改ざんとして知らされます。
+
+## 画面のコンパイルと、apache が書けるか
+
+コンパイル済みの画面の置き場所（`bootstrap/cache/views`）に、画面を出す PHP（apache）が書けるかで、設定が変わります。Laravel は、画面を出すたびに元の Blade がコンパイル済みのファイルより新しいかを確かめ、新しければその場でコンパイルし直すためです。
+
+| | apache が書ける環境 | apache が書けない環境（この手順のサーバー） |
+|---|---|---|
+| 例 | 手元の開発環境、PHP がファイルの持ち主で動くレンタルサーバー | 上の権限の形にした VPS |
+| `view:cache` | 要らない。画面を開いたときにコンパイルし直す | 要る。送った後に流すか、cron の `neobit:rebuild` に任せる |
+| `.env` の `VIEW_CHECK_CACHE_TIMESTAMPS` | `true`（既定） | `false`。書いたら `config:cache` をやり直す |
+| cron の `neobit:rebuild` | 要らない | 設定する（下の「画面と JS・CSS の作り直し」） |
+
+- 書けない環境で `true` のままにすると、Blade を送った直後に画面を開いたときに、コンパイルし直そうとして書けずにエラーになります。`false` にすると確かめをやめ、作り直すまでの間は前の画面を出します。
 
 ## 画面と JS・CSS の作り直し（neobit:rebuild）
 
@@ -53,7 +66,7 @@ cron を使わなくても、シェルで `php artisan neobit:rebuild` を流せ
   *   * * * * devapp cd /var/www/memsys_dev && /usr/bin/php artisan neobit:rebuild > /dev/null
   ```
 
-- `.env` に `VIEW_CHECK_CACHE_TIMESTAMPS=false` を書き、`config:cache` をやり直します。元の画面のファイルが新しくても、apache が作り直そうとせず、作り直すまでは前の画面を出すようになります。手元の開発環境は `true`（既定）のままにし、直したらすぐ画面に出します。
+- `.env` に `VIEW_CHECK_CACHE_TIMESTAMPS=false` を書き、`config:cache` をやり直します。
 - cron の中で `npm` の場所が見つからないサーバーは、`.env` の `REBUILD_NPM` に絶対のパスを書きます（例：`/usr/bin/npm`）。
 - `sudo bash set_permissions.sh` で、devapp が `bootstrap/cache/views`・`public`・`node_modules` に書けることを確かめます。
 
