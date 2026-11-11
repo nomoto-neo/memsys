@@ -47,7 +47,7 @@ cron を使わなくても、シェルで `php artisan neobit:rebuild` を流せ
 
 ### サーバーの設定（1回だけ。サーバーを管理する人）
 
-- `/etc/cron.d/` の改ざん監視の行の下に、1行を足します。Laravel のスケジューラー（apache の cron）には入れません。
+- `/etc/cron.d/` に、次の1行を足します。コードを更新する利用者（開発サーバーでは devapp）で動かします。
 
   ```
   *   * * * * devapp cd /var/www/memsys_dev && /usr/bin/php artisan neobit:rebuild > /dev/null
