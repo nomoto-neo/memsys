@@ -1,4 +1,4 @@
-# サイトの設定
+# 環境設定
 
 <p align="right"><a href="../guide.md">利用ガイドへ戻る</a></p>
 

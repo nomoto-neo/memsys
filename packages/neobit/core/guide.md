@@ -54,7 +54,7 @@
 ## 設置と運用
 
 - [サーバーへの設置と更新](docs/deploy.md)：サーバーへ送った後に実行するコマンド、画面と JS・CSS の作り直し、サーバーの権限
-- [サイトの設定](docs/settings.md)：設定の既定の値と案件での上書き、サイトの名前、管理画面の URL と見た目、プロキシ、セキュリティのヘッダー
+- [環境設定](docs/settings.md)：設定の既定の値と案件での上書き、サイトの名前、管理画面の URL と見た目、プロキシ、セキュリティのヘッダー
 - [スケジューラー](docs/scheduler.md)：定期的な処理と cron の設定。cron の動かないサーバーでの動かし方
 - [エラーの通知](docs/error-notify.md)：ログに書いたエラーを、開発者へメールで知らせる（`ErrorNotifyHandler`）
 - [操作ログ](docs/operation-log.md)：誰が・いつ・どこから・何に・何をしたかの記録と、毎朝の報告（`OperationRecorder`）
