@@ -96,13 +96,13 @@ sudo bash set_permissions.sh            # 実行するコマンドと、今の�
 sudo bash set_permissions.sh --apply    # 実際に変える
 ```
 
-| 場所 | 持ち主 | 作業のグループ | Web の利用者（ACL） | その他の人 |
+| 場所 | 持ち主 | 作業のグループ | Web の利用者（apache） | その他の人 |
 |---|---|---|---|---|
-| 全体（コード・`vendor` など） | `devapp:dev` | 読み書き | 読むだけ | なし |
-| `bootstrap/cache/` | `devapp:dev` | 読み書き | 読むだけ（設定のキャッシュ、コンパイル済みの画面、改ざん監視の記録を、Web の側から書き換えられないようにする） | なし |
-| `storage/` の下 | `apache:dev` | 読み書き | 読み書き | なし |
-| `set_permissions.writable` に書いたディレクトリ | `apache:dev` | 読み書き | 読み書き | なし |
-| `.env` と、`.env.` で始まる控え（`.env.example`・`.env.unused` を除く） | `devapp:dev` | 読み書き | 読めない | なし |
+| 全体（コード・`vendor` など） | `devapp:dev` | 読み書き可能 | 読むだけ | なし |
+| `bootstrap/cache/` | `devapp:dev` | 読み書き可能 | 読むだけ（設定のキャッシュ、コンパイル済みの画面、改ざん監視の記録を、Web の側から書き換えられないようにする） | なし |
+| `storage/` の下 | `apache:dev` | 読み書き可能 | 読み書き可能 | なし |
+| `set_permissions.writable` に書いたディレクトリ | `apache:dev` | 読み書き可能 | 読み書き可能 | なし |
+| `.env` と、`.env.` で始まる控え（`.env.example`・`.env.unused` を除く） | `devapp:dev` | 読み書き可能 | 読めない（よく知られたファイル名で、攻撃の的になりやすいため） | なし |
 
 - ディレクトリは全部、setgid と既定の ACL を付けます。中に新しく作ったファイルも、誰が作っても同じ形になります。
 - **`storage/` のほかに apache が書き込むディレクトリ**は、プロジェクトの直下の `set_permissions.writable` に、プロジェクトの直下からのパスを1行に1つ書きます（WordPress のアップロードの置き場所など。[wordpress.md](wordpress.md)）。`storage/` と同じ形にそろえ、無ければ作ります。`#` で始まる行と空の行は読み飛ばします。プロジェクトの外を変えないよう、`/` で始まるパス・`..` を含むパス・シンボリックリンクがあれば、何も変えずに止まります。案件ごとの一覧なので、`set_permissions.sh` とは別のファイルにしています。フレームワークを更新して `set_permissions.sh` を差し替えても、一覧は残ります。
