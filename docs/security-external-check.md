@@ -88,7 +88,7 @@ curl -sS -o /dev/null -D - -u $A $B/ | grep -i "^set-cookie" | sed -E 's/=[^;]{2
 for p in /.env /.env.example /.env.unused /.git/HEAD /.git/config /.gitignore /composer.json /composer.lock \
          /package.json /artisan /CLAUDE.md /docs/security-issues.md /storage/logs/laravel.log \
          /storage/app/private/ /vendor/autoload.php /config/app.php /bootstrap/cache/config.php \
-         /database/ /tools/table2rules.php /code/prefectures.csv /phpinfo.php /info.php \
+         /database/ /tools/table2draft.php /code/prefectures.csv /phpinfo.php /info.php \
          /server-status /server-info /.htaccess /public/index.php /build/ /storage/ \
          /backup.sql /dump.sql /adminer.php /phpmyadmin/; do
   printf "%-34s %s\n" "$p" "$(curl -sS -o /dev/null -w '%{http_code} %{size_download}B' -u $A $B$p)"
