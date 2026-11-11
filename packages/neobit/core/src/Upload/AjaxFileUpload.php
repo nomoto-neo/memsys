@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Neobit\Core\Operations\TemporaryDataCleaner;
 use Neobit\Core\Rules\UploadRequiredRule;
 
@@ -161,8 +162,9 @@ trait AjaxFileUpload
         try {
             $this->cleanupTmpDirectory();
 
-            // 一時ディレクトリにランダムな名前で置き、画像なら縮小する
-            $tmpName = $file->hashName();
+            // 一時ディレクトリにランダムな名前で置き、画像なら縮小する。拡張子は、ファイルの中身から判断した種類で付ける
+            $extension = $file->guessExtension();
+            $tmpName = Str::random(UploadFilePath::FILENAME_LENGTH).($extension ? ".{$extension}" : '');
             $storedPath = $file->storeAs(UploadFilePath::TMP_DIR, $tmpName, UploadFilePath::TMP_DISK);
 
             if ($storedPath === false) {

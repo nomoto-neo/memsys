@@ -78,7 +78,7 @@ private function prepareInput(array $validated): array
 - **組の中のフィールド**（`attach.*.file`）：子テーブルに、列（`file`）と、列の名前に `_origin` を付けた表示名の列（`file_origin`。NULL可）を作り、組の名前と同じ HasMany リレーション（`News::attach()`）を用意します。
 - 許可する拡張子・大きさの上限は、サイト全体の方針として `config/neobit.php` の `upload` の節で決めます。コーナーごとには変えません。画像の種類を変えたら、エディタでファイルを選ぶときの絞り込み（`wysiwyg_suneditor.js`・`wysiwyg_summernote.js` の `ACCEPT_IMAGE_TYPES`）も合わせます。CSV の取り込みの大きさの上限（`csv_max_kb`）も、ここにあります。
 - **保存先**：モデルのクラス名と id から、保存先の規則が決めます（既定の例：`news/000/000012/xxxx.jpg`。規則の差し替えは下の「保存先の規則を変えるとき」）。1件分のファイルはフィールドに関係なく1つのディレクトリに入ります。
-- **ファイル名**：保存するファイル名は、受け取ったときに付けた40文字のランダムな英数字と、ファイルの中身から判断した拡張子です（例：`a8Kq3ZtR…x7.jpg`）。元のファイル名は使わず、`列_origin` に表示名として残します。同じ名前のファイルがぶつからず、URL からほかのファイルの名前を当てられないようにするためです。
+- **ファイル名**：保存するファイル名は、受け取ったときに付けた12文字のランダムな英数字（`UploadFilePath::FILENAME_LENGTH`）と、ファイルの中身から判断した拡張子です（例：`a8Kq3ZtRw2Lx.jpg`）。元のファイル名は使わず、`列_origin` に表示名として残します。同じ名前のファイルがぶつからず、URL からほかのファイルの名前を当てられないようにするためです。
 - **表示の URL**：`UploadFilePath::url(クラス, id, フィールド, ファイル名)` で作り、モデルのアクセサにしておきます（例：`News::list_image_url`、`NewsAttachment::url`）。
 
     ```php
