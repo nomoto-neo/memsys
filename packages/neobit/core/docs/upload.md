@@ -77,7 +77,18 @@ private function prepareInput(array $validated): array
 - **単数のフィールド**（`list_image`）：テーブルに `list_image`（保存ファイル名）と `list_image_origin`（元のファイル名）のカラムを作り、モデルの `$fillable` に入れます。
 - **組の中のフィールド**（`attach.*.file`）：子テーブルに、列（`file`）と、列の名前に `_origin` を付けた表示名の列（`file_origin`。NULL可）を作り、組の名前と同じ HasMany リレーション（`News::attach()`）を用意します。
 - 許可する拡張子・大きさの上限は、サイト全体の方針として `config/neobit.php` の `upload` の節で決めます。コーナーごとには変えません。画像の種類を変えたら、エディタでファイルを選ぶときの絞り込み（`wysiwyg_suneditor.js`・`wysiwyg_summernote.js` の `ACCEPT_IMAGE_TYPES`）も合わせます。CSV の取り込みの大きさの上限（`csv_max_kb`）も、ここにあります。
-- **保存先**：モデルのクラス名と id から、保存先の規則が決めます（既定の例：`news/000/000012/xxxx.jpg`。規則の差し替えは下の「保存先の規則を変えるとき」）。1件分のファイルはフィールドに関係なく1つのディレクトリに入ります。表示の URL は `UploadFilePath::url(クラス, id, フィールド, ファイル名)` で作り、モデルのアクセサにしておきます（例：`News::list_image_url`、`NewsAttachment::url`）。
+- **保存先**：モデルのクラス名と id から、保存先の規則が決めます（既定の例：`news/000/000012/xxxx.jpg`。規則の差し替えは下の「保存先の規則を変えるとき」）。1件分のファイルはフィールドに関係なく1つのディレクトリに入ります。
+- **表示の URL**：`UploadFilePath::url(クラス, id, フィールド, ファイル名)` で作り、モデルのアクセサにしておきます（例：`News::list_image_url`、`NewsAttachment::url`）。
+
+    ```php
+    // モデル。画面からは $news->list_image_url で読める。未登録なら null
+    protected function listImageUrl(): Attribute
+    {
+        return Attribute::make(
+            get: fn () => UploadFilePath::url(self::class, $this->getKey(), 'list_image', $this->list_image),
+        );
+    }
+    ```
 
 ## 画面
 
